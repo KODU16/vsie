@@ -1,0 +1,27 @@
+{
+    "itemGroup.vsie.base": "vsie",
+
+    "block.vsie.control_seat": "control seat",
+    "block.vsie.basic_thruster": "basic thruster",
+    "block.vsie.medium_laser_turret": "medium laser turret",
+    "item.vsie.control_seat": "control seat",
+    "item.vsie.test_item": "test item",
+
+    "category.vsie": "vsie controls",
+    "key.vsie.toggle_mouse_lock": "toggle mouse lock",
+    "key.vsie.throttle": "throttle up",
+    "key.vsie.brake": "throttle down",
+    "key.vsie.roll_left": "roll left",
+    "key.vsie.roll_right": "roll right",
+    "key.vsie.adjust_left":"adjust movement left",
+    "key.vsie.adjust_right":"adjust movement right",
+    "key.vsie.scan_peripheral": "scan peripheral",
+    "key.vsie.break": "(useless, misspell of brake)",
+
+    "gui.turret.energy_per_shot": "energy per shot",
+    "gui.turret.target_hostile": "shoot at hostile entities",
+    "gui.turret.target_passive": "shoot at passive entities",
+    "gui.turret.target_players": "shoot at players",
+    "gui.turret.target_ship": "shoot at vs ships"
+
+}

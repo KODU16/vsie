@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "vsie:block/control_seat"
+    },
+    "facing=south": {
+      "model": "vsie:block/control_seat",
+      "y": 180
+    },
+    "facing=east": {
+      "model": "vsie:block/control_seat",
+      "y": 90
+    },
+    "facing=west": {
+      "model": "vsie:block/control_seat",
+      "y": 270
+    }
+  }
+}

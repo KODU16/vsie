@@ -1,0 +1,6 @@
+{
+  "parent": "vsie:block/gecko_block",
+  "textures": {
+    "particle": "vsie:block/medium_laser_turret"
+  }
+}

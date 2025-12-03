@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.kodu16.vsie.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "MouseInputMixin"
+  ],
+  "client": [
+    "MouseInputMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "refmap": "vsie.refmap.json"
+}
