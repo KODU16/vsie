@@ -13,7 +13,7 @@ public class Decorative {
     private static final int SUB_COLOR  = FastColor.ARGB32.color(TEXT_ALPHA, 0x99, 0xFF, 0xFF);
     private static final Minecraft mc = Minecraft.getInstance(); // drawGlowText 要用
 
-    public static void renderThrottleIndicator(GuiGraphics gg, int throttlePercent) {
+    public static void renderDecorative(GuiGraphics gg) {
         int sw = mc.getWindow().getGuiScaledWidth();
         int sh = mc.getWindow().getGuiScaledHeight();
         int centerX = sw / 2;

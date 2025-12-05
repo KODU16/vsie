@@ -75,6 +75,9 @@ public class HudOverlay {
             int throttle = controlseat.getThrottle();
             ThrottleIndicator.renderThrottleIndicator(gg, throttle);
 
+            //装饰
+            Decorative.renderDecorative(gg);
+
             RenderSystem.disableBlend();
         }
     }
