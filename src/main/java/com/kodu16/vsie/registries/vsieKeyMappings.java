@@ -72,6 +72,8 @@ public class vsieKeyMappings {
         event.register(KEY_THROTTLE);
         event.register(KEY_BRAKE);
         event.register(KEY_SCAN_PERIPHERAL);
+        event.register(KEY_ROLL_L);
+        event.register(KEY_ROLL_R);
         // 注册其他键位
         // event.register(KEY_ANOTHER_ACTION);
     }

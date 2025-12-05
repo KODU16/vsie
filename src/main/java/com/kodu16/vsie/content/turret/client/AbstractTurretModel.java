@@ -90,14 +90,14 @@ public class AbstractTurretModel extends DefaultedBlockGeoModel<AbstractTurretBl
                 float yRot = lerp(animatable.yRot0, (float) ((3 * Mth.HALF_PI) - Math.atan2(deltaPos.z, deltaPos.x)));
                 animatable.xRot0 = xRot;
                 animatable.yRot0 = yRot;
-                cannon.setRotX(xRot);
+                cannon.setRotX(xRot+Mth.HALF_PI);
                 turret.setRotY(yRot);
             } else {
                 float xRot = lerp(animatable.xRot0, -Mth.HALF_PI);
                 float yRot = lerp(animatable.yRot0, 0);
                 animatable.xRot0 = xRot;
                 animatable.yRot0 = yRot;
-                cannon.setRotX(xRot);
+                cannon.setRotX(xRot+Mth.HALF_PI);
                 turret.setRotY(yRot);
             }
         }

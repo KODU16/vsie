@@ -3,14 +3,19 @@ package com.kodu16.vsie.content.controlseat.block;
 import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.Initialize;
 import com.kodu16.vsie.content.controlseat.ShipControlEvent;
+import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
 import com.kodu16.vsie.content.controlseat.client.ClientInputHandler;
 
 import com.kodu16.vsie.content.controlseat.server.SeatRegistry;
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlockEntity;
+import com.kodu16.vsie.content.turret.TurretData;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.common.MinecraftForge;
 import org.slf4j.Logger;
@@ -43,6 +48,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
     //private final ControlSeatServerData serverData = new ControlSeatServerData();
     public static boolean ride = false;
     private boolean hasInitialized = false;
+    public int throttle = 0;
     //即使我不想写的这么恶心，为了跨维度我还是得干
     //有两个hashmap，第二个是为了渲染HUD的时候用来反查controlseat
     private List<ShipMountingEntity> seats = new ArrayList<>();
@@ -89,6 +95,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             return;
         if (hasInitialized) {
             broadcastControlInput();
+            this.throttle = getControlSeatData().throttle;
         }
         else {
             LOGGER.warn(String.valueOf(Component.literal("detected uninitialized controlseat, time to sweep valkyrie's ass")));
@@ -132,6 +139,9 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         return true;
     }
 
+    public int getThrottle() {return this.throttle;}
+
+
     public static void lookAtEntityPos(Entity entity, Vec3 target) {
         Vec3 entityPos = entity.getEyePosition();
         double dx = target.x - entityPos.x;
@@ -156,6 +166,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
     }
 
     public ControlSeatServerData getServerData() { return controlseatData; }
+
+    //public ControlSeatClientData getClientData() { return ControlSeatClientData; }
 
     public boolean sit(Player player, boolean force) {
         if (player.level().isClientSide) {
@@ -246,5 +258,38 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             player.displayClientMessage(Component.literal("ride = false"), true);
         }
         return ride;
+    }
+
+
+    @Override
+    public CompoundTag getUpdateTag() {
+        CompoundTag tag = super.getUpdateTag();
+        write(tag, true);
+        return tag;
+    }
+
+    @Override
+    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
+        CompoundTag tag = pkt.getTag();
+        if (tag != null) {
+            handleUpdateTag(tag);
+        }
+    }
+
+    @Override
+    public void handleUpdateTag(CompoundTag tag) {
+        read(tag, true);
+    }
+
+    @Override
+    protected void write(CompoundTag tag, boolean clientPacket) {
+        super.write(tag, clientPacket);
+        tag.putInt("throttle", this.getThrottle());
+    }
+
+    @Override
+    protected void read(CompoundTag tag, boolean clientPacket) {
+        super.read(tag, clientPacket);
+        if (tag.contains("throttle")) {this.throttle = tag.getInt("throttle");}
     }
 }

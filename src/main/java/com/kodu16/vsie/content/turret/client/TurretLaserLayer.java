@@ -24,8 +24,8 @@ public class TurretLaserLayer extends GeoRenderLayer<AbstractTurretBlockEntity> 
     private static final int SEGMENTS = 4;
     private static final int LENGTH_SEGMENTS = 12;
     public double FLAME_LENGTH = 0f;
-    private static final float BASE_RADIUS = 0.3f;
-    private static final float TIP_RADIUS = 0.3f;
+    private static final float BASE_RADIUS = 0.25f;
+    private static final float TIP_RADIUS = 0.25f;
 
     // 直接使用我们自己定义的 RenderType
     private static final RenderType FLAME_RENDER_TYPE = translucentbeamrendertype.SOLID_TRANSLUCENT_BEAM;
@@ -38,7 +38,7 @@ public class TurretLaserLayer extends GeoRenderLayer<AbstractTurretBlockEntity> 
                        float partialTick, int packedLight, int packedOverlay) {
 
         poseStack.pushPose();
-        poseStack.translate(0f, 2.5f, 0f);
+        poseStack.translate(0f, 2.0f, 0f);
 
         // 如果你以后需要根据 thruster 朝向旋转，这里可以打开
         // poseStack.mulPose(Axis.YP.rotationDegrees(-entity.getDirection().toYRot()));
