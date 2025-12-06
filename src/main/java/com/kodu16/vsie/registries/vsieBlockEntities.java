@@ -1,5 +1,6 @@
 package com.kodu16.vsie.registries;
 
+import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
 import com.kodu16.vsie.content.thruster.block.basicthruster.BasicThrusterBlockEntity;
 import com.kodu16.vsie.content.turret.block.MediumLaserTurretBlockEntity;
 import com.kodu16.vsie.content.thruster.trailflame.ThrusterFlameRenderer;
@@ -31,5 +32,9 @@ public class vsieBlockEntities {
                     .validBlocks(vsieBlocks.MEDIUM_LASER_TURRET_BLOCK)
                     .onRegister(be -> LOGGER.info("Medium Laser Turret BlockEntity registered!"))
                     .renderer(() -> AbstractTurretGeoRenderer::new)
+                    .register();
+    public static final BlockEntityEntry<ShieldGeneratorBlockEntity> SHIELD_GENERATOR_BLOCK_ENTITY =
+            REGISTRATE.blockEntity("shield_generator_block_entity", ShieldGeneratorBlockEntity::new)
+                    .validBlocks(vsieBlocks.SHIELD_GENERATOR_BLOCK)
                     .register();
 }

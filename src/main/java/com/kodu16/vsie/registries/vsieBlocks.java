@@ -1,5 +1,6 @@
 package com.kodu16.vsie.registries;
 
+import com.kodu16.vsie.content.shield.ShieldGeneratorBlock;
 import com.kodu16.vsie.content.turret.block.MediumLaserTurretBlock;
 import com.kodu16.vsie.content.turret.block.MediumLaserTurretBlockEntity;
 import com.kodu16.vsie.vsie;
@@ -42,51 +43,13 @@ public class vsieBlocks {
             .simpleItem()
             .register();
 
-    /*public static final BlockEntry<InlineOpticalSensorBlock> INLINE_OPTICAL_SENSOR_BLOCK = REGISTRATE.block("inline_optical_sensor", InlineOpticalSensorBlock::new)
-            .properties(p -> p.mapColor(MapColor.COLOR_YELLOW))
+    public static final BlockEntry<ShieldGeneratorBlock> SHIELD_GENERATOR_BLOCK = REGISTRATE.block("shield_generator", ShieldGeneratorBlock::new)
+            .properties(p -> p.mapColor(MapColor.METAL))
+            .properties(p -> p.requiresCorrectToolForDrops())
             .properties(p -> p.sound(SoundType.METAL))
-            .properties(p -> p.strength(1.5F, 1.0F))
+            .properties(p -> p.strength(5.5f, 4.0f))
             .properties(p -> p.noOcclusion())
             .simpleItem()
             .register();
 
-    public static final BlockEntry<OpticalSensorBlock> OPTICAL_SENSOR_BLOCK = REGISTRATE.block("optical_sensor", OpticalSensorBlock::new)
-            .properties(p -> p.mapColor(MapColor.COLOR_YELLOW))
-            .properties(p -> p.sound(SoundType.METAL))
-            .properties(p -> p.strength(2.5F, 2.0F))
-            .properties(p -> p.noOcclusion())
-            .simpleItem()
-            .register();
-
-    public static final BlockEntry<PhysicsAssemblerBlock> PHYSICS_ASSEMBLER_BLOCK = REGISTRATE.block("physics_assembler", PhysicsAssemblerBlock::new)
-            .properties(p -> p.mapColor(MapColor.COLOR_YELLOW))
-            .properties(p -> p.sound(SoundType.METAL))
-            .properties(p -> p.strength(2.5F, 2.0F))
-            .properties(p -> p.noOcclusion())
-            .simpleItem()
-            .register();
-
-    public static final BlockEntry<LodestoneTrackerBlock> LODESTONE_TRACKER_BLOCK = REGISTRATE.block("lodestone_tracker", LodestoneTrackerBlock::new)
-            .properties(p -> p.mapColor(MapColor.COLOR_YELLOW))
-            .properties(p -> p.sound(SoundType.METAL))
-            .properties(p -> p.strength(2.5F, 2.0F))
-            .properties(p -> p.noOcclusion())
-            .simpleItem()
-            .register();
-
-    public static final BlockEntry<RedstoneMagnetBlock> REDSTONE_MAGNET_BLOCK = REGISTRATE.block("redstone_magnet", RedstoneMagnetBlock::new)
-            .properties(p -> p.mapColor(MapColor.COLOR_RED))
-            .properties(p -> p.sound(SoundType.METAL))
-            .properties(p -> p.strength(2.5F, 2.0F))
-            .properties(p -> p.noOcclusion())
-            .simpleItem()
-            .register();
-
-    public static final BlockEntry<TiltSensorBlock> TILT_SENSOR_BLOCK = REGISTRATE.block("tilt_sensor", TiltSensorBlock::new)
-        .properties(p -> p.mapColor(MapColor.COLOR_YELLOW))
-        .properties(p -> p.sound(SoundType.METAL))
-        .properties(p -> p.strength(2.5F, 2.0F))
-        .properties(p -> p.noOcclusion())
-        .simpleItem()
-        .register();*/
 }

@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "vsie:block/shield_generator"
+    },
+    "facing=south": {
+      "model": "vsie:block/shield_generator",
+      "y": 180
+    },
+    "facing=east": {
+      "model": "vsie:block/shield_generator",
+      "y": 90
+    },
+    "facing=west": {
+      "model": "vsie:block/shield_generator",
+      "y": 270
+    }
+  }
+}

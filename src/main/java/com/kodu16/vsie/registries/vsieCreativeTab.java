@@ -38,24 +38,11 @@ public class vsieCreativeTab {
 
         @Override
         public void accept(@Nonnull ItemDisplayParameters parameters, @Nonnull Output output) {
-            /*//From 0.1
-            output.accept(PropulsionBlocks.INLINE_OPTICAL_SENSOR_BLOCK);
-            output.accept(PropulsionBlocks.OPTICAL_SENSOR_BLOCK);
-            output.accept(PropulsionBlocks.THRUSTER_BLOCK);
-            //From 0.2
-            output.accept(PropulsionBlocks.REDSTONE_MAGNET_BLOCK);
-            output.accept(PropulsionBlocks.PHYSICS_ASSEMBLER_BLOCK);
-            //From 0.2 (items)
-            output.accept(PropulsionItems.ASSEMBLY_GAUGE);
-            output.accept(PropulsionFluids.TURPENTINE.getBucket().get());
-            output.accept(PropulsionItems.PINE_RESIN);
-            output.accept(PropulsionItems.OPTICAL_LENS);
-            output.accept(PropulsionItems.FLUID_LENS);
-            output.accept(PropulsionItems.FOCUS_LENS);*/
             output.accept(vsieItems.TEST_ITEM);
             output.accept(vsieBlocks.CONTROL_SEAT_BLOCK);
             output.accept(vsieBlocks.BASIC_THRUSTER_BLOCK);
             output.accept(vsieBlocks.MEDIUM_LASER_TURRET_BLOCK);
+            output.accept(vsieBlocks.SHIELD_GENERATOR_BLOCK);
         }
     }
 }
