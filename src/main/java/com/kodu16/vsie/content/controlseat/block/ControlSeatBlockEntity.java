@@ -78,18 +78,16 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
 
     //再从服务端更新推力和力矩
     //窝草你发包怎么不告诉我对应不了服务端
-    @Override
-    public void serverTick() {
-        if (!ride) {
-            controlseatData.reset();
-        }
-    }
 
-    public void commonTick() {
+    public void tick() {
         Logger LOGGER = LogUtils.getLogger();
         if (level.isClientSide)
             return;
         if (hasInitialized) {
+            if (!ride) {
+                controlseatData.reset();
+                controlseatData.setPlayer(null);
+            }
             updateThruster();
         }
         else {
@@ -109,18 +107,28 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
     }
 
     public void updateThruster() {
+        List<Vec3> toRemove = new ArrayList<>();
+
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
+
             if (be instanceof AbstractThrusterBlockEntity thruster) {
-                // 这里处理你的推进器逻辑
-                thruster.setdata(controlseatData.getTorque(), controlseatData.getForce());
+                Logger LOGGER = LogUtils.getLogger();
+                LOGGER.warn("writing to thrusters:" +blockPos+ "torque:"+controlseatData.getFinaltorque()+"force:"+controlseatData.getFinalforce());
+                thruster.setdata(controlseatData.getFinaltorque(), controlseatData.getFinalforce());
+            } else {
+                // 先记下来，循环完了再删
+                toRemove.add(pos);
             }
-            else {
-                removeLinkedPeripheral(pos, 0);
-            }
-        },0);
+        }, 0);
+
+        // 循环结束后统一删除
+        for (Vec3 pos : toRemove) {
+            removeLinkedPeripheral(pos, 0);
+        }
     }
+
 
 
     protected boolean isWorking() {
@@ -237,11 +245,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         ride = player.startRiding(seat, force);
 
         if (ride) {
-            player.displayClientMessage(Component.literal("ride = true"), true);
             seats.add(seat);
             // Initialize mouse handler when the player sits down
-        } else {
-            player.displayClientMessage(Component.literal("ride = false"), true);
         }
         return ride;
     }

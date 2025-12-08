@@ -2,6 +2,7 @@ package com.kodu16.vsie.content.controlseat;
 
 
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
+import com.mojang.logging.LogUtils;
 import com.simibubi.create.compat.computercraft.AbstractComputerBehaviour;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
@@ -16,6 +17,7 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,7 +51,6 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
 
 
     // 修改 tick 方法，在此方法中确保座椅输入与对应玩家的 UUID 匹配
-    public abstract void serverTick();
 
     protected abstract boolean isWorking();
 
@@ -115,8 +116,10 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
     }
 
     public void addLinkedPeripheral(Vec3 pos, int type) { //0：推进器 1：主武器 2：护盾 3：炮塔，务必不要写错
+        Logger LOGGER = LogUtils.getLogger();
         if (type==0 && !linkedThrusters.contains(pos)) {
             linkedThrusters.add(pos);
+            LOGGER.warn("adding thruster to controlseat: "+pos);
             setChanged(); // 标记方块实体脏了，强制保存
         }
     }

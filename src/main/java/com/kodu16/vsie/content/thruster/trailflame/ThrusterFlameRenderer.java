@@ -17,7 +17,7 @@ import org.joml.Matrix4f;
 
 public class ThrusterFlameRenderer implements BlockEntityRenderer<AbstractThrusterBlockEntity> {
 
-    private static final int SEGMENTS = 4;
+    private static final int SEGMENTS = 6;
     private static final int LENGTH_SEGMENTS = 12;
     private static final float BASE_RADIUS = 0.85f;
     private static final float TIP_RADIUS = 0.5f;

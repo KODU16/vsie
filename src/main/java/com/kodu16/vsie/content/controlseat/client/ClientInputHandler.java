@@ -20,20 +20,22 @@ public class ClientInputHandler {
     public static final Logger LOGGER = LogUtils.getLogger();
     public static void handle(LocalPlayer player, BlockPos pos) {
         //最好统一使用minecraft实例和客户端数据，虽然我估计底下的搞到的都是同一个
-        ControlSeatClientData data = ClientDataManager.getClientData(player);
-        if (player.getUUID() == data.getUserUUID() && data.getUserUUID()!=null) {
-            Minecraft minecraft = Minecraft.getInstance();
-            handleMouseLock(player, data, minecraft);
-            double dx = data.getAccumulatedMousex();
-            double dy = data.getAccumulatedMousey();
-            //LOGGER.warn(String.valueOf(Component.literal("mouseDX:"+dx+"mouseDY:"+dy)));
-            //dxdy都是（-1,1）
-            if (data.isViewLocked()) {
-                ClientSeatInputSender.tickSend(pos, data.getUserUUID(), dx, dy, 0);
-            }
-            else {
-                ClientSeatInputSender.tickSend(pos, data.getUserUUID(), 0, 0, 0);
-                data.reset();
+        if(player!=null) {
+            ControlSeatClientData data = ClientDataManager.getClientData(player);
+            if (player.getUUID() == data.getUserUUID() && data.getUserUUID()!=null) {
+                Minecraft minecraft = Minecraft.getInstance();
+                handleMouseLock(player, data, minecraft);
+                double dx = data.getAccumulatedMousex();
+                double dy = data.getAccumulatedMousey();
+                //LOGGER.warn(String.valueOf(Component.literal("mouseDX:"+dx+"mouseDY:"+dy)));
+                //dxdy都是（-1,1）
+                if (data.isViewLocked()) {
+                    ClientSeatInputSender.tickSend(pos, data.getUserUUID(), dx, dy, 0);
+                }
+                else {
+                    ClientSeatInputSender.tickSend(pos, data.getUserUUID(), 0, 0, 0);
+                    data.reset();
+                }
             }
         }
     }

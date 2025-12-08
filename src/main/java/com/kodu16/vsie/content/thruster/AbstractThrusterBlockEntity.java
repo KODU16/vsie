@@ -87,7 +87,7 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity {
         Logger LOGGER = LogUtils.getLogger();
         thrusterData.setInputtorque(inputtorque);
         thrusterData.setInputforce(inputforce);
-        LOGGER.warn(String.valueOf(Component.literal("receiving torque:"+thrusterData.getInputtorque()+"force:"+thrusterData.getInputforce())));
+        //LOGGER.warn(String.valueOf(Component.literal("receiving torque:"+thrusterData.getInputtorque()+"force:"+thrusterData.getInputforce())));
     }
 
     @SuppressWarnings("null")
@@ -117,7 +117,7 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity {
                     thrusterData.setThrottle(projectionLength);
                 }
                 else {
-                    LOGGER.warn(String.valueOf(Component.literal("worldforce:null")));
+                    //LOGGER.warn(String.valueOf(Component.literal("worldforce:null")));
                     thrusterData.setThrottle(0);
                 }
             }
@@ -127,7 +127,7 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity {
             LOGGER.warn(String.valueOf(Component.literal("detected uninitialized thruster, time to sweep valkyrie's ass")));
             BlockPos pos = getBlockPos();
             BlockState state = level.getBlockState(pos);
-            //Initialize.initialize(level, pos, state);
+            Initialize.initialize(level, pos, state);
             MinecraftForge.EVENT_BUS.register(this);
             hasInitialized = true;
             LOGGER.warn(String.valueOf(Component.literal("thruster Initialize complete:"+pos)));

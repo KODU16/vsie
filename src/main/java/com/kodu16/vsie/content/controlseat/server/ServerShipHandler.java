@@ -5,10 +5,13 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.core.impl.game.ships.PhysShipImpl;
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import com.kodu16.vsie.network.ControlSeatInputS2CPacket;
 import com.kodu16.vsie.network.ModNetworking;
@@ -47,58 +50,70 @@ public class ServerShipHandler {
     }
 
     public void applyForceAndTorque(PhysShipImpl ship) {
+        Player player = data.getPlayer();
+        boolean controlling = true;
+        // 1. 玩家为空或已经死了，直接啥都不干
+        if (player == null || !player.isAlive() || player.isRemoved()) {
+            data.reset();
+            controlling = false;
+        }
+        // 2. 玩家当前乘坐的实体为空，或者不是 VS2 的船挂载实体
+        Entity vehicle = null;
+        if (player != null) {
+            vehicle = player.getVehicle();
+        }
+        if (vehicle == null || vehicle.getType() != ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE) {
+            data.reset();
+            controlling = false;
+        }
+
         double mass = ship.getInertia().getShipMass();
-        Vector3d Invarianttorque = new Vector3d(0,0,0);
-        Vector3d Invariantforce = new Vector3d(0,0,0);
-        if (data.getPlayer()!=null) {
-            final ShipTransform transform = ship.getTransform();
-            //LOGGER.warn("Ship to world matrix: " + transform.getShipToWorld());
+        final ShipTransform transform = ship.getTransform();
+
+        Vector3d invomega = ship.getPoseVel().getOmega().negate(new Vector3d()).mul(10);
+        Vector3d invtorque = ship.getInertia().getMomentOfInertiaTensor().transform(invomega);
+        Vector3dc invforce = ship.getPoseVel().getVel().negate(new Vector3d()).mul(mass).add(0,mass * 10,0);
+
+        Vector3d finaltorque = invtorque;
+        Vector3d finalforce  = new Vector3d(invforce);
+
+        if(controlling) {
             Vector3dc force = data.getForce();
-            //LOGGER.warn(String.valueOf(Component.literal("raw torque:"+data.getTorque())));
             Vector3d torque = data.getTorque();
-            //LOGGER.warn(String.valueOf(Component.literal("torque:"+torque)));
-            //LOGGER.warn(String.valueOf(Component.literal("yaw:"+Ctorque[0]+"  pitch:"+Ctorque[1]+"  roll:"+Ctorque[2])));
-            //LOGGER.warn(String.valueOf(Component.literal("rawdirX:"+data.getDirectionX()+"rawdirY:"+data.getDirectionY()+"rawdirZ:"+data.getDirectionZ())));
+
             transform.getShipToWorld().transformDirection(data.getDirectionForward(), worldXDirection);
             worldXDirection.normalize();
             transform.getShipToWorld().transformDirection(data.getDirectionUp(), worldYDirection);
             worldYDirection.normalize();
             transform.getShipToWorld().transformDirection(data.getDirectionRight(), worldZDirection);
             worldZDirection.normalize();
-            double torquescale = ship.getInertia().getShipMass()/300;
-            Vector3d finaltorque = new Vector3d(torque.x/torquescale, torque.y/torquescale, torque.z/torquescale);
-            if(finaltorque.length()<0.1) {
-                finaltorque.mul(0);
-            }
-            Invarianttorque = calculateWorldTorque(finaltorque, worldXDirection, worldYDirection, worldZDirection);
 
+            double torquescale = ship.getInertia().getShipMass()/300;
+            Vector3d controltorque = new Vector3d(torque.x/torquescale, torque.y/torquescale, torque.z/torquescale);
+            if(controltorque.length()<0.1) {
+                controltorque.mul(0);
+            }
+
+            Vector3d Invarianttorque = calculateWorldTorque(controltorque, worldXDirection, worldYDirection, worldZDirection);
             double forcescale = (mass*-0.1) * data.getThrottle();
-            Invariantforce = Invariantforce.add(new Vector3d(worldXDirection.x * forcescale, worldXDirection.y * forcescale, worldXDirection.z * forcescale));
-            //LOGGER.warn(String.valueOf(Component.literal("direction:shipfront:" + worldXDirection + "  up:" + worldYDirection + "  right:" + worldZDirection)));
-            //Vec.transformToStandardBasis(worldXDirection, worldYDirection, worldZDirection, torque);
+            Vector3d Invariantforce = new Vector3d(worldXDirection.x * forcescale, worldXDirection.y * forcescale, worldXDirection.z * forcescale);
+
             // 计算反向阻尼力矩，与角速度成比例
             if (Double.isNaN(torque.x()) || Double.isNaN(torque.y()) || Double.isNaN(torque.z())) {
                 return;
             }
-            data.getPlayer().displayClientMessage(Component.literal("torquex:"+torque.x() + "  torquey:"+torque.y() + "  worldx:"+worldXDirection +"  throttle:"+data.getThrottle()), true);
+            data.getPlayer().displayClientMessage(Component.literal("torquex:" + torque.x() + "  torquey:" + torque.y() + "  worldx:" + worldXDirection + "  throttle:" + data.getThrottle()), true);
+            finaltorque.add(Invarianttorque);
+            finalforce.add(Invariantforce);
         }
-        else {
-            data.reset();
-        }
-        Vector3d invomega = ship.getPoseVel().getOmega().negate(new Vector3d()).mul(10);
-        Vector3d invtorque = ship.getInertia().getMomentOfInertiaTensor().transform(invomega);
-        Vector3dc invforce = ship.getPoseVel().getVel().negate(new Vector3d()).mul(mass).add(0,mass * 10,0);
-        // 施加力和力矩
-        //LOGGER.warn(String.valueOf(Component.literal("yaw: " + finaltorqueX + "   pitch:" + finaltorqueY + "  roll: " + finaltorqueZ)));
-        //LOGGER.warn(String.valueOf(Component.literal("computed final torque:"+Invariantyaw.add(Invariantpitch).add(Invariantroll))));
-        Vector3d finaltorque = Invarianttorque.add(invtorque);
-        Vector3d finalforce  = Invariantforce.add(invforce);
         data.setFinaltorque(finaltorque);
         data.setFinalforce(finalforce);
+        //到这才算施加真正的力
         ship.applyInvariantTorque(finaltorque);
         ship.applyInvariantForce(finalforce);
 
     }
+
     public static BlockPos convertToBlockPos(Vector3dc vector) {
         // 获取 Vector3dc 的坐标
         int x = (int) Math.floor(vector.x());

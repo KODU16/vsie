@@ -35,9 +35,8 @@ public class ControlSeatBlock extends AbstractControlSeatBlock {
         if (type == vsieBlockEntities.CONTROL_SEAT_BLOCK_ENTITY.get()) {
             return (world, pos, state1, blockEntity) -> {
                 if (blockEntity instanceof ControlSeatBlockEntity controlSeat) {
-                    controlSeat.serverTick();
                     controlSeat.clientTick();
-                    controlSeat.commonTick();
+                    controlSeat.tick();
                 }
             };
         }

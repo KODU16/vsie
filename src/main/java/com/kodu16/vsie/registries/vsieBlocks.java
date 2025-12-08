@@ -10,13 +10,14 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.material.MapColor;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.tterrag.registrate.util.entry.BlockEntry;
+import net.minecraftforge.eventbus.api.IEventBus;
 
 
 public class vsieBlocks {
     public static final CreateRegistrate REGISTRATE = vsie.registrate();
     public static void register() {} //Loads this class
 
-    public static final BlockEntry<ControlSeatBlock> CONTROL_SEAT_BLOCK = REGISTRATE.block("control_seat", ControlSeatBlock::new)
+    public static final BlockEntry<BasicThrusterBlock> BASIC_THRUSTER_BLOCK = REGISTRATE.block("basic_thruster", BasicThrusterBlock::new)
             .properties(p -> p.mapColor(MapColor.METAL))
             .properties(p -> p.requiresCorrectToolForDrops())
             .properties(p -> p.sound(SoundType.METAL))
@@ -25,7 +26,7 @@ public class vsieBlocks {
             .simpleItem()
             .register();
 
-    public static final BlockEntry<BasicThrusterBlock> BASIC_THRUSTER_BLOCK = REGISTRATE.block("basic_thruster", BasicThrusterBlock::new)
+    public static final BlockEntry<ControlSeatBlock> CONTROL_SEAT_BLOCK = REGISTRATE.block("control_seat", ControlSeatBlock::new)
             .properties(p -> p.mapColor(MapColor.METAL))
             .properties(p -> p.requiresCorrectToolForDrops())
             .properties(p -> p.sound(SoundType.METAL))
