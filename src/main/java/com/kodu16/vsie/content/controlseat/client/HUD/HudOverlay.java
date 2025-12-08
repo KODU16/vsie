@@ -71,9 +71,9 @@ public class HudOverlay {
             String blockName = controlseat.getBlockState().getBlock().getName().getString();
             drawCenteredText(gg, "§e" + blockName, centerX, baseY + 34, SUB_COLOR);
 
-            //油门
-            int throttle = controlseat.getThrottle();
-            ThrottleIndicator.renderThrottleIndicator(gg, throttle);
+            /*//油门
+            int throttle = controlseat.getServerData().getThrottle();
+            ThrottleIndicator.renderThrottleIndicator(gg, throttle);*/
 
             //装饰
             Decorative.renderDecorative(gg);

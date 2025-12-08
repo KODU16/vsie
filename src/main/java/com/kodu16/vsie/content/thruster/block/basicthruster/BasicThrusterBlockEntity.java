@@ -3,6 +3,7 @@ package com.kodu16.vsie.content.thruster.block.basicthruster;
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
+import net.minecraftforge.eventbus.api.Event;
 import org.joml.Vector4f;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -50,5 +51,4 @@ public class BasicThrusterBlockEntity extends AbstractThrusterBlockEntity {
     public Vector4f getEndColor() {
         return  new Vector4f(32.0f, 128.0f, 128.0f, 1.0f);
     }
-
 }

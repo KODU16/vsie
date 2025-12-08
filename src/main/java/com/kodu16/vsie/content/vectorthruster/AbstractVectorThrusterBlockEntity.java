@@ -16,7 +16,7 @@ public class AbstractVectorThrusterBlockEntity extends SmartBlockEntity {
 
     @Override
     public void addBehaviours(List<BlockEntityBehaviour> list) {
-        
+
     }
 
 }

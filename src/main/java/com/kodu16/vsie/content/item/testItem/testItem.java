@@ -1,4 +1,4 @@
-package com.kodu16.vsie.content.testItem;
+package com.kodu16.vsie.content.item.testItem;
 
 import net.minecraft.world.item.Item;
 

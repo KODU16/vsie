@@ -23,14 +23,14 @@ public class vsieBlockEntities {
                     .validBlocks(vsieBlocks.CONTROL_SEAT_BLOCK)
                     .register();
     public static final BlockEntityEntry<BasicThrusterBlockEntity> BASIC_THRUSTER_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("thruster_block_entity", BasicThrusterBlockEntity::new)
+            REGISTRATE.blockEntity("basic_thruster_block_entity", BasicThrusterBlockEntity::new)
                     .validBlocks(vsieBlocks.BASIC_THRUSTER_BLOCK)
                     .renderer(() -> ThrusterFlameRenderer::new)
                     .register();
     public static final BlockEntityEntry<MediumLaserTurretBlockEntity> MEDIUM_LASER_TURRET_BLOCK_ENTITY =
             REGISTRATE.blockEntity("medium_laser_turret_entity", MediumLaserTurretBlockEntity::new)
                     .validBlocks(vsieBlocks.MEDIUM_LASER_TURRET_BLOCK)
-                    .onRegister(be -> LOGGER.info("Medium Laser Turret BlockEntity registered!"))
+                    //.onRegister(be -> LOGGER.info("Medium Laser Turret BlockEntity registered!"))
                     .renderer(() -> AbstractTurretGeoRenderer::new)
                     .register();
     public static final BlockEntityEntry<ShieldGeneratorBlockEntity> SHIELD_GENERATOR_BLOCK_ENTITY =

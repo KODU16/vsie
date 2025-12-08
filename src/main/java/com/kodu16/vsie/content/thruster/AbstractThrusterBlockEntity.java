@@ -18,6 +18,11 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.eventbus.EventBus;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.IEventListener;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.joml.*;
 import org.slf4j.Logger;
@@ -28,10 +33,11 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 import javax.annotation.Nonnull;
 import java.lang.Math;
+import java.util.EventListener;
 import java.util.List;
 
 @SuppressWarnings({"deprecation", "unchecked"})
-public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity implements IHaveGoggleInformation {
+public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity {
     // Constants
     protected static final int OBSTRUCTION_LENGTH = 10;
     protected static final int TICKS_PER_ENTITY_CHECK = 5;
@@ -84,26 +90,7 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
         LOGGER.warn(String.valueOf(Component.literal("receiving torque:"+thrusterData.getInputtorque()+"force:"+thrusterData.getInputforce())));
     }
 
-    // 任意推进器、舵、炮塔、反应堆等方块实体
-    @SubscribeEvent
-    public void onShipControl(ShipControlEvent event) {
-        // 只处理自己这艘船的事件
-        if (event.getShip() != this.ship) return;  // this.ship 是你缓存的当前船对象
-
-        // 直接读取最终计算好的值，超级简单
-        Vector3d force = event.getForce();
-        Vector3d torque = event.getTorque();
-        float throttle = event.getThrottle();
-
-        // 根据自己的朝向、位置算局部推力（非常快）
-        Vector3d localForce = event.getShip().getTransform().getShipToWorldRotation().transform(force);
-        // 或者直接用 event.getRawInput() 自己再算一次也行
-
-        this.setdata(torque, force);
-    }
-
     @SuppressWarnings("null")
-    @Override
     public void tick() {
         super.tick();
         Level level = this.getLevel();
@@ -140,7 +127,8 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
             LOGGER.warn(String.valueOf(Component.literal("detected uninitialized thruster, time to sweep valkyrie's ass")));
             BlockPos pos = getBlockPos();
             BlockState state = level.getBlockState(pos);
-            Initialize.initialize(level, pos, state);
+            //Initialize.initialize(level, pos, state);
+            MinecraftForge.EVENT_BUS.register(this);
             hasInitialized = true;
             LOGGER.warn(String.valueOf(Component.literal("thruster Initialize complete:"+pos)));
         }
@@ -149,8 +137,8 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
     private void performRaycast(@Nonnull Level level) {
         Logger LOGGER = LogUtils.getLogger();
         BlockState state = this.getBlockState();
-        LOGGER.warn(String.valueOf(Component.literal("throttle:"+thrusterData.getThrottle())));
-        LOGGER.warn(String.valueOf(Component.literal("raycastdistance:"+-thrusterData.getThrottle()*getMaxFlameDistance())));
+        //LOGGER.warn(String.valueOf(Component.literal("throttle:"+thrusterData.getThrottle())));
+        //LOGGER.warn(String.valueOf(Component.literal("raycastdistance:"+-thrusterData.getThrottle()*getMaxFlameDistance())));
         updateRaycastDistance(level, state, (float) (-thrusterData.getThrottle()*getMaxFlameDistance()));
     }
 
@@ -206,5 +194,9 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
         }
     }
 
-
+    public void markUpdated() {
+        this.setChanged();
+        this.getLevel().sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), 3);
+        //if(!this.level.isClientSide()) sendUpdatePacket();
+    }
 }

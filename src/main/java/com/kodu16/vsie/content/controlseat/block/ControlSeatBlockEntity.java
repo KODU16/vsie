@@ -48,7 +48,6 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
     //private final ControlSeatServerData serverData = new ControlSeatServerData();
     public static boolean ride = false;
     private boolean hasInitialized = false;
-    public int throttle = 0;
     //即使我不想写的这么恶心，为了跨维度我还是得干
     //有两个hashmap，第二个是为了渲染HUD的时候用来反查controlseat
     private List<ShipMountingEntity> seats = new ArrayList<>();
@@ -87,15 +86,11 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
     }
 
     public void commonTick() {
-        //我是个sb，现在不用死脑筋的一个个扒方块检测推进器，直接用forge广播输入的力和输入的力矩，需要的就接收
-        //其它外设同理，这样才能实现按下鼠标同时开火
-        //至于fabric，我自己才懒得做支持
         Logger LOGGER = LogUtils.getLogger();
         if (level.isClientSide)
             return;
         if (hasInitialized) {
-            broadcastControlInput();
-            this.throttle = getControlSeatData().throttle;
+            updateThruster();
         }
         else {
             LOGGER.warn(String.valueOf(Component.literal("detected uninitialized controlseat, time to sweep valkyrie's ass")));
@@ -113,33 +108,24 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
 
     }
 
-    public void broadcastControlInput() {
-        if (level.isClientSide) return;
-        if (controlseatData.getPlayer() == null) return;
-
-        ServerShip ship = VSGameUtilsKt.getShipManagingPos((ServerLevel) level, getBlockPos());
-        if (ship == null) return;
-
-        // 你已经算好的最终力和力矩
-        Vector3d finalForce = controlseatData.getFinalforce();   // 假设是世界坐标
-        Vector3d finalTorque = controlseatData.getFinaltorque();
-        float throttle = controlseatData.getThrottle(); // 自己加一个
-
-        ShipControlEvent event = new ShipControlEvent(
-                ship, controlseatData.getPlayer(), controlseatData,
-                finalForce, finalTorque, throttle
-        );
-
-        // 使用 MinecraftForge 事件总线广播（跨模组最通用）
-        MinecraftForge.EVENT_BUS.post(event);
+    public void updateThruster() {
+        this.forEachLinkedPeripheral(pos -> {
+            BlockPos blockPos = BlockPos.containing(pos);
+            BlockEntity be = level.getBlockEntity(blockPos);
+            if (be instanceof AbstractThrusterBlockEntity thruster) {
+                // 这里处理你的推进器逻辑
+                thruster.setdata(controlseatData.getTorque(), controlseatData.getForce());
+            }
+            else {
+                removeLinkedPeripheral(pos, 0);
+            }
+        },0);
     }
 
 
     protected boolean isWorking() {
         return true;
     }
-
-    public int getThrottle() {return this.throttle;}
 
 
     public static void lookAtEntityPos(Entity entity, Vec3 target) {
@@ -183,7 +169,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
 
         ServerLevel serverLevel = (ServerLevel) player.level();
         controlseatData.setPlayer(player);
-        LOGGER.warn(String.valueOf(Component.literal("seated player detected:"+controlseatData.getPlayer()+" uuid:"+controlseatData.getPlayer().getUUID())));
+        //LOGGER.warn(String.valueOf(Component.literal("seated player detected:"+controlseatData.getPlayer()+" uuid:"+controlseatData.getPlayer().getUUID())));
         return startRiding(force, getBlockPos(), getBlockState(), serverLevel);
     }
 
@@ -258,38 +244,5 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             player.displayClientMessage(Component.literal("ride = false"), true);
         }
         return ride;
-    }
-
-
-    @Override
-    public CompoundTag getUpdateTag() {
-        CompoundTag tag = super.getUpdateTag();
-        write(tag, true);
-        return tag;
-    }
-
-    @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
-        CompoundTag tag = pkt.getTag();
-        if (tag != null) {
-            handleUpdateTag(tag);
-        }
-    }
-
-    @Override
-    public void handleUpdateTag(CompoundTag tag) {
-        read(tag, true);
-    }
-
-    @Override
-    protected void write(CompoundTag tag, boolean clientPacket) {
-        super.write(tag, clientPacket);
-        tag.putInt("throttle", this.getThrottle());
-    }
-
-    @Override
-    protected void read(CompoundTag tag, boolean clientPacket) {
-        super.read(tag, clientPacket);
-        if (tag.contains("throttle")) {this.throttle = tag.getInt("throttle");}
     }
 }

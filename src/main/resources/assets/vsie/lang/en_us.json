@@ -7,6 +7,7 @@
     "block.vsie.shield_generator": "shield generator",
     "item.vsie.control_seat": "control seat",
     "item.vsie.test_item": "test item",
+    "item.vsie.linker": "linker",
 
     "category.vsie": "vsie controls",
     "key.vsie.toggle_mouse_lock": "toggle mouse lock",
