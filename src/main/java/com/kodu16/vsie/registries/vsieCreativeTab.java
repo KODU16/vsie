@@ -44,6 +44,7 @@ public class vsieCreativeTab {
             output.accept(vsieBlocks.BASIC_THRUSTER_BLOCK);
             output.accept(vsieBlocks.MEDIUM_LASER_TURRET_BLOCK);
             output.accept(vsieBlocks.SHIELD_GENERATOR_BLOCK);
+            output.accept(vsieBlocks.BASIC_VECTOR_THRUSTER_BLOCK);
         }
     }
 }

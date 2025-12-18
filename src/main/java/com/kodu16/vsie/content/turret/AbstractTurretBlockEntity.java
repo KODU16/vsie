@@ -70,7 +70,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     Map<String, Object> shipmapper = new HashMap<>();
     Map<String, Object> shipattr = new HashMap<>();
     public Vector3d targetPos = new Vector3d(0,0,0); //这是被选择的那个目标的位置
-    public static SerializableDataTicket<Double> TARGET_POS_X; //这是列表
+    public static SerializableDataTicket<Double> TARGET_POS_X; //这是动画计算用的
     public static SerializableDataTicket<Double> TARGET_POS_Y;
     public static SerializableDataTicket<Double> TARGET_POS_Z;
     private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);

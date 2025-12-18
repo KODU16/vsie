@@ -17,63 +17,33 @@ import software.bernie.geckolib.model.GeoModel;
 @SuppressWarnings({"removal"})
 public class AbstractTurretModel extends DefaultedBlockGeoModel<AbstractTurretBlockEntity> {
 
-    private static final ResourceLocation MODEL_MEDIUM_LASER_TURRET = new ResourceLocation(vsie.ID, "geo/block/medium_laser_turret.geo.json");
-    private static final ResourceLocation TEXTURE_MEDIUM_LASER_TURRET = new ResourceLocation(vsie.ID, "textures/block/medium_laser_turret.png");
-    private static final ResourceLocation ANIMATION_MEDIUM_LASER_TURRET = new ResourceLocation(vsie.ID, "animations/block/medium_laser_anim.json");
-    /*private static final ResourceLocation MODEL_ADVANCED = new ResourceLocation(vsie.MOD_ID, "geo/block/advanced_laser_turret.geo.json");
-    private static final ResourceLocation MODEL_ELITE = new ResourceLocation(MekanismTurrets.MOD_ID, "geo/block/elite_laser_turret.geo.json");
-    private static final ResourceLocation MODEL_ULTIMATE = new ResourceLocation(MekanismTurrets.MOD_ID, "geo/block/ultimate_laser_turret.geo.json");
-
-    private static final ResourceLocation TEXTURE_ADVANCED = new ResourceLocation(MekanismTurrets.MOD_ID, "textures/block/advanced_laser_turret.png");
-    private static final ResourceLocation TEXTURE_ELITE = new ResourceLocation(MekanismTurrets.MOD_ID, "textures/block/elite_laser_turret.png");
-    private static final ResourceLocation TEXTURE_ULTIMATE = new ResourceLocation(MekanismTurrets.MOD_ID, "textures/block/ultimate_laser_turret.png");
-
-    private static final ResourceLocation ANIMATION_BASIC = new ResourceLocation(MekanismTurrets.MOD_ID, "animations/block/basic_anim.json");
-    private static final ResourceLocation ANIMATION_ADVANCED = new ResourceLocation(MekanismTurrets.MOD_ID, "animations/block/advanced_anim.json");
-    private static final ResourceLocation ANIMATION_ELITE = new ResourceLocation(MekanismTurrets.MOD_ID, "animations/block/elite_anim.json");
-    private static final ResourceLocation ANIMATION_ULTIMATE = new ResourceLocation(MekanismTurrets.MOD_ID, "animations/block/ultimate_anim.json");*/
     public AbstractTurretModel() {
         super(new ResourceLocation(vsie.ID,"turret"));
     }
 
     @Override
     public ResourceLocation getModelResource(AbstractTurretBlockEntity abstractTurretBlockEntity) {
-        return new ResourceLocation(vsie.ID, "geo/block/medium_laser_turret.geo.json");
+        return switch (abstractTurretBlockEntity.getturrettype()) {
+            case "medium_laser" -> new ResourceLocation(vsie.ID, "geo/block/medium_laser_turret.geo.json");
+            default -> throw new IllegalStateException("Unexpected value: " + abstractTurretBlockEntity.getturrettype());
+        };
     }
 
     @Override
     public ResourceLocation getTextureResource(AbstractTurretBlockEntity abstractTurretBlockEntity) {
-        return new ResourceLocation(vsie.ID, "textures/block/medium_laser_turret.png");
+        return switch (abstractTurretBlockEntity.getturrettype()) {
+            case "medium_laser" -> new ResourceLocation(vsie.ID, "textures/block/medium_laser_turret.png");
+            default -> throw new IllegalStateException("Unexpected value: " + abstractTurretBlockEntity.getturrettype());
+        };
     }
 
     @Override
     public ResourceLocation getAnimationResource(AbstractTurretBlockEntity abstractTurretBlockEntity) {
-        return new ResourceLocation(vsie.ID, "animations/block/medium_laser_anim.json");
-    }
-
-    /*@Override
-    public ResourceLocation getModelResource(AbstractTurretBlockEntity animatable) {
-        return switch (animatable.getturrettype()) {
-            case "medium_laser" -> MODEL_MEDIUM_LASER_TURRET;
-            default -> throw new IllegalStateException("Unexpected value: " + animatable.getturrettype());
+        return switch (abstractTurretBlockEntity.getturrettype()) {
+            case "medium_laser" -> new ResourceLocation(vsie.ID, "animations/block/medium_laser_anim.json");
+            default -> throw new IllegalStateException("Unexpected value: " + abstractTurretBlockEntity.getturrettype());
         };
     }
-
-    @Override
-    public ResourceLocation getTextureResource(AbstractTurretBlockEntity animatable) {
-        return switch (animatable.getturrettype()) {
-            case "medium_laser" -> TEXTURE_MEDIUM_LASER_TURRET;
-            default -> throw new IllegalStateException("Unexpected value: " + animatable.getturrettype());
-        };
-    }
-
-    @Override
-    public ResourceLocation getAnimationResource(AbstractTurretBlockEntity animatable) {
-        return switch (animatable.getturrettype()) {
-            case "medium_laser" -> ANIMATION_MEDIUM_LASER_TURRET;
-            default -> throw new IllegalStateException("Unexpected value: " + animatable.getturrettype());
-        };
-    }*/
 
     @Override
     public void setCustomAnimations(AbstractTurretBlockEntity animatable, long instanceId, AnimationState<AbstractTurretBlockEntity> animationState) {

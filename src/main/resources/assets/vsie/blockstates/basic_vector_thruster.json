@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "vsie:block/basic_vector_thruster"
+    }
+  }
+}

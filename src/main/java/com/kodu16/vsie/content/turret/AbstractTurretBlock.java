@@ -50,16 +50,13 @@ public abstract class AbstractTurretBlock extends DirectionalBlock implements En
     }
 
     @Override
+    public RenderShape getRenderShape(BlockState State) {
+        return RenderShape.ENTITYBLOCK_ANIMATED;
+    }
+
+    @Override
     public void setPlacedBy(@NotNull Level world, @NotNull BlockPos pos, @NotNull BlockState state, @org.jetbrains.annotations.Nullable LivingEntity placer, @NotNull ItemStack stack){
         super.setPlacedBy(world,pos,state,placer,stack);
-        if (stack.hasTag() && stack.getTag().contains("mekData")) {
-            CompoundTag nbtData = stack.getTag().getCompound("mekData");
-            MediumLaserTurretBlockEntity tileEntity = (MediumLaserTurretBlockEntity) world.getBlockEntity(pos);
-            if (tileEntity != null) {
-                tileEntity.load(nbtData);
-            }
-        }
-
     }
     @Override
     protected void createBlockStateDefinition(@NotNull StateDefinition.Builder<Block, BlockState> builder) {

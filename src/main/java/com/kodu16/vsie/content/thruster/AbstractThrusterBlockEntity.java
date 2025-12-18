@@ -30,6 +30,7 @@ import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 import javax.annotation.Nonnull;
 import java.lang.Math;
@@ -39,17 +40,11 @@ import java.util.List;
 @SuppressWarnings({"deprecation", "unchecked"})
 public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity {
     // Constants
-    protected static final int OBSTRUCTION_LENGTH = 10;
-    protected static final int TICKS_PER_ENTITY_CHECK = 5;
-    protected static final int LOWEST_POWER_THRSHOLD = 5;
-    private static final float PARTICLE_VELOCITY = 4;
-    private static final double NOZZLE_OFFSET_FROM_CENTER = 0.9;
-    private static final double SHIP_VELOCITY_INHERITANCE = 0.5;
     public ServerShip ship = VSGameUtilsKt.getShipManagingPos((ServerLevel) level, getBlockPos());
 
     // Common State
-    protected ThrusterData thrusterData;
-    private boolean hasInitialized = false;//值得被写入abstract类被所有人学习！
+    public ThrusterData thrusterData;
+    public boolean hasInitialized = false;//值得被写入abstract类被所有人学习！
 
     private float raycastDistance = 0.0f;//注意，这就是最重要的核心的raycast距离
 
@@ -69,9 +64,6 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity {
 
     @Override
     public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
-        /*if (PropulsionCompatibility.CC_ACTIVE) {
-            behaviours.add(computerBehaviour = new ComputerBehaviour(this));
-        }*/
     }
 
     public float getRaycastDistance() {
@@ -102,9 +94,13 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity {
         {
             BlockPos pos = this.getBlockPos();
             boolean onShip = VSGameUtilsKt.isBlockInShipyard(level, pos);
-            if (onShip) {
+            /*if (onShip) {
                 LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos);
                 ShipTransform transform = ship.getTransform();
+                final Vector3dc shipCenterOfMass = transform.getPositionInShip();
+                Vector3d relativePos = VectorConversionsMCKt.toJOMLD(pos)
+                        .add(0.5, 0.5, 0.5)
+                        .sub(shipCenterOfMass);
                 Vector3d worldthrusterdirection = new Vector3d();
                 transform.getShipToWorld().transformDirection(thrusterData.getDirection(), worldthrusterdirection);
                 worldthrusterdirection.normalize();
@@ -120,6 +116,64 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity {
                     //LOGGER.warn(String.valueOf(Component.literal("worldforce:null")));
                     thrusterData.setThrottle(0);
                 }
+            }*/
+            if (onShip) {
+                ServerShip loadedShip = (ServerShip) VSGameUtilsKt.getShipObjectManagingPos(level, pos);
+                if (loadedShip == null) return;
+
+                ShipTransform transform = loadedShip.getTransform();
+                //Vector3dc shipCenterOfMassInShip = transform.getShipToWorld().transformPosition((Vector3d) transform.getPositionInShip()); // 世界坐标下的质心（可选）
+                Vector3d relativePosInShip = VectorConversionsMCKt.toJOMLD(pos)
+                        .add(0.5, 0.5, 0.5)
+                        .sub(transform.getPositionInShip()); // 推进器在船坐标系下的相对质心位置
+
+                // 1. 推进器在世界坐标系下的推力方向（单位向量）
+                Vector3d thrustDirectionWorld = new Vector3d();
+                transform.getShipToWorldRotation().transform(thrusterData.getDirection(), thrustDirectionWorld);
+                thrustDirectionWorld.normalize();
+
+                // 2. 计算这个推进器产生的力在质心产生的线加速度贡献方向（就是力本身）
+                Vector3d forceContribution = thrustDirectionWorld; // 单位力产生的线性加速度方向
+
+                // 3. 计算这个推进器产生的角加速度贡献（r × F）
+                Vector3d torqueFromThisThruster = new Vector3d();
+                torqueFromThisThruster.cross(relativePosInShip, thrustDirectionWorld); // r × F_dir（已归一化）
+
+                // 4. 归一化力矩贡献向量（只关心方向）
+                double torqueLength = torqueFromThisThruster.length();
+                if (torqueLength > 1e-6) {
+                    torqueFromThisThruster.mul(1.0 / torqueLength);
+                } else {
+                    torqueFromThisThruster.set(0, 0, 0);
+                }
+
+                // 5. 获取玩家/电脑输入的世界坐标目标力和目标力矩（如果为null则视为0）
+                Vector3d desiredForce = thrusterData.getInputforce() != null ? thrusterData.getInputforce() : new Vector3d(0, 0, 0);
+                Vector3d desiredTorque = thrusterData.getInputtorque() != null ? thrusterData.getInputtorque() : new Vector3d(0, 0, 0);
+
+                // 归一化输入（防止数值太大）
+                double desiredForceLen = desiredForce.length();
+                double desiredTorqueLen = desiredTorque.length();
+
+                Vector3d normDesiredForce = desiredForceLen > 1e-6 ? new Vector3d(desiredForce).mul(1.0 / desiredForceLen) : new Vector3d();
+                Vector3d normDesiredTorque = desiredTorqueLen > 1e-6 ? new Vector3d(desiredTorque).mul(1.0 / desiredTorqueLen) : new Vector3d();
+
+                // 6. 计算这个推进器对目标的“贡献度”（点积，越正越有帮助）
+                double forceAlignment  = Math.max(0, forceContribution.dot(normDesiredForce));   // 只关心同向贡献
+                double torqueAlignment = Math.max(0, torqueFromThisThruster.dot(normDesiredTorque));
+
+                // 7. 合并力和力矩的贡献（你可以自行调整权重，这里力和力矩同等重要）
+                double totalAlignment = forceAlignment + torqueAlignment;
+
+                // 可选：如果你希望纯平动时侧面推进器完全不喷火，可以把 torqueAlignment 权重调高
+                // 例如：double totalAlignment = forceAlignment + 2.0 * torqueAlignment;
+
+                // 8. 最终油门 0~1（带平滑防止小抖动）
+                double throttle = Math.max(0.0, Math.min(1.0, totalAlignment));
+
+                thrusterData.setThrottle((float) throttle);
+
+                // LOGGER.info("Thruster at {} throttle = {:.2f} (force: {:.2f}, torque: {:.2f})", pos, throttle, forceAlignment, torqueAlignment);
             }
             performRaycast(level);
         }

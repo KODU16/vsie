@@ -1,6 +1,7 @@
 package com.kodu16.vsie.registries;
 
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
+import com.kodu16.vsie.content.vectorthruster.AbstractVectorThrusterBlockEntity;
 import com.kodu16.vsie.vsie;
 import net.minecraft.resources.ResourceLocation;
 import software.bernie.geckolib.network.SerializableDataTicket;
@@ -14,5 +15,10 @@ public class vsieDataTickets {
         AbstractTurretBlockEntity.TARGET_POS_X = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofDouble(new ResourceLocation(vsie.ID, "target_pos_x")));
         AbstractTurretBlockEntity.TARGET_POS_Y = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofDouble(new ResourceLocation(vsie.ID, "target_pos_y")));
         AbstractTurretBlockEntity.TARGET_POS_Z = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofDouble(new ResourceLocation(vsie.ID, "target_pos_z")));
+
+        AbstractVectorThrusterBlockEntity.FINAL_SPIN = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofDouble(new ResourceLocation(vsie.ID, "final_spin")));
+        AbstractVectorThrusterBlockEntity.FINAL_PITCH = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofDouble(new ResourceLocation(vsie.ID, "final_pitch")));
+        AbstractVectorThrusterBlockEntity.IS_SPINNING = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofBoolean(new ResourceLocation(vsie.ID, "is_spinning")));
+
     }
 }
