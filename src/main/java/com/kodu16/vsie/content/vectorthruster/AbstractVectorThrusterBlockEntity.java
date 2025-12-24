@@ -5,14 +5,18 @@ import com.kodu16.vsie.content.thruster.Initialize;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraftforge.common.MinecraftForge;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.slf4j.Logger;
+import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -48,7 +52,6 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
 
     @Override
     public void tick() {
-        super.tick();
         Level level = this.getLevel();
         if (level == null || level.isClientSide()) {
             return;
@@ -58,123 +61,130 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
         if (hasInitialized) {
             BlockPos pos = this.getBlockPos();
             boolean onShip = VSGameUtilsKt.isBlockInShipyard(level, pos);
-            if (onShip) {
-                ServerShip loadedShip = (ServerShip) VSGameUtilsKt.getShipObjectManagingPos(level, pos);
-                if (loadedShip == null) return;
+            ServerShip ship = VSGameUtilsKt.getShipManagingPos((ServerLevel) level, getBlockPos());
+            if (onShip && ship != null) {
+                final ShipTransform transform = ship.getTransform();
 
-                ShipTransform transform = loadedShip.getTransform();
-
-                Vector3d relativePosInShip = VectorConversionsMCKt.toJOMLD(pos)
+                // 推进器中心位置（世界坐标转船坐标）
+                Vector3d posInShip = VectorConversionsMCKt.toJOMLD(getBlockPos())
                         .add(0.5, 0.5, 0.5)
                         .sub(transform.getPositionInShip());
 
-                // 1. 默认推力方向（船坐标系下，假设默认负Z）
-                Vector3d baseDirectionShip = thrusterData.getDirection(); // 应为单位向量，如 new Vector3d(0,0,-1)
+                // 力臂（世界坐标，不归一化）
+                Vector3d leverArmWorld = new Vector3d(posInShip);
+                transform.getShipToWorldRotation().transform(leverArmWorld);
 
-                // 转为世界坐标的默认方向
-                Vector3d baseDirectionWorld = new Vector3d();
-                transform.getShipToWorldRotation().transform(baseDirectionShip, baseDirectionWorld);
+                // ==================== 获取块朝向并计算局部轴 ====================
+                BlockState state = this.getBlockState();
+                Direction facing = state.getValue(BlockStateProperties.FACING);
+
+                // 模型局部坐标系的三个轴（默认模型朝 -Z 喷射，+Y 上，+X 右）
+                Vector3d localForward = new Vector3d(0, 0, -1);  // 喷射方向（模型局部）
+                Vector3d localUp      = new Vector3d(0, 1,  0);  // spin 轴（绕自身转）
+                Vector3d localRight   = new Vector3d(1, 0,  0);  // pitch 轴（上下偏）
+
+                // 根据实际 facing 旋转局部轴到世界坐标
+                Quaterniond blockRotation = quaternionFromFacing(facing);
+
+                Vector3d baseDirectionWorld = new Vector3d(localForward);
+                blockRotation.transform(baseDirectionWorld);
+                transform.getShipToWorldRotation().transform(baseDirectionWorld); // 再转到世界
                 baseDirectionWorld.normalize();
 
-                // 2. 计算力矩臂方向（世界坐标）
-                Vector3d torqueArmWorld = new Vector3d();
-                transform.getShipToWorldRotation().transform(relativePosInShip, torqueArmWorld);
+                Vector3d spinAxisWorld = new Vector3d(localUp);
+                blockRotation.transform(spinAxisWorld);
+                transform.getShipToWorldRotation().transform(spinAxisWorld);
+                spinAxisWorld.normalize();
 
-                // 3. 获取玩家输入（世界坐标）
-                Vector3d desiredForce = thrusterData.getInputforce() != null ? thrusterData.getInputforce() : new Vector3d(0, 0, 0);
-                Vector3d desiredTorque = thrusterData.getInputtorque() != null ? thrusterData.getInputtorque() : new Vector3d(0, 0, 0);
+                Vector3d pitchAxisWorld = new Vector3d(localRight);
+                blockRotation.transform(pitchAxisWorld);
+                transform.getShipToWorldRotation().transform(pitchAxisWorld);
+                pitchAxisWorld.normalize();
+
+                // ==================== 玩家输入 ====================
+                Vector3d desiredForce = thrusterData.getInputforce() != null ? thrusterData.getInputforce() : new Vector3d();
+                Vector3d desiredTorque = thrusterData.getInputtorque() != null ? thrusterData.getInputtorque() : new Vector3d();
 
                 boolean hasInput = desiredForce.lengthSquared() > 1e-6 || desiredTorque.lengthSquared() > 1e-6;
 
-                double spin = 0.0;  // yaw (spin) 角度，单位：度
-                double pitch = 0.0; // pitch 角度，单位：度
+                double spinDegrees = 0.0;
+                double pitchDegrees = 0.0;
+                double throttle = 0.0;
 
                 if (hasInput) {
-                    // 归一化输入
-                    Vector3d normDesiredForce = new Vector3d(desiredForce).normalize();
-                    Vector3d normDesiredTorque = new Vector3d(desiredTorque).normalize();
+                    Vector3d normForce = new Vector3d(desiredForce).normalize();
+                    Vector3d normTorque = desiredTorque.lengthSquared() > 1e-6 ? new Vector3d(desiredTorque).normalize() : new Vector3d();
 
-                    // 计算最佳 gimbal 角度（投影法）
-                    // 可能的力方向单位球面上的投影
-                    double forceProj = baseDirectionWorld.dot(normDesiredForce);
+                    // 当前配置最大力矩方向（r × base_dir）
+                    Vector3d maxTorqueDir = new Vector3d(leverArmWorld).cross(baseDirectionWorld);
+                    double maxTorqueMag = maxTorqueDir.length();
+                    if (maxTorqueMag > 1e-6) maxTorqueDir.normalize();
 
-                    // 可能的力矩方向（r × base_dir）
-                    Vector3d baseTorqueDir = new Vector3d().cross(torqueArmWorld, baseDirectionWorld).normalize();
-                    double torqueProj = baseTorqueDir.dot(normDesiredTorque);
+                    // 当前对齐度
+                    double forceAlign = Math.max(0, baseDirectionWorld.dot(normForce));
+                    double torqueAlign = maxTorqueMag > 1e-6 ? Math.max(0, maxTorqueDir.dot(normTorque)) : 0;
+                    double currentAlignment = forceAlign + torqueAlign;
 
-                    // 合并贡献（可调整权重）
-                    double totalBaseProj = forceProj + torqueProj;
+                    // 理想推力方向 = 力和最大力矩方向的加权和
+                    Vector3d idealDir = new Vector3d(normForce).mul(1.0).add(maxTorqueDir, new Vector3d().mul(1.0));
+                    if (idealDir.lengthSquared() > 1e-6) idealDir.normalize();
 
-                    if (Math.abs(totalBaseProj) > 1e-6) {
-                        // 需要偏转来更好地匹配目标
-                        // 计算所需偏转方向（简化二维 gimbal：spin 控制水平，pitch 控制垂直）
+                    // 计算从 base 到 ideal 需要的偏转向量（在垂直于 base 的平面内）
+                    Vector3d deflection = new Vector3d(idealDir).sub(baseDirectionWorld);
+                    // 投影掉沿 baseDirection 的分量（gimbal 无法沿自身轴偏）
+                    deflection.sub(baseDirectionWorld.mul(deflection.dot(baseDirectionWorld)));
 
-                        // spin (yaw)：围绕局部 Y 轴
-                        Vector3d localUp = new Vector3d(0, 1, 0); // 假设推进器局部上方向为 Y
-                        Vector3d spinAxisWorld = new Vector3d();
-                        transform.getShipToWorldRotation().transform(localUp, spinAxisWorld);
+                    // 投影到两个 gimbal 轴上
+                    double spinRad  = deflection.dot(spinAxisWorld);   // 注意：这里用点积得到带符号的幅度
+                    double pitchRad = deflection.dot(pitchAxisWorld);
 
-                        // pitch (pitch)：围绕局部 X 轴（右手坐标）
-                        Vector3d localRight = new Vector3d(1, 0, 0);
-                        Vector3d pitchAxisWorld = new Vector3d();
-                        transform.getShipToWorldRotation().transform(localRight, pitchAxisWorld);
+                    // 限制最大万向节角度
+                    double maxRad = Math.toRadians(MAX_GIMBAL_ANGLE);
+                    spinRad  = Math.signum(spinRad)  * Math.min(Math.abs(spinRad),  maxRad);
+                    pitchRad = Math.signum(pitchRad) * Math.min(Math.abs(pitchRad), maxRad);
 
-                        // 目标方向偏移量
-                        Vector3d targetDirOffset = new Vector3d(normDesiredForce).sub(baseDirectionWorld).mul(1.0 / Math.max(forceProj, 0.1));
+                    spinDegrees  = Math.toDegrees(spinRad);
+                    pitchDegrees = Math.toDegrees(pitchRad);
 
-                        // 计算所需角度（投影到轴上）
-                        spin = targetDirOffset.dot(spinAxisWorld.cross(baseDirectionWorld)) * 0.5; // 简化系数
-                        pitch = targetDirOffset.dot(pitchAxisWorld.cross(baseDirectionWorld)) * 0.5;
+                    // ==================== 应用 gimbal 后的实际方向 ====================
+                    Vector3d actualDir = new Vector3d(baseDirectionWorld);
 
-                        // 限制范围
-                        spin = Math.max(-MAX_GIMBAL_ANGLE, Math.min(MAX_GIMBAL_ANGLE, spin));
-                        pitch = Math.max(-MAX_GIMBAL_ANGLE, Math.min(MAX_GIMBAL_ANGLE, pitch));
-                    }
+                    // 注意旋转顺序：通常模型动画是先 pitch (X) 再 spin (Y)
+                    Quaterniond gimbal = new Quaterniond()
+                            .rotateAxis(pitchRad, pitchAxisWorld)   // 先 pitch（绕局部X）
+                            .rotateAxis(spinRad, spinAxisWorld);    // 再 spin（绕局部Y）
+
+                    gimbal.transform(actualDir);
+                    actualDir.normalize();
+
+                    // 重新计算实际贡献
+                    double actualForceAlign = Math.max(0, actualDir.dot(normForce));
+
+                    Vector3d actualTorqueVec = new Vector3d(leverArmWorld).cross(actualDir);
+                    double actualTorqueMag = actualTorqueVec.length();
+                    Vector3d actualTorqueNorm = actualTorqueMag > 1e-6 ? actualTorqueVec.normalize() : new Vector3d();
+                    double actualTorqueAlign = actualTorqueMag > 1e-6 ? Math.max(0, actualTorqueNorm.dot(normTorque)) : 0;
+
+                    throttle = Math.min(1.0, actualForceAlign + actualTorqueAlign);
+                    LOGGER.info("baseDir: {}", baseDirectionWorld);
+                    LOGGER.info("spinAxis: {}", spinAxisWorld);
+                    LOGGER.info("pitchAxis: {}", pitchAxisWorld);
+                    LOGGER.info("deflection: {}", deflection);
+                    LOGGER.info("spinRad: {}, pitchRad: {}", spinRad, pitchRad);
                 }
 
-                // 转换为度数发送给动画
-                spin = Math.toDegrees(spin);
-                pitch = Math.toDegrees(pitch);
-
-                // 发送动画数据（服务器 -> 客户端同步）
-                setAnimData(FINAL_SPIN, spin);
-                setAnimData(FINAL_PITCH, pitch);
+                // 更新数据
+                thrusterData.setThrottle((float) throttle);
+                setAnimData(FINAL_SPIN, spinDegrees);
+                setAnimData(FINAL_PITCH, pitchDegrees);
                 setAnimData(IS_SPINNING, hasInput);
 
-                // 同时更新 throttle（保留原逻辑）
-                Vector3d thrustDirectionWorld = new Vector3d(baseDirectionWorld);
+                // 日志调试
+                LOGGER.info("VectorThruster {} facing {}: throttle={}, spin={}°, pitch={}°",
+                        getBlockPos(), facing, throttle, spinDegrees, pitchDegrees);
 
-                // 如果有偏转，应用到方向计算 throttle（可选增强）
-                Quaterniond gimbalRot = new Quaterniond()
-                        .rotateY(Math.toRadians(spin))
-                        .rotateX(Math.toRadians(pitch));
-                gimbalRot.transform(thrustDirectionWorld);
-
-                thrustDirectionWorld.normalize();
-
-                Vector3d forceContribution = thrustDirectionWorld;
-
-                Vector3d torqueFromThisThruster = new Vector3d().cross(torqueArmWorld, thrustDirectionWorld);
-                double torqueLength = torqueFromThisThruster.length();
-                if (torqueLength > 1e-6) {
-                    torqueFromThisThruster.mul(1.0 / torqueLength);
-                } else {
-                    torqueFromThisThruster.set(0, 0, 0);
-                }
-
-                Vector3d normDesiredForce = desiredForce.length() > 1e-6 ? new Vector3d(desiredForce).normalize() : new Vector3d();
-                Vector3d normDesiredTorque = desiredTorque.length() > 1e-6 ? new Vector3d(desiredTorque).normalize() : new Vector3d();
-
-                double forceAlignment = Math.max(0, forceContribution.dot(normDesiredForce));
-                double torqueAlignment = Math.max(0, torqueFromThisThruster.dot(normDesiredTorque));
-
-                double totalAlignment = forceAlignment + torqueAlignment; // 可调整权重
-
-                double throttle = Math.max(0.0, Math.min(1.0, totalAlignment));
-                thrusterData.setThrottle((float) throttle);
-
-                // LOGGER.info("Thruster {}: spin={:.1f}°, pitch={:.1f}°, throttle={:.2f}", pos, spin, pitch, throttle);
             }
+
         } else {
             LOGGER.warn(String.valueOf(Component.literal("detected uninitialized vector thruster, time to sweep valkyriie's ass")));
             BlockPos pos = getBlockPos();
@@ -186,6 +196,16 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
         }
     }
 
+    private static Quaterniond quaternionFromFacing(Direction facing) {
+        return switch (facing) {
+            case DOWN  -> new Quaterniond().rotateX(Math.toRadians(90));   // +Y 朝下
+            case UP    -> new Quaterniond().rotateX(Math.toRadians(-90));
+            case NORTH -> new Quaterniond().rotateX(Math.toRadians(180));  // -Z
+            case SOUTH -> new Quaterniond();                               // +Z (默认 -Z 喷射时需旋转180)
+            case WEST  -> new Quaterniond().rotateY(Math.toRadians(90));
+            case EAST  -> new Quaterniond().rotateY(Math.toRadians(-90));
+        };
+    }
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllerRegistrar) {

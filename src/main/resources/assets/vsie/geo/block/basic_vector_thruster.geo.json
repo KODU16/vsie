@@ -7,37 +7,38 @@
 				"texture_width": 128,
 				"texture_height": 128,
 				"visible_bounds_width": 2,
-				"visible_bounds_height": 2.5,
-				"visible_bounds_offset": [0, 0.75, 0]
+				"visible_bounds_height": 3.5,
+				"visible_bounds_offset": [0, 1.25, 0]
 			},
 			"bones": [
 				{
 					"name": "root",
-					"pivot": [0, 0, 0],
+					"pivot": [0, 8, -8],
+					"rotation": [-90, 0, 0],
 					"cubes": [
-						{"origin": [-8, 0, 3], "size": [16, 16, 5], "uv": [0, 0]}
+						{"origin": [-8, 8, -5], "size": [16, 16, 5], "uv": [0, 0]}
 					]
 				},
 				{
 					"name": "spinner",
 					"parent": "root",
-					"pivot": [0, 8, 0],
+					"pivot": [0, 16, -8],
 					"cubes": [
-						{"origin": [-7, 1, -2], "size": [14, 14, 5], "uv": [0, 42]},
-						{"origin": [-8, 6, -10], "size": [2, 4, 13], "uv": [42, 0]},
-						{"origin": [6, 6, -10], "size": [2, 4, 13], "uv": [42, 17]}
+						{"origin": [-7, 9, -10], "size": [14, 14, 5], "uv": [0, 42]},
+						{"origin": [-8, 14, -18], "size": [2, 4, 13], "uv": [42, 0]},
+						{"origin": [6, 14, -18], "size": [2, 4, 13], "uv": [42, 17]}
 					]
 				},
 				{
 					"name": "nozzle",
 					"parent": "spinner",
-					"pivot": [0, 8, -9.7],
+					"pivot": [0, 16, -17.7],
 					"cubes": [
-						{"origin": [-6, 3, -18], "size": [1, 10, 9], "uv": [42, 34]},
-						{"origin": [5, 3, -18], "size": [1, 10, 9], "uv": [0, 61]},
-						{"origin": [-1, 9, -18], "size": [1, 10, 9], "pivot": [-0.5, 13.5, -13.5], "rotation": [0, 0, 90], "uv": [38, 53]},
-						{"origin": [0, -3, -18], "size": [1, 10, 9], "pivot": [0.5, 2.5, -13.5], "rotation": [0, 0, 90], "uv": [58, 53]},
-						{"origin": [-6, 2, -9], "size": [12, 12, 9], "uv": [0, 21]}
+						{"origin": [-6, 11, -26], "size": [1, 10, 9], "uv": [42, 34]},
+						{"origin": [5, 11, -26], "size": [1, 10, 9], "uv": [0, 61]},
+						{"origin": [-1, 17, -26], "size": [1, 10, 9], "pivot": [-0.5, 21.5, -21.5], "rotation": [0, 0, 90], "uv": [38, 53]},
+						{"origin": [0, 5, -26], "size": [1, 10, 9], "pivot": [0.5, 10.5, -21.5], "rotation": [0, 0, 90], "uv": [58, 53]},
+						{"origin": [-6, 10, -17], "size": [12, 12, 9], "uv": [0, 21]}
 					]
 				}
 			]

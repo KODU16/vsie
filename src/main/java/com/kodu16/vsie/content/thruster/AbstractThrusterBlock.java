@@ -5,6 +5,8 @@ import javax.annotation.Nullable;
 
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.registries.vsieBlockEntities;
+import org.valkyrienskies.core.api.ships.LoadedShip;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 
@@ -85,18 +87,17 @@ public abstract class AbstractThrusterBlock extends DirectionalBlock implements 
         if (level.isClientSide()) return;
 
         BlockEntity blockEntity = level.getBlockEntity(pos);
-        /*if (blockEntity instanceof AbstractThrusterBlockEntity thrusterBlockEntity) {
-            if (ship != null) {
+        if (blockEntity instanceof AbstractThrusterBlockEntity thrusterBlockEntity) {
+            LoadedShip Ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos);
+            if (Ship != null) {
                 // Initialize thruster data for ValkyRien Skies
-                ThrusterData data = thrusterBlockEntity.getThrusterData();
+                ThrusterData data = thrusterBlockEntity.getData();
                 data.setDirection(VectorConversionsMCKt.toJOMLD(state.getValue(FACING).getNormal()));
-                data.setThrust(0);
+                /*data.setThrust(0);
                 ThrusterForceApplier applier = new ThrusterForceApplier(data);
-                ship.addApplier(pos, applier);
+                ship.addApplier(pos, applier);*/
             }
-            // Trigger an initial check for redstone power and obstruction
-            doRedstoneCheck(level, state, pos);
-        }*/
+        }
     }
 
     @Override

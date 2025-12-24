@@ -115,7 +115,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
 
             if (be instanceof AbstractThrusterBlockEntity thruster) {
                 Logger LOGGER = LogUtils.getLogger();
-                LOGGER.warn("writing to thrusters:" +blockPos+ "torque:"+controlseatData.getFinaltorque()+"force:"+controlseatData.getFinalforce());
+                //LOGGER.warn("writing to thrusters:" +blockPos+ "torque:"+controlseatData.getFinaltorque()+"force:"+controlseatData.getFinalforce());
                 thruster.setdata(controlseatData.getFinaltorque(), controlseatData.getFinalforce());
             } else {
                 // 先记下来，循环完了再删

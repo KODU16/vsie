@@ -24,11 +24,13 @@ import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventListener;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import org.apache.logging.log4j.core.jmx.Server;
 import org.joml.*;
 import org.slf4j.Logger;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
+import org.valkyrienskies.core.impl.game.ships.PhysShipImpl;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -94,58 +96,36 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity {
         {
             BlockPos pos = this.getBlockPos();
             boolean onShip = VSGameUtilsKt.isBlockInShipyard(level, pos);
-            /*if (onShip) {
-                LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos);
-                ShipTransform transform = ship.getTransform();
-                final Vector3dc shipCenterOfMass = transform.getPositionInShip();
-                Vector3d relativePos = VectorConversionsMCKt.toJOMLD(pos)
-                        .add(0.5, 0.5, 0.5)
-                        .sub(shipCenterOfMass);
-                Vector3d worldthrusterdirection = new Vector3d();
-                transform.getShipToWorld().transformDirection(thrusterData.getDirection(), worldthrusterdirection);
-                worldthrusterdirection.normalize();
-                Vector3d worldinputforce = thrusterData.getInputforce();
-                if (worldinputforce != null) {
-                    worldinputforce.normalize();
-                    double projectionLength = worldthrusterdirection.dot(worldinputforce);
-                    //这应该是一个介于0和1之间的小数
-                    //（理论上）
-                    thrusterData.setThrottle(projectionLength);
-                }
-                else {
-                    //LOGGER.warn(String.valueOf(Component.literal("worldforce:null")));
-                    thrusterData.setThrottle(0);
-                }
-            }*/
             if (onShip) {
-                ServerShip loadedShip = (ServerShip) VSGameUtilsKt.getShipObjectManagingPos(level, pos);
-                if (loadedShip == null) return;
+                LoadedShip Ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos);
+                if (Ship == null) return;
+                final ShipTransform transform = Ship.getTransform();
 
-                ShipTransform transform = loadedShip.getTransform();
                 //Vector3dc shipCenterOfMassInShip = transform.getShipToWorld().transformPosition((Vector3d) transform.getPositionInShip()); // 世界坐标下的质心（可选）
                 Vector3d relativePosInShip = VectorConversionsMCKt.toJOMLD(pos)
                         .add(0.5, 0.5, 0.5)
-                        .sub(transform.getPositionInShip()); // 推进器在船坐标系下的相对质心位置
+                        .sub(transform.getPositionInShip()); // 推进器相对于质心的船坐标位置
 
                 // 1. 推进器在世界坐标系下的推力方向（单位向量）
-                Vector3d thrustDirectionWorld = new Vector3d();
-                transform.getShipToWorldRotation().transform(thrusterData.getDirection(), thrustDirectionWorld);
+                Vector3d thrustDirectionWorld = new Vector3d(thrusterData.getDirection());
+                transform.getShipToWorldRotation().transform(thrustDirectionWorld); // 只转方向，不转位置
                 thrustDirectionWorld.normalize();
 
-                // 2. 计算这个推进器产生的力在质心产生的线加速度贡献方向（就是力本身）
-                Vector3d forceContribution = thrustDirectionWorld; // 单位力产生的线性加速度方向
+                // 2. 力贡献方向（就是推力方向本身）
+                Vector3d forceContribution = new Vector3d(thrustDirectionWorld);
 
-                // 3. 计算这个推进器产生的角加速度贡献（r × F）
+                // 3. 力矩贡献方向：r × F_dir
                 Vector3d torqueFromThisThruster = new Vector3d();
-                torqueFromThisThruster.cross(relativePosInShip, thrustDirectionWorld); // r × F_dir（已归一化）
+                torqueFromThisThruster.cross(relativePosInShip, thrustDirectionWorld);
 
-                // 4. 归一化力矩贡献向量（只关心方向）
+                // 归一化力矩方向
                 double torqueLength = torqueFromThisThruster.length();
                 if (torqueLength > 1e-6) {
                     torqueFromThisThruster.mul(1.0 / torqueLength);
                 } else {
                     torqueFromThisThruster.set(0, 0, 0);
                 }
+
 
                 // 5. 获取玩家/电脑输入的世界坐标目标力和目标力矩（如果为null则视为0）
                 Vector3d desiredForce = thrusterData.getInputforce() != null ? thrusterData.getInputforce() : new Vector3d(0, 0, 0);
@@ -173,7 +153,15 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity {
 
                 thrusterData.setThrottle((float) throttle);
 
-                // LOGGER.info("Thruster at {} throttle = {:.2f} (force: {:.2f}, torque: {:.2f})", pos, throttle, forceAlignment, torqueAlignment);
+                //LOGGER.info("Thruster at {} throttle = {:.2f} (force: {:.2f}, torque: {:.2f})", pos, throttle, forceAlignment, torqueAlignment);
+                LOGGER.warn("Thruster {}: transform={} throttle={} forceAlign={} torqueAlign={} | dir={} localdir={} force={} torque={} relPos={}",
+                        pos, Ship.getTransform(), throttle, forceAlignment, torqueAlignment,
+                        thrustDirectionWorld, thrusterData.getDirection(), normDesiredForce, normDesiredTorque, relativePosInShip);
+
+
+            }
+            else{
+                LOGGER.warn("thruster not on ship");
             }
             performRaycast(level);
         }

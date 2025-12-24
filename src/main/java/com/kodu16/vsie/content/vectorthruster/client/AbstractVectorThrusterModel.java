@@ -41,15 +41,45 @@ public class AbstractVectorThrusterModel extends DefaultedBlockGeoModel<Abstract
         };
     }
 
+    private float lastSpin = 0f;
+    private float lastPitch = 0f;
+
     @Override
     public void setCustomAnimations(AbstractVectorThrusterBlockEntity animatable, long instanceId, AnimationState<AbstractVectorThrusterBlockEntity> animationState) {
         CoreGeoBone spinner = getAnimationProcessor().getBone("spinner");
         CoreGeoBone nozzle = getAnimationProcessor().getBone("nozzle");
-        if(spinner != null && nozzle != null) {
-            if(controlling(animatable)){
-                spinner.setRotZ((float)getspin(animatable));
-                nozzle.setRotX((float)getpitch(animatable));
-            }
+
+        if (spinner == null || nozzle == null) return;
+
+        if (controlling(animatable)) {
+            // 获取目标角度（弧度）
+            double targetSpinRad = getspin(animatable);
+            double targetPitchRad = getpitch(animatable);
+
+            // 转换为度数进行插值（rotLerp 专门处理角度循环问题，如从359°到1°不会走长路）
+            float targetSpinDeg = (float) Math.toDegrees(targetSpinRad);
+            float targetPitchDeg = (float) Math.toDegrees(targetPitchRad);
+
+            // 使用 rotLerp 平滑插值（0.1F ~ 0.3F 之间调节平滑程度，值越小越平滑但越慢）
+            float smoothSpinDeg = Mth.rotLerp(0.05F, lastSpin, targetSpinDeg);
+            float smoothPitchDeg = Mth.rotLerp(0.05F, lastPitch, targetPitchDeg);
+
+            // 更新上次的值
+            lastSpin = smoothSpinDeg;
+            lastPitch = smoothPitchDeg;
+
+            // 设置回骨骼（转回弧度）
+            spinner.setRotZ((float) Math.toRadians(smoothSpinDeg));
+            nozzle.setRotX((float) Math.toRadians(smoothPitchDeg));
+
+        } else {
+            // 不受控制时，可以选择缓慢归零或保持最后状态
+            // 这里选择缓慢归零，显得更自然
+            lastSpin = Mth.rotLerp(0.15F, lastSpin, 0f);
+            lastPitch = Mth.rotLerp(0.15F, lastPitch, 0f);
+
+            spinner.setRotZ((float) Math.toRadians(lastSpin));
+            nozzle.setRotX((float) Math.toRadians(lastPitch));
         }
     }
 
