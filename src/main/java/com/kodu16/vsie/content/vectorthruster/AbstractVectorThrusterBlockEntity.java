@@ -15,6 +15,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraftforge.common.MinecraftForge;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
+import org.joml.Vector3dc;
 import org.slf4j.Logger;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
@@ -65,36 +66,30 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
             if (onShip && ship != null) {
                 final ShipTransform transform = ship.getTransform();
 
-                // 推进器中心位置（世界坐标转船坐标）
-                Vector3d posInShip = VectorConversionsMCKt.toJOMLD(getBlockPos())
+                // 船的重心（世界坐标）和推进器相对船只本身的相对位置差
+                final Vector3dc shipCenterOfMass = transform.getPositionInWorld();
+                Vector3d thrusterrelativePos = VectorConversionsMCKt.toJOMLD(pos)
                         .add(0.5, 0.5, 0.5)
-                        .sub(transform.getPositionInShip());
+                        .sub(shipCenterOfMass);
 
-                // 力臂（世界坐标，不归一化）
-                Vector3d leverArmWorld = new Vector3d(posInShip);
-                transform.getShipToWorldRotation().transform(leverArmWorld);
+                Vector3d leverArmWorld = thrusterWorldPos.sub(shipCenterOfMass.x(), shipCenterOfMass.y(), shipCenterOfMass.z());
 
                 // ==================== 获取块朝向并计算局部轴 ====================
                 BlockState state = this.getBlockState();
                 Direction facing = state.getValue(BlockStateProperties.FACING);
 
-                // 模型局部坐标系的三个轴（默认模型朝 -Z 喷射，+Y 上，+X 右）
-                Vector3d localForward = new Vector3d(0, 0, -1);  // 喷射方向（模型局部）
+                // 模型局部坐标系的三个轴（默认模型朝 +Y 喷射，+Y 上，-X 右）
+                Vector3d localThrust = new Vector3d(0, 1, 0);  // 喷射方向（模型局部）
                 Vector3d localUp      = new Vector3d(0, 1,  0);  // spin 轴（绕自身转）
                 Vector3d localRight   = new Vector3d(1, 0,  0);  // pitch 轴（上下偏）
 
                 // 根据实际 facing 旋转局部轴到世界坐标
                 Quaterniond blockRotation = quaternionFromFacing(facing);
 
-                Vector3d baseDirectionWorld = new Vector3d(localForward);
+                Vector3d baseDirectionWorld = new Vector3d(localThrust);
                 blockRotation.transform(baseDirectionWorld);
                 transform.getShipToWorldRotation().transform(baseDirectionWorld); // 再转到世界
                 baseDirectionWorld.normalize();
-
-                Vector3d spinAxisWorld = new Vector3d(localUp);
-                blockRotation.transform(spinAxisWorld);
-                transform.getShipToWorldRotation().transform(spinAxisWorld);
-                spinAxisWorld.normalize();
 
                 Vector3d pitchAxisWorld = new Vector3d(localRight);
                 blockRotation.transform(pitchAxisWorld);
@@ -135,7 +130,7 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
                     deflection.sub(baseDirectionWorld.mul(deflection.dot(baseDirectionWorld)));
 
                     // 投影到两个 gimbal 轴上
-                    double spinRad  = deflection.dot(spinAxisWorld);   // 注意：这里用点积得到带符号的幅度
+                    double spinRad  = deflection.dot(baseDirectionWorld);   // 注意：这里用点积得到带符号的幅度
                     double pitchRad = deflection.dot(pitchAxisWorld);
 
                     // 限制最大万向节角度
@@ -149,10 +144,10 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
                     // ==================== 应用 gimbal 后的实际方向 ====================
                     Vector3d actualDir = new Vector3d(baseDirectionWorld);
 
-                    // 注意旋转顺序：通常模型动画是先 pitch (X) 再 spin (Y)
+                    // 注意旋转顺序
                     Quaterniond gimbal = new Quaterniond()
-                            .rotateAxis(pitchRad, pitchAxisWorld)   // 先 pitch（绕局部X）
-                            .rotateAxis(spinRad, spinAxisWorld);    // 再 spin（绕局部Y）
+                            .rotateAxis(spinRad, baseDirectionWorld)    //  spin（绕局部Y）
+                            .rotateAxis(pitchRad, pitchAxisWorld);  //  pitch（绕局部X）
 
                     gimbal.transform(actualDir);
                     actualDir.normalize();
@@ -167,7 +162,6 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
 
                     throttle = Math.min(1.0, actualForceAlign + actualTorqueAlign);
                     LOGGER.info("baseDir: {}", baseDirectionWorld);
-                    LOGGER.info("spinAxis: {}", spinAxisWorld);
                     LOGGER.info("pitchAxis: {}", pitchAxisWorld);
                     LOGGER.info("deflection: {}", deflection);
                     LOGGER.info("spinRad: {}, pitchRad: {}", spinRad, pitchRad);

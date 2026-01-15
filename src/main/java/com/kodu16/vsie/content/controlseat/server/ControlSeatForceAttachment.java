@@ -8,21 +8,24 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 
+import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.PhysShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.api.ships.ShipForcesInducer;
+import org.valkyrienskies.core.api.ships.ShipPhysicsListener;
+import org.valkyrienskies.core.api.world.PhysLevel;
 import org.valkyrienskies.core.impl.game.ships.PhysShipImpl;
 
 import com.kodu16.vsie.utility.AttachmentUtils;
 
 @SuppressWarnings("deprecation")
-public class ControlSeatForceAttachment implements ShipForcesInducer {
+public final class ControlSeatForceAttachment implements ShipPhysicsListener {
     public Map<BlockPos, ServerShipHandler> appliersMapping = new ConcurrentHashMap<>();
     public ControlSeatForceAttachment() {}
 
     @Override
-    public void applyForces(@NotNull PhysShip physicShip) {
-        PhysShipImpl ship = (PhysShipImpl)physicShip;
+    public void physTick(@NotNull PhysShip Physship, @NotNull PhysLevel physLevel) {
+        PhysShipImpl ship = (PhysShipImpl)Physship;
         appliersMapping.forEach((pos, applier) -> {
             applier.getandsendshipdata(ship);
             applier.applyForceAndTorque(ship);
@@ -37,16 +40,16 @@ public class ControlSeatForceAttachment implements ShipForcesInducer {
         appliersMapping.remove(pos);
         //Remove attachment by using passing null as attachment instance in order to clean up after ourselves
         if (appliersMapping.isEmpty()) {
-            ServerShip ship = AttachmentUtils.getShipAt(level, pos);
+            LoadedServerShip ship = AttachmentUtils.getShipAt(level, pos);
             if (ship != null) {
                 // Remove attachment by passing null as the instance
-                ship.saveAttachment(ControlSeatForceAttachment.class, null);
+                ship.setAttachment(ControlSeatForceAttachment.class, null);
             }
         }
     }
 
     //Getters
-    public static ControlSeatForceAttachment getOrCreateAsAttachment(ServerShip ship) {
+    public static ControlSeatForceAttachment getOrCreateAsAttachment(LoadedServerShip ship) {
         return AttachmentUtils.getOrCreate(ship, ControlSeatForceAttachment.class, ControlSeatForceAttachment::new);
     }
 

@@ -11,6 +11,7 @@ import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.core.impl.game.ships.PhysShipImpl;
+import org.valkyrienskies.core.impl.game.ships.PhysPoseImpl;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import com.kodu16.vsie.network.ControlSeatInputS2CPacket;
@@ -38,7 +39,7 @@ public class ServerShipHandler {
         ShipTransform transform = ship.getTransform();
         Vector3d ForwardDirection = new Vector3d();
         transform.getShipToWorld().transformDirection(data.getDirectionForward(), ForwardDirection);
-        BlockPos pos = convertToBlockPos(ship.getPoseVel().getPos());
+        BlockPos pos = convertToBlockPos(ship.getCenterOfMass());
         long now = System.currentTimeMillis();
         if (now - lastSendMs < 33) return;
         lastSendMs = now;
@@ -67,12 +68,12 @@ public class ServerShipHandler {
             controlling = false;
         }
 
-        double mass = ship.getInertia().getShipMass();
+        double mass = ship.getMass();
         final ShipTransform transform = ship.getTransform();
 
-        Vector3d invomega = ship.getPoseVel().getOmega().negate(new Vector3d()).mul(10);
-        Vector3d invtorque = ship.getInertia().getMomentOfInertiaTensor().transform(invomega);
-        Vector3dc invforce = ship.getPoseVel().getVel().negate(new Vector3d()).mul(mass).add(0,mass * 10,0);
+        Vector3d invomega = ship.getOmega().negate(new Vector3d()).mul(10);
+        Vector3d invtorque = ship.getMomentOfInertia().transform(invomega);
+        Vector3dc invforce = ship.getVelocity().negate(new Vector3d()).mul(mass).add(0,mass * 10,0);
 
         Vector3d finaltorque = invtorque;
         Vector3d finalforce  = new Vector3d(invforce);
@@ -88,7 +89,7 @@ public class ServerShipHandler {
             transform.getShipToWorld().transformDirection(data.getDirectionRight(), worldZDirection);
             worldZDirection.normalize();
 
-            double torquescale = ship.getInertia().getShipMass()/300;
+            double torquescale = ship.getMass()/3000;
             Vector3d controltorque = new Vector3d(torque.x/torquescale, torque.y/torquescale, torque.z/torquescale);
             if(controltorque.length()<0.1) {
                 controltorque.mul(0);
@@ -111,6 +112,7 @@ public class ServerShipHandler {
         //到这才算施加真正的力
         ship.applyInvariantTorque(finaltorque);
         ship.applyInvariantForce(finalforce);
+
 
     }
 

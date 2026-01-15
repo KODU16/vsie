@@ -5,6 +5,9 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.valkyrienskies.core.api.ships.ServerShip;
+import org.valkyrienskies.core.api.ships.*;
+import org.valkyrienskies.core.api.world.PhysLevel;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 import net.minecraft.core.BlockPos;
@@ -15,19 +18,15 @@ public class AttachmentUtils {
     private AttachmentUtils() {}
 
     @Nullable
-    public static ServerShip getShipAt(ServerLevel serverLevel, BlockPos pos) {
-        ServerShip ship = VSGameUtilsKt.getShipObjectManagingPos(serverLevel, pos);
-        if (ship == null) {
-            ship = VSGameUtilsKt.getShipManagingPos(serverLevel, pos);
-        }
-        return ship;
+    public static LoadedServerShip getShipAt(ServerLevel serverLevel, BlockPos pos) {
+        return VSGameUtilsKt.getShipObjectManagingPos(serverLevel, pos);
     }
 
-    public static <T> T getOrCreate(ServerShip ship, Class<T> attachmentClass, Supplier<T> factory) {
+    public static <T> T getOrCreate(LoadedServerShip ship, Class<T> attachmentClass, Supplier<T> factory) {
         T attachment = ship.getAttachment(attachmentClass);
         if (attachment == null) {
             attachment = factory.get();
-            ship.saveAttachment(attachmentClass, attachment);
+            ship.setAttachment(attachmentClass, attachment);
         }
         return attachment;
     }
@@ -37,7 +36,7 @@ public class AttachmentUtils {
         if (!(level instanceof ServerLevel serverLevel)) {
             return null; // Can only get ships on the server
         }
-        ServerShip ship = getShipAt(serverLevel, pos);
+        LoadedServerShip ship = getShipAt(serverLevel, pos);
         return ship != null ? getOrCreate(ship, attachmentClass, factory) : null;
     }
 

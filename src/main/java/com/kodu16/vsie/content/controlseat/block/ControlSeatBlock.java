@@ -43,29 +43,6 @@ public class ControlSeatBlock extends AbstractControlSeatBlock {
         return null;
     }
 
-
-    /*@Override
-    public void neighborChanged(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos, @Nonnull Block block, @Nonnull BlockPos fromPos, boolean isMoving) {
-        if (level.isClientSide()) return;
-        doInputCheck(level, state, pos);
-    }
-
-    private void doInputCheck(Level level, BlockState state, BlockPos pos) {
-        int newRedstonePower = level.getBestNeighborSignal(pos);
-        //int oldRedstonePower = state.getValue(POWER);
-        //if (newRedstonePower == oldRedstonePower) return;
-
-        BlockState newState = state.setValue(POWER, newRedstonePower);
-        level.setBlock(pos, newState, Block.UPDATE_ALL);
-
-        BlockEntity blockEntity = level.getBlockEntity(pos);
-        if (blockEntity instanceof AbstractControlSeatBlockEntity controlseatBlockEntity) {
-            //thrusterBlockEntity.calculateObstruction(level, pos, state.getValue(FACING));
-            controlseatBlockEntity.updateThrustAndTorque(newState);
-            controlseatBlockEntity.setChanged();
-        }
-    }*/
-
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         if (level.isClientSide()) {

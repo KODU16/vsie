@@ -1,5 +1,6 @@
 package com.kodu16.vsie;
 
+import com.kodu16.vsie.content.controlseat.server.ControlSeatForceAttachment;
 import com.kodu16.vsie.foundation.ModMenuTypes;
 import com.kodu16.vsie.network.ModNetworking;
 import com.kodu16.vsie.registries.vsieBlockEntities;
@@ -16,6 +17,8 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import com.simibubi.create.foundation.data.CreateRegistrate;
+import org.valkyrienskies.core.api.attachment.AttachmentRegistration;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import software.bernie.geckolib.GeckoLib;
 
 @Mod(vsie.ID)
@@ -41,6 +44,13 @@ public class vsie {
         ModMenuTypes.MENUS.register(modBus);
         ModNetworking.register();
         GeckoLib.initialize();
+
+        AttachmentRegistration registration = ValkyrienSkies.api()
+                .newAttachmentRegistrationBuilder(ControlSeatForceAttachment.class)
+                .useTransientSerializer()
+                .build();
+
+        ValkyrienSkies.api().registerAttachment(registration);
     }
     /*// 这个方法会在初始化时调用
     @SubscribeEvent

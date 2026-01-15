@@ -49,16 +49,6 @@ public abstract class AbstractControlSeatBlock extends DirectionalBlock implemen
         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));
     }
 
-    /*@Override
-    public VoxelShape getShape(@Nullable BlockState pState, @Nullable BlockGetter pLevel, @Nullable BlockPos pPos, @Nullable CollisionContext pContext) {
-        if (pState == null) {
-            return PropulsionShapes.THRUSTER.get(Direction.NORTH);
-        }
-        Direction direction = pState.getValue(FACING);
-        if (direction == Direction.UP || direction == Direction.DOWN) direction = direction.getOpposite();
-        return PropulsionShapes.THRUSTER.get(direction);
-    }*/
-
     @Override
     public BlockState getStateForPlacement(@Nonnull BlockPlaceContext context) {
         Direction baseDirection = context.getHorizontalDirection();
@@ -90,7 +80,7 @@ public abstract class AbstractControlSeatBlock extends DirectionalBlock implemen
         super.onPlace(state, level, pos, oldState, isMoving);
         Logger LOGGER = LogUtils.getLogger();
         LOGGER.warn(String.valueOf(Component.literal("onPlace called, detecting!")));
-        Initialize.initialize(level,pos,state);
+        //Initialize.initialize(level,pos,state);
     }
 
     @Override
