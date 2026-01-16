@@ -31,6 +31,7 @@ import software.bernie.geckolib.network.SerializableDataTicket;
 
 import java.util.List;
 
+import static com.kodu16.vsie.foundation.Vec.projectionAngleToB_deg_signed;
 import static com.kodu16.vsie.foundation.Vec.toVector3d;
 
 public abstract class AbstractVectorThrusterBlockEntity extends AbstractThrusterBlockEntity implements GeoBlockEntity {
@@ -94,9 +95,25 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
                 double throttle = 0.0;
 
                 if (hasInput) {
+                    Vector3d worldXDirection = new Vector3d();
+                    Vector3d worldYDirection = new Vector3d();
+                    Vector3d worldZDirection = new Vector3d();
                     Vector3d torqueforce = desiredTorque.cross(leverArmWorld);
                     Vector3d targetthrust = torqueforce.add(desiredForce);
                     targetthrust.normalize();
+
+                    transform.getShipToWorld().transformDirection(thrusterData.getDirection(), worldYDirection);
+                    worldYDirection.normalize();
+                    transform.getShipToWorld().transformDirection(thrusterData.getDirectionX(), worldXDirection);
+                    worldXDirection.normalize();
+                    transform.getShipToWorld().transformDirection(thrusterData.getDirectionZ(), worldZDirection);
+                    worldZDirection.normalize();
+                    spinDegrees = projectionAngleToB_deg_signed(targetthrust, worldZDirection, worldXDirection);
+                    pitchDegrees = projectionAngleToB_deg_signed(targetthrust, worldYDirection, worldZDirection);
+
+                    // 日志调试
+                    LOGGER.info("VectorThruster {}  worldY={}, worldX={}, worldZ={}, desiredVec={}, spin={}°, pitch={}°",
+                            getBlockPos(), worldYDirection, worldXDirection, worldZDirection, targetthrust, spinDegrees, pitchDegrees);
                 }
 
                 // 更新数据
@@ -104,10 +121,6 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
                 setAnimData(FINAL_SPIN, spinDegrees);
                 setAnimData(FINAL_PITCH, pitchDegrees);
                 setAnimData(IS_SPINNING, hasInput);
-
-                // 日志调试
-                LOGGER.info("VectorThruster {} facing {}: throttle={}, spin={}°, pitch={}°",
-                        getBlockPos(), worldfacing, throttle, spinDegrees, pitchDegrees);
 
             }
 
@@ -120,17 +133,6 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
             hasInitialized = true;
             LOGGER.warn(String.valueOf(Component.literal("vector thruster Initialize complete:" + pos)));
         }
-    }
-
-    private static Quaterniond quaternionFromFacing(Direction facing) {
-        return switch (facing) {
-            case DOWN  -> new Quaterniond().rotateX(Math.toRadians(90));   // +Y 朝下
-            case UP    -> new Quaterniond().rotateX(Math.toRadians(-90));
-            case NORTH -> new Quaterniond().rotateX(Math.toRadians(180));  // -Z
-            case SOUTH -> new Quaterniond();                               // +Z (默认 -Z 喷射时需旋转180)
-            case WEST  -> new Quaterniond().rotateY(Math.toRadians(90));
-            case EAST  -> new Quaterniond().rotateY(Math.toRadians(-90));
-        };
     }
 
     @Override
