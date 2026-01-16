@@ -1,5 +1,6 @@
 package com.kodu16.vsie.foundation;
 
+import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix3d;
 import org.joml.AxisAngle4d;
 import org.joml.Vector3d;
@@ -24,14 +25,24 @@ public class Vec {
         return new Vector3d(newX, newY, newZ);
     }
 
-    public static Vector3d VectorNormalization(Vector3d a) {
-        if(a.length()==0){
-            return new Vector3d(0,1,0);
-        }
-        return new Vector3d(a.x/a.length(), a.y/a.length(), a.z/a.length());
+    public static Vector3d toVector3d(Vec3 a) {
+        return new Vector3d(a.x,a.y,a.z);
     }
 
     public static double Distance(Vector3d a, Vector3d b) {
         return Math.sqrt(Math.pow(a.x-b.x,2) + Math.pow(a.y-b.y,2) + Math.pow(a.z-b.z,2));
+    }
+
+    public double calculateAngle(Vector3d a, Vector3d b) {
+        double dot = a.dot(b);
+        double lenA = a.length();
+        double lenB = b.length();
+
+        if (lenA == 0 || lenB == 0) return 0.0;
+
+        double cos = dot / (lenA * lenB);
+        cos = Math.max(-1.0, Math.min(1.0, cos));  // 防浮点误差
+
+        return Math.toDegrees(Math.acos(cos));
     }
 }

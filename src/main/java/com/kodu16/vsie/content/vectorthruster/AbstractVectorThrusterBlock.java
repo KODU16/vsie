@@ -58,16 +58,6 @@ public abstract class AbstractVectorThrusterBlock extends DirectionalBlock imple
 
     @Override
     public BlockState getStateForPlacement(@Nonnull BlockPlaceContext context) {
-        /*Direction baseDirection = context.getNearestLookingDirection();
-        Direction placeDirection;
-        Player player = context.getPlayer();
-        if (player != null) {
-            placeDirection = !player.isShiftKeyDown() ? baseDirection : baseDirection.getOpposite();
-        } else {
-            placeDirection = baseDirection.getOpposite();
-        }
-
-        return this.defaultBlockState().setValue(FACING, placeDirection);*/
         return this.defaultBlockState().setValue(FACING, context.getClickedFace().getOpposite());
     }
 
