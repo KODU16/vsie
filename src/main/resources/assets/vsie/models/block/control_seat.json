@@ -1,36 +1,6 @@
 {
-  "format_version": "1.9.0",
-  "credit": "Made with Blockbench",
-  "texture_size": [64, 64],
+  "parent": "vsie:block/gecko_block",
   "textures": {
-    "0": "vsie:block/control_seat",
-    "particle": "create:block/industrial_iron_block"
-  },
-  "elements": [
-    {
-      "from": [0, 0, 0],
-      "to": [16, 16, 2],
-      "faces": {
-        "north": {"uv": [0, 4, 4, 8], "texture": "#0"},
-        "east": {"uv": [0, 8, 0.5, 12], "texture": "#0"},
-        "south": {"uv": [4, 4, 8, 8], "texture": "#0"},
-        "west": {"uv": [0.5, 8, 1, 12], "texture": "#0"},
-        "up": {"uv": [5, 8.5, 1, 8], "texture": "#0"},
-        "down": {"uv": [12, 4, 8, 4.5], "texture": "#0"}
-      }
-    },
-    {
-      "from": [0, 0, 2],
-      "to": [16, 2, 16],
-      "rotation": {"angle": 0, "axis": "y", "origin": [0, 0, 2]},
-      "faces": {
-        "north": {"uv": [3.5, 3.5, 7.5, 4], "texture": "#0"},
-        "east": {"uv": [0, 3.5, 3.5, 4], "texture": "#0"},
-        "south": {"uv": [11, 3.5, 15, 4], "texture": "#0"},
-        "west": {"uv": [7.5, 3.5, 11, 4], "texture": "#0"},
-        "up": {"uv": [7.5, 3.5, 3.5, 0], "texture": "#0"},
-        "down": {"uv": [11.5, 0, 7.5, 3.5], "texture": "#0"}
-      }
-    }
-  ]
+    "particle": "vsie:block/control_seat"
+  }
 }

@@ -18,6 +18,10 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
+import software.bernie.geckolib.animatable.GeoBlockEntity;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animatable.instance.SingletonAnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,11 +31,11 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 @SuppressWarnings({"deprecation", "unchecked"})
-public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity implements IHaveGoggleInformation {
-    // Constants
+public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity implements IHaveGoggleInformation, GeoBlockEntity {
 
     // Common State
     protected ControlSeatServerData controlseatData;
+    private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
 
     //Links
     private final List<Vec3> linkedThrusters = new ArrayList<>();
@@ -49,7 +53,6 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
     }
 
 
-
     // 修改 tick 方法，在此方法中确保座椅输入与对应玩家的 UUID 匹配
 
     protected abstract boolean isWorking();
@@ -60,6 +63,8 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
 
     // 在移除座椅时清除控制记录
     public abstract void onRemove();
+
+    public abstract String getcontrolseattype();
 
     @Override
     public void write(CompoundTag nbt, boolean clientPacket) {
@@ -135,5 +140,15 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         if(type==0) {
             linkedThrusters.forEach(action);
         }
+    }
+
+    @Override
+    public void registerControllers(AnimatableManager.ControllerRegistrar controllerRegistrar) {
+
+    }
+
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return cache;
     }
 }

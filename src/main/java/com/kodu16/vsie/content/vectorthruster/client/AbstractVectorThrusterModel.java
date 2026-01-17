@@ -53,30 +53,30 @@ public class AbstractVectorThrusterModel extends DefaultedBlockGeoModel<Abstract
 
         if (controlling(animatable)) {
             // 获取目标角度（弧度）
-            double targetSpinRad = getspin(animatable);
-            double targetPitchRad = getpitch(animatable);
+            double targetSpin = getspin(animatable);
+            double targetPitch = getpitch(animatable);
 
             // 转换为度数进行插值（rotLerp 专门处理角度循环问题，如从359°到1°不会走长路）
-            float targetSpinDeg = (float) Math.toDegrees(targetSpinRad);
-            float targetPitchDeg = (float) Math.toDegrees(targetPitchRad);
+            //float targetSpinDeg = (float) Math.toDegrees(targetSpinRad);
+            //float targetPitchDeg = (float) Math.toDegrees(targetPitchRad);
 
             // 使用 rotLerp 平滑插值（0.1F ~ 0.3F 之间调节平滑程度，值越小越平滑但越慢）
-            float smoothSpinDeg = Mth.rotLerp(0.05F, lastSpin, targetSpinDeg);
-            float smoothPitchDeg = Mth.rotLerp(0.05F, lastPitch, targetPitchDeg);
+            float smoothSpinDeg = Mth.rotLerp(0.05F, lastSpin, (float) targetSpin);
+            float smoothPitchDeg = Mth.rotLerp(0.05F, lastPitch, (float) targetPitch);
 
             // 更新上次的值
             lastSpin = smoothSpinDeg;
             lastPitch = smoothPitchDeg;
 
             // 设置回骨骼（转回弧度）
-            spinner.setRotZ((float) Math.toRadians(smoothSpinDeg));
+            spinner.setRotZ(-1*(float) Math.toRadians(smoothSpinDeg));
             nozzle.setRotX((float) Math.toRadians(smoothPitchDeg));
 
         } else {
             // 不受控制时，可以选择缓慢归零或保持最后状态
             // 这里选择缓慢归零，显得更自然
-            lastSpin = Mth.rotLerp(0.15F, lastSpin, 0f);
-            lastPitch = Mth.rotLerp(0.15F, lastPitch, 0f);
+            //lastSpin = Mth.rotLerp(0.15F, lastSpin, 0f);
+            //lastPitch = Mth.rotLerp(0.15F, lastPitch, 0f);
 
             spinner.setRotZ((float) Math.toRadians(lastSpin));
             nozzle.setRotX((float) Math.toRadians(lastPitch));
@@ -84,7 +84,7 @@ public class AbstractVectorThrusterModel extends DefaultedBlockGeoModel<Abstract
     }
 
     private boolean controlling(AbstractVectorThrusterBlockEntity animatable) {
-        return Boolean.TRUE.equals(animatable.getAnimData(AbstractVectorThrusterBlockEntity.IS_SPINNING));
+        return true;
     }
 
     private float lerp(float start, float end) {

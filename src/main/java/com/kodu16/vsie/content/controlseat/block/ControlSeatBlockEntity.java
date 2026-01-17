@@ -2,7 +2,6 @@ package com.kodu16.vsie.content.controlseat.block;
 
 import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.Initialize;
-import com.kodu16.vsie.content.controlseat.ShipControlEvent;
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
 import com.kodu16.vsie.content.controlseat.client.ClientInputHandler;
@@ -56,6 +55,10 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
 
     public ControlSeatBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
+    }
+
+    public String getcontrolseattype() {
+        return "control_seat";
     }
 
     @Override
@@ -202,13 +205,13 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         Direction facing = state.getValue(BlockStateProperties.FACING);
         Vector3dc mounterPos;
         if (facing == Direction.NORTH) {
-            mounterPos = new Vector3d(pos.getX() + 0.5, pos.getY() + 0.125, pos.getZ() + 1.3125);
+            mounterPos = new Vector3d(pos.getX()+0.5, pos.getY(), pos.getZ());
         } else if (facing == Direction.SOUTH) {
-            mounterPos = new Vector3d(pos.getX() + 0.5, pos.getY() + 0.125, pos.getZ() - 0.3125);
+            mounterPos = new Vector3d(pos.getX()+0.5, pos.getY(), pos.getZ()+1);
         } else if (facing == Direction.EAST) {
-            mounterPos = new Vector3d(pos.getX() - 0.3125, pos.getY() + 0.125, pos.getZ() + .5);
+            mounterPos = new Vector3d(pos.getX()+1, pos.getY(), pos.getZ()+0.5);
         } else {
-            mounterPos = new Vector3d(pos.getX() + 1.3125, pos.getY() + 0.125, pos.getZ() + .5);
+            mounterPos = new Vector3d(pos.getX(), pos.getY(), pos.getZ()+0.5);
         }
 
         ShipMountingEntity entity = ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE.create(level);

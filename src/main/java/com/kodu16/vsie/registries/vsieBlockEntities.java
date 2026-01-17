@@ -1,5 +1,6 @@
 package com.kodu16.vsie.registries;
 
+import com.kodu16.vsie.content.controlseat.client.AbstractControlSeatGeoRenderer;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
 import com.kodu16.vsie.content.thruster.block.basicthruster.BasicThrusterBlockEntity;
 import com.kodu16.vsie.content.turret.block.MediumLaserTurretBlockEntity;
@@ -27,6 +28,7 @@ public class vsieBlockEntities {
     public static final BlockEntityEntry<ControlSeatBlockEntity> CONTROL_SEAT_BLOCK_ENTITY =
             REGISTRATE.blockEntity("control_seat_block_entity", ControlSeatBlockEntity::new)
                     .validBlocks(vsieBlocks.CONTROL_SEAT_BLOCK)
+                    .renderer(() -> AbstractControlSeatGeoRenderer::new)
                     .register();
     public static final BlockEntityEntry<MediumLaserTurretBlockEntity> MEDIUM_LASER_TURRET_BLOCK_ENTITY =
             REGISTRATE.blockEntity("medium_laser_turret_block_entity", MediumLaserTurretBlockEntity::new)

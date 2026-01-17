@@ -1,7 +1,5 @@
 package com.kodu16.vsie.content.thruster;
 
-
-import com.kodu16.vsie.content.controlseat.ShipControlEvent;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;

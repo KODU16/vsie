@@ -13,6 +13,7 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.core.Vec3i;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.RenderShape;
 import org.joml.Vector3d;
 import org.slf4j.Logger;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -100,6 +101,11 @@ public abstract class AbstractControlSeatBlock extends DirectionalBlock implemen
             }
         }
         seats.clear(); // Clear the list after removing all seat entities
+    }
+
+    @Override
+    public RenderShape getRenderShape(BlockState State) {
+        return RenderShape.ENTITYBLOCK_ANIMATED;
     }
 
     @Override
