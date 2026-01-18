@@ -3,6 +3,7 @@ package com.kodu16.vsie.content.item.linker;
 import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlock;
 import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlockEntity;
+import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -53,7 +54,7 @@ public class linker extends Item {
                 nbt.putIntArray("ControlSeatPos", pos);
                 player.displayClientMessage(Component.literal("§a绑定器已绑定至控制椅: " + clickedPos), true);
                 //controllerMap.putIfAbsent(clickedPos, new HashMap<>());
-                return InteractionResult.CONSUME;
+                return InteractionResult.PASS;
             }
             else {
                 player.displayClientMessage(Component.literal("绑定器未绑定控制椅"), true);
@@ -70,7 +71,19 @@ public class linker extends Item {
             Vec3 pos = new Vec3(clickedPos.getX(), clickedPos.getY(), clickedPos.getZ());
             if (blockEntityA instanceof AbstractControlSeatBlockEntity controlseat) {
                 controlseat.addLinkedPeripheral(pos, 0);
-                player.displayClientMessage(Component.literal("§b已将控制椅: " + controllerPos + " 与外设: " + clickedPos + " 绑定"), true);
+                player.displayClientMessage(Component.literal("§b已将控制椅: " + controllerPos + " 与推进器: " + clickedPos + " 绑定"), true);
+            }
+            else {
+                player.displayClientMessage(Component.literal("绑定的控制椅已经被移除"), true);
+                nbt.remove("ControlSeatPos");
+            }
+            return InteractionResult.CONSUME;
+        }
+        if (blockEntityB instanceof AbstractWeaponBlockEntity weapon) {
+            Vec3 pos = new Vec3(clickedPos.getX(), clickedPos.getY(), clickedPos.getZ());
+            if (blockEntityA instanceof AbstractControlSeatBlockEntity controlseat) {
+                controlseat.addLinkedPeripheral(pos, 1);
+                player.displayClientMessage(Component.literal("§b已将控制椅: " + controllerPos + " 与武器: " + clickedPos + " 绑定"), true);
             }
             else {
                 player.displayClientMessage(Component.literal("绑定的控制椅已经被移除"), true);
@@ -91,7 +104,7 @@ public class linker extends Item {
             BlockPos pos = new BlockPos(arr[0], arr[1], arr[2]);
             tooltip.add(Component.literal("§e控制椅位置: " + pos));
         } else {
-            tooltip.add(Component.literal("§7右键控制椅绑定控制椅，再右键外设绑定任意外设\n外设必须被绑定才可被控制椅操纵\n在跨越维度或重新进入游戏时，绑定关系不会失效\n一个外设仅能被一个控制椅绑定，后续绑定不会生效\n控制椅发现外设被移除时，将自动与外设位置解除绑定"));
+            tooltip.add(Component.literal("§7右键控制椅绑定控制椅，再右键外设绑定\n外设必须被绑定才可被控制椅操纵\n在跨越维度或重新进入游戏时，绑定关系不会失效\n一个外设仅能被一个控制椅绑定，后续绑定不会生效\n控制椅发现外设被移除时，将自动与外设位置解除绑定"));
         }
         super.appendHoverText(stack, level, tooltip, flag);
     }

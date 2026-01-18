@@ -1,7 +1,5 @@
-package com.kodu16.vsie.content.thruster;
+package com.kodu16.vsie.content.weapon;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -29,25 +27,18 @@ import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 @SuppressWarnings("deprecation")
-public abstract class AbstractThrusterBlock extends DirectionalBlock implements EntityBlock {
+public abstract class AbstractWeaponBlock extends DirectionalBlock implements EntityBlock {
     public static final DirectionProperty FACING = BlockStateProperties.FACING;
     public static final IntegerProperty POWER = IntegerProperty.create("redstone_power", 0, 15);
 
-    protected AbstractThrusterBlock(Properties properties) {
+    protected AbstractWeaponBlock(Properties properties) {
         super(properties);
         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));
     }
-
-    /*@Override
-    public VoxelShape getShape(@Nullable BlockState pState, @Nullable BlockGetter pLevel, @Nullable BlockPos pPos, @Nullable CollisionContext pContext) {
-        if (pState == null) {
-            return PropulsionShapes.THRUSTER.get(Direction.NORTH);
-        }
-        Direction direction = pState.getValue(FACING);
-        if (direction == Direction.UP || direction == Direction.DOWN) direction = direction.getOpposite();
-        return PropulsionShapes.THRUSTER.get(direction);
-    }*/
 
     @Override
     public BlockState getStateForPlacement(@Nonnull BlockPlaceContext context) {
@@ -83,15 +74,9 @@ public abstract class AbstractThrusterBlock extends DirectionalBlock implements 
         if (level.isClientSide()) return;
 
         BlockEntity blockEntity = level.getBlockEntity(pos);
-        if (blockEntity instanceof AbstractThrusterBlockEntity thrusterBlockEntity) {
+        if (blockEntity instanceof AbstractWeaponBlockEntity weaponBlockEntity) {
             LoadedShip Ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos);
             if (Ship != null) {
-                // Initialize thruster data for ValkyRien Skies
-                ThrusterData data = thrusterBlockEntity.getData();
-                data.setDirection(VectorConversionsMCKt.toJOMLD(state.getValue(FACING).getNormal()));
-                /*data.setThrust(0);
-                ThrusterForceApplier applier = new ThrusterForceApplier(data);
-                ship.addApplier(pos, applier);*/
             }
         }
     }
@@ -101,10 +86,6 @@ public abstract class AbstractThrusterBlock extends DirectionalBlock implements 
         super.onRemove(state, level, pos, newState, isMoving);
         if (level.isClientSide()) return;
 
-        //ThrusterForceAttachment ship = ThrusterForceAttachment.get(level, pos);
-        //if (ship != null) {
-        //    ship.removeApplier((ServerLevel) level, pos);
-        //}
     }
 
     @Override
@@ -123,3 +104,4 @@ public abstract class AbstractThrusterBlock extends DirectionalBlock implements 
         return state.rotate(mirrorIn.getRotation(state.getValue(FACING)));
     }
 }
+

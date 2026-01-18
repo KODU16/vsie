@@ -71,15 +71,25 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         super.write(nbt, clientPacket);
 
         // 保存链表
-        ListTag list = new ListTag();
+        ListTag listthrusters = new ListTag();
         for (Vec3 pos : linkedThrusters) {
             CompoundTag vecTag = new CompoundTag();
             vecTag.putDouble("x", pos.x);
             vecTag.putDouble("y", pos.y);
             vecTag.putDouble("z", pos.z);
-            list.add(vecTag);
+            listthrusters.add(vecTag);
         }
-        nbt.put("LinkedThrusters", list);
+        nbt.put("LinkedThrusters", listthrusters);
+
+        ListTag listweapons = new ListTag();
+        for (Vec3 pos : linkedWeapons) {
+            CompoundTag vecTag = new CompoundTag();
+            vecTag.putDouble("x", pos.x);
+            vecTag.putDouble("y", pos.y);
+            vecTag.putDouble("z", pos.z);
+            listweapons.add(vecTag);
+        }
+        nbt.put("LinkedThrusters", listweapons);
 
     }
 
@@ -96,6 +106,18 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
                 double y = vecTag.getDouble("y");
                 double z = vecTag.getDouble("z");
                 linkedThrusters.add(new Vec3(x, y, z));
+            }
+        }
+
+        linkedWeapons.clear();
+        if (nbt.contains("LinkedWeapons", Tag.TAG_LIST)) {
+            ListTag list = nbt.getList("LinkedWeapons", Tag.TAG_COMPOUND);
+            for (int i = 0; i < list.size(); i++) {
+                CompoundTag vecTag = list.getCompound(i);
+                double x = vecTag.getDouble("x");
+                double y = vecTag.getDouble("y");
+                double z = vecTag.getDouble("z");
+                linkedWeapons.add(new Vec3(x, y, z));
             }
         }
     }
@@ -127,6 +149,11 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
             LOGGER.warn("adding thruster to controlseat: "+pos);
             setChanged(); // 标记方块实体脏了，强制保存
         }
+        if (type==1 && !linkedWeapons.contains(pos)) {
+            linkedWeapons.add(pos);
+            LOGGER.warn("adding weapon to controlseat: "+pos);
+            setChanged(); // 标记方块实体脏了，强制保存
+        }
     }
 
     public void removeLinkedPeripheral(Vec3 pos, int type) {
@@ -134,11 +161,18 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
             linkedThrusters.remove(pos);
             setChanged(); // 标记方块实体脏了，强制保存
         }
+        if (type==1 && linkedWeapons.contains(pos)) {
+            linkedWeapons.remove(pos);
+            setChanged(); // 标记方块实体脏了，强制保存
+        }
     }
 
     public void forEachLinkedPeripheral(Consumer<Vec3> action, int type) { //0：推进器 1：主武器 2：护盾 3：炮塔，务必不要写错
         if(type==0) {
             linkedThrusters.forEach(action);
+        }
+        if(type==1) {
+            linkedWeapons.forEach(action);
         }
     }
 

@@ -1,16 +1,13 @@
 package com.kodu16.vsie.content.controlseat.client;
 
-import com.kodu16.vsie.network.ControlSeatInputC2SPacket;
+import com.kodu16.vsie.network.controlseat.ControlSeatInputC2SPacket;
 import com.kodu16.vsie.network.ModNetworking;
 import com.kodu16.vsie.registries.vsieKeyMappings;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import java.util.UUID;
-import net.minecraft.client.KeyMapping;
 
-import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 
 public class ClientSeatInputSender {

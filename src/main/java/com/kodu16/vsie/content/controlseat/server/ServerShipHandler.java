@@ -11,10 +11,8 @@ import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.core.impl.game.ships.PhysShipImpl;
-import org.valkyrienskies.core.impl.game.ships.PhysPoseImpl;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
-import com.kodu16.vsie.network.ControlSeatInputS2CPacket;
+import com.kodu16.vsie.network.controlseat.ControlSeatInputS2CPacket;
 import com.kodu16.vsie.network.ModNetworking;
 
 import net.minecraftforge.network.PacketDistributor;

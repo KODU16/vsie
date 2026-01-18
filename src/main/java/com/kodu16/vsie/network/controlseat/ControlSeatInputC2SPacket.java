@@ -1,9 +1,8 @@
 // ControlSeatInputC2SPacket.java
-package com.kodu16.vsie.network;
+package com.kodu16.vsie.network.controlseat;
 
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
-import com.kodu16.vsie.registries.vsieKeyMappings;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
@@ -12,13 +11,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.network.NetworkEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.Level;
 import org.joml.Vector3d;
 
-import java.util.UUID;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 

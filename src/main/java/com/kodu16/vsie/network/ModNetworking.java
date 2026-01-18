@@ -1,6 +1,9 @@
 // 我爱GPT5
 package com.kodu16.vsie.network;
 
+import com.kodu16.vsie.network.controlseat.ControlSeatInputC2SPacket;
+import com.kodu16.vsie.network.controlseat.ControlSeatInputS2CPacket;
+import com.kodu16.vsie.network.turret.TurretC2SPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;

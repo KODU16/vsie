@@ -1,43 +1,48 @@
-package com.kodu16.vsie.network;
+package com.kodu16.vsie.network.controlseat;
+
+import com.kodu16.vsie.content.controlseat.client.ClientDataManager;
+import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.mojang.logging.LogUtils;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.network.NetworkEvent;
 import net.minecraft.client.Minecraft;
 
-import java.util.UUID;
 import java.util.function.Supplier;
-import org.joml.Quaterniond;
+
 import org.joml.Vector3d;
 import org.slf4j.Logger;
 
 
-public class ThrusterS2CPacket implements Packet<ClientGamePacketListener> {
+public class ControlSeatInputS2CPacket implements Packet<ClientGamePacketListener> {
     private final BlockPos pos;
-    private final float raylength;
+    private final Vector3d shipFacing;
 
     // 构造函数
-    public ThrusterS2CPacket(BlockPos pos, float raylength) {
+    public ControlSeatInputS2CPacket(BlockPos pos, Vector3d shipFacing) {
         this.pos = pos;
-        this.raylength = raylength;
+        this.shipFacing = shipFacing;
     }
 
     // 编码（序列化）
     public void write(FriendlyByteBuf buf) {
         buf.writeBlockPos(pos);
-        buf.writeFloat(raylength);
+        buf.writeDouble(shipFacing.x);
+        buf.writeDouble(shipFacing.y);
+        buf.writeDouble(shipFacing.z);
     }
 
     // 解码（反序列化）
-    public static ThrusterS2CPacket decode(FriendlyByteBuf buf) {
+    public static ControlSeatInputS2CPacket decode(FriendlyByteBuf buf) {
         BlockPos pos = buf.readBlockPos();
-        float raylength = buf.readFloat();
-        return new ThrusterS2CPacket(pos, raylength);
+        double facingX = buf.readDouble();
+        double facingY = buf.readDouble();
+        double facingZ = buf.readDouble();
+        Vector3d shipFacing = new Vector3d(facingX, facingY, facingZ);
+        return new ControlSeatInputS2CPacket(pos, shipFacing);
     }
 
     // 处理客户端接收到的数据包
@@ -50,6 +55,11 @@ public class ThrusterS2CPacket implements Packet<ClientGamePacketListener> {
             Player player = mc.player;
             // 获取对应玩家的 ControlSeatClientData
             // 我差点忘了这clientdatamanager里有获取准确的玩家对应的clientdata的方法，我的问题
+            ControlSeatClientData clientData = ClientDataManager.getClientData(player);
+            //LOGGER.warn(String.valueOf(Component.literal("writing S2C data to:"+player+" uuid:"+player.getUUID())));
+            // 更新四元数
+            clientData.setShipFacing(shipFacing);
+            clientData.setUserUUID(player.getUUID());
 
             // 这里可以进一步根据需要应用旋转到某个实体或者更新视角
         });
