@@ -1,7 +1,7 @@
 {
   "variants": {
     "": {
-      "model": "vsie:block/control_seat"
+      "model": "vsie:block/containers/control_seat_container"
     }
   }
 }

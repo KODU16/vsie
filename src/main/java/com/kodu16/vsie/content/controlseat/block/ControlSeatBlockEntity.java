@@ -9,6 +9,7 @@ import com.kodu16.vsie.content.controlseat.client.ClientInputHandler;
 import com.kodu16.vsie.content.controlseat.server.SeatRegistry;
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlockEntity;
 import com.kodu16.vsie.content.turret.TurretData;
+import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
@@ -75,7 +76,6 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         BlockPos pos = getBlockPos();
         // 只有当本地玩家就是这张座椅的乘客时才生效
         //这是个静态方法，最好提前确定好你在server存好了他上一次的鼠标位置和他上一次操作时间
-        //考虑到现在用鼠标劫持，也许可以把鼠标位置存在mixin里头
         ClientInputHandler.handle(lp, pos);
     }
 
@@ -92,6 +92,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
                 controlseatData.setPlayer(null);
             }
             updateThruster();
+            updateWeapon();
         }
         else {
             LOGGER.warn(String.valueOf(Component.literal("detected uninitialized controlseat, time to sweep valkyrie's ass")));
@@ -129,6 +130,36 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         // 循环结束后统一删除
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 0);
+        }
+    }
+
+    public void updateWeapon() {
+        int encoded = 0;
+        if (controlseatData.getChannel1()) encoded |= 1 << 0; // 0001
+        if (controlseatData.getChannel2()) encoded |= 1 << 1; // 0010
+        if (controlseatData.getChannel3()) encoded |= 1 << 2; // 0100
+        if (controlseatData.getChannel4()) encoded |= 1 << 3; // 1000
+        List<Vec3> toRemove = new ArrayList<>();
+        int finalEncoded = encoded;
+        controlseatData.channelencode = encoded;
+        if (!controlseatData.isfiring) {return;}
+        this.forEachLinkedPeripheral(pos -> {
+            BlockPos blockPos = BlockPos.containing(pos);
+            BlockEntity be = level.getBlockEntity(blockPos);
+
+            if (be instanceof AbstractWeaponBlockEntity weapon) {
+                Logger LOGGER = LogUtils.getLogger();
+                //LOGGER.warn("writing to thrusters:" +blockPos+ "torque:"+controlseatData.getFinaltorque()+"force:"+controlseatData.getFinalforce());
+                weapon.receivechannel(finalEncoded);
+            } else {
+                // 先记下来，循环完了再删
+                toRemove.add(pos);
+            }
+        }, 1);
+
+        // 循环结束后统一删除
+        for (Vec3 pos : toRemove) {
+            removeLinkedPeripheral(pos, 1);
         }
     }
 

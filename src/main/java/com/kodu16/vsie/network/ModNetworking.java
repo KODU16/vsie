@@ -3,7 +3,9 @@ package com.kodu16.vsie.network;
 
 import com.kodu16.vsie.network.controlseat.ControlSeatInputC2SPacket;
 import com.kodu16.vsie.network.controlseat.ControlSeatInputS2CPacket;
+import com.kodu16.vsie.network.controlseat.ControlSeatS2CPacket;
 import com.kodu16.vsie.network.turret.TurretC2SPacket;
+import com.kodu16.vsie.network.weapon.WeaponC2SPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
@@ -37,8 +39,20 @@ public class ModNetworking {
                 TurretC2SPacket::decode, // 解码方法
                 TurretC2SPacket::handle  // 处理方法
         );
-
-        // 注册S2C数据包
+        CHANNEL.registerMessage(
+                nextId(),
+                WeaponC2SPacket.class,
+                WeaponC2SPacket::encode,
+                WeaponC2SPacket::decode,
+                WeaponC2SPacket::handle
+        );
+        CHANNEL.registerMessage(
+                nextId(),
+                ControlSeatS2CPacket.class,
+                ControlSeatS2CPacket::write,
+                ControlSeatS2CPacket::decode,
+                ControlSeatS2CPacket::handle
+        );
         CHANNEL.registerMessage(
                 nextId(),
                 ControlSeatInputS2CPacket.class,

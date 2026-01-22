@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.weapon;
 
 
+import net.minecraft.world.level.block.RenderShape;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -86,6 +87,11 @@ public abstract class AbstractWeaponBlock extends DirectionalBlock implements En
         super.onRemove(state, level, pos, newState, isMoving);
         if (level.isClientSide()) return;
 
+    }
+
+    @Override
+    public RenderShape getRenderShape(BlockState State) {
+        return RenderShape.ENTITYBLOCK_ANIMATED;
     }
 
     @Override

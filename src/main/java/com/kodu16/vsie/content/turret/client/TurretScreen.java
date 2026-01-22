@@ -16,7 +16,7 @@ import net.minecraft.world.entity.player.Inventory;
 @SuppressWarnings({"removal"})
 public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
 
-    private static final ResourceLocation TEXTURE = new ResourceLocation(vsie.ID, "textures/gui/turret_gui.png");
+    private static final ResourceLocation TEXTURE = new ResourceLocation(vsie.ID, "textures/gui/turret/turret_gui.png");
 
     public TurretScreen(TurretContainerMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
@@ -40,8 +40,8 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
         // 直接用 GuiGraphics 的 blit 方法绘制纹理
         guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
         // 根据状态选择不同的图标
-        ResourceLocation icon = turret.getData().targetsHostile ? new ResourceLocation(vsie.ID, "textures/gui/target_hostile_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/target_hostile_off.png");
+        ResourceLocation icon = turret.getData().targetsHostile ? new ResourceLocation(vsie.ID, "textures/gui/turret/target_hostile_on.png")
+                : new ResourceLocation(vsie.ID, "textures/gui/turret/target_hostile_off.png");
 
         // 绘制状态图标
         guiGraphics.blit(icon, this.leftPos + 30, this.topPos + 50, 0, 0, 20, 20, 20,20); // 你可以调整位置和大小

@@ -20,6 +20,10 @@
     "key.vsie.adjust_right":"adjust movement right",
     "key.vsie.scan_peripheral": "scan peripheral",
     "key.vsie.break": "(useless, misspell of brake)",
+    "key.vsie.toggle_weapon_channel_1": "toggle weapon channel 1",
+    "key.vsie.toggle_weapon_channel_2": "toggle weapon channel 2",
+    "key.vsie.toggle_weapon_channel_3": "toggle weapon channel 3",
+    "key.vsie.toggle_weapon_channel_4": "toggle weapon channel 4",
 
     "gui.turret.energy_per_shot": "energy per shot",
     "gui.turret.target_hostile": "shoot at hostile entities",

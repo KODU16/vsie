@@ -1,6 +1,0 @@
-{
-  "parent": "vsie:block/gecko_block",
-  "textures": {
-    "particle": "vsie:block/basic_vector_thruster"
-  }
-}

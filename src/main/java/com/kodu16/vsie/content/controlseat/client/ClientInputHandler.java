@@ -53,13 +53,16 @@ public class ClientInputHandler {
         // 捕捉空格键按下，加上延迟按键，省的按一下切三下视角给玩家搞不会
         if (jumpKey.isDown() && System.currentTimeMillis()- data.getLastKeyPressTime()>800) {
             //我哪知道行不行，我猜行
-            //好吧的确行，我爱deepseek，GPT5和mixin
             //下次搞完mixin记得重构，打包项目不算重构
             //按下空格键时锁定视角
             data.toggleViewLock();
             if (data.isViewLocked()) {
                 player.displayClientMessage(Component.literal("locking view to direction"), true);
-                setPlayerViewDirection(player,data.getShipFacing());
+                player.setYRot(180);
+                player.setXRot(0);
+                // 同步头部和身体的旋转
+                player.setYHeadRot(180);
+                player.setYBodyRot(0);
             } else {
                 player.displayClientMessage(Component.literal("unlocking view"), true);
             }
@@ -67,20 +70,4 @@ public class ClientInputHandler {
         }
     }
 
-    public static void setPlayerViewDirection(LocalPlayer player, Vector3d targetDirection) {
-        // 创建一个向量来表示玩家的前方
-        Vector3f targetDir = new Vector3f((float) targetDirection.x, (float) targetDirection.y, (float) targetDirection.z);
-        targetDir.normalize();
-        // 设置玩家的朝向旋转（这里使用的是玩家的 yaw 和 pitch）
-        float yaw = (float) Math.toDegrees(Math.atan2(targetDirection.x, targetDirection.z));
-        float pitch = (float) Math.toDegrees(Math.asin(targetDirection.y));
-
-        // 设置玩家的旋转 (yaw 作为水平旋转，pitch 作为垂直旋转)
-        player.setYRot(180-yaw);
-        player.setXRot(pitch);
-
-        // 同步头部和身体的旋转
-        player.setYHeadRot(180-yaw);
-        player.setYBodyRot(180-yaw);
-    }
 }

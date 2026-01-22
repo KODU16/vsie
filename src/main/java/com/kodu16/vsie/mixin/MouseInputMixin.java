@@ -2,10 +2,10 @@ package com.kodu16.vsie.mixin;
 
 import com.kodu16.vsie.content.controlseat.client.ClientDataManager;
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
-import com.kodu16.vsie.foundation.clamp;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.util.Mth;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -29,8 +29,8 @@ public class MouseInputMixin {
         if (data != null && data.isViewLocked()) {
             // 视角被锁定时，拦截鼠标移动事件
             ci.cancel();
-            data.setAccumulatedx(clamp.clampd(-2560,data.getAccumulatedMousex() + xpos - data.getLastMousex(),2560));
-            data.setAccumulatedy(clamp.clampd(-1440,data.getAccumulatedMousey() + ypos - data.getLastMousey(),1440));
+            data.setAccumulatedx(Mth.clamp(data.getAccumulatedMousex() + xpos - data.getLastMousex(),-2560,2560));
+            data.setAccumulatedy(Mth.clamp(data.getAccumulatedMousey() + ypos - data.getLastMousey(),-1440,1440));
             data.setLastMousex(xpos);
             data.setLastMousey(ypos);
         }
@@ -42,7 +42,7 @@ public class MouseInputMixin {
         }
     }
 
-    @Inject(method = "onPress", at = @At("HEAD"), cancellable = true)
+    /*@Inject(method = "onPress", at = @At("HEAD"), cancellable = true)
     private void onMouseButton(long window, int button, int action, int mods, CallbackInfo ci) {
         LocalPlayer player = Minecraft.getInstance().player;
         ControlSeatClientData data = null;
@@ -53,7 +53,7 @@ public class MouseInputMixin {
             // 视角被锁定时，拦截鼠标点击事件
             ci.cancel();
         }
-    }
+    }*/
 
     @Inject(method = "onScroll", at = @At("HEAD"), cancellable = true)
     private void onMouseScroll(long window, double xoffset, double yoffset, CallbackInfo ci) {

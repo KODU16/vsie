@@ -1,5 +1,5 @@
 {
-  "parent": "vsie:block/containers/control_seat_container",
+  "parent": "vsie:block/containers/basic_vector_thruster_container",
   "display": {
     "thirdperson_righthand": {
       "rotation": [75, 45, 0],

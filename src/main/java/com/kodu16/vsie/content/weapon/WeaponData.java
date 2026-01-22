@@ -7,11 +7,13 @@ public class WeaponData implements IUpgradeData {
     public volatile boolean channel2 = false;
     public volatile boolean channel3 = false;
     public volatile boolean channel4 = false;
+    public volatile int receivingchannel = 0000;
+    public volatile boolean isfiring = false;
 
-    public boolean isChannel1(){return channel1;}
-    public boolean isChannel2(){return channel2;}
-    public boolean isChannel3(){return channel3;}
-    public boolean isChannel4(){return channel4;}
+    public boolean getChannel1(){return channel1;}
+    public boolean getChannel2(){return channel2;}
+    public boolean getChannel3(){return channel3;}
+    public boolean getChannel4(){return channel4;}
 
     public void setChannel1(boolean channel){this.channel1 = channel;}
     public void setChannel2(boolean channel){this.channel2 = channel;}

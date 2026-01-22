@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "vsie:block/containers/infra_knife_accelerator_container"
+    }
+  }
+}

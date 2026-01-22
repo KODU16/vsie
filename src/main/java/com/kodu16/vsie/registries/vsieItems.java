@@ -18,11 +18,4 @@ public class vsieItems {
     //public static final ItemEntry<OpticalLensItem> OPTICAL_LENS = REGISTRATE.item("optical_lens", OpticalLensItem::new).register();
     public static final ItemEntry<testItem> TEST_ITEM = REGISTRATE.item("test_item", testItem::new).register();
     public static final ItemEntry<linker> LINKER = REGISTRATE.item("linker", linker::new).register();
-
-    /*public static TagKey<Item> makeTag(String key) {
-        ResourceLocation resource = new ResourceLocation(CreatePropulsion.ID, key);
-        TagKey<Item> tag = TagKey.create(Registries.ITEM, resource);
-        //No datagen :(
-        return tag;
-    }*/
 }

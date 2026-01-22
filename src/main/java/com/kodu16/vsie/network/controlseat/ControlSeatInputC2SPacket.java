@@ -50,12 +50,6 @@ public class ControlSeatInputC2SPacket {
     }
 
     public static void handle(ControlSeatInputC2SPacket pkt, Supplier<NetworkEvent.Context> ctxSup) {
-        //事情跟我想象的有点不一样
-        //我得把拿到的这些存在服务端的Data里
-        //我得好好想想怎么保证一对一
-        //也就是玩家客户端发的包能存到他坐的座椅的的Data里
-        //说不定用pos做桥梁可以，pos服务端和客户端一样
-        //现在不在这计算力矩了，在shiphandler里结合船只信息计算
         NetworkEvent.Context ctx = ctxSup.get();
         ctx.enqueueWork(() -> {
             ServerPlayer sender = ctx.getSender();
@@ -75,7 +69,7 @@ public class ControlSeatInputC2SPacket {
             }
             boolean isThrottlePressed = (keys & ControlSeatInputC2SPacket.Keys.THROTTLE) != 0;
             boolean isBrakePressed = (keys & ControlSeatInputC2SPacket.Keys.BRAKE) != 0;
-            boolean isPeripheralPressed = (keys & ControlSeatInputC2SPacket.Keys.SCAN_PERIPHERAL) != 0;
+            //boolean isPeripheralPressed = (keys & ControlSeatInputC2SPacket.Keys.SCAN_PERIPHERAL) != 0;
             int finalthrottledelta = isThrottlePressed ? 1 : (isBrakePressed ? -1 : 0);
             //LOGGER.warn(String.valueOf(Component.literal("delta throttle:"+finalthrottledelta)));
 
@@ -87,16 +81,35 @@ public class ControlSeatInputC2SPacket {
                 ControlSeatServerData serverData = controlSeat.getServerData(); // Ensure this method exists
                 int finalthrottle = Math.max(-100, Math.min(serverData.getThrottle()+finalthrottledelta, 100));
                 //LOGGER.warn(String.valueOf(Component.literal("final throttle:"+finalthrottle)));
-
                 serverData.setTorque(new Vector3d(0, -mousex, mousey));
                 serverData.setThrottle(finalthrottle);
+
             }
-
-
+            ControlSeatServerData serverData = controlSeat.getServerData(); // Ensure this method exists
             // 处理按键输入（使用 bitmask）
             if ((keys & Keys.THROTTLE) != 0) {
             //    controlSeat.moveForward(sender);
             }
+
+            if((keys & Keys.MOUSEL) !=0 ) {
+                serverData.isfiring= true;
+            } else {
+                serverData.isfiring = false;
+            }
+
+            if((keys & Keys.CHANNEL1) !=0) {
+                serverData.channel1 = !serverData.getChannel1();
+            }
+            if((keys & Keys.CHANNEL2) !=0) {
+                serverData.channel2 = !serverData.getChannel2();
+            }
+            if((keys & Keys.CHANNEL3) !=0) {
+                serverData.channel3 = !serverData.getChannel3();
+            }
+            if((keys & Keys.CHANNEL4) !=0) {
+                serverData.channel4 = !serverData.getChannel4();
+            }
+
             // 可选：标记方块实体为脏以保存更改
             controlSeat.setChanged();
         });
@@ -116,5 +129,9 @@ public class ControlSeatInputC2SPacket {
         public static final int CTRL  = 1 << 7;
         public static final int MOUSEL = 1 << 8;  // 鼠标左
         public static final int MOUSER  = 1 << 9;  // 鼠标右
+        public static final int CHANNEL1 = 1 << 10;
+        public static final int CHANNEL2 = 1 << 11;
+        public static final int CHANNEL3 = 1 << 12;
+        public static final int CHANNEL4 = 1 << 13;
     }
 }

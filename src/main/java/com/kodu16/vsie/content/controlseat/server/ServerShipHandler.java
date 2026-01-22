@@ -1,6 +1,8 @@
 package com.kodu16.vsie.content.controlseat.server;
 
 
+import com.kodu16.vsie.network.controlseat.ControlSeatInputC2SPacket;
+import com.kodu16.vsie.network.controlseat.ControlSeatInputS2CPacket;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -12,7 +14,7 @@ import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.core.impl.game.ships.PhysShipImpl;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
-import com.kodu16.vsie.network.controlseat.ControlSeatInputS2CPacket;
+import com.kodu16.vsie.network.controlseat.ControlSeatS2CPacket;
 import com.kodu16.vsie.network.ModNetworking;
 
 import net.minecraftforge.network.PacketDistributor;
@@ -29,6 +31,7 @@ public class ServerShipHandler {
         this.data = data;
     }
     private long lastSendMs = 0;
+    private long lastSendInputMs = 0;
     private volatile Vector3d worldXDirection = new Vector3d();
     private volatile Vector3d worldYDirection = new Vector3d();
     private volatile Vector3d worldZDirection = new Vector3d();
@@ -39,12 +42,18 @@ public class ServerShipHandler {
         transform.getShipToWorld().transformDirection(data.getDirectionForward(), ForwardDirection);
         BlockPos pos = convertToBlockPos(ship.getCenterOfMass());
         long now = System.currentTimeMillis();
-        if (now - lastSendMs < 33) return;
-        lastSendMs = now;
         if (data.getPlayer() != null) {
-            //LOGGER.warn(String.valueOf(Component.literal("sending data to client:"+data.getPlayer()+" uuid:"+data.getPlayer().getUUID())));
-            ControlSeatInputS2CPacket packet = new ControlSeatInputS2CPacket(pos, ForwardDirection);
-            ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()), packet);
+            if (now - lastSendMs > 33) {
+                lastSendMs = now;
+                ControlSeatS2CPacket packet = new ControlSeatS2CPacket(pos, ForwardDirection);
+                //LOGGER.warn(String.valueOf(Component.literal("sending data to client:"+data.getPlayer()+" direction:"+ForwardDirection)));
+                ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()), packet);
+            }
+            if(now - lastSendInputMs > 66) {
+                lastSendInputMs = now;
+                ControlSeatInputS2CPacket packet = new ControlSeatInputS2CPacket(pos,data.channelencode);
+                ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()), packet);
+            }
         }
     }
 

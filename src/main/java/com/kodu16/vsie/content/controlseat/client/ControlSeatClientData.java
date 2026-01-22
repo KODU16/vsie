@@ -1,8 +1,6 @@
 package com.kodu16.vsie.content.controlseat.client;
 
 import java.util.UUID;
-
-import com.kodu16.vsie.foundation.clamp;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 
@@ -27,6 +25,10 @@ public class ControlSeatClientData {
     public volatile int throttle;
     public volatile Quaterniond shiprot = new Quaterniond();
     public volatile Vector3d shipfacing = new Vector3d(0,0,0);
+    public volatile boolean channel1 = false;
+    public volatile boolean channel2 = false;
+    public volatile boolean channel3 = false;
+    public volatile boolean channel4 = false;
 
     public void setLastMousex(double x) { lastmousex = x; }
     public void setLastMousey(double x) { lastmousey = x; }

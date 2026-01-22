@@ -4,6 +4,7 @@ import com.kodu16.vsie.content.shield.ShieldGeneratorBlock;
 import com.kodu16.vsie.content.turret.block.MediumLaserTurretBlock;
 import com.kodu16.vsie.content.turret.block.MediumLaserTurretBlockEntity;
 import com.kodu16.vsie.content.vectorthruster.block.BasicVectorThrusterBlock;
+import com.kodu16.vsie.content.weapon.infra_knife_accelerator.InfraKnifeAcceleratorBlock;
 import com.kodu16.vsie.vsie;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlock;
 import com.kodu16.vsie.content.thruster.block.basicthruster.BasicThrusterBlock;
@@ -63,4 +64,12 @@ public class vsieBlocks {
             .simpleItem()
             .register();
 
+    public static final BlockEntry<InfraKnifeAcceleratorBlock> INFRA_KNIFE_ACCELERATOR_BLOCK = REGISTRATE.block("infra_knife_accelerator", InfraKnifeAcceleratorBlock::new)
+            .properties(p -> p.mapColor(MapColor.METAL))
+            .properties(p -> p.requiresCorrectToolForDrops())
+            .properties(p -> p.sound(SoundType.METAL))
+            .properties(p -> p.strength(5.5f, 4.0f))
+            .properties(p -> p.noOcclusion())
+            .simpleItem()
+            .register();
 }

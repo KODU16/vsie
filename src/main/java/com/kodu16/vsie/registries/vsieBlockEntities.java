@@ -6,6 +6,8 @@ import com.kodu16.vsie.content.thruster.block.basicthruster.BasicThrusterBlockEn
 import com.kodu16.vsie.content.turret.block.MediumLaserTurretBlockEntity;
 import com.kodu16.vsie.content.vectorthruster.block.BasicVectorThrusterBlockEntity;
 import com.kodu16.vsie.content.vectorthruster.client.AbstractVectorThrusterGeoRenderer;
+import com.kodu16.vsie.content.weapon.client.AbstractWeaponGeoRenderer;
+import com.kodu16.vsie.content.weapon.infra_knife_accelerator.InfraKnifeAcceleratorBlockEntity;
 import com.kodu16.vsie.foundation.trailflame.ThrusterFlameRenderer;
 import com.kodu16.vsie.content.turret.client.AbstractTurretGeoRenderer;
 import com.kodu16.vsie.vsie;
@@ -44,5 +46,10 @@ public class vsieBlockEntities {
             REGISTRATE.blockEntity("basic_vector_thruster_block_entity", BasicVectorThrusterBlockEntity::new)
                     .validBlocks(vsieBlocks.BASIC_VECTOR_THRUSTER_BLOCK)
                     .renderer(() -> AbstractVectorThrusterGeoRenderer::new)
+                    .register();
+    public static final BlockEntityEntry<InfraKnifeAcceleratorBlockEntity> INFRA_KNIFE_ACCELERATOR_BLOCK_ENTITY =
+            REGISTRATE.blockEntity("infra_knife_accelerator_block_entity", InfraKnifeAcceleratorBlockEntity::new)
+                    .validBlocks(vsieBlocks.INFRA_KNIFE_ACCELERATOR_BLOCK)
+                    .renderer(() -> AbstractWeaponGeoRenderer::new)
                     .register();
 }

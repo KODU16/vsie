@@ -1,7 +1,10 @@
 package com.kodu16.vsie.registries;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
+import net.minecraftforge.client.settings.KeyConflictContext;
+import net.minecraftforge.client.settings.KeyModifier;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.api.distmarker.Dist;
@@ -33,24 +36,41 @@ public class vsieKeyMappings {
             "category.vsie" // 键位分类（显示在设置菜单中的类别）
     );
     public static final KeyMapping KEY_ROLL_R = new KeyMapping(
-            "key.vsie.roll_left", // 键位描述的语言键
+            "key.vsie.roll_right", // 键位描述的语言键
             GLFW.GLFW_KEY_D,
             "category.vsie" // 键位分类（显示在设置菜单中的类别）
     );
-    public static final KeyMapping KEY_ADJUST_L =  new KeyMapping(
-            "key.vsie.adjust_left", // 键位描述的语言键
-            GLFW.GLFW_KEY_A,
-            "category.vsie" // 键位分类（显示在设置菜单中的类别）
+    public static final KeyMapping KEY_TOGGLE_WEAPON_CHANNEL1 = new KeyMapping(
+            "key.vsie.toggle_weapon_channel_1",
+            KeyConflictContext.IN_GAME,
+            KeyModifier.CONTROL,                 // ← 指定要按住 Ctrl
+            InputConstants.Type.KEYSYM,          // 按鍵
+            GLFW.GLFW_KEY_H,
+            "category.vsie"
     );
-    public static final KeyMapping KEY_ADJUST_R =  new KeyMapping(
-            "key.vsie.adjust_right", // 键位描述的语言键
-            GLFW.GLFW_KEY_D,
-            "category.vsie" // 键位分类（显示在设置菜单中的类别）
+    public static final KeyMapping KEY_TOGGLE_WEAPON_CHANNEL2 = new KeyMapping(
+            "key.vsie.toggle_weapon_channel_2",
+            KeyConflictContext.IN_GAME,
+            KeyModifier.CONTROL,                 // ← 指定要按住 Ctrl
+            InputConstants.Type.KEYSYM,          // 按鍵
+            GLFW.GLFW_KEY_J,
+            "category.vsie"
     );
-    public static final KeyMapping KEY_SCAN_PERIPHERAL =  new KeyMapping(
-            "key.vsie.scan_peripheral", // 键位描述的语言键
-            GLFW.GLFW_KEY_RIGHT_ALT,
-            "category.vsie" // 键位分类（显示在设置菜单中的类别）
+    public static final KeyMapping KEY_TOGGLE_WEAPON_CHANNEL3 = new KeyMapping(
+            "key.vsie.toggle_weapon_channel_3",
+            KeyConflictContext.IN_GAME,
+            KeyModifier.CONTROL,                 // ← 指定要按住 Ctrl
+            InputConstants.Type.KEYSYM,          // 按鍵
+            GLFW.GLFW_KEY_K,
+            "category.vsie"
+    );
+    public static final KeyMapping KEY_TOGGLE_WEAPON_CHANNEL4 = new KeyMapping(
+            "key.vsie.toggle_weapon_channel_4",
+            KeyConflictContext.IN_GAME,
+            KeyModifier.CONTROL,                 // ← 指定要按住 Ctrl
+            InputConstants.Type.KEYSYM,          // 按鍵
+            GLFW.GLFW_KEY_L,
+            "category.vsie"
     );
 
     // 其他键位可以按照类似的方式进行定义
@@ -71,9 +91,12 @@ public class vsieKeyMappings {
         event.register(KEY_TOGGLE_LOCK);
         event.register(KEY_THROTTLE);
         event.register(KEY_BRAKE);
-        event.register(KEY_SCAN_PERIPHERAL);
         event.register(KEY_ROLL_L);
         event.register(KEY_ROLL_R);
+        event.register(KEY_TOGGLE_WEAPON_CHANNEL1);
+        event.register(KEY_TOGGLE_WEAPON_CHANNEL2);
+        event.register(KEY_TOGGLE_WEAPON_CHANNEL3);
+        event.register(KEY_TOGGLE_WEAPON_CHANNEL4);
         // 注册其他键位
         // event.register(KEY_ANOTHER_ACTION);
     }

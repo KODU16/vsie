@@ -37,7 +37,7 @@ public class vsie {
         //Content
         vsieBlocks.register();
         vsieBlockEntities.register();
-        vsieKeyMappings.register(modBus); // 通过传递 modBus 来确保键位注册
+        //vsieKeyMappings.register(modBus); // 不要重复注册，keymappings里面是注册好的
         vsieItems.register();
         vsieCreativeTab.register(modBus);
         vsieDataTickets.registerDataTickets();

@@ -19,6 +19,13 @@ public class ControlSeatServerData {
     private volatile Vector3d directionForward;
     private volatile Vector3d directionUp;
     private volatile Vector3d directionRight;
+    public volatile boolean channel1 = true;
+    public volatile boolean channel2 = true;
+    public volatile boolean channel3 = true;
+    public volatile boolean channel4 = true;
+    public volatile int channelencode = 0;
+    public volatile boolean isfiring = false;
+
 
     public volatile Vector3d finaltorque = new Vector3d(0,0,0);
     public volatile Vector3d finalforce = new Vector3d(0,0,0);
@@ -29,6 +36,12 @@ public class ControlSeatServerData {
     public int getThrottle() {return throttle;}
     public Vector3d getFinaltorque() { return finaltorque; }
     public Vector3d getFinalforce() { return finalforce; }
+
+    public boolean getChannel1() {return channel1;}
+    public boolean getChannel2() {return channel2;}
+    public boolean getChannel3() {return channel3;}
+    public boolean getChannel4() {return channel4;}
+
 
     public void setPlayer(Player player) { this.player = player; }
     public void setTorque(Vector3d torque) { this.torque = torque; }

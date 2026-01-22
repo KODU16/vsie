@@ -1,7 +1,7 @@
 {
   "variants": {
     "": {
-      "model": "vsie:block/basic_vector_thruster"
+      "model": "vsie:block/containers/basic_vector_thruster_container"
     }
   }
 }

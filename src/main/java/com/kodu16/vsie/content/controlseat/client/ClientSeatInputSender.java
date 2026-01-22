@@ -8,6 +8,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import java.util.UUID;
 
+import net.minecraft.network.chat.Component;
 import org.slf4j.Logger;
 
 public class ClientSeatInputSender {
@@ -27,7 +28,7 @@ public class ClientSeatInputSender {
         int keys = 0;
         if (vsieKeyMappings.KEY_THROTTLE.isDown()) keys |= ControlSeatInputC2SPacket.Keys.THROTTLE;
         if (vsieKeyMappings.KEY_BRAKE.isDown()) keys |= ControlSeatInputC2SPacket.Keys.BRAKE;
-        if (vsieKeyMappings.KEY_SCAN_PERIPHERAL.isDown()) keys |= ControlSeatInputC2SPacket.Keys.SCAN_PERIPHERAL;
+        //if (vsieKeyMappings.KEY_SCAN.isDown()) keys |= ControlSeatInputC2SPacket.Keys.SCAN_PERIPHERAL;
         if (mc.options.keyLeft.isDown()) keys |= ControlSeatInputC2SPacket.Keys.ROLLL;
         if (mc.options.keyRight.isDown()) keys |= ControlSeatInputC2SPacket.Keys.ROLLR;
         if (mc.options.keyJump.isDown()) keys |= ControlSeatInputC2SPacket.Keys.SPACE;
@@ -35,6 +36,11 @@ public class ClientSeatInputSender {
         if (mc.options.keySprint.isDown()) keys |= ControlSeatInputC2SPacket.Keys.CTRL;
         if (mc.mouseHandler.isLeftPressed()) keys |= ControlSeatInputC2SPacket.Keys.MOUSEL;
         if (mc.mouseHandler.isRightPressed()) keys |= ControlSeatInputC2SPacket.Keys.MOUSER;
+        if (vsieKeyMappings.KEY_TOGGLE_WEAPON_CHANNEL1.isDown()) keys |= ControlSeatInputC2SPacket.Keys.CHANNEL1;
+        if (vsieKeyMappings.KEY_TOGGLE_WEAPON_CHANNEL2.isDown()) keys |= ControlSeatInputC2SPacket.Keys.CHANNEL2;
+        if (vsieKeyMappings.KEY_TOGGLE_WEAPON_CHANNEL3.isDown()) keys |= ControlSeatInputC2SPacket.Keys.CHANNEL3;
+        if (vsieKeyMappings.KEY_TOGGLE_WEAPON_CHANNEL4.isDown()) keys |= ControlSeatInputC2SPacket.Keys.CHANNEL4;
+
 
         // 归一化/限幅（与服务端 clamp 保持一致）
         //float cyaw   = clamp(yaw,   -1f, 1f);

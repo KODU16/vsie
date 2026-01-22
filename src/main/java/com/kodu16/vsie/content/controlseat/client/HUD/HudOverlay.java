@@ -1,6 +1,8 @@
 package com.kodu16.vsie.content.controlseat.client.HUD;
 
 import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
+import com.kodu16.vsie.content.controlseat.client.ClientDataManager;
+import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.kodu16.vsie.content.controlseat.server.SeatRegistry;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -48,7 +50,7 @@ public class HudOverlay {
 
         BlockEntity blockEntity = mc.level.getBlockEntity(controlSeatPos);
         if (blockEntity instanceof ControlSeatBlockEntity controlseat) {
-
+            ControlSeatClientData data = ClientDataManager.getClientData(player);
             GuiGraphics gg = event.getGuiGraphics();
             int sw = mc.getWindow().getGuiScaledWidth();
             int sh = mc.getWindow().getGuiScaledHeight();
@@ -74,6 +76,12 @@ public class HudOverlay {
             /*//油门
             int throttle = controlseat.getServerData().getThrottle();
             ThrottleIndicator.renderThrottleIndicator(gg, throttle);*/
+
+            //武器频道
+            drawCenteredText(gg,"§e"+data.channel1, centerX-60, baseY + 50, SUB_COLOR);
+            drawCenteredText(gg,"§e"+data.channel2, centerX-20, baseY + 50, SUB_COLOR);
+            drawCenteredText(gg,"§e"+data.channel3, centerX+20, baseY + 50, SUB_COLOR);
+            drawCenteredText(gg,"§e"+data.channel4, centerX+60, baseY + 50, SUB_COLOR);
 
             //装饰
             Decorative.renderDecorative(gg);
