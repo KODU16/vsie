@@ -76,7 +76,7 @@ public abstract class AbstractTurretBlock extends DirectionalBlock implements En
     public abstract @NotNull InteractionResult use(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos, @NotNull Player player, @NotNull InteractionHand hand, @NotNull BlockHitResult hit);
 
     @Override
-    public @org.jetbrains.annotations.Nullable BlockState getStateForPlacement(@NotNull BlockPlaceContext context) {
+    public @Nullable BlockState getStateForPlacement(@NotNull BlockPlaceContext context) {
         return this.defaultBlockState().setValue(FACING, context.getClickedFace().getOpposite());
     }
 

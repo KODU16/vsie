@@ -450,7 +450,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("Turret_Screen");
+        return Component.literal("Turret Screen");
     }
 
     @Override

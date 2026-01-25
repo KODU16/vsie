@@ -61,5 +61,6 @@ public class ControlSeatServerData {
         this.force = new Vector3d(0,0,0);
         this.throttle = 0;
         this.player = null;
+        this.isfiring = false;
     }
 }

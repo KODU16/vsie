@@ -1,19 +1,14 @@
-package com.kodu16.vsie.content.controlseat.client;
+package com.kodu16.vsie.content.controlseat.client.Input;
 
 import java.util.UUID;
+
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 
 
 
 public class ControlSeatClientData {
-    //又见面了，眼熟不
-    //GPT告诉我我可以这么写，不管如何，我都不会再把client和server混成一坨了
-    // 静态变量存储视角锁定的状态
-    //为什么一定要这么恶心？为了防止客户端不同玩家之间的数据串掉
-    //服务端不再通过位置检验操纵有效性，而是比对本地玩家和存储的座位玩家的UUID
-    //谁知道这byd读的是本地还是造船厂位置，反正我也不会让两个玩家上一个座
-    //这里头还额外存mixin告诉的鼠标的位置
+    //clientdata不是每个方块绑定一个！它是每个玩家绑定一个，当玩家坐上椅子时，会与椅子互通数据
 
     public volatile long lastKeyPressTime = 0;
     public volatile boolean viewLock = false;
@@ -25,6 +20,7 @@ public class ControlSeatClientData {
     public volatile int throttle;
     public volatile Quaterniond shiprot = new Quaterniond();
     public volatile Vector3d shipfacing = new Vector3d(0,0,0);
+    public volatile boolean mouseLpress = false;
     public volatile boolean channel1 = false;
     public volatile boolean channel2 = false;
     public volatile boolean channel3 = false;

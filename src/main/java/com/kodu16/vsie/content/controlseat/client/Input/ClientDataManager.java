@@ -1,16 +1,8 @@
-package com.kodu16.vsie.content.controlseat.client;
+package com.kodu16.vsie.content.controlseat.client.Input;
 
-import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
-
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.client.Minecraft;
 
 
 import java.util.HashMap;

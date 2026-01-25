@@ -1,15 +1,22 @@
 package com.kodu16.vsie.content.weapon.client;
 
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
+import com.kodu16.vsie.foundation.Vec;
 import com.kodu16.vsie.foundation.translucentbeamrendertype;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.logging.LogUtils;
+import com.mojang.math.Axis;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
+import org.valkyrienskies.core.impl.shadow.FL;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.renderer.GeoRenderer;
 import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
@@ -21,7 +28,7 @@ public class WeaponLaserLayer extends GeoRenderLayer<AbstractWeaponBlockEntity> 
     }
 
     private static final int SEGMENTS = 4;
-    private static final int LENGTH_SEGMENTS = 12;
+    private static final int LENGTH_SEGMENTS = 8;
     public double LASER_LENGTH = 0f;
     private static final float BASE_RADIUS = 0.25f;
     private static final float TIP_RADIUS = 0.25f;
@@ -38,31 +45,19 @@ public class WeaponLaserLayer extends GeoRenderLayer<AbstractWeaponBlockEntity> 
                        float partialTick, int packedLight, int packedOverlay) {
 
         poseStack.pushPose();
-        poseStack.translate(0f, 2.0f, 0f);
-
-        LASER_LENGTH = animatable.getRaycastDistance();
-        if (LASER_LENGTH < 0.1) {
-            poseStack.popPose();
-            return;
-        }
-
-        Vector3d targetPos = new Vector3d(animatable.targetpos.x,animatable.targetpos.y,animatable.targetpos.z);
         Vector3d weaponPos = new Vector3d(animatable.getWeaponPos().x,animatable.getWeaponPos().y,animatable.getWeaponPos().z);
-
-        Vec3 direction = new Vec3(
-                targetPos.x - weaponPos.x,
-                targetPos.y - weaponPos.y,
-                targetPos.z - weaponPos.z
-        ).normalize();
-
-        Matrix3f rot = new Matrix3f();
-        lookAlong(rot, direction);
-
-// 旋转法线
-        poseStack.last().normal().mul(rot);
-// 旋转位置（关键修复）
-        poseStack.last().pose().mul(new Matrix4f().set(rot));
-
+        BlockState state = animatable.getBlockState();
+        Direction facing = state.getValue(BlockStateProperties.FACING);
+        LASER_LENGTH = animatable.getRaycastDistance();
+        // 1. 先转到 +Y（向上）为基准的情况
+        switch (facing) {
+            case DOWN -> poseStack.mulPose(Axis.XP.rotationDegrees(-90f));
+            case UP -> poseStack.mulPose(Axis.XP.rotationDegrees(-90f));
+            case NORTH -> poseStack.mulPose(Axis.XP.rotationDegrees(-90f));
+            case SOUTH -> poseStack.mulPose(Axis.XP.rotationDegrees(-90f));
+            case WEST  -> poseStack.mulPose(Axis.XP.rotationDegrees(-90f));
+            case EAST  -> poseStack.mulPose(Axis.XP.rotationDegrees(-90f));
+        }
         PoseStack.Pose last = poseStack.last();
         Matrix4f pose = last.pose();
         Matrix3f normal = last.normal();

@@ -2,6 +2,7 @@ package com.kodu16.vsie.content.controlseat;
 
 
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
+import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.compat.computercraft.AbstractComputerBehaviour;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
@@ -14,15 +15,20 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
+import org.valkyrienskies.core.api.ships.QueryableShipData;
+import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.core.animatable.instance.SingletonAnimatableInstanceCache;
 import software.bernie.geckolib.core.animation.AnimatableManager;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,9 +45,12 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
 
     //Links
     private final List<Vec3> linkedThrusters = new ArrayList<>();
-    private final List<Vec3> linkedWeapons = new ArrayList<>();
+    public final List<AbstractWeaponBlockEntity> WeaponCache = new ArrayList<>();
     private final List<Vec3> linkedShields = new ArrayList<>();
     private final List<Vec3> linkedTurrets = new ArrayList<>();
+
+    //scans
+    public QueryableShipData<Ship> qsd = VSGameUtilsKt.getAllShips(level);
     // Ticking
 
     // Particles
@@ -69,57 +78,11 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
     @Override
     public void write(CompoundTag nbt, boolean clientPacket) {
         super.write(nbt, clientPacket);
-
-        // 保存链表
-        ListTag listthrusters = new ListTag();
-        for (Vec3 pos : linkedThrusters) {
-            CompoundTag vecTag = new CompoundTag();
-            vecTag.putDouble("x", pos.x);
-            vecTag.putDouble("y", pos.y);
-            vecTag.putDouble("z", pos.z);
-            listthrusters.add(vecTag);
-        }
-        nbt.put("LinkedThrusters", listthrusters);
-
-        ListTag listweapons = new ListTag();
-        for (Vec3 pos : linkedWeapons) {
-            CompoundTag vecTag = new CompoundTag();
-            vecTag.putDouble("x", pos.x);
-            vecTag.putDouble("y", pos.y);
-            vecTag.putDouble("z", pos.z);
-            listweapons.add(vecTag);
-        }
-        nbt.put("LinkedThrusters", listweapons);
-
     }
 
     @Override
     public void read(CompoundTag nbt, boolean clientPacket) {
         super.read(nbt, clientPacket);
-
-        linkedThrusters.clear();
-        if (nbt.contains("LinkedThrusters", Tag.TAG_LIST)) {
-            ListTag list = nbt.getList("LinkedThrusters", Tag.TAG_COMPOUND);
-            for (int i = 0; i < list.size(); i++) {
-                CompoundTag vecTag = list.getCompound(i);
-                double x = vecTag.getDouble("x");
-                double y = vecTag.getDouble("y");
-                double z = vecTag.getDouble("z");
-                linkedThrusters.add(new Vec3(x, y, z));
-            }
-        }
-
-        linkedWeapons.clear();
-        if (nbt.contains("LinkedWeapons", Tag.TAG_LIST)) {
-            ListTag list = nbt.getList("LinkedWeapons", Tag.TAG_COMPOUND);
-            for (int i = 0; i < list.size(); i++) {
-                CompoundTag vecTag = list.getCompound(i);
-                double x = vecTag.getDouble("x");
-                double y = vecTag.getDouble("y");
-                double z = vecTag.getDouble("z");
-                linkedWeapons.add(new Vec3(x, y, z));
-            }
-        }
     }
 
     @Override
@@ -144,16 +107,17 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
 
     public void addLinkedPeripheral(Vec3 pos, int type) { //0：推进器 1：主武器 2：护盾 3：炮塔，务必不要写错
         Logger LOGGER = LogUtils.getLogger();
-        if (type==0 && !linkedThrusters.contains(pos)) {
+        if (type == 0 && !linkedThrusters.contains(pos)) {
             linkedThrusters.add(pos);
-            LOGGER.warn("adding thruster to controlseat: "+pos);
+            LOGGER.warn("adding thruster to controlseat: " + pos);
             setChanged(); // 标记方块实体脏了，强制保存
         }
-        if (type==1 && !linkedWeapons.contains(pos)) {
-            linkedWeapons.add(pos);
-            LOGGER.warn("adding weapon to controlseat: "+pos);
-            setChanged(); // 标记方块实体脏了，强制保存
-        }
+    }
+    public void addWeapon(Vec3 pos, AbstractWeaponBlockEntity weapon) {
+        Logger LOGGER = LogUtils.getLogger();
+        WeaponCache.add(weapon);
+        LOGGER.warn("adding weapon to controlseat: "+pos);
+        setChanged(); // 标记方块实体脏了，强制保存
     }
 
     public void removeLinkedPeripheral(Vec3 pos, int type) {
@@ -161,18 +125,11 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
             linkedThrusters.remove(pos);
             setChanged(); // 标记方块实体脏了，强制保存
         }
-        if (type==1 && linkedWeapons.contains(pos)) {
-            linkedWeapons.remove(pos);
-            setChanged(); // 标记方块实体脏了，强制保存
-        }
     }
 
     public void forEachLinkedPeripheral(Consumer<Vec3> action, int type) { //0：推进器 1：主武器 2：护盾 3：炮塔，务必不要写错
         if(type==0) {
             linkedThrusters.forEach(action);
-        }
-        if(type==1) {
-            linkedWeapons.forEach(action);
         }
     }
 

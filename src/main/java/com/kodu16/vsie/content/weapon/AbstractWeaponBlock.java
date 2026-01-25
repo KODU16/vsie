@@ -1,7 +1,20 @@
 package com.kodu16.vsie.content.weapon;
 
 
+import com.kodu16.vsie.content.weapon.server.WeaponContainerMenu;
+import com.mojang.logging.LogUtils;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraftforge.network.NetworkHooks;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -108,6 +121,31 @@ public abstract class AbstractWeaponBlock extends DirectionalBlock implements En
     @Override
     public BlockState mirror(@Nonnull BlockState state, @Nonnull Mirror mirrorIn) {
         return state.rotate(mirrorIn.getRotation(state.getValue(FACING)));
+    }
+
+    @Override
+    public @NotNull InteractionResult use(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos, @NotNull Player player, @NotNull InteractionHand hand, @NotNull BlockHitResult hit) {
+        if (!level.isClientSide)
+        {
+            Logger LOGGER = LogUtils.getLogger();
+            LOGGER.info("weapon right-clicked at {} by {}, BE = {}", pos, player.getName().getString(),
+                    level.getBlockEntity(pos));
+            BlockEntity be = level.getBlockEntity(pos);
+            if (be instanceof AbstractWeaponBlockEntity weapon) {
+                NetworkHooks.openScreen((ServerPlayer) player, new MenuProvider() {
+                    @Override
+                    public Component getDisplayName() {
+                        return Component.translatable("container.vsie.weapon");
+                    }
+
+                    @Override
+                    public AbstractContainerMenu createMenu(int id, Inventory inv, Player p) {
+                        return new WeaponContainerMenu(id, inv, weapon);
+                    }
+                }, buf -> buf.writeBlockPos(pos)); // 关键：把 pos 写进去
+            }
+        }
+        return InteractionResult.sidedSuccess(level.isClientSide);
     }
 }
 

@@ -9,6 +9,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.network.NetworkEvent;
 import org.slf4j.Logger;
@@ -50,8 +51,15 @@ public class WeaponC2SPacket {
                 return;
             }
             weapon.modifychannel(channelchange);
+            LogUtils.getLogger().warn(String.valueOf(Component.literal("changing weapon channel"+channelchange)));
             // 可选：标记方块实体为脏以保存更改
             weapon.setChanged();
+            weapon.getLevel().sendBlockUpdated(     // 向附近玩家同步 BE
+                    weapon.getBlockPos(),
+                    weapon.getBlockState(),
+                    weapon.getBlockState(),
+                    Block.UPDATE_CLIENTS   // 3
+            );
         });
         ctx.setPacketHandled(true);
     }

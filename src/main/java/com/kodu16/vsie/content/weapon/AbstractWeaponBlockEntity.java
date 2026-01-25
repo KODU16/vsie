@@ -1,7 +1,7 @@
 package com.kodu16.vsie.content.weapon;
 
-import com.kodu16.vsie.content.thruster.ThrusterData;
-import com.kodu16.vsie.content.turret.TurretData;
+import com.kodu16.vsie.content.turret.server.TurretContainerMenu;
+import com.kodu16.vsie.content.weapon.server.WeaponContainerMenu;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
@@ -11,37 +11,50 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.Connection;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.slf4j.Logger;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.ServerShip;
+import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.core.animatable.instance.SingletonAnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.util.RenderUtils;
 
 import javax.annotation.Nonnull;
 import java.util.List;
 
 public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity implements GeoBlockEntity, MenuProvider {
     // Constants
+
+    //variables
     public ServerShip ship = VSGameUtilsKt.getShipManagingPos((ServerLevel) level, getBlockPos());
     private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
     public WeaponData weaponData;//注意这个data不存固有属性比如射速射程，只存频道之类的
-    public boolean hasInitialized = true;//防止莫名其妙的重置导致变砖
-    private float raycastDistance = 0.0f;//武器的raycast和推进器不太一样，武器是射线检测目标的距离，如果是射弹武器也检测，但不会利用
+    public boolean hasInitialized;//防止莫名其妙的重置导致变砖
+    private float raycastDistance = 513.0f;//武器的raycast和推进器不太一样，武器是射线检测目标的距离，如果是射弹武器也检测，但不会利用
     public Vec3 targetpos = new Vec3(0,0,0);
     private Vec3 weaponpos;
     private int currentTick = -1;
@@ -49,12 +62,12 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
 
     public abstract float getmaxrange(); //获取最大射程
     public abstract int getcooldown(); //每两次射击间最小间隔的tick数
-
-    public int channel; //指定开火分组
+    public abstract String getweapontype();
 
     public AbstractWeaponBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
-        weaponData = new WeaponData();
+        this.weaponData = new WeaponData();
+        this.hasInitialized = true;
     }
 
 
@@ -62,9 +75,7 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
     public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
     }
 
-    public float getRaycastDistance() {
-        return raycastDistance;
-    }
+    public float getRaycastDistance() {return this.raycastDistance;}
 
     public void tick() {
         super.tick();
@@ -73,7 +84,13 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
 
         // Reset tick counter to prevent overflow
         if (currentTick >= getcooldown()) {
+            this.raycastDistance = 0;
             currentTick = 0;
+        }
+        if(!needtofire()) {
+            getData().isfiring = false;
+            this.raycastDistance = 0;
+            return;
         }
         Level level = this.getLevel();
         if (level == null || level.isClientSide()) {
@@ -82,6 +99,7 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         Logger LOGGER = LogUtils.getLogger();
         if (hasInitialized)
         {
+            getData().isfiring = true;
             BlockPos pos = this.getBlockPos();
             boolean onShip = VSGameUtilsKt.isBlockInShipyard(level, pos);
             if (onShip) {
@@ -89,13 +107,7 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
                 LoadedShip Ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos);
                 if (Ship == null) return;
                 performRaycast(level);
-                if (needtofire()) {
-                    fire();
-                    weaponData.isfiring = true;
-                }
-                else {
-                    weaponData.isfiring = false;
-                }
+                fire();
             }
             else {
                 weaponpos = new Vec3(this.getBlockPos().getX(), this.getBlockPos().getY(),this.getBlockPos().getZ());
@@ -103,58 +115,71 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         }
     }
 
-    public abstract String getweapontype();
+    public WeaponData getData() {
+        if (weaponData == null) {
+            weaponData = new WeaponData();
+        }
+        return weaponData;
+    }
 
     public abstract void fire();
 
     public void receivechannel(int encode) {
-        weaponData.receivingchannel = encode;
+        getData().receivingchannel = encode;
     }
 
     public void modifychannel(int type) {
         if (level == null || level.isClientSide) {
             return; // 客户端完全不许改！
         }
+        WeaponData data = getData();
         if(type==1){
-            weaponData.setChannel1(!weaponData.getChannel1());
+            data.setChannel1(!data.getChannel1());
+            //LogUtils.getLogger().warn(String.valueOf(Component.literal("setting channel1 to:"+data.getChannel1())));
         }
         if(type==2){
-            weaponData.setChannel2(!weaponData.getChannel2());
+            data.setChannel2(!data.getChannel2());
+            //LogUtils.getLogger().warn(String.valueOf(Component.literal("setting channel2 to:"+data.getChannel4())));
         }
         if(type==3){
-            weaponData.setChannel3(!weaponData.getChannel3());
+            data.setChannel3(!data.getChannel3());
+            //LogUtils.getLogger().warn(String.valueOf(Component.literal("setting channel3 to:"+data.getChannel4())));
         }
         if(type==4){
-            weaponData.setChannel4(!weaponData.getChannel4());
+            data.setChannel4(!data.getChannel4());
+            //LogUtils.getLogger().warn(String.valueOf(Component.literal("setting channel4 to:"+data.getChannel4())));
         }
     }
 
     public boolean needtofire() {
         boolean ans = false;
         for (int i = 0; i < 4; i++) {
-            boolean flag = ((weaponData.receivingchannel >> i) &1) == 1;
-            if (flag && i == 0 && weaponData.channel1) {
+            //LogUtils.getLogger().warn(String.valueOf(Component.literal("current channel1:"+getData().channel1+"2:"+getData().channel2+"3:"+getData().channel3+"4:"+getData().channel4)));
+            boolean flag = ((getData().receivingchannel >> i) &1) == 1;
+            if (flag && i == 0 && getData().channel1) {
                 ans = true;
                 break;
             }
-            if (flag && i == 1 && weaponData.channel2) {
+            if (flag && i == 1 && getData().channel2) {
                 ans = true;
                 break;
             }
-            if (flag && i == 2 && weaponData.channel3) {
+            if (flag && i == 2 && getData().channel3) {
                 ans = true;
                 break;
             }
-            if (flag && i == 3 && weaponData.channel4) {
+            if (flag && i == 3 && getData().channel4) {
                 ans = true;
                 break;
             }
         }
+        //LogUtils.getLogger().warn("weapon at:"+this.getBlockPos()+ "need to fire:"+ans+"receive channel:"+getData().receivingchannel);
         return ans;
     }
 
     @SuppressWarnings("null")
-    private void performRaycast(@Nonnull Level level) {
+    public void performRaycast(@Nonnull Level level) {
+        if(!getData().isfiring) {return;}
         BlockState state = this.getBlockState();
         BlockPos currentBlockPos = this.getBlockPos();
 
@@ -172,25 +197,27 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         ClipContext context = new ClipContext(worldFrom, worldTo, ClipContext.Block.COLLIDER, clipFluid, null);
         BlockHitResult hit = level.clip(context);
 
-        // Calculate power based on world distance
-        float distance = effectiveMaxDistance;
-        BlockPos hitBlockPos = null;
+        BlockPos hitBlockPos;
 
         if (hit.getType() == HitResult.Type.BLOCK) {
             Vec3 hitPos = hit.getLocation();
             hitBlockPos = hit.getBlockPos();
 
-            distance = (float)worldFrom.distanceTo(hitPos);
-            distance = Math.min(distance, effectiveMaxDistance);
+            float distance = (float)worldFrom.distanceTo(hitPos);
+            this.raycastDistance = Math.min(distance, effectiveMaxDistance);
+            LogUtils.getLogger().warn("raycastdistance from clip:"+distance);
+            this.targetpos = new Vec3(hitBlockPos.getX(),hitBlockPos.getY(),hitBlockPos.getZ());
         }
-
-        updateRaycast(level, state, distance, worldTo);
+        setChanged();
+        if (!level.isClientSide()) {
+            level.sendBlockUpdated(this.worldPosition, state, state, 3);
+        }
     }
 
     private Pair<Vec3, Vec3> calculateRaycastPositions(BlockPos localBlockPos, Vec3 localDirectionVector, float maxRaycastDistance) {
         Level level = getLevel();
 
-        Vec3 localFromCenter = getStartingPoint(localDirectionVector);
+        Vec3 localFromCenter = Vec3.atLowerCornerWithOffset(worldPosition, 0.5, 0.5, 0.5);
         Vec3 localDisplacement = localDirectionVector.scale(maxRaycastDistance);
 
         Vec3 worldFrom;
@@ -220,22 +247,6 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         return new Pair<>(worldFrom, worldTo);
     }
 
-    protected Vec3 getStartingPoint(Vec3 directionVec) {
-        Vec3 blockCenter = Vec3.atLowerCornerWithOffset(worldPosition, 0.5, 0.5, 0.5);
-        return blockCenter;
-    }
-
-    private void updateRaycast(@Nonnull Level level, @Nonnull BlockState state, float distance, Vec3 worldTo) {
-        if (Math.abs(this.raycastDistance - distance) > 0.01f) {
-            this.raycastDistance = distance;
-            this.targetpos = worldTo;
-            setChanged();
-            if (!level.isClientSide()) {
-                level.sendBlockUpdated(this.worldPosition, state, state, 3);
-            }
-        }
-    }
-
     public Vec3 getWeaponPos() {
         BlockPos pos = this.getBlockPos();
         LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos);
@@ -243,7 +254,34 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         else {return new Vec3(pos.getX(),pos.getY(), pos.getZ());}
     }
 
+    @Override
+    public double getTick(Object BlockEntity) {
+        return RenderUtils.getCurrentTick();
+    }
+
+    //menu
+
+    @Override
+    public @NotNull AbstractContainerMenu createMenu(int containerId, Inventory inv, Player player) {
+        return new WeaponContainerMenu(containerId, inv, this);
+    }
+
     // Networking and nbt
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        if (this.weaponData == null) {
+            this.weaponData = new WeaponData();
+        }
+        markUpdated();
+    }
+
+    public void markUpdated() {
+        this.setChanged();
+        this.getLevel().sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), 3);
+        //if(!this.level.isClientSide()) sendUpdatePacket();
+    }
 
     @Override
     public CompoundTag getUpdateTag() {
@@ -268,8 +306,7 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
     @Override
     protected void write(CompoundTag tag, boolean clientPacket) {
         super.write(tag, clientPacket);
-        tag.putFloat("raycastDistance", this.raycastDistance);
-        tag.putBoolean("isfiring",weaponData.isfiring);
+        tag.putFloat("raycastDistance", this.getRaycastDistance());
         tag.putBoolean("channel1",weaponData.getChannel1());
         tag.putBoolean("channel2",weaponData.getChannel2());
         tag.putBoolean("channel3",weaponData.getChannel3());
@@ -279,23 +316,25 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
     @Override
     protected void read(CompoundTag tag, boolean clientPacket) {
         super.read(tag, clientPacket);
-
-        if (tag.contains("raycastDistance", CompoundTag.TAG_FLOAT)) {
-            this.raycastDistance = tag.getFloat("raycastDistance");
-        } else {
-            this.raycastDistance = getmaxrange();
+        if (this.weaponData == null) {
+            this.weaponData = new WeaponData();
         }
-        if (tag.contains("isfiring")) {
-            weaponData.isfiring = tag.getBoolean("isfiring");
-        }
+        if (tag.contains("raycastDistance", CompoundTag.TAG_FLOAT)) {this.raycastDistance = tag.getFloat("raycastDistance");}
         if (tag.contains("channel1")) {weaponData.setChannel1(tag.getBoolean("channel1"));}
         if (tag.contains("channel2")) {weaponData.setChannel2(tag.getBoolean("channel2"));}
         if (tag.contains("channel3")) {weaponData.setChannel3(tag.getBoolean("channel3"));}
         if (tag.contains("channel4")) {weaponData.setChannel4(tag.getBoolean("channel4"));}
     }
 
+    //geckolib
+
     @Override
     public AnimatableInstanceCache getAnimatableInstanceCache() {
         return cache;
+    }
+
+    @Override
+    public void registerControllers(AnimatableManager.ControllerRegistrar controllerRegistrar) {
+
     }
 }

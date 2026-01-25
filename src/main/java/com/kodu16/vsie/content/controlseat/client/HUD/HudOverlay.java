@@ -1,11 +1,9 @@
 package com.kodu16.vsie.content.controlseat.client.HUD;
 
-import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
-import com.kodu16.vsie.content.controlseat.client.ClientDataManager;
-import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
+import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
+import com.kodu16.vsie.content.controlseat.client.Input.ControlSeatClientData;
 import com.kodu16.vsie.content.controlseat.server.SeatRegistry;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;

@@ -1,4 +1,4 @@
-package com.kodu16.vsie.foundation.trailflame;
+package com.kodu16.vsie.content.thruster.trailflame;
 
 import com.kodu16.vsie.foundation.translucentbeamrendertype;
 import com.mojang.blaze3d.vertex.PoseStack;

@@ -29,6 +29,8 @@
     "gui.turret.target_hostile": "shoot at hostile entities",
     "gui.turret.target_passive": "shoot at passive entities",
     "gui.turret.target_players": "shoot at players",
-    "gui.turret.target_ship": "shoot at vs ships"
+    "gui.turret.target_ship": "shoot at vs ships",
+
+    "container.vsie.weapon": "weapon menu"
 
 }

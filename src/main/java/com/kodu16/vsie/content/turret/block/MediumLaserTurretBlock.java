@@ -49,12 +49,6 @@ import javax.annotation.Nullable;
 public class MediumLaserTurretBlock extends AbstractTurretBlock {
 
     public static final DirectionProperty FACING = BlockStateProperties.FACING;
-    private static VoxelShape SHAPE_NORTH;
-    private static VoxelShape SHAPE_EAST;
-    private static VoxelShape SHAPE_SOUTH;
-    private static VoxelShape SHAPE_WEST;
-    private static VoxelShape SHAPE_UP;
-    private static VoxelShape SHAPE_DOWN;
     public MediumLaserTurretBlock(BlockBehaviour.Properties properties) {
         super(properties);
         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));

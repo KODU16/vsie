@@ -82,18 +82,18 @@ public class linker extends Item {
         if (blockEntityB instanceof AbstractWeaponBlockEntity weapon) {
             Vec3 pos = new Vec3(clickedPos.getX(), clickedPos.getY(), clickedPos.getZ());
             if (blockEntityA instanceof AbstractControlSeatBlockEntity controlseat) {
-                controlseat.addLinkedPeripheral(pos, 1);
+                controlseat.addWeapon(pos, weapon);
                 player.displayClientMessage(Component.literal("§b已将控制椅: " + controllerPos + " 与武器: " + clickedPos + " 绑定"), true);
             }
             else {
                 player.displayClientMessage(Component.literal("绑定的控制椅已经被移除"), true);
                 nbt.remove("ControlSeatPos");
             }
-            return InteractionResult.CONSUME;
+            return InteractionResult.PASS;
         }
         else {
             player.displayClientMessage(Component.literal(blockEntityB+"不是有效外设"), true);
-            return InteractionResult.CONSUME;
+            return InteractionResult.PASS;
         }
     }
 

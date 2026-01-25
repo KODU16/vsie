@@ -1,5 +1,5 @@
 // ControlSeatInputC2SPacket.java
-package com.kodu16.vsie.network.controlseat;
+package com.kodu16.vsie.network.controlseat.C2S;
 
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
@@ -16,40 +16,44 @@ import org.joml.Vector3d;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 
-public class ControlSeatInputC2SPacket {
+public class ControlSeatC2SPacket {
     public static final Logger LOGGER = LogUtils.getLogger();
     public final BlockPos pos;
     public final float mousex;
     public final float mousey;
     public final float roll;
     public final int keys;   // bitmask
+    public final boolean mouseLpress;
 
-    public ControlSeatInputC2SPacket(BlockPos pos, float mousex, float mousey, float roll, int keys) {
+    public ControlSeatC2SPacket(BlockPos pos, float mousex, float mousey, float roll, int keys, boolean mouseLpress) {
         this.pos = pos;
         this.mousex = mousex;
         this.mousey = mousey;
         this.roll = roll;
         this.keys = keys;
+        this.mouseLpress = mouseLpress;
     }
 
-    public static void encode(ControlSeatInputC2SPacket pkt, FriendlyByteBuf buf) {
+    public static void encode(ControlSeatC2SPacket pkt, FriendlyByteBuf buf) {
         buf.writeBlockPos(pkt.pos);
         buf.writeFloat(pkt.mousex);
         buf.writeFloat(pkt.mousey);
         buf.writeFloat(pkt.roll);
         buf.writeVarInt(pkt.keys);
+        buf.writeBoolean(pkt.mouseLpress);
     }
 
-    public static ControlSeatInputC2SPacket decode(FriendlyByteBuf buf) {
+    public static ControlSeatC2SPacket decode(FriendlyByteBuf buf) {
         BlockPos pos = buf.readBlockPos();
         float mousex = buf.readFloat();
         float mousey = buf.readFloat();
         float roll = buf.readFloat();
         int keys = buf.readVarInt();
-        return new ControlSeatInputC2SPacket(pos, mousex, mousey, roll, keys);
+        boolean mouseLpress = buf.readBoolean();
+        return new ControlSeatC2SPacket(pos, mousex, mousey, roll, keys, mouseLpress);
     }
 
-    public static void handle(ControlSeatInputC2SPacket pkt, Supplier<NetworkEvent.Context> ctxSup) {
+    public static void handle(ControlSeatC2SPacket pkt, Supplier<NetworkEvent.Context> ctxSup) {
         NetworkEvent.Context ctx = ctxSup.get();
         ctx.enqueueWork(() -> {
             ServerPlayer sender = ctx.getSender();
@@ -61,14 +65,15 @@ public class ControlSeatInputC2SPacket {
             float mousey = pkt.mousey;
             float roll = pkt.roll;
             int keys = pkt.keys;
+            boolean mouseLpress = pkt.mouseLpress;
             BlockEntity seat = level.getBlockEntity(pos);
             if (!(seat instanceof ControlSeatBlockEntity controlSeat)) {
                 // Optionally log an error if the block entity is not found or is incorrect
                 sender.sendSystemMessage(Component.literal("Invalid control seat at " + pos));
                 return;
             }
-            boolean isThrottlePressed = (keys & ControlSeatInputC2SPacket.Keys.THROTTLE) != 0;
-            boolean isBrakePressed = (keys & ControlSeatInputC2SPacket.Keys.BRAKE) != 0;
+            boolean isThrottlePressed = (keys & ControlSeatC2SPacket.Keys.THROTTLE) != 0;
+            boolean isBrakePressed = (keys & ControlSeatC2SPacket.Keys.BRAKE) != 0;
             //boolean isPeripheralPressed = (keys & ControlSeatInputC2SPacket.Keys.SCAN_PERIPHERAL) != 0;
             int finalthrottledelta = isThrottlePressed ? 1 : (isBrakePressed ? -1 : 0);
             //LOGGER.warn(String.valueOf(Component.literal("delta throttle:"+finalthrottledelta)));
@@ -91,24 +96,8 @@ public class ControlSeatInputC2SPacket {
             //    controlSeat.moveForward(sender);
             }
 
-            if((keys & Keys.MOUSEL) !=0 ) {
-                serverData.isfiring= true;
-            } else {
-                serverData.isfiring = false;
-            }
-
-            if((keys & Keys.CHANNEL1) !=0) {
-                serverData.channel1 = !serverData.getChannel1();
-            }
-            if((keys & Keys.CHANNEL2) !=0) {
-                serverData.channel2 = !serverData.getChannel2();
-            }
-            if((keys & Keys.CHANNEL3) !=0) {
-                serverData.channel3 = !serverData.getChannel3();
-            }
-            if((keys & Keys.CHANNEL4) !=0) {
-                serverData.channel4 = !serverData.getChannel4();
-            }
+            //处理鼠标左键
+            serverData.isfiring = mouseLpress;
 
             // 可选：标记方块实体为脏以保存更改
             controlSeat.setChanged();
@@ -129,9 +118,5 @@ public class ControlSeatInputC2SPacket {
         public static final int CTRL  = 1 << 7;
         public static final int MOUSEL = 1 << 8;  // 鼠标左
         public static final int MOUSER  = 1 << 9;  // 鼠标右
-        public static final int CHANNEL1 = 1 << 10;
-        public static final int CHANNEL2 = 1 << 11;
-        public static final int CHANNEL3 = 1 << 12;
-        public static final int CHANNEL4 = 1 << 13;
     }
 }

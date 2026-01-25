@@ -15,6 +15,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
+import javax.swing.*;
+import java.awt.*;
+
 @SuppressWarnings({"removal"})
 public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
     private static final ResourceLocation TEXTURE = new ResourceLocation(vsie.ID, "textures/gui/weapon/weapon_gui.png");
@@ -36,11 +39,23 @@ public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
     protected void renderBg(GuiGraphics guiGraphics, float partialTicks, int mouseX, int mouseY) {
         AbstractWeaponBlockEntity blockEntity = menu.getBlockEntity();
         guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
-        /*guiGraphics.blit(icon_channel1, this.leftPos + 30, this.topPos + 50, 0, 0, 16, 16, 16,16);
-        guiGraphics.blit(icon_channel2, this.leftPos + 50, this.topPos + 50, 0, 0, 16, 16, 16,16);
-        guiGraphics.blit(icon_channel3, this.leftPos + 70, this.topPos + 50, 0, 0, 16, 16, 16,16);
-        guiGraphics.blit(icon_channel4, this.leftPos + 90, this.topPos + 50, 0, 0, 16, 16, 16,16);*/
+        ResourceLocation icon_channel1= blockEntity.getData().channel1
+                ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel1_on.png")
+                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel1_off.png");
+        ResourceLocation icon_channel2 = blockEntity.getData().channel2
+                ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel2_on.png")
+                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel2_off.png");
+        ResourceLocation icon_channel3 = blockEntity.getData().channel3
+                ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel3_on.png")
+                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel3_off.png");
+        ResourceLocation icon_channel4 = blockEntity.getData().channel4
+                ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel4_on.png")
+                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel4_off.png");
 
+        guiGraphics.blit(icon_channel1, this.leftPos + 30, this.topPos + 20, 0, 0, 20, 20, 20,20);
+        guiGraphics.blit(icon_channel2, this.leftPos + 60, this.topPos + 20, 0, 0, 20, 20, 20,20);
+        guiGraphics.blit(icon_channel3, this.leftPos + 90, this.topPos + 20, 0, 0, 20, 20, 20,20);
+        guiGraphics.blit(icon_channel4, this.leftPos + 120, this.topPos + 20, 0, 0, 20, 20, 20,20);
 
     }
 
@@ -52,54 +67,52 @@ public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
         guiGraphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 0x404040, false);
     }
 
-    @Override
     protected void init() {
         super.init();
-        BlockPos pos = menu.getBlockEntity().getBlockPos(); // 如果有 getBlockEntity() 方法
+        BlockPos pos = menu.getBlockEntity().getBlockPos();
         AbstractWeaponBlockEntity blockEntity = menu.getBlockEntity();
-        ResourceLocation icon_channel1 = blockEntity.weaponData.getChannel1() ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel1_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel1_off.png");
-        ResourceLocation icon_channel2 = blockEntity.weaponData.getChannel1() ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel2_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel2_off.png");
-        ResourceLocation icon_channel3 = blockEntity.weaponData.getChannel1() ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel3_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel3_off.png");
-        ResourceLocation icon_channel4 = blockEntity.weaponData.getChannel1() ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel4_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel4_off.png");
-        this.addRenderableWidget(
-                new ImageButton(
-                        this.leftPos + 30, this.topPos + 50, 16, 16,
-                        0, 0,
-                        height,
-                        icon_channel1,
-                        button -> ModNetworking.CHANNEL.sendToServer(new WeaponC2SPacket(pos, 1))
-                )
-        );
-        this.addRenderableWidget(
-                new ImageButton(
-                        this.leftPos + 50, this.topPos + 50, 16, 16,
-                        0, 0,
-                        height,
-                        icon_channel2,
-                        button -> ModNetworking.CHANNEL.sendToServer(new WeaponC2SPacket(pos, 2))
-                )
-        );
-        this.addRenderableWidget(
-                new ImageButton(
-                        this.leftPos + 70, this.topPos + 50, 16, 16,
-                        0, 0,
-                        height,
-                        icon_channel3,
-                        button -> ModNetworking.CHANNEL.sendToServer(new WeaponC2SPacket(pos, 3))
-                )
-        );
-        this.addRenderableWidget(
-                new ImageButton(
-                        this.leftPos + 90, this.topPos + 50, 16, 16,
-                        0, 0,
-                        height,
-                        icon_channel4,
-                        button -> ModNetworking.CHANNEL.sendToServer(new WeaponC2SPacket(pos, 4))
-                )
-        );
+        /*this.addRenderableWidget(new ImageButton(
+                this.leftPos + 30, this.topPos + 20, 16, 16,
+                0, 0, 16,
+                icon_channel1,
+                button ->ModNetworking.CHANNEL.sendToServer(new WeaponC2SPacket(pos, 1))
+        ));
+        this.addRenderableWidget(new ImageButton(
+                this.leftPos + 50, this.topPos + 20, 16, 16,
+                0, 0, 16,
+                icon_channel2,
+                button -> ModNetworking.CHANNEL.sendToServer(new WeaponC2SPacket(pos, 2))
+        ));
+        this.addRenderableWidget(new ImageButton(
+                this.leftPos + 70, this.topPos + 20, 16, 16,
+                0, 0, 16,
+                icon_channel3,
+                button -> ModNetworking.CHANNEL.sendToServer(new WeaponC2SPacket(pos, 3))
+        ));
+        this.addRenderableWidget(new ImageButton(
+                this.leftPos + 90, this.topPos + 20, 16, 16,
+                0, 0,16,
+                icon_channel4,
+                button -> ModNetworking.CHANNEL.sendToServer(new WeaponC2SPacket(pos, 4))
+        ));*/
+
+        this.addRenderableWidget(Button.builder(
+                Component.literal("CH1"),
+                btn -> ModNetworking.CHANNEL.sendToServer(new WeaponC2SPacket(pos, 1))
+        ).bounds(leftPos + 30, topPos + 40, 20, 10).build());
+        this.addRenderableWidget(Button.builder(
+                Component.literal("CH2"),
+                btn -> ModNetworking.CHANNEL.sendToServer(new WeaponC2SPacket(pos, 2))
+        ).bounds(leftPos + 60, topPos + 40, 20, 10).build());
+        this.addRenderableWidget(Button.builder(
+                Component.literal("CH3"),
+                btn -> ModNetworking.CHANNEL.sendToServer(new WeaponC2SPacket(pos, 3))
+        ).bounds(leftPos + 90, topPos + 40, 20, 10).build());
+        this.addRenderableWidget(Button.builder(
+                Component.literal("CH4"),
+                btn -> ModNetworking.CHANNEL.sendToServer(new WeaponC2SPacket(pos, 4))
+        ).bounds(leftPos + 120, topPos + 40, 20, 10).build());
+
     }
+
 }

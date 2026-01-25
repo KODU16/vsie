@@ -2,22 +2,17 @@ package com.kodu16.vsie.content.controlseat.block;
 
 import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.Initialize;
-import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
+import com.kodu16.vsie.content.controlseat.functions.ScanNearByShips;
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
-import com.kodu16.vsie.content.controlseat.client.ClientInputHandler;
+import com.kodu16.vsie.content.controlseat.client.Input.ClientMouseHandler;
 
 import com.kodu16.vsie.content.controlseat.server.SeatRegistry;
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlockEntity;
-import com.kodu16.vsie.content.turret.TurretData;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.Connection;
-import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.common.MinecraftForge;
 import org.slf4j.Logger;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -35,19 +30,19 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
-import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
     //private final ControlSeatServerData serverData = new ControlSeatServerData();
-    public static boolean ride = false;
+    public volatile boolean ride = false;
     private boolean hasInitialized = false;
+    public boolean previousfirestatus = false;
     //即使我不想写的这么恶心，为了跨维度我还是得干
     //有两个hashmap，第二个是为了渲染HUD的时候用来反查controlseat
     private List<ShipMountingEntity> seats = new ArrayList<>();
@@ -76,7 +71,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         BlockPos pos = getBlockPos();
         // 只有当本地玩家就是这张座椅的乘客时才生效
         //这是个静态方法，最好提前确定好你在server存好了他上一次的鼠标位置和他上一次操作时间
-        ClientInputHandler.handle(lp, pos);
+        ClientMouseHandler.handle(lp, pos);
     }
 
     //再从服务端更新推力和力矩
@@ -87,12 +82,40 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         if (level.isClientSide)
             return;
         if (hasInitialized) {
+
+            //update
             if (!ride) {
                 controlseatData.reset();
                 controlseatData.setPlayer(null);
             }
             updateThruster();
             updateWeapon();
+
+            //scanships
+            qsd = VSGameUtilsKt.getAllShips(level);
+            BlockPos pos = this.getBlockPos();
+            Map<String, Object> shipmapper = ScanNearByShips.scanships(qsd,pos,level);
+            // 遍历所有扫描到的船
+            for (Map.Entry<String, Object> entry : shipmapper.entrySet()) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> shipData = (Map<String, Object>) entry.getValue();
+
+                String id    = (String)   shipData.get("id");     // 通常是 Long.toString()
+                String name  = (String)   shipData.get("slug");   // 船的名字
+                Double x     = (Double)   shipData.get("x");
+                Double y     = (Double)   shipData.get("y");
+                Double z     = (Double)   shipData.get("z");
+
+                // 安全检查（防止 null）
+                if (name == null) name = "Unnamed ship";
+                if (x == null || y == null || z == null) continue;
+
+                System.out.printf("船 %-20s  ID: %s   位置: %.1f, %.1f, %.1f%n",
+                        name, id, x, y, z);
+
+                // 或收集到你自己的结构里
+                // yourShipList.add(new ShipInfo(name, x, y, z));
+            }
         }
         else {
             LOGGER.warn(String.valueOf(Component.literal("detected uninitialized controlseat, time to sweep valkyrie's ass")));
@@ -134,32 +157,28 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
     }
 
     public void updateWeapon() {
-        int encoded = 0;
-        if (controlseatData.getChannel1()) encoded |= 1 << 0; // 0001
-        if (controlseatData.getChannel2()) encoded |= 1 << 1; // 0010
-        if (controlseatData.getChannel3()) encoded |= 1 << 2; // 0100
-        if (controlseatData.getChannel4()) encoded |= 1 << 3; // 1000
-        List<Vec3> toRemove = new ArrayList<>();
-        int finalEncoded = encoded;
-        controlseatData.channelencode = encoded;
-        if (!controlseatData.isfiring) {return;}
-        this.forEachLinkedPeripheral(pos -> {
-            BlockPos blockPos = BlockPos.containing(pos);
-            BlockEntity be = level.getBlockEntity(blockPos);
+        if(previousfirestatus == controlseatData.isfiring) return;
+        previousfirestatus = controlseatData.isfiring;
+        for (int i = WeaponCache.size() - 1; i >= 0; i--) {
+            AbstractWeaponBlockEntity weapon = WeaponCache.get(i);
 
-            if (be instanceof AbstractWeaponBlockEntity weapon) {
-                Logger LOGGER = LogUtils.getLogger();
-                //LOGGER.warn("writing to thrusters:" +blockPos+ "torque:"+controlseatData.getFinaltorque()+"force:"+controlseatData.getFinalforce());
-                weapon.receivechannel(finalEncoded);
-            } else {
-                // 先记下来，循环完了再删
-                toRemove.add(pos);
+            if (weapon == null || weapon.isRemoved() || !level.isLoaded(weapon.getBlockPos())) {
+                WeaponCache.remove(i);
+                // 记得同步清理 weaponRefs 和 linked peripheral
+                continue;
             }
-        }, 1);
 
-        // 循环结束后统一删除
-        for (Vec3 pos : toRemove) {
-            removeLinkedPeripheral(pos, 1);
+            // 正常发信号
+            int encoded = 0;
+            if (controlseatData.getChannel1()) encoded |= 1;
+            if (controlseatData.getChannel2()) encoded |= 2;
+            if (controlseatData.getChannel3()) encoded |= 4;
+            if (controlseatData.getChannel4()) encoded |= 8;
+            if (controlseatData.isfiring) {
+                weapon.receivechannel(encoded);
+            } else {
+                weapon.receivechannel(0);
+            }
         }
     }
 

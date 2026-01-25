@@ -1,13 +1,10 @@
-package com.kodu16.vsie.network.controlseat;
+package com.kodu16.vsie.network.controlseat.S2C;
 
-import com.kodu16.vsie.content.controlseat.client.ClientDataManager;
-import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
+import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
+import com.kodu16.vsie.content.controlseat.client.Input.ControlSeatClientData;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;

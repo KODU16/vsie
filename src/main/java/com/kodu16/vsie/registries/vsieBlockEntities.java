@@ -8,7 +8,7 @@ import com.kodu16.vsie.content.vectorthruster.block.BasicVectorThrusterBlockEnti
 import com.kodu16.vsie.content.vectorthruster.client.AbstractVectorThrusterGeoRenderer;
 import com.kodu16.vsie.content.weapon.client.AbstractWeaponGeoRenderer;
 import com.kodu16.vsie.content.weapon.infra_knife_accelerator.InfraKnifeAcceleratorBlockEntity;
-import com.kodu16.vsie.foundation.trailflame.ThrusterFlameRenderer;
+import com.kodu16.vsie.content.thruster.trailflame.ThrusterFlameRenderer;
 import com.kodu16.vsie.content.turret.client.AbstractTurretGeoRenderer;
 import com.kodu16.vsie.vsie;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;

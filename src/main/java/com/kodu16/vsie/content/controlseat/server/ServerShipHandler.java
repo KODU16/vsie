@@ -1,8 +1,7 @@
 package com.kodu16.vsie.content.controlseat.server;
 
 
-import com.kodu16.vsie.network.controlseat.ControlSeatInputC2SPacket;
-import com.kodu16.vsie.network.controlseat.ControlSeatInputS2CPacket;
+import com.kodu16.vsie.network.controlseat.S2C.ControlSeatInputS2CPacket;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -14,7 +13,7 @@ import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.core.impl.game.ships.PhysShipImpl;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
-import com.kodu16.vsie.network.controlseat.ControlSeatS2CPacket;
+import com.kodu16.vsie.network.controlseat.S2C.ControlSeatS2CPacket;
 import com.kodu16.vsie.network.ModNetworking;
 
 import net.minecraftforge.network.PacketDistributor;
@@ -31,7 +30,8 @@ public class ServerShipHandler {
         this.data = data;
     }
     private long lastSendMs = 0;
-    private long lastSendInputMs = 0;
+    int lastSentEncode = 0;
+    int current=0;
     private volatile Vector3d worldXDirection = new Vector3d();
     private volatile Vector3d worldYDirection = new Vector3d();
     private volatile Vector3d worldZDirection = new Vector3d();
@@ -49,9 +49,10 @@ public class ServerShipHandler {
                 //LOGGER.warn(String.valueOf(Component.literal("sending data to client:"+data.getPlayer()+" direction:"+ForwardDirection)));
                 ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()), packet);
             }
-            if(now - lastSendInputMs > 66) {
-                lastSendInputMs = now;
-                ControlSeatInputS2CPacket packet = new ControlSeatInputS2CPacket(pos,data.channelencode);
+            current = data.channelencode;
+            if (lastSentEncode!=current) {
+                lastSentEncode = current;
+                ControlSeatInputS2CPacket packet = new ControlSeatInputS2CPacket(pos, data.channelencode);
                 ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()), packet);
             }
         }

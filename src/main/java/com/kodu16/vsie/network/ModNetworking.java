@@ -1,9 +1,10 @@
 // 我爱GPT5
 package com.kodu16.vsie.network;
 
-import com.kodu16.vsie.network.controlseat.ControlSeatInputC2SPacket;
-import com.kodu16.vsie.network.controlseat.ControlSeatInputS2CPacket;
-import com.kodu16.vsie.network.controlseat.ControlSeatS2CPacket;
+import com.kodu16.vsie.network.controlseat.C2S.ControlSeatC2SPacket;
+import com.kodu16.vsie.network.controlseat.C2S.ControlSeatInputC2SPacket;
+import com.kodu16.vsie.network.controlseat.S2C.ControlSeatInputS2CPacket;
+import com.kodu16.vsie.network.controlseat.S2C.ControlSeatS2CPacket;
 import com.kodu16.vsie.network.turret.TurretC2SPacket;
 import com.kodu16.vsie.network.weapon.WeaponC2SPacket;
 import net.minecraft.resources.ResourceLocation;
@@ -25,6 +26,13 @@ public class ModNetworking {
 
     public static void register() {
         // 注册C2S数据包
+        CHANNEL.registerMessage(
+                nextId(),
+                ControlSeatC2SPacket.class,
+                ControlSeatC2SPacket::encode,
+                ControlSeatC2SPacket::decode,
+                ControlSeatC2SPacket::handle
+        );
         CHANNEL.registerMessage(
                 nextId(),
                 ControlSeatInputC2SPacket.class,
