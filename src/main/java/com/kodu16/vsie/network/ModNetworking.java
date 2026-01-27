@@ -5,6 +5,7 @@ import com.kodu16.vsie.network.controlseat.C2S.ControlSeatC2SPacket;
 import com.kodu16.vsie.network.controlseat.C2S.ControlSeatInputC2SPacket;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatInputS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatS2CPacket;
+import com.kodu16.vsie.network.controlseat.S2C.NearbyShipsS2CPacket;
 import com.kodu16.vsie.network.turret.TurretC2SPacket;
 import com.kodu16.vsie.network.weapon.WeaponC2SPacket;
 import net.minecraft.resources.ResourceLocation;
@@ -67,6 +68,13 @@ public class ModNetworking {
                 ControlSeatInputS2CPacket::write,
                 ControlSeatInputS2CPacket::decode,
                 ControlSeatInputS2CPacket::handle
+        );
+        CHANNEL.registerMessage(
+                nextId(),
+                NearbyShipsS2CPacket.class,
+                NearbyShipsS2CPacket::encode,
+                NearbyShipsS2CPacket::decode,
+                NearbyShipsS2CPacket::handle
         );
     }
 

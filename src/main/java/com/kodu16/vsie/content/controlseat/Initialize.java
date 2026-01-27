@@ -46,6 +46,7 @@ public class Initialize {
                 };
                 LOGGER.warn(String.valueOf(Component.literal("facing:" + facing + "  right:" + rightVector)));
                 data.setDirectionRight(VectorConversionsMCKt.toJOMLD(rightVector));
+                data.level = level;
                 ServerShipHandler applier = new ServerShipHandler(data);
                 ship.addApplier(pos, applier);
             }

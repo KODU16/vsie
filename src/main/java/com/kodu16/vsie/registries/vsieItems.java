@@ -1,5 +1,6 @@
 package com.kodu16.vsie.registries;
 
+import com.kodu16.vsie.content.item.HUD.targetframe;
 import com.kodu16.vsie.content.item.linker.linker;
 import com.kodu16.vsie.vsie;
 //import com.deltasf.createpropulsion.physics_assembler.AssemblyGaugeItem;
@@ -18,4 +19,5 @@ public class vsieItems {
     //public static final ItemEntry<OpticalLensItem> OPTICAL_LENS = REGISTRATE.item("optical_lens", OpticalLensItem::new).register();
     public static final ItemEntry<testItem> TEST_ITEM = REGISTRATE.item("test_item", testItem::new).register();
     public static final ItemEntry<linker> LINKER = REGISTRATE.item("linker", linker::new).register();
+    public static final ItemEntry<targetframe> TARGET_FRAME = REGISTRATE.item("target_frame", targetframe::new).register();
 }

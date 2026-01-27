@@ -20,8 +20,9 @@ public class Decorative {
         int centerY = sh / 2;
 
         // 背景灰色半圆（45°~135°）
-        DrawArc.drawPartialArc(gg, centerX+centerX/4, centerY, SIDEARC_RADIUS, SIDEARC_THICKNESS, SUB_COLOR, -30, 30);
-        DrawArc.drawPartialArc(gg, centerX-centerX/4, centerY, SIDEARC_RADIUS, SIDEARC_THICKNESS, MAIN_COLOR, -210, -150);
+        DrawShape.drawPartialArc(gg, centerX+centerX/4, centerY, SIDEARC_RADIUS, SIDEARC_THICKNESS, MAIN_COLOR, -30, 30);
+        DrawShape.drawPartialArc(gg, centerX-centerX/4, centerY, SIDEARC_RADIUS, SIDEARC_THICKNESS, MAIN_COLOR, -210, -150);
+        //DrawShape.drawHollowSquare(gg,centerX,centerY,50,2,MAIN_COLOR);
 
         /*// 文字直接用 gg.drawString（它内部也是批量的）
         String text = throttlePercent + "%";

@@ -1,7 +1,5 @@
 package com.kodu16.vsie.content.controlseat.client.HUD;
 
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.FastColor;
@@ -25,12 +23,12 @@ public class ThrottleIndicator {
         int centerY = sh / 2 + THROTTLE_Y;
 
         // 背景灰色半圆（45°~135°）
-        DrawArc.drawPartialArc(gg, centerX, centerY, THROTTLE_RADIUS, THROTTLE_THICKNESS, SUB_COLOR, 45, 135);
+        DrawShape.drawPartialArc(gg, centerX, centerY, THROTTLE_RADIUS, THROTTLE_THICKNESS, SUB_COLOR, 45, 135);
 
         // 动态填充（0% 在左边 6点钟方向，100% 填满到右边 4点钟方向）
         if (throttlePercent > 0) {
             float endAngle = 90f + 45f * (throttlePercent / 100f); // 90° 开始，顺时针到 135°
-            DrawArc.drawPartialArc(gg, centerX, centerY, THROTTLE_RADIUS, THROTTLE_THICKNESS, MAIN_COLOR, 90, endAngle);
+            DrawShape.drawPartialArc(gg, centerX, centerY, THROTTLE_RADIUS, THROTTLE_THICKNESS, MAIN_COLOR, 90, endAngle);
         }
 
         // 文字直接用 gg.drawString（它内部也是批量的）

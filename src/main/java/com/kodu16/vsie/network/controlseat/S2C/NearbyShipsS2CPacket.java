@@ -1,7 +1,7 @@
 package com.kodu16.vsie.network.controlseat.S2C;
 
 import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
-import com.kodu16.vsie.content.controlseat.client.Input.ControlSeatClientData;
+import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.mojang.logging.LogUtils;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Player;
@@ -34,13 +34,14 @@ public class NearbyShipsS2CPacket {
 
             buf.writeUtf(shipIdStr);                      // ship id as string key
 
-            buf.writeVarInt((int) attr.get("id"));        // ship numeric id
+            buf.writeVarLong((long) attr.get("id"));        // ship numeric id
             buf.writeUtf((String) attr.get("slug"));      // slug
             buf.writeUtf((String) attr.get("dimension")); // dimension (通常是字符串或ResourceLocation)
 
             buf.writeDouble((double) attr.get("x"));
             buf.writeDouble((double) attr.get("y"));
             buf.writeDouble((double) attr.get("z"));
+
 
             buf.writeDouble((double) attr.get("min_x"));
             buf.writeDouble((double) attr.get("min_y"));
@@ -61,7 +62,7 @@ public class NearbyShipsS2CPacket {
             String key = buf.readUtf();
 
             Map<String, Object> attr = new HashMap<>();
-            attr.put("id", buf.readVarInt());
+            attr.put("id", buf.readVarLong());
             attr.put("slug", buf.readUtf());
             attr.put("dimension", buf.readUtf());
 
@@ -98,7 +99,7 @@ public class NearbyShipsS2CPacket {
                     }
 
                     // 存入 clientData（你需要在这里新增一个字段或方法）
-                    clientData.setNearbyShips(shipsData);
+                    clientData.shipsData = shipsData;
 
                     // 可选：在这里触发 HUD / 渲染更新
                     // 例如：ClientHudOverlay.updateShipRadar(); 或其他自定义逻辑

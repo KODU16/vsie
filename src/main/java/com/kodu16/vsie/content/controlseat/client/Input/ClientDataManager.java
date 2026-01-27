@@ -1,5 +1,6 @@
 package com.kodu16.vsie.content.controlseat.client.Input;
 
+import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;

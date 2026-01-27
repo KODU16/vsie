@@ -1,7 +1,7 @@
 package com.kodu16.vsie.content.controlseat.client.HUD;
 
 import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
-import com.kodu16.vsie.content.controlseat.client.Input.ControlSeatClientData;
+import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.kodu16.vsie.content.controlseat.server.SeatRegistry;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
@@ -81,9 +81,11 @@ public class HudOverlay {
             drawCenteredText(gg,"§e"+data.channel3, centerX+20, baseY + 50, SUB_COLOR);
             drawCenteredText(gg,"§e"+data.channel4, centerX+60, baseY + 50, SUB_COLOR);
 
+            //扫描船只，绘制边框
+            //ItemProjectile.drawforeach(new Vec3(pos.x, pos.y, pos.z), data.shipsData, new Vec3(data.getShipFacing().x,data.getShipFacing().y,data.getShipFacing().z),gg,MAIN_COLOR);
+
             //装饰
             Decorative.renderDecorative(gg);
-
             RenderSystem.disableBlend();
         }
     }

@@ -1,5 +1,6 @@
 package com.kodu16.vsie.content.controlseat.client.Input;
 
+import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.kodu16.vsie.registries.vsieKeyMappings;
 
 import com.mojang.logging.LogUtils;

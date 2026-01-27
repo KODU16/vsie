@@ -1,7 +1,7 @@
 package com.kodu16.vsie.network.controlseat.S2C;
 
 import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
-import com.kodu16.vsie.content.controlseat.client.Input.ControlSeatClientData;
+import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;

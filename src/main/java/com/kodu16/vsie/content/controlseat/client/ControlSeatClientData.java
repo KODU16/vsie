@@ -1,5 +1,7 @@
-package com.kodu16.vsie.content.controlseat.client.Input;
+package com.kodu16.vsie.content.controlseat.client;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import org.joml.Quaterniond;
@@ -25,6 +27,7 @@ public class ControlSeatClientData {
     public volatile boolean channel2 = false;
     public volatile boolean channel3 = false;
     public volatile boolean channel4 = false;
+    public Map<String, Object> shipsData = new HashMap<>();
 
     public void setLastMousex(double x) { lastmousex = x; }
     public void setLastMousey(double x) { lastmousey = x; }

@@ -1,20 +1,16 @@
 package com.kodu16.vsie.content.controlseat.client.HUD;
 
-import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.RenderType;
 import org.joml.Matrix4f;
 import com.mojang.blaze3d.systems.RenderSystem;
 
-public class DrawArc {
+public class DrawShape {
         public static void drawArc(GuiGraphics gg, int cx, int cy, int radius, int thickness,
                                    int argb, float startAngleDeg, float endAngleDeg) {
             // 计算段数，角度越大越细致，但别超过 360
@@ -110,43 +106,57 @@ public class DrawArc {
             RenderSystem.disableBlend();
         }
 
+        public static void drawHollowSquare(GuiGraphics gg, int centerX, int centerY,
+                                            int sideLength, int thickness, int argb) {
+            float halfOuter = sideLength / 2.0f;
+            float halfInner = halfOuter - thickness;
 
+            // 防止厚度过大导致内框负数
+            if (halfInner < 0) halfInner = 0;
 
+            float a = (argb >> 24 & 255) / 255.0f;
+            float r = (argb >> 16 & 255) / 255.0f;
+            float g = (argb >>  8 & 255) / 255.0f;
+            float b = (argb       & 255) / 255.0f;
 
-    /*private static void fillQuad(GuiGraphics gg,
-                                 float x0, float y0,
-                                 float x1, float y1,
-                                 float x2, float y2,
-                                 float x3, float y3,
-                                 int argb) {
+            Matrix4f mat = gg.pose().last().pose();
 
-        float a = (float) (argb >> 24 & 255) / 255.0F;
-        float r = (float) (argb >> 16 & 255) / 255.0F;
-        float g = (float) (argb >>  8 & 255) / 255.0F;
-        float b = (float) (argb       & 255) / 255.0F;
+            RenderSystem.setShader(GameRenderer::getPositionColorShader);
+            RenderSystem.enableBlend();
 
-        Matrix4f mat = gg.pose().last().pose();
+            BufferBuilder buffer = Tesselator.getInstance().getBuilder();
+            buffer.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
 
-        // 1) 设定着色器（纯位置+颜色）
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+            // 按顺序画四条边（每条边用两个点 + 退化连接）
+            // 左上外 → 左上内 → 右上外 → 右上内 → 右下外 → 右下内 → 左下外 → 左下内 → 回到左上外
 
-        // 2) 可选：在HUD上通常需要开启混合
-        RenderSystem.enableBlend();
-        // RenderSystem.defaultBlendFunc(); // 如需默认混合，可打开
+            // 左上外
+            buffer.vertex(mat, centerX - halfOuter, centerY - halfOuter, 0).color(r,g,b,a).endVertex();
+            // 左上内
+            buffer.vertex(mat, centerX - halfInner, centerY - halfInner, 0).color(r,g,b,a).endVertex();
 
-        // 3) 用 Tesselator 提供的 BufferBuilder
-        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
-        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+            // 右上外
+            buffer.vertex(mat, centerX + halfOuter, centerY - halfOuter, 0).color(r,g,b,a).endVertex();
+            // 右上内
+            buffer.vertex(mat, centerX + halfInner, centerY - halfInner, 0).color(r,g,b,a).endVertex();
 
-        buffer.vertex(mat, x0, y0, 0.0F).color(r, g, b, a).endVertex();
-        buffer.vertex(mat, x1, y1, 0.0F).color(r, g, b, a).endVertex();
-        buffer.vertex(mat, x2, y2, 0.0F).color(r, g, b, a).endVertex();
-        buffer.vertex(mat, x3, y3, 0.0F).color(r, g, b, a).endVertex();
+            // 右下外
+            buffer.vertex(mat, centerX + halfOuter, centerY + halfOuter, 0).color(r,g,b,a).endVertex();
+            // 右下内
+            buffer.vertex(mat, centerX + halfInner, centerY + halfInner, 0).color(r,g,b,a).endVertex();
 
-        // 4) 提交绘制（1.20.1 没有 buildOrThrow；使用 end() + drawWithShader）
-        BufferUploader.drawWithShader(buffer.end());
+            // 左下外
+            buffer.vertex(mat, centerX - halfOuter, centerY + halfOuter, 0).color(r,g,b,a).endVertex();
+            // 左下内
+            buffer.vertex(mat, centerX - halfInner, centerY + halfInner, 0).color(r,g,b,a).endVertex();
 
-        // 5) 可选：恢复状态
-        RenderSystem.disableBlend();
-    }*/
+            // 闭合回到起点（左上外）
+            buffer.vertex(mat, centerX - halfOuter, centerY - halfOuter, 0).color(r,g,b,a).endVertex();
+            buffer.vertex(mat, centerX - halfInner, centerY - halfInner, 0).color(r,g,b,a).endVertex();
+
+            BufferUploader.drawWithShader(buffer.end());
+
+            RenderSystem.disableBlend();
+    }
+
 }

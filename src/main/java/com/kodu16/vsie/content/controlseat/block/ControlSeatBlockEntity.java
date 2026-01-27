@@ -92,30 +92,6 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             updateWeapon();
 
             //scanships
-            qsd = VSGameUtilsKt.getAllShips(level);
-            BlockPos pos = this.getBlockPos();
-            Map<String, Object> shipmapper = ScanNearByShips.scanships(qsd,pos,level);
-            // 遍历所有扫描到的船
-            for (Map.Entry<String, Object> entry : shipmapper.entrySet()) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> shipData = (Map<String, Object>) entry.getValue();
-
-                String id    = (String)   shipData.get("id");     // 通常是 Long.toString()
-                String name  = (String)   shipData.get("slug");   // 船的名字
-                Double x     = (Double)   shipData.get("x");
-                Double y     = (Double)   shipData.get("y");
-                Double z     = (Double)   shipData.get("z");
-
-                // 安全检查（防止 null）
-                if (name == null) name = "Unnamed ship";
-                if (x == null || y == null || z == null) continue;
-
-                System.out.printf("船 %-20s  ID: %s   位置: %.1f, %.1f, %.1f%n",
-                        name, id, x, y, z);
-
-                // 或收集到你自己的结构里
-                // yourShipList.add(new ShipInfo(name, x, y, z));
-            }
         }
         else {
             LOGGER.warn(String.valueOf(Component.literal("detected uninitialized controlseat, time to sweep valkyrie's ass")));

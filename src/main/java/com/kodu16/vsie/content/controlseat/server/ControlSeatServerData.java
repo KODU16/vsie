@@ -1,11 +1,15 @@
 package com.kodu16.vsie.content.controlseat.server;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 import org.joml.Vector3d;
 import net.minecraft.world.entity.player.Player;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 
 public class ControlSeatServerData {
     //忍痛大换血换成了一个更清晰的结构，现在这里都是server的，和方块本身绑定的，player也是serverplayer
@@ -25,6 +29,8 @@ public class ControlSeatServerData {
     public volatile boolean channel4 = true;
     public volatile int channelencode = 0;
     public volatile boolean isfiring = false;
+    public Map<String, Object> shipsData = new HashMap<>();
+    public Level level;
 
 
     public volatile Vector3d finaltorque = new Vector3d(0,0,0);

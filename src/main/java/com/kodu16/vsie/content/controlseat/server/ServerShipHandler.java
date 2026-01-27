@@ -1,23 +1,36 @@
 package com.kodu16.vsie.content.controlseat.server;
 
 
+import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
+import com.kodu16.vsie.content.controlseat.functions.ScanNearByShips;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatInputS2CPacket;
+import com.kodu16.vsie.network.controlseat.S2C.NearbyShipsS2CPacket;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
+import org.joml.primitives.AABBdc;
+import org.valkyrienskies.core.api.ships.QueryableShipData;
+import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.core.impl.game.ships.PhysShipImpl;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatS2CPacket;
 import com.kodu16.vsie.network.ModNetworking;
 
 import net.minecraftforge.network.PacketDistributor;
 import org.slf4j.Logger;
+
+import java.util.HashMap;
+import java.util.Map;
+
 
 public class ServerShipHandler {
     //原先用于加力，现在改成综合的船只信息和行为处理
@@ -41,17 +54,34 @@ public class ServerShipHandler {
         Vector3d ForwardDirection = new Vector3d();
         transform.getShipToWorld().transformDirection(data.getDirectionForward(), ForwardDirection);
         BlockPos pos = convertToBlockPos(ship.getCenterOfMass());
+        Level level = data.level;
         long now = System.currentTimeMillis();
+
         if (data.getPlayer() != null) {
-            if (now - lastSendMs > 33) {
+            QueryableShipData<Ship> qsd = VSGameUtilsKt.getAllShips(level);
+            qsd.iterator().forEachRemaining(e -> {
+                   // LogUtils.getLogger().warn("detected ship:"+e.getSlug());
+            });
+            data.shipsData = ScanNearByShips.scanships(qsd,pos,level);
+
+            if (now - lastSendMs > 33) {//快包
                 lastSendMs = now;
+
+                //信息包
                 ControlSeatS2CPacket packet = new ControlSeatS2CPacket(pos, ForwardDirection);
                 //LOGGER.warn(String.valueOf(Component.literal("sending data to client:"+data.getPlayer()+" direction:"+ForwardDirection)));
                 ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()), packet);
+
+                //扫描包
+                NearbyShipsS2CPacket packetship = new NearbyShipsS2CPacket(data.shipsData);
+                ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()), packetship);
             }
+
             current = data.channelencode;
-            if (lastSentEncode!=current) {
+            if (lastSentEncode!=current) {//慢包（out）
                 lastSentEncode = current;
+
+                //按键包
                 ControlSeatInputS2CPacket packet = new ControlSeatInputS2CPacket(pos, data.channelencode);
                 ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()), packet);
             }

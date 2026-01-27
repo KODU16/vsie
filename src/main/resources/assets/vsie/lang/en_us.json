@@ -9,6 +9,7 @@
     "item.vsie.control_seat": "control seat",
     "item.vsie.test_item": "test item",
     "item.vsie.linker": "linker",
+    "item.vsie.target_frame": "target frame",
 
     "category.vsie": "vsie controls",
     "key.vsie.toggle_mouse_lock": "toggle mouse lock",

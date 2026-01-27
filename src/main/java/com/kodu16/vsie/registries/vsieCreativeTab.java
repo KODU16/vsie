@@ -40,6 +40,7 @@ public class vsieCreativeTab {
         public void accept(@Nonnull ItemDisplayParameters parameters, @Nonnull Output output) {
             output.accept(vsieItems.TEST_ITEM);
             output.accept(vsieItems.LINKER);
+            output.accept(vsieItems.TARGET_FRAME);
             output.accept(vsieBlocks.CONTROL_SEAT_BLOCK);
             output.accept(vsieBlocks.BASIC_THRUSTER_BLOCK);
             output.accept(vsieBlocks.MEDIUM_LASER_TURRET_BLOCK);

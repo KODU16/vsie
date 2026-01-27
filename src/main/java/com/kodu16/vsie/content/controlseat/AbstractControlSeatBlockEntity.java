@@ -48,9 +48,6 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
     public final List<AbstractWeaponBlockEntity> WeaponCache = new ArrayList<>();
     private final List<Vec3> linkedShields = new ArrayList<>();
     private final List<Vec3> linkedTurrets = new ArrayList<>();
-
-    //scans
-    public QueryableShipData<Ship> qsd = VSGameUtilsKt.getAllShips(level);
     // Ticking
 
     // Particles
