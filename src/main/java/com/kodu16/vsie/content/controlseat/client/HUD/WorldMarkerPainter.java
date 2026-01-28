@@ -7,6 +7,7 @@ import com.kodu16.vsie.vsie;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.logging.LogUtils;
+import com.mojang.math.Axis;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -16,6 +17,7 @@ import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -78,7 +80,7 @@ public class WorldMarkerPainter {
                     .withStyle(ChatFormatting.WHITE);  // 或其他颜色
 
             Component text = slug.copy()
-                    .append("\n")               // 这里 \n 有效！
+                    .append(" ")               // 这里 \n 有效！
                     .append(dist);
             render(playerpos, target, mc.getEntityRenderDispatcher(), mc.font, pose, buffers, text);
         }
@@ -88,7 +90,7 @@ public class WorldMarkerPainter {
         if (level == null) {
             return;
         }
-        LogUtils.getLogger().warn("finding camera entity");
+        //LogUtils.getLogger().warn("finding camera entity");
         if (!(mc.getCameraEntity() instanceof Player player)) {
             shipsData = new HashMap<>();
             playerpos = null;
@@ -96,63 +98,87 @@ public class WorldMarkerPainter {
         }
         shipsData = ClientDataManager.getClientData(player).shipsData;
         playerpos = player.getEyePosition();
-        LogUtils.getLogger().warn("current player:"+player+"pos:"+playerpos);
+        //LogUtils.getLogger().warn("current player:"+player+"pos:"+playerpos);
     }
 
     private static void render(Vec3 camPos, Vec3 targetPos, EntityRenderDispatcher dispatcher,
                                Font font, PoseStack pose, MultiBufferSource buffer, Component text) {
-        ItemRenderer itemRenderer = mc.getItemRenderer();
-        //LogUtils.getLogger().warn("正在尝试渲染船 " + targetPos);
 
-        double distance = Vec.Distance(new Vector3d(camPos.x,camPos.y,camPos.z), new Vector3d(targetPos.x,targetPos.y,targetPos.z));
-        float baseScale = 0.6f;           // 基础大小，0.3～0.6 之间调
-        float distanceFactor = (float) distance * 0.25f; // 或者用 Math.sqrt(dist) 增长更平滑
-        float scale = baseScale * Math.max(0.4f, distanceFactor); // 避免太近过大
+        ItemRenderer itemRenderer = mc.getItemRenderer();
+
+        double dist = camPos.distanceTo(targetPos);
+        float baseScale = 0.1f;                 // 统一基础缩放（可调）
+        float distanceScale = (float) (dist * 0.05); // 距离缩放因子
+        float finalScale = baseScale * distanceScale;
 
         pose.pushPose();
-        try {
-            ItemStack markerItem = new ItemStack(vsieItems.TARGET_FRAME);  // 换成你想要的物品
-            pose.translate(targetPos.x - camPos.x, targetPos.y - camPos.y, targetPos.z - camPos.z);
-            pose.mulPose(dispatcher.cameraOrientation());
 
-            pose.scale(scale, scale, 0.001F);
+        Vec3 lookVec = Vec3.directionFromRotation(mc.player.getXRot(), mc.player.getYRot()).normalize();
+        Vec3 offset = targetPos.subtract(camPos);
 
-            // 强烈建议加这两行做穿透测试
-            RenderSystem.disableDepthTest();
-            RenderSystem.depthMask(false);
 
-            // 使用 FIXED 适合世界中静止的 billboard 物品
+        // 校正（危险，纯经验值）
+        double adjustedCompensation = 0;
+        // 根据水平偏移量的方向调整校正值
+        if (offset.x > 0) {
+            // 目标在视野右侧，应用负校正值
+            adjustedCompensation = -dist * 0.05;
+        } else if (offset.x < 0) {
+            // 目标在视野左侧，应用正校正值
+            adjustedCompensation = dist * 0.05;
+        }
+        Vec3 compensatedPos = targetPos.add(lookVec.scale(adjustedCompensation));
+        offset = compensatedPos.subtract(camPos);
+
+        //Vec3 offset = targetPos.subtract(camPos);
+        pose.translate(offset.x, offset.y, offset.z);
+
+        // 面向摄像机
+        org.joml.Quaternionf cameraRot = dispatcher.cameraOrientation();
+        pose.mulPose(cameraRot);
+        //float yaw = (float) Math.toDegrees(Math.atan2(offset.x, offset.z)) + 90; // 或用玩家 yaw
+        //pose.mulPose(Axis.YP.rotationDegrees(-yaw));
+
+        // ─── 先渲染物品（放在中心） ───
+        {
+            pose.pushPose();
+
+            pose.scale(finalScale*20, finalScale*20, finalScale * 0.001f);
+
             itemRenderer.renderStatic(
-                    markerItem,
-                    ItemDisplayContext.FIXED,          // 或 GUI / THIRD_PERSON_LEFT_HAND 看效果
-                    LightTexture.FULL_BRIGHT,          // 全亮（不受光照影响）
+                    new ItemStack(vsieItems.TARGET_FRAME),
+                    ItemDisplayContext.FIXED,
+                    LightTexture.FULL_BRIGHT,
                     OverlayTexture.NO_OVERLAY,
                     pose,
                     buffer,
-                    mc.level,                          // 可以传 null，如果不需要随机种子
-                    0                                  // seed，通常 0
+                    mc.level,
+                    0
             );
-            // 恢复状态！！！
-            RenderSystem.depthMask(true);
-            RenderSystem.enableDepthTest();
-
-        } finally {
             pose.popPose();
         }
 
-        pose.pushPose();
-        try {
-            // 然后再处理文字
-            float w = font.width(text);
-            float textOffsetX = 0.75f;           // 调这个值：0.5～1.2 之间最自然
-            pose.translate(targetPos.x - camPos.x, targetPos.y - camPos.y, targetPos.z - camPos.z);
-            pose.mulPose(dispatcher.cameraOrientation());
-            pose.scale((float) (-0.02*scale), (float)(-0.02*scale), (float) -0.02*scale);
+        // ─── 再渲染文字（独立向上偏移） ───
+        {
+            pose.pushPose();
+
+            // 文字整体向上移动（单位：物品渲染后的“高度”）
+            float textYOffset = 1.4f*distanceScale;           // ← 这里是关键！调这个值
+
+            pose.translate(0, textYOffset, 0);
+
+            // 文字反向缩放（经典 billboard）
+            pose.scale(-finalScale, -finalScale, -finalScale);
+
+            float textWidth = font.width(text);
+            float textHeight = font.lineHeight * text.getString().split("\n").length;
+
+            // 文字居中
             font.drawInBatch(
                     text,
-                    -w / 2f+textOffsetX,          // 仍然居中，但现在整体已经右移了
-                    -4,            // 稍微向上抬一点（可选，避免和物品底部重叠）
-                    0xFFFF5555,
+                    -textWidth / 2f,
+                    -textHeight / 2f,           // 垂直居中（可改成 0 偏上）
+                    0xFFFFFFFF,
                     false,
                     pose.last().pose(),
                     buffer,
@@ -161,8 +187,13 @@ public class WorldMarkerPainter {
                     LightTexture.FULL_BRIGHT
             );
 
-        } finally {
             pose.popPose();
         }
+
+        // 恢复深度状态（如果你之前关了深度测试）
+        RenderSystem.depthMask(true);
+        RenderSystem.enableDepthTest();
+
+        pose.popPose();
     }
 }
