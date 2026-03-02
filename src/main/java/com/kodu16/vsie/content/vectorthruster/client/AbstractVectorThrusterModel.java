@@ -4,6 +4,7 @@ package com.kodu16.vsie.content.vectorthruster.client;
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlockEntity;
 import com.kodu16.vsie.content.vectorthruster.AbstractVectorThrusterBlockEntity;
 import com.kodu16.vsie.vsie;
+import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import software.bernie.geckolib.core.animatable.model.CoreGeoBone;
@@ -49,38 +50,31 @@ public class AbstractVectorThrusterModel extends DefaultedBlockGeoModel<Abstract
         CoreGeoBone spinner = getAnimationProcessor().getBone("spinner");
         CoreGeoBone nozzle = getAnimationProcessor().getBone("nozzle");
 
-        if (spinner == null || nozzle == null) return;
+        if (spinner == null || nozzle == null)
+        {
+            return;
+        }
+        //double targetSpin = animatable.getSpinDegrees();
+        //double targetPitch = animatable.getPitchDegrees();
+        double targetSpin = getspin(animatable);
+        double targetPitch = getpitch(animatable);
+        LogUtils.getLogger().warn("receiving spin:"+targetSpin+"pitch:"+targetPitch);
 
-        if (controlling(animatable)) {
-            // 获取目标角度（弧度）
-            double targetSpin = getspin(animatable);
-            double targetPitch = getpitch(animatable);
+        // 转换为度数进行插值（rotLerp 专门处理角度循环问题，如从359°到1°不会走长路）
+        //float targetSpinDeg = (float) Math.toDegrees(targetSpinRad);
+        //float targetPitchDeg = (float) Math.toDegrees(targetPitchRad);
 
-            // 转换为度数进行插值（rotLerp 专门处理角度循环问题，如从359°到1°不会走长路）
-            //float targetSpinDeg = (float) Math.toDegrees(targetSpinRad);
-            //float targetPitchDeg = (float) Math.toDegrees(targetPitchRad);
+        // 使用 rotLerp 平滑插值（0.1F ~ 0.3F 之间调节平滑程度，值越小越平滑但越慢）
+        float smoothSpinrad = Mth.rotLerp(0.05F, lastSpin, (float) targetSpin);
+        float smoothPitchrad = Mth.rotLerp(0.05F, lastPitch, (float) targetPitch);
 
-            // 使用 rotLerp 平滑插值（0.1F ~ 0.3F 之间调节平滑程度，值越小越平滑但越慢）
-            float smoothSpinDeg = Mth.rotLerp(0.05F, lastSpin, (float) targetSpin);
-            float smoothPitchDeg = Mth.rotLerp(0.05F, lastPitch, (float) targetPitch);
+        // 更新上次的值
+        lastSpin = smoothSpinrad;
+        lastPitch = smoothPitchrad;
 
-            // 更新上次的值
-            lastSpin = smoothSpinDeg;
-            lastPitch = smoothPitchDeg;
-
-            // 设置回骨骼（转回弧度）
-            spinner.setRotY(-1*(smoothSpinDeg+180)/(180/Mth.PI));
-            nozzle.setRotX((smoothPitchDeg)/(180/Mth.PI));
-
-        }/* else {
-            // 不受控制时，可以选择缓慢归零或保持最后状态
-            // 这里选择缓慢归零，显得更自然
-            //lastSpin = Mth.rotLerp(0.15F, lastSpin, 0f);
-            //lastPitch = Mth.rotLerp(0.15F, lastPitch, 0f);
-
-            spinner.setRotY((float) Math.toRadians(lastSpin));
-            nozzle.setRotX((float) Math.toRadians(lastPitch));
-        }*/
+        // 设置回骨骼（转回弧度）
+        spinner.setRotY(smoothSpinrad);
+        nozzle.setRotX(smoothPitchrad);
     }
 
     private boolean controlling(AbstractVectorThrusterBlockEntity animatable) {

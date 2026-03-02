@@ -15,25 +15,29 @@ import java.util.function.Supplier;
 
 public class VectorThrusterS2CPacket implements Packet<ClientGamePacketListener> {
     private final BlockPos pos;
-    private final float raylength;
+    private final double rotX;
+    private final double rotY;
 
     // 构造函数
-    public VectorThrusterS2CPacket(BlockPos pos, float raylength) {
+    public VectorThrusterS2CPacket(BlockPos pos, double rotX, double rotY) {
         this.pos = pos;
-        this.raylength = raylength;
+        this.rotX = rotX;
+        this.rotY = rotY;
     }
 
     // 编码（序列化）
     public void write(FriendlyByteBuf buf) {
         buf.writeBlockPos(pos);
-        buf.writeFloat(raylength);
+        buf.writeDouble(rotX);
+        buf.writeDouble(rotY);
     }
 
     // 解码（反序列化）
     public static VectorThrusterS2CPacket decode(FriendlyByteBuf buf) {
         BlockPos pos = buf.readBlockPos();
-        float raylength = buf.readFloat();
-        return new VectorThrusterS2CPacket(pos, raylength);
+        double rotX = buf.readDouble();
+        double rotY = buf.readDouble();
+        return new VectorThrusterS2CPacket(pos, rotX,rotY);
     }
 
     // 处理客户端接收到的数据包

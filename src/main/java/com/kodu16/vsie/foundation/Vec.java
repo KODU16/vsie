@@ -52,7 +52,7 @@ public class Vec {
 
 
     //A在B和C的平面上投影与B的夹角
-    public static double projectionAngleToB_deg_signed(
+    public static double projectionAngleToB_rad_signed(
             Vector3d A,
             Vector3d B_unit,    // 已单位化
             Vector3d C_unit     // 已单位化，不与 B 平行
@@ -74,9 +74,7 @@ public class Vec {
         double y = A.dot(v);   // 在垂直方向上的分量（v 方向）
         // 3. 用 atan2 得到带符号角度（弧度）
         double angleRad = Math.atan2(y, x);
-        // 转成度
-        double angleDeg = Math.toDegrees(angleRad);
 
-        return angleDeg;
+        return angleRad;
     }
 }
