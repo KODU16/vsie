@@ -25,6 +25,10 @@ public class vsieShapes {
     .add(Block.box(-16, -16, -16, 32, 32, 32))
     .forDirectional(),
 
+    BASIC_SCREEN = ShapeBuilder.shape()
+            .add(Block.box(0, 0, 0, 16, 1, 16))
+            .forDirectional(),
+
     WING = getWingShape(4),
             WING_8 = getWingShape(8),
             WING_12 = getWingShape(12);

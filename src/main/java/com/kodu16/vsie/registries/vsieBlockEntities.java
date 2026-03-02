@@ -1,6 +1,8 @@
 package com.kodu16.vsie.registries;
 
 import com.kodu16.vsie.content.controlseat.client.AbstractControlSeatGeoRenderer;
+import com.kodu16.vsie.content.screen.AbstractScreenGeoRenderer;
+import com.kodu16.vsie.content.screen.block.BasicScreenBlockEntity;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
 import com.kodu16.vsie.content.storage.energybattery.AbstractEnergyBatteryGeoRenderer;
 import com.kodu16.vsie.content.storage.energybattery.block.LargeEnergyBatteryBlockEntity;
@@ -119,5 +121,10 @@ public class vsieBlockEntities {
             REGISTRATE.blockEntity("large_fueltank_block_entity", LargeFuelTankBlockEntity::new)
                     .validBlocks(vsieBlocks.LARGE_FUELTANK_BLOCK)
                     .renderer(() -> AbstractFuelTankGeoRenderer::new)
+                    .register();
+    public static final BlockEntityEntry<BasicScreenBlockEntity> BASIC_SCREEN_BLOCK_ENTITY =
+            REGISTRATE.blockEntity("basic_screen_block_entity", BasicScreenBlockEntity::new)
+                    .validBlocks(vsieBlocks.BASIC_SCREEN_BLOCK)
+                    .renderer(() -> AbstractScreenGeoRenderer::new)
                     .register();
 }

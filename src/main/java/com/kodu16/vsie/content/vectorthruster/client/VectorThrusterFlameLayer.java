@@ -21,7 +21,7 @@ public class VectorThrusterFlameLayer extends GeoRenderLayer<AbstractVectorThrus
         super(entityRendererIn);
     }
 
-    private static final String NOZZLE_BONE_NAME = "nozzle";
+    private static final String NOZZLE_BONE_NAME = "nozzle1";
 
     private static final int SEGMENTS = 8;           // 圆周分段数
     private static final int LENGTH_SEGMENTS = 16;   // 长度分段数

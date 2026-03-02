@@ -1,7 +1,6 @@
 package com.kodu16.vsie.content.controlseat.server;
 
 
-import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.functions.ScanNearByShips;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatInputS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatStatusS2CPacket;
@@ -13,10 +12,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.AABB;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
-import org.joml.primitives.AABBdc;
 import org.valkyrienskies.core.api.ships.QueryableShipData;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
@@ -24,13 +21,10 @@ import org.valkyrienskies.core.impl.game.ships.PhysShipImpl;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatS2CPacket;
-import com.kodu16.vsie.network.ModNetworking;
+import com.kodu16.vsie.registries.ModNetworking;
 
 import net.minecraftforge.network.PacketDistributor;
 import org.slf4j.Logger;
-
-import java.util.HashMap;
-import java.util.Map;
 
 
 public class ServerShipHandler {

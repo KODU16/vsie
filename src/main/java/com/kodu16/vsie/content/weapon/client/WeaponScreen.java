@@ -1,22 +1,16 @@
 package com.kodu16.vsie.content.weapon.client;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
 import com.kodu16.vsie.content.weapon.server.WeaponContainerMenu;
-import com.kodu16.vsie.network.ModNetworking;
-import com.kodu16.vsie.network.turret.TurretC2SPacket;
+import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.network.weapon.WeaponC2SPacket;
 import com.kodu16.vsie.vsie;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.level.block.entity.BlockEntity;
-
-import javax.swing.*;
-import java.awt.*;
 
 @SuppressWarnings({"removal"})
 public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {

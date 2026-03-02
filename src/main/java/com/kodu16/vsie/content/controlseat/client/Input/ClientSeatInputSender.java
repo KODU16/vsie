@@ -1,7 +1,7 @@
 package com.kodu16.vsie.content.controlseat.client.Input;
 
 import com.kodu16.vsie.network.controlseat.C2S.ControlSeatC2SPacket;
-import com.kodu16.vsie.network.ModNetworking;
+import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.network.controlseat.C2S.ControlSeatInputC2SPacket;
 import com.kodu16.vsie.registries.vsieKeyMappings;
 import com.mojang.logging.LogUtils;

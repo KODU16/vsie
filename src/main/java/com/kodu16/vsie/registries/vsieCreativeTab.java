@@ -40,9 +40,9 @@ public class vsieCreativeTab {
         public void accept(@Nonnull ItemDisplayParameters parameters, @Nonnull Output output) {
             output.accept(vsieItems.TEST_ITEM);
             output.accept(vsieItems.LINKER);
-            output.accept(vsieItems.TARGET_FRAME);
             output.accept(vsieItems.IFF);
             output.accept(vsieItems.SHIELD_TOOL);
+            output.accept(vsieBlocks.BASIC_SCREEN_BLOCK);
             output.accept(vsieFluids.DTFUEL.getBucket().get());
             output.accept(vsieBlocks.CONTROL_SEAT_BLOCK);
             output.accept(vsieBlocks.BASIC_THRUSTER_BLOCK);

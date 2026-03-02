@@ -1,5 +1,6 @@
 package com.kodu16.vsie.registries;
 
+import com.kodu16.vsie.content.item.HUD.screen_bg;
 import com.kodu16.vsie.content.item.HUD.targetframe;
 import com.kodu16.vsie.content.item.HUD.targetframe_ally;
 import com.kodu16.vsie.content.item.HUD.targetframe_enemy;
@@ -28,6 +29,7 @@ public class vsieItems {
     public static final ItemEntry<targetframe_enemy> TARGET_FRAME_ENEMY = REGISTRATE.item("target_frame_enemy", targetframe_enemy::new).register();
     public static final ItemEntry<targetframe_enemy_locked> TARGET_FRAME_ENEMY_LOCKED = REGISTRATE.item("target_frame_enemy_locked", targetframe_enemy_locked::new).register();
     public static final ItemEntry<targetframe_ally> TARGET_FRAME_ALLY = REGISTRATE.item("target_frame_ally", targetframe_ally::new).register();
+    public static final ItemEntry<screen_bg> SCREEN_BG = REGISTRATE.item("screen_bg", screen_bg::new).register();
     public static final ItemEntry<iff> IFF = REGISTRATE.item("iff", iff::new).register();
     public static final ItemEntry<shieldtool> SHIELD_TOOL = REGISTRATE.item("shield_tool", shieldtool::new).register();
 }

@@ -1,8 +1,8 @@
 package com.kodu16.vsie.content.turret.client;
 
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
-import com.kodu16.vsie.content.turret.server.TurretContainerMenu;
-import com.kodu16.vsie.network.ModNetworking;
+import com.kodu16.vsie.content.turret.TurretContainerMenu;
+import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.network.turret.TurretC2SPacket;
 import com.kodu16.vsie.vsie;
 import net.minecraft.client.gui.GuiGraphics;                  // 新增

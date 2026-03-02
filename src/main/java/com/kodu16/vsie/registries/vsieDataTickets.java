@@ -1,6 +1,7 @@
 package com.kodu16.vsie.registries;
 
 import com.kodu16.vsie.content.missile.AbstractMissileEntity;
+import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.vectorthruster.AbstractVectorThrusterBlockEntity;
 import com.kodu16.vsie.vsie;
@@ -28,5 +29,11 @@ public class vsieDataTickets {
         AbstractMissileEntity.MOMENT_Y = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofDouble(new ResourceLocation(vsie.ID, "missile_momentum_y")));
         AbstractMissileEntity.MOMENT_Z = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofDouble(new ResourceLocation(vsie.ID, "missile_momentum_z")));
 
+        //screen
+        AbstractScreenBlockEntity.SPINX = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofInt(new ResourceLocation(vsie.ID, "screen_spinx")));
+        AbstractScreenBlockEntity.SPINY = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofInt(new ResourceLocation(vsie.ID, "screen_spiny")));
+        AbstractScreenBlockEntity.OFFSETX = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofInt(new ResourceLocation(vsie.ID, "screen_offsetx")));
+        AbstractScreenBlockEntity.OFFSETY = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofInt(new ResourceLocation(vsie.ID, "screen_offsety")));
+        AbstractScreenBlockEntity.OFFSETZ = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofInt(new ResourceLocation(vsie.ID, "screen_offsetz")));
     }
 }

@@ -2,7 +2,7 @@ package com.kodu16.vsie;
 
 import com.kodu16.vsie.content.controlseat.server.ControlSeatForceAttachment;
 import com.kodu16.vsie.registries.ModMenuTypes;
-import com.kodu16.vsie.network.ModNetworking;
+import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.registries.ModParticleTypes;
 import com.kodu16.vsie.registries.vsieBlockEntities;
 import com.kodu16.vsie.registries.vsieBlocks;

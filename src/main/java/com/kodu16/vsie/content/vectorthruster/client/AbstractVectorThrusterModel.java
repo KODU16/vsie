@@ -69,18 +69,18 @@ public class AbstractVectorThrusterModel extends DefaultedBlockGeoModel<Abstract
             lastPitch = smoothPitchDeg;
 
             // 设置回骨骼（转回弧度）
-            spinner.setRotZ(-1*(float) Math.toRadians(smoothSpinDeg));
-            nozzle.setRotX((float) Math.toRadians(smoothPitchDeg));
+            spinner.setRotY(-1*(smoothSpinDeg+180)/(180/Mth.PI));
+            nozzle.setRotX((smoothPitchDeg)/(180/Mth.PI));
 
-        } else {
+        }/* else {
             // 不受控制时，可以选择缓慢归零或保持最后状态
             // 这里选择缓慢归零，显得更自然
             //lastSpin = Mth.rotLerp(0.15F, lastSpin, 0f);
             //lastPitch = Mth.rotLerp(0.15F, lastPitch, 0f);
 
-            spinner.setRotZ((float) Math.toRadians(lastSpin));
+            spinner.setRotY((float) Math.toRadians(lastSpin));
             nozzle.setRotX((float) Math.toRadians(lastPitch));
-        }
+        }*/
     }
 
     private boolean controlling(AbstractVectorThrusterBlockEntity animatable) {

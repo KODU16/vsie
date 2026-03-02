@@ -3,8 +3,10 @@ package com.kodu16.vsie.registries;
 
 import com.kodu16.vsie.content.item.IFF.IFFContainerMenu;
 import com.kodu16.vsie.content.item.shieldtool.ShieldToolContainerMenu;
+import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
+import com.kodu16.vsie.content.screen.ScreenContainerMenu;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
-import com.kodu16.vsie.content.turret.server.TurretContainerMenu;
+import com.kodu16.vsie.content.turret.TurretContainerMenu;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
 import com.kodu16.vsie.content.weapon.server.WeaponContainerMenu;
 import com.kodu16.vsie.vsie;
@@ -33,6 +35,14 @@ public class ModMenuTypes {
                 AbstractWeaponBlockEntity weapon = (AbstractWeaponBlockEntity) inv.player.level().getBlockEntity(pos);
                 return new WeaponContainerMenu(windowId, inv, weapon);
             }));
+    public static final RegistryObject<MenuType<ScreenContainerMenu>> SCREEN_MENU = MENUS.register("screen_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> {
+                // data 里读出客户端传来的 BlockPos
+                BlockPos pos = data.readBlockPos();
+                AbstractScreenBlockEntity screen = (AbstractScreenBlockEntity) inv.player.level().getBlockEntity(pos);
+                return new ScreenContainerMenu(windowId, inv, screen);
+            }));
+
     public static final RegistryObject<MenuType<IFFContainerMenu>> IFF_MENU = MENUS.register("iff_menu",
             () -> IForgeMenuType.create((id, inv, data) ->
                     new IFFContainerMenu(id, inv, inv.player.getMainHandItem())));

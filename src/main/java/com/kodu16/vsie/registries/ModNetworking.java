@@ -1,5 +1,5 @@
 // 我爱GPT5
-package com.kodu16.vsie.network;
+package com.kodu16.vsie.registries;
 
 import com.kodu16.vsie.network.IFF.IFFC2SPacket;
 import com.kodu16.vsie.network.controlseat.C2S.ControlSeatC2SPacket;
@@ -8,6 +8,7 @@ import com.kodu16.vsie.network.controlseat.S2C.ControlSeatInputS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatStatusS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.NearbyShipsS2CPacket;
+import com.kodu16.vsie.network.screen.ScreenC2SPacket;
 import com.kodu16.vsie.network.turret.TurretC2SPacket;
 import com.kodu16.vsie.network.weapon.WeaponC2SPacket;
 import net.minecraft.resources.ResourceLocation;
@@ -63,6 +64,13 @@ public class ModNetworking {
                 IFFC2SPacket::encode,
                 IFFC2SPacket::decode,
                 IFFC2SPacket::handle
+        );
+        CHANNEL.registerMessage(
+                nextId(),
+                ScreenC2SPacket.class,
+                ScreenC2SPacket::encode,
+                ScreenC2SPacket::decode,
+                ScreenC2SPacket::handle
         );
 
         CHANNEL.registerMessage(

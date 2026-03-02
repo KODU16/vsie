@@ -1,13 +1,8 @@
 package com.kodu16.vsie.content.turret;
 
-import com.kodu16.vsie.content.turret.block.MediumLaserTurretBlockEntity;
-import com.kodu16.vsie.content.turret.server.TurretContainerMenu;
 import com.mojang.logging.LogUtils;
-import mekanism.common.tile.base.WrenchResult;
-import mekanism.common.util.WorldUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -27,8 +22,6 @@ import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityTicker;
-import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -77,8 +70,6 @@ public abstract class AbstractTurretBlock extends DirectionalBlock implements En
         if (!level.isClientSide)
         {
             Logger LOGGER = LogUtils.getLogger();
-            LOGGER.info("Turret right-clicked at {} by {}, BE = {}", pos, player.getName().getString(),
-                    level.getBlockEntity(pos));
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof AbstractTurretBlockEntity turret) {
                 NetworkHooks.openScreen((ServerPlayer) player, new MenuProvider() {

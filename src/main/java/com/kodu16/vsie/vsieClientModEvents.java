@@ -3,6 +3,7 @@ package com.kodu16.vsie;
 import com.kodu16.vsie.content.item.IFF.IFFScreen;
 import com.kodu16.vsie.content.item.shieldtool.shieldtoolScreen;
 import com.kodu16.vsie.content.missile.AbstractMissileGeoRenderer;
+import com.kodu16.vsie.content.screen.ScreenScreen;
 import com.kodu16.vsie.content.turret.client.TurretScreen;
 import com.kodu16.vsie.content.weapon.client.WeaponScreen;
 import com.kodu16.vsie.registries.ModMenuTypes;
@@ -36,6 +37,9 @@ public class vsieClientModEvents {
         );
         event.enqueueWork(() ->
                 MenuScreens.register(ModMenuTypes.SHIELD_TOOL_MENU.get(), shieldtoolScreen::new)
+        );
+        event.enqueueWork(() ->
+                MenuScreens.register(ModMenuTypes.SCREEN_MENU.get(), ScreenScreen::new)
         );
         event.enqueueWork(() ->
                 EntityRenderers.register(vsieEntities.BASIC_MISSILE.get(), AbstractMissileGeoRenderer::new)

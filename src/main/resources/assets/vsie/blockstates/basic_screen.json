@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "vsie:block/basic_screen"
+    },
+    "facing=south": {
+      "model": "vsie:block/basic_screen",
+      "y": 180
+    },
+    "facing=east": {
+      "model": "vsie:block/basic_screen",
+      "y": 90
+    },
+    "facing=west": {
+      "model": "vsie:block/basic_screen",
+      "y": 270
+    }
+  }
+}

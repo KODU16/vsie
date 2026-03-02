@@ -1,4 +1,4 @@
-package com.kodu16.vsie.content.turret.server;
+package com.kodu16.vsie.content.screen;
 
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.registries.ModMenuTypes;
@@ -7,14 +7,13 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 
-// MyContainerMenu.java
-public class TurretContainerMenu extends AbstractContainerMenu {
+public class ScreenContainerMenu extends AbstractContainerMenu {
     //服务端容器，和客户端那边的screen对接
     //暂时不支持塞升级芯片，将来需要的话就加入物品栏容器
-    private final AbstractTurretBlockEntity blockEntity;
+    private final AbstractScreenBlockEntity blockEntity;
 
-    public TurretContainerMenu(int id, Inventory playerInv, AbstractTurretBlockEntity be) {
-        super(ModMenuTypes.TURRET_MENU.get(), id);
+    public ScreenContainerMenu(int id, Inventory playerInv, AbstractScreenBlockEntity be) {
+        super(ModMenuTypes.SCREEN_MENU.get(), id);
         this.blockEntity = be;
 
         // 这里可以加玩家背包槽位等，一般至少加一下
@@ -29,7 +28,7 @@ public class TurretContainerMenu extends AbstractContainerMenu {
         return !blockEntity.isRemoved();
     }
 
-    public AbstractTurretBlockEntity getBlockEntity() {
+    public AbstractScreenBlockEntity getBlockEntity() {
         return blockEntity;
     }
 
@@ -39,4 +38,3 @@ public class TurretContainerMenu extends AbstractContainerMenu {
         // 或者上面完整的标准实现
     }
 }
-
