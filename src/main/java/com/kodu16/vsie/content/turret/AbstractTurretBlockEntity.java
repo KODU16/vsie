@@ -28,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3d;
+import org.joml.primitives.AABBdc;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
@@ -250,7 +251,8 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     }
 
     public void tryFindTargetEntity() {
-        if (idleTicks-- > 0) return;
+        // 功能：索敌阶段不再改动开火冷却，避免冷却与索敌共用计数器导致抖动。
+        if (idleTicks > 0) return;
         if (targetentity != null && targetentity.isAlive()) return; // 有活目标就不重复找
 
         if ((level.getGameTime() + this.hashCode()) % 3 != 0) return;
@@ -285,7 +287,8 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
 
     public void tryFindtargetShip() {
-        if(idleTicks-- > 0) {
+        // 功能：索敌阶段不再改动开火冷却，避免冷却与索敌共用计数器导致抖动。
+        if(idleTicks > 0) {
             return;
         }
         ArrayList<Ship> enemylist = getData().enemyshipsData;
@@ -301,7 +304,8 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
                 .orElse(null);
 
         if (this.selectedtargetShip != null) {
-            this.targetPos = new Vector3d(this.selectedtargetShip.getTransform().getPositionInWorld());
+            // 功能：舰船目标改为“可见瞄准点”（优先可见外表面），避免目标点落在船体内部导致永远无法锁定。
+            this.targetPos = getShipAimPoint(this.selectedtargetShip);
             LOGGER.info("成功锁定舰船目标: {}", this.selectedtargetShip.getId());
             setChanged();
         }
@@ -347,16 +351,68 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         if(distance > 1280) {
             return false;
         }
-        if(!canSeeTarget(shippos)) {
+        // 功能：舰船使用专门的可见性判定（多采样点），避免只检测质心时被船体自身遮挡。
+        if(!canSeeShipTarget(ship)) {
             return false;
         }
         return true;
     }
 
+    private boolean canSeeShipTarget(Ship ship) {
+        // 功能：对舰船AABB的多个外表面点做视线检测，只要有一个可见点即判定可见。
+        AABBdc worldAabb = ship.getWorldAABB();
+        double centerX = (worldAabb.minX() + worldAabb.maxX()) * 0.5;
+        double centerY = (worldAabb.minY() + worldAabb.maxY()) * 0.5;
+        double centerZ = (worldAabb.minZ() + worldAabb.maxZ()) * 0.5;
+
+        Vector3d[] samplePoints = new Vector3d[] {
+                new Vector3d(centerX, centerY, centerZ),
+                new Vector3d(worldAabb.minX(), centerY, centerZ),
+                new Vector3d(worldAabb.maxX(), centerY, centerZ),
+                new Vector3d(centerX, worldAabb.minY(), centerZ),
+                new Vector3d(centerX, worldAabb.maxY(), centerZ),
+                new Vector3d(centerX, centerY, worldAabb.minZ()),
+                new Vector3d(centerX, centerY, worldAabb.maxZ())
+        };
+
+        for (Vector3d samplePoint : samplePoints) {
+            if (canSeeTarget(samplePoint)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Vector3d getShipAimPoint(Ship ship) {
+        // 功能：返回一个优先可见的舰船瞄准点，减少炮塔在“不可见质心”上反复重选目标的抽搐。
+        AABBdc worldAabb = ship.getWorldAABB();
+        double centerX = (worldAabb.minX() + worldAabb.maxX()) * 0.5;
+        double centerY = (worldAabb.minY() + worldAabb.maxY()) * 0.5;
+        double centerZ = (worldAabb.minZ() + worldAabb.maxZ()) * 0.5;
+
+        Vector3d[] samplePoints = new Vector3d[] {
+                new Vector3d(centerX, worldAabb.maxY(), centerZ),
+                new Vector3d(worldAabb.minX(), centerY, centerZ),
+                new Vector3d(worldAabb.maxX(), centerY, centerZ),
+                new Vector3d(centerX, centerY, worldAabb.minZ()),
+                new Vector3d(centerX, centerY, worldAabb.maxZ()),
+                new Vector3d(centerX, centerY, centerZ)
+        };
+
+        for (Vector3d samplePoint : samplePoints) {
+            if (canSeeTarget(samplePoint)) {
+                return samplePoint;
+            }
+        }
+
+        return new Vector3d(centerX, centerY, centerZ);
+    }
+
     private boolean canSeeTarget(Vector3d pos) {
 
         Vec3 turretpos = new Vec3(currentworldpos.x, currentworldpos.y, currentworldpos.z);
-        Vec3 targetPos = new Vec3(Math.round(pos.x()*10)/10.0, Math.round(pos.y()*10)/10.0, Math.round(pos.z()*10)/10.0);
+        // 功能：移除坐标四舍五入，避免视线判断在边界处抖动导致炮塔抽搐。
+        Vec3 targetPos = new Vec3(pos.x(), pos.y(), pos.z());
         Vec3 lookVec = turretpos.vectorTo(targetPos).normalize().scale(0.75F);
         ClipContext ctx = new ClipContext(turretpos.add(lookVec), targetPos, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, null);
         return level.clip(ctx).getType().equals(HitResult.Type.MISS);
