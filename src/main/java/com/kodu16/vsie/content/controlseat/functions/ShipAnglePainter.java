@@ -191,4 +191,34 @@ public class ShipAnglePainter {
         pose.popPose(); // 恢复状态
     }
 
+    /**
+     * 计算水平仪的旋转角度（单位：度）。
+     * 角度基于船体前向轴计算滚转角，让绘制出的水平线始终与地平线平行。
+     */
+    public static float getHorizonAngleDegrees(Vector3d shipForward, Vector3d shipUp) {
+        if (shipForward == null || shipUp == null) return 0f;
+        if (shipForward.lengthSquared() < 1e-8 || shipUp.lengthSquared() < 1e-8) return 0f;
+
+        Vector3d forward = new Vector3d(shipForward).normalize();
+        Vector3d up = new Vector3d(shipUp).normalize();
+        Vector3d worldUp = new Vector3d(0, 1, 0);
+
+        // 去掉前向分量，只保留“屏幕平面”上的方向
+        Vector3d projectedShipUp = new Vector3d(up).sub(new Vector3d(forward).mul(up.dot(forward)));
+        Vector3d projectedWorldUp = new Vector3d(worldUp).sub(new Vector3d(forward).mul(worldUp.dot(forward)));
+
+        if (projectedShipUp.lengthSquared() < 1e-8 || projectedWorldUp.lengthSquared() < 1e-8) return 0f;
+
+        projectedShipUp.normalize();
+        projectedWorldUp.normalize();
+
+        double cos = projectedShipUp.dot(projectedWorldUp);
+        cos = Math.max(-1.0, Math.min(1.0, cos));
+
+        Vector3d cross = new Vector3d(projectedShipUp).cross(projectedWorldUp);
+        double sin = forward.dot(cross);
+
+        return (float) Math.toDegrees(Math.atan2(sin, cos));
+    }
+
 }

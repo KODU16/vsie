@@ -115,8 +115,8 @@ public class HudOverlay {
             double[] angles = ShipAnglePainter.getDirectedAnglesToAxes(VectorConversionsMCKt.toMinecraft(interpolatedFacing));
             ShipAnglePainter.drawAngleLine(gg, interpolatedFacing, centerX, baseY+10, MAIN_COLOR);
             drawCenteredText(gg, "§l§b"+(int)angles[0], centerX, baseY+5, MAIN_COLOR);
-            double[] anglesUp = ShipAnglePainter.getDirectedAnglesToAxes(VectorConversionsMCKt.toMinecraft(interpolatedUp));
-            //ShipAnglePainter.drawRotatingItem(gg, new ItemStack(vsieItems.HORIZONTAL_MARK), centerX, centerY-20, (float) -anglesUp[1]);
+            float horizonAngle = ShipAnglePainter.getHorizonAngleDegrees(interpolatedFacing, interpolatedUp);
+            ShipAnglePainter.drawRotatingItem(gg, new ItemStack(vsieItems.HORIZONTAL_MARK), centerX, centerY, -horizonAngle);
 
             RenderSystem.disableBlend();
         }
