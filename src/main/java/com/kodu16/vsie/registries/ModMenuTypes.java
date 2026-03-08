@@ -1,8 +1,8 @@
 // ModMenuTypes.java
 package com.kodu16.vsie.registries;
 
-import com.kodu16.vsie.content.heavyturret.AbstractHeavyTurretBlockEntity;
-import com.kodu16.vsie.content.heavyturret.HeavyTurretContainerMenu;
+import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity;
+import com.kodu16.vsie.content.turret.heavyturret.HeavyTurretContainerMenu;
 import com.kodu16.vsie.content.item.IFF.IFFContainerMenu;
 import com.kodu16.vsie.content.item.shieldtool.ShieldToolContainerMenu;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;

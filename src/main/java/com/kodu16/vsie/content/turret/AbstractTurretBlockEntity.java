@@ -292,7 +292,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
 
 
-    public boolean isValidTargetEntity(@Nullable LivingEntity e) {
+    private boolean isValidTargetEntity(@Nullable LivingEntity e) {
         // 只负责实体判断，输入的只有实体
         if (e == null) {
             return false;

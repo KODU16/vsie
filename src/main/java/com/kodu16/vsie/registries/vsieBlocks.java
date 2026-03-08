@@ -1,6 +1,6 @@
 package com.kodu16.vsie.registries;
 
-import com.kodu16.vsie.content.heavyturret.heavyelectromagnetturret.HeavyElectroMagnetTurretBlock;
+import com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret.HeavyElectroMagnetTurretBlock;
 import com.kodu16.vsie.content.screen.block.BasicScreenBlock;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlock;
 import com.kodu16.vsie.content.storage.ammobox.AmmoBoxBlock;

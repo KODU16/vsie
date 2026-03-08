@@ -1,9 +1,8 @@
-package com.kodu16.vsie.content.heavyturret.heavyelectromagnetturret;
+package com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret;
 
-import com.kodu16.vsie.content.heavyturret.AbstractHeavyTurretBlock;
+import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlock;
 import com.kodu16.vsie.registries.vsieBlockEntities;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;

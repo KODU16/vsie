@@ -102,7 +102,7 @@ public class HudOverlay {
             gg.drawCenteredString(mc.font, visualThrottle+"%", centerX-(3*centerX/8)+40, centerY+((centerY/2)-5), MAIN_COLOR);
 
             //绘制护盾/飞行辅助/反重力开关
-            int switchBaseX = centerX + (centerX / 4);
+            int switchBaseX = centerX + (centerX / 6);
             int switchY = centerY + (centerY / 2);
             int switchGap = 24;
             drawSwitch(gg, "Shield", switchBaseX, switchY, data.shieldon);
@@ -147,7 +147,7 @@ public class HudOverlay {
     private static void drawSwitch(GuiGraphics gg, String label, int x, int y, boolean active) {
         int color = active ? MAIN_COLOR : SUB_COLOR;
         drawCenteredText(gg, label, x, y, color);
-        DrawShape.drawHollowRectangle(gg, x, y, 20, 10, 1, color);
+        DrawShape.drawHollowRectangle(gg, x, y+2, 20, 10, 1, color);
     }
 
 }

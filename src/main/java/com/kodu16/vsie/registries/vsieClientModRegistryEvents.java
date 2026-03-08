@@ -1,6 +1,6 @@
 package com.kodu16.vsie.registries;
 
-import com.kodu16.vsie.content.heavyturret.HeavyTurretScreen;
+import com.kodu16.vsie.content.turret.heavyturret.HeavyTurretScreen;
 import com.kodu16.vsie.content.item.IFF.IFFScreen;
 import com.kodu16.vsie.content.item.shieldtool.shieldtoolScreen;
 import com.kodu16.vsie.content.missile.AbstractMissileGeoRenderer;

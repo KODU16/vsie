@@ -7,7 +7,7 @@ import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
 import com.kodu16.vsie.content.controlseat.client.Input.ClientMouseHandler;
 
 import com.kodu16.vsie.content.controlseat.server.SeatRegistry;
-import com.kodu16.vsie.content.heavyturret.AbstractHeavyTurretBlockEntity;
+import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
 import com.kodu16.vsie.content.storage.energybattery.AbstractEnergyBatteryBlockEntity;
 import com.kodu16.vsie.content.storage.fueltank.AbstractFuelTankBlockEntity;
@@ -47,7 +47,6 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 import java.util.ArrayList;
 import java.util.List;

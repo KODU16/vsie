@@ -56,35 +56,35 @@ public class StatusIndicator {
         buffer.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
         // ────────────── 能量 ──────────────
         float energyAngle = -210 + 60 * energypercent;
-        DrawShapeToBuffer.drawPartialArc(buffer, mat,centerX - centerX/10, centerY, SIDEARC_RADIUS, SIDEARC_THICKNESS, MAIN_COLOR,      -210, energyAngle);
-        DrawShapeToBuffer.drawPartialArc(buffer, mat, centerX - centerX/10, centerY, SIDEARC_RADIUS, SIDEARC_THICKNESS, WHITE,       energyAngle, -150);
+        DrawShapeToBuffer.drawPartialArc(buffer, mat,centerX - centerX/20, centerY, SIDEARC_RADIUS, SIDEARC_THICKNESS, MAIN_COLOR,      -210, energyAngle);
+        DrawShapeToBuffer.drawPartialArc(buffer, mat, centerX - centerX/20, centerY, SIDEARC_RADIUS, SIDEARC_THICKNESS, WHITE,       energyAngle, -150);
 
         //drawRadialSeparator(gg, centerX - centerX/4, centerY, energyAngle, LINE_INNER, LINE_OUTER, LINE_THICKNESS, WHITE);
 
         // ────────────── 燃油 ──────────────
         float fuelAngle = -211 + 62 * fuelpercent;
-        DrawShapeToBuffer.drawPartialArc(buffer, mat, centerX - centerX/10 - 2, centerY, SIDEARC_RADIUS+4, SIDEARC_THICKNESS, MAIN_COLOR_FUEL, -211, fuelAngle);
-        DrawShapeToBuffer.drawPartialArc(buffer, mat, centerX - centerX/10 - 2, centerY, SIDEARC_RADIUS+4, SIDEARC_THICKNESS, WHITE,  fuelAngle, -149);
+        DrawShapeToBuffer.drawPartialArc(buffer, mat, centerX - centerX/20 - 2, centerY, SIDEARC_RADIUS+4, SIDEARC_THICKNESS, MAIN_COLOR_FUEL, -211, fuelAngle);
+        DrawShapeToBuffer.drawPartialArc(buffer, mat, centerX - centerX/20 - 2, centerY, SIDEARC_RADIUS+4, SIDEARC_THICKNESS, WHITE,  fuelAngle, -149);
 
         //drawRadialSeparator(gg, centerX - centerX/4 - 3, centerY, fuelAngle, LINE_INNER, LINE_OUTER, LINE_THICKNESS, WHITE);
 
         // ────────────── 护盾 ──────────────
         float shieldAngle = 30 - 60 * shieldpercent;
-        DrawShapeToBuffer.drawPartialArc(buffer, mat, centerX + centerX/10, centerY, SIDEARC_RADIUS, SIDEARC_THICKNESS, MAIN_COLOR_SHIELD, shieldAngle, 30);
-        DrawShapeToBuffer.drawPartialArc(buffer, mat, centerX + centerX/10, centerY, SIDEARC_RADIUS, SIDEARC_THICKNESS, WHITE,  -30, shieldAngle);
+        DrawShapeToBuffer.drawPartialArc(buffer, mat, centerX + centerX/20, centerY, SIDEARC_RADIUS, SIDEARC_THICKNESS, MAIN_COLOR_SHIELD, shieldAngle, 30);
+        DrawShapeToBuffer.drawPartialArc(buffer, mat, centerX + centerX/20, centerY, SIDEARC_RADIUS, SIDEARC_THICKNESS, WHITE,  -30, shieldAngle);
 
         //drawRadialSeparator(gg, centerX + centerX/4, centerY, shieldAngle, LINE_INNER, LINE_OUTER, LINE_THICKNESS, WHITE);
 
         //热量（未实装）
-        DrawShapeToBuffer.drawPartialArc(buffer, mat, centerX + centerX/10 + 2, centerY, SIDEARC_RADIUS+4, SIDEARC_THICKNESS, WHITE,  -31, 31);
+        DrawShapeToBuffer.drawPartialArc(buffer, mat, centerX + centerX/20 + 2, centerY, SIDEARC_RADIUS+4, SIDEARC_THICKNESS, WHITE,  -31, 31);
 
         //油门条
-        DrawShapeToBuffer.drawThickLine(buffer, mat,centerX-(3*centerX/8)-25, centerY+((centerY/2)), centerX-(3*centerX/8)+25, centerY+((centerY/2)), 4,SUB_COLOR);
-        DrawShapeToBuffer.drawThickLine(buffer, mat,centerX-(3*centerX/8), centerY+((centerY/2)), centerX-(3*centerX/8)+(int)(0.25*throttle), centerY+((centerY/2)), 4,MAIN_COLOR);
+        DrawShapeToBuffer.drawThickLine(buffer, mat,centerX-(3*centerX/10)-25, centerY+((centerY/2)), centerX-(3*centerX/8)+25, centerY+((centerY/2)), 4,SUB_COLOR);
+        DrawShapeToBuffer.drawThickLine(buffer, mat,centerX-(3*centerX/10), centerY+((centerY/2)), centerX-(3*centerX/8)+(int)(0.25*throttle), centerY+((centerY/2)), 4,MAIN_COLOR);
 
         //鼠标控制指示线
-        double deltax=(mousex<0?-1:1)*Math.sqrt((double) Math.abs(mousex) /4);
-        double deltay=(mousey<0?-1:1)*Math.sqrt((double) Math.abs(mousey) /4);
+        double deltax=(mousex<0?-1:1)*Math.sqrt((double) Math.abs(mousex) /2);
+        double deltay=(mousey<0?-1:1)*Math.sqrt((double) Math.abs(mousey) /2);
         DrawShapeToBuffer.drawThickLine(buffer,mat,centerX,centerY, (int) (centerX+deltax), (int) (centerY+deltay), 1, MAIN_COLOR);
 
         BufferUploader.drawWithShader(buffer.end());

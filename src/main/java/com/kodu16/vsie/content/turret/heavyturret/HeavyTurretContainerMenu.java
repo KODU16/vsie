@@ -1,6 +1,5 @@
-package com.kodu16.vsie.content.heavyturret;
+package com.kodu16.vsie.content.turret.heavyturret;
 
-import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.registries.ModMenuTypes;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;

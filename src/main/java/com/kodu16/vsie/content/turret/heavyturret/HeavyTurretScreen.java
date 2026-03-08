@@ -1,9 +1,6 @@
-package com.kodu16.vsie.content.heavyturret;
+package com.kodu16.vsie.content.turret.heavyturret;
 
-import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
-import com.kodu16.vsie.content.turret.TurretContainerMenu;
 import com.kodu16.vsie.network.turret.HeavyTurretC2SPacket;
-import com.kodu16.vsie.network.turret.TurretC2SPacket;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.vsie;
 import net.minecraft.client.gui.GuiGraphics;

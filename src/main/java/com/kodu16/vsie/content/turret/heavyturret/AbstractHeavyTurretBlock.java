@@ -1,11 +1,8 @@
-package com.kodu16.vsie.content.heavyturret;
+package com.kodu16.vsie.content.turret.heavyturret;
 
 import com.kodu16.vsie.content.turret.AbstractTurretBlock;
-import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
-import com.kodu16.vsie.content.turret.TurretContainerMenu;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;

@@ -1,8 +1,5 @@
-package com.kodu16.vsie.content.heavyturret.heavyelectromagnetturret;
+package com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret;
 
-import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
-import com.kodu16.vsie.content.turret.client.AbstractTurretModel;
-import com.kodu16.vsie.content.turret.client.TurretLaserLayer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;

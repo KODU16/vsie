@@ -1,6 +1,5 @@
-package com.kodu16.vsie.content.heavyturret.heavyelectromagnetturret;
+package com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret;
 
-import com.kodu16.vsie.content.heavyturret.AbstractHeavyTurretBlockEntity;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.vsie;
 import net.minecraft.resources.ResourceLocation;

@@ -1,7 +1,6 @@
 package com.kodu16.vsie.network.turret;
 
-import com.kodu16.vsie.content.heavyturret.AbstractHeavyTurretBlockEntity;
-import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
+import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;

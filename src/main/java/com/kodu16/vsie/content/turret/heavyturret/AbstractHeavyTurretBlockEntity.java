@@ -1,8 +1,7 @@
-package com.kodu16.vsie.content.heavyturret;
+package com.kodu16.vsie.content.turret.heavyturret;
 
 import com.kodu16.vsie.content.turret.AbstractTurretBlock;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
-import com.kodu16.vsie.content.turret.TurretContainerMenu;
 import com.kodu16.vsie.content.turret.TurretData;
 import com.kodu16.vsie.foundation.Vec;
 import com.mojang.logging.LogUtils;
@@ -16,17 +15,11 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.jline.utils.Log;
 import org.joml.Vector3d;
-import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;

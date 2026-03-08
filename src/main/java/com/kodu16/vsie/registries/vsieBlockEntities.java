@@ -1,8 +1,8 @@
 package com.kodu16.vsie.registries;
 
 import com.kodu16.vsie.content.controlseat.client.AbstractControlSeatGeoRenderer;
-import com.kodu16.vsie.content.heavyturret.heavyelectromagnetturret.HeavyElectroMagnetTurretBlockEntity;
-import com.kodu16.vsie.content.heavyturret.heavyelectromagnetturret.HeavyElectroMagnetTurretGeoRenderer;
+import com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret.HeavyElectroMagnetTurretBlockEntity;
+import com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret.HeavyElectroMagnetTurretGeoRenderer;
 import com.kodu16.vsie.content.screen.AbstractScreenGeoRenderer;
 import com.kodu16.vsie.content.screen.block.BasicScreenBlockEntity;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
