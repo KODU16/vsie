@@ -67,7 +67,7 @@ public class ControlSeatS2CPacket {
         String ally = buf.readUtf(64);
         String lockedenemyslug = buf.readUtf(64);
         Vector3d shipFacing = new Vector3d(facingX, facingY, facingZ);
-        Vector3d shipUp = new Vector3d(facingX, facingY, facingZ);
+        Vector3d shipUp = new Vector3d(upX, upY, upZ);
         int throttle = buf.readInt();
         return new ControlSeatS2CPacket(pos, shipFacing, shipUp, enemy, ally, lockedenemyslug,throttle);
     }
@@ -90,8 +90,7 @@ public class ControlSeatS2CPacket {
                 return;
             }
             //LOGGER.warn(String.valueOf(Component.literal("writing S2C data to:"+player+" channelencode:"+channelencode)));
-            clientData.shipfacing = shipFacing;
-            clientData.shipUp = shipUp;
+            clientData.updateShipVectors(shipFacing, shipUp);
             clientData.setUserUUID(player.getUUID());
 
             clientData.enemy = enemy;

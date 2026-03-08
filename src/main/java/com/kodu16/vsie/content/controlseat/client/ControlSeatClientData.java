@@ -23,6 +23,8 @@ public class ControlSeatClientData {
     public volatile Quaterniond shiprot = new Quaterniond();
     public volatile Vector3d shipfacing = new Vector3d(0,0,0);
     public volatile Vector3d shipUp = new Vector3d(0,0,0);
+    public volatile Vector3d prevShipfacing = new Vector3d(0,0,0);
+    public volatile Vector3d prevShipUp = new Vector3d(0,0,0);
     public volatile boolean mouseLpress = false;
 
     public volatile boolean channel1 = false;
@@ -44,6 +46,11 @@ public class ControlSeatClientData {
     public volatile boolean shieldon = false;
     public volatile int shieldavalible = 0;
     public volatile int shieldtotal = 1;
+
+    public volatile float smoothEnergyRatio = 0f;
+    public volatile float smoothFuelRatio = 0f;
+    public volatile float smoothShieldRatio = 0f;
+    public volatile float smoothThrottle = 0f;
 
     public volatile boolean isflightassiston = false;
     public volatile boolean isantigravityon = false;
@@ -72,6 +79,25 @@ public class ControlSeatClientData {
 
     public void setShipFacing(Vector3d v) { shipfacing = v; }
     public Vector3d getShipFacing() { return shipfacing; }
+
+    public void updateShipVectors(Vector3d newFacing, Vector3d newUp) {
+        prevShipfacing = new Vector3d(shipfacing);
+        prevShipUp = new Vector3d(shipUp);
+        shipfacing = new Vector3d(newFacing);
+        shipUp = new Vector3d(newUp);
+    }
+
+    public Vector3d getInterpolatedShipFacing(float partialTick) {
+        return new Vector3d(prevShipfacing).lerp(shipfacing, clamp01(partialTick));
+    }
+
+    public Vector3d getInterpolatedShipUp(float partialTick) {
+        return new Vector3d(prevShipUp).lerp(shipUp, clamp01(partialTick));
+    }
+
+    private static float clamp01(float value) {
+        return Math.max(0f, Math.min(1f, value));
+    }
 
     public int getthrottle() {return throttle;}
 

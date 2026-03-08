@@ -16,6 +16,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.util.Mth;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -53,6 +54,7 @@ public class HudOverlay {
             GuiGraphics gg = event.getGuiGraphics();
             int sw = mc.getWindow().getGuiScaledWidth();
             int sh = mc.getWindow().getGuiScaledHeight();
+            float partialTick = event.getPartialTick();
 
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
@@ -60,6 +62,17 @@ public class HudOverlay {
             int centerX = sw / 2;
             int centerY = sh / 2;
             int baseY = sh / 6; // 稍微再往上提一点，避免挡准心太严重
+
+            float energyRatio = ratio(data.energyavalible, data.energytotal);
+            float fuelRatio = ratio(data.fuelavalible, data.fueltotal);
+            float shieldRatio = ratio(data.shieldavalible, data.shieldtotal);
+            float throttleRatio = Mth.clamp((data.throttle + 100f) / 200f, 0f, 1f);
+
+            data.smoothEnergyRatio = smooth(data.smoothEnergyRatio, energyRatio, partialTick);
+            data.smoothFuelRatio = smooth(data.smoothFuelRatio, fuelRatio, partialTick);
+            data.smoothShieldRatio = smooth(data.smoothShieldRatio, shieldRatio, partialTick);
+            data.smoothThrottle = smooth(data.smoothThrottle, throttleRatio, partialTick);
+            int visualThrottle = Mth.floor(Mth.lerp(data.smoothThrottle, -100f, 100f));
 
             // 标题 - 粗体 + 青色
             //drawCenteredText(gg, "§l§b控制座椅", centerX, baseY, MAIN_COLOR);
@@ -77,12 +90,12 @@ public class HudOverlay {
 
             //绘制电量条，护盾条，油条（大雾），热量条（未实装），油门，鼠标控制条
             StatusIndicator.renderDecorative(gg,
-                    (float) data.energyavalible /data.energytotal,
-                        (float) data.fuelavalible /data.fueltotal,
-                    (float) data.shieldavalible /data.shieldtotal,
-                    data.throttle,
+                    data.smoothEnergyRatio,
+                    data.smoothFuelRatio,
+                    data.smoothShieldRatio,
+                    visualThrottle,
                     (int) data.accumulatedmousex, (int) data.accumulatedmousey);
-            gg.drawCenteredString(mc.font, data.throttle+"%", centerX-(3*centerX/8)+40, centerY+((centerY/2)-5), MAIN_COLOR);
+            gg.drawCenteredString(mc.font, visualThrottle+"%", centerX-(3*centerX/8)+40, centerY+((centerY/2)-5), MAIN_COLOR);
 
             //绘制护盾开关
             if(data.shieldon) {
@@ -95,16 +108,27 @@ public class HudOverlay {
             }
 
             //绘制水平和竖直方位条
-            double[] angles = ShipAnglePainter.getDirectedAnglesToAxes(VectorConversionsMCKt.toMinecraft(data.shipfacing));
-            ShipAnglePainter.drawAngleLine(gg, data.shipfacing, centerX, baseY+10, MAIN_COLOR);
+            var interpolatedFacing = data.getInterpolatedShipFacing(partialTick);
+            var interpolatedUp = data.getInterpolatedShipUp(partialTick);
+            double[] angles = ShipAnglePainter.getDirectedAnglesToAxes(VectorConversionsMCKt.toMinecraft(interpolatedFacing));
+            ShipAnglePainter.drawAngleLine(gg, interpolatedFacing, centerX, baseY+10, MAIN_COLOR);
             drawCenteredText(gg, "§l§b"+(int)angles[0], centerX, baseY+5, MAIN_COLOR);
-            double[] anglesUp = ShipAnglePainter.getDirectedAnglesToAxes(VectorConversionsMCKt.toMinecraft(data.shipUp));
+            double[] anglesUp = ShipAnglePainter.getDirectedAnglesToAxes(VectorConversionsMCKt.toMinecraft(interpolatedUp));
             //ShipAnglePainter.drawRotatingItem(gg, new ItemStack(vsieItems.HORIZONTAL_MARK), centerX, centerY-20, (float) -anglesUp[1]);
 
             RenderSystem.disableBlend();
         }
     }
 
+
+    private static float ratio(int available, int total) {
+        if (total <= 0) return 0f;
+        return Mth.clamp((float) available / (float) total, 0f, 1f);
+    }
+
+    private static float smooth(float current, float target, float factor) {
+        return Mth.lerp(Mth.clamp(factor, 0f, 1f), current, target);
+    }
 
     // 方便的居中绘制方法（不带辉光）
     public static void drawCenteredText(GuiGraphics gg, String text, int x, int y, int color) {
