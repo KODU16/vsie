@@ -40,6 +40,8 @@
     "key.vsie.break": "(useless, misspell of brake)",
     "key.vsie.switch_enemy": "switch enemy lock",
     "key.vsie.toggle_shield": "toggle shield",
+    "key.vsie.toggle_flight_assist": "toggle flight assist",
+    "key.vsie.toggle_anti_gravity": "toggle anti gravity",
     "key.vsie.toggle_weapon_channel_1": "toggle weapon channel 1",
     "key.vsie.toggle_weapon_channel_2": "toggle weapon channel 2",
     "key.vsie.toggle_weapon_channel_3": "toggle weapon channel 3",

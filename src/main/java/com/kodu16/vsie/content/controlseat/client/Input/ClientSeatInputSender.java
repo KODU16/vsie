@@ -53,6 +53,8 @@ public class ClientSeatInputSender {
             if (vsieKeyMappings.KEY_TOGGLE_WEAPON_CHANNEL4.isDown()) keysInput |= ControlSeatInputC2SPacket.KeysInput.CHANNEL4;
             if (vsieKeyMappings.KEY_SWITCH_ENEMY.isDown()) keysInput |= ControlSeatInputC2SPacket.KeysInput.SWITCHENEMY;
             if (vsieKeyMappings.KEY_TOGGLE_SHIELD.isDown()) keysInput |= ControlSeatInputC2SPacket.KeysInput.TOGGLESHIELD;
+            if (vsieKeyMappings.KEY_TOGGLE_FLIGHT_ASSIST.isDown()) keysInput |= ControlSeatInputC2SPacket.KeysInput.TOGGLEFLIGHTASSIST;
+            if (vsieKeyMappings.KEY_TOGGLE_ANTI_GRAVITY.isDown()) keysInput |= ControlSeatInputC2SPacket.KeysInput.TOGGLEANTIGRAVITY;
             ModNetworking.CHANNEL.sendToServer(
                     new ControlSeatInputC2SPacket(pos,keysInput, isviewlock, xrot, yrot)
             );
