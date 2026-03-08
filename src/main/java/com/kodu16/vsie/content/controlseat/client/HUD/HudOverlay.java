@@ -68,10 +68,14 @@ public class HudOverlay {
             float shieldRatio = ratio(data.shieldavalible, data.shieldtotal);
             float throttleRatio = Mth.clamp((data.throttle + 100f) / 200f, 0f, 1f);
 
-            data.smoothEnergyRatio = smooth(data.smoothEnergyRatio, energyRatio, partialTick);
-            data.smoothFuelRatio = smooth(data.smoothFuelRatio, fuelRatio, partialTick);
-            data.smoothShieldRatio = smooth(data.smoothShieldRatio, shieldRatio, partialTick);
-            data.smoothThrottle = smooth(data.smoothThrottle, throttleRatio, partialTick);
+            float smoothEnergyTemp = data.smoothEnergyRatio;
+            float smoothFuelTemp = data.smoothFuelRatio;
+            float smoothShieldTemp = data.smoothShieldRatio;
+            float smoothThrottleTemp = data.smoothThrottle;
+            data.smoothEnergyRatio = smooth(smoothEnergyTemp, energyRatio, partialTick);
+            data.smoothFuelRatio = smooth(smoothFuelTemp, fuelRatio, partialTick);
+            data.smoothShieldRatio = smooth(smoothShieldTemp, shieldRatio, partialTick);
+            data.smoothThrottle = smooth(smoothThrottleTemp, throttleRatio, partialTick);
             int visualThrottle = Mth.floor(Mth.lerp(data.smoothThrottle, -100f, 100f));
 
             // 标题 - 粗体 + 青色
@@ -133,10 +137,6 @@ public class HudOverlay {
     // 方便的居中绘制方法（不带辉光）
     public static void drawCenteredText(GuiGraphics gg, String text, int x, int y, int color) {
         float scale = 0.7f;
-        /*if (scale == 1.0f) {
-            gg.drawCenteredString(mc.font, Component.literal(text), x, y, color);
-            return;
-        }*/
         gg.pose().pushPose();
         gg.pose().scale(scale, scale, 1);
         float inv = 1 / scale;

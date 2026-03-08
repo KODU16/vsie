@@ -99,10 +99,6 @@ public class ControlSeatClientData {
         return Math.max(0f, Math.min(1f, value));
     }
 
-    public int getthrottle() {return throttle;}
-
-    public void setthrottle(int t) {throttle = t;}
-
     public void reset() {
         accumulatedmousex=0;
         accumulatedmousey=0;
