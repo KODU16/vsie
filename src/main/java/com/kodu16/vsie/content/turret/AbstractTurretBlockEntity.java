@@ -286,8 +286,21 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         }
         ArrayList<Ship> enemylist = getData().enemyshipsData;
         if (enemylist.isEmpty()) return;
-        int pickindex = getRandomInt(0,enemylist.size()-1);
-        this.selectedtargetShip = enemylist.get(pickindex);
+        if (isValidTargetShip(selectedtargetShip)) return;
+
+        this.selectedtargetShip = enemylist.stream()
+                .filter(this::isValidTargetShip)
+                .min(Comparator.comparingDouble(ship -> {
+                    Vector3d shipPos = new Vector3d(ship.getTransform().getPositionInWorld());
+                    return currentworldpos.distanceSquared(shipPos);
+                }))
+                .orElse(null);
+
+        if (this.selectedtargetShip != null) {
+            this.targetPos = new Vector3d(this.selectedtargetShip.getTransform().getPositionInWorld());
+            LOGGER.info("成功锁定舰船目标: {}", this.selectedtargetShip.getId());
+            setChanged();
+        }
     }
 
 
@@ -330,7 +343,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         if(distance > 1280) {
             return false;
         }
-        if(!canSeeTarget(pos)) {
+        if(!canSeeTarget(shippos)) {
             return false;
         }
         return true;
