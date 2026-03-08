@@ -114,6 +114,9 @@ public class vsieKeyMappings {
         event.register(KEY_ROLL_L);
         event.register(KEY_ROLL_R);
         event.register(KEY_SWITCH_ENEMY);
+        event.register(KEY_TOGGLE_SHIELD);
+        event.register(KEY_TOGGLE_FLIGHT_ASSIST);
+        event.register(KEY_TOGGLE_ANTI_GRAVITY);
         event.register(KEY_TOGGLE_WEAPON_CHANNEL1);
         event.register(KEY_TOGGLE_WEAPON_CHANNEL2);
         event.register(KEY_TOGGLE_WEAPON_CHANNEL3);

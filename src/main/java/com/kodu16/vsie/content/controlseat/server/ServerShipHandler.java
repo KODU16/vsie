@@ -83,7 +83,8 @@ public class ServerShipHandler {
                 ControlSeatStatusS2CPacket packetstatus = new ControlSeatStatusS2CPacket(pos,
                         data.avalibleenergy,data.totalenergystorage,
                         data.avaliblefuel,data.totalfuelstorage,
-                        data.isshieldon, (int) data.avalibleshield, (int) data.totalshield);
+                        data.isshieldon, (int) data.avalibleshield, (int) data.totalshield,
+                        data.isflightassiston, data.isantigravityon);
                 //LogUtils.getLogger().warn("shieldtotal:"+data.totalshield+"avalible:"+data.avalibleshield);
                 ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()),packetstatus);
             }
@@ -122,10 +123,18 @@ public class ServerShipHandler {
 
         Vector3d invomega = ship.getOmega().negate(new Vector3d()).mul(10);
         Vector3d invtorque = ship.getMomentOfInertia().transform(invomega);
-        Vector3dc invforce = ship.getVelocity().negate(new Vector3d()).mul(mass).add(0,mass * 10,0);
+        Vector3dc invforce = ship.getVelocity().negate(new Vector3d()).mul(mass);
 
-        Vector3d finaltorque = invtorque;
-        Vector3d finalforce  = new Vector3d(invforce);
+        Vector3d finaltorque = new Vector3d();
+        Vector3d finalforce  = new Vector3d();
+
+        if (data.isflightassiston) {
+            finaltorque.add(invtorque);
+            finalforce.add(invforce);
+        }
+        if (data.isantigravityon) {
+            finalforce.add(0, mass * 10, 0);
+        }
 
         if(controlling) {
             Vector3dc force = data.getForce();

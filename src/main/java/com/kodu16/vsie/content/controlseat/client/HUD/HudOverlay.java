@@ -101,15 +101,13 @@ public class HudOverlay {
                     (int) data.accumulatedmousex, (int) data.accumulatedmousey);
             gg.drawCenteredString(mc.font, visualThrottle+"%", centerX-(3*centerX/8)+40, centerY+((centerY/2)-5), MAIN_COLOR);
 
-            //绘制护盾开关
-            if(data.shieldon) {
-                drawCenteredText(gg,"Shield", centerX+(3*centerX/8), centerY+(centerY/2), MAIN_COLOR);
-                DrawShape.drawHollowRectangle(gg,centerX+(3*centerX/8), centerY+(centerY/2), 20, 10, 1, MAIN_COLOR);
-            }
-            else {
-                drawCenteredText(gg,"Shield", centerX+(3*centerX/8), centerY+(centerY/2), SUB_COLOR);
-                DrawShape.drawHollowRectangle(gg,centerX+(3*centerX/8), centerY+(centerY/2), 20, 10, 1, SUB_COLOR);
-            }
+            //绘制护盾/飞行辅助/反重力开关
+            int switchBaseX = centerX + (3 * centerX / 8);
+            int switchY = centerY + (centerY / 2);
+            int switchGap = 48;
+            drawSwitch(gg, "Shield", switchBaseX, switchY, data.shieldon);
+            drawSwitch(gg, "Assist", switchBaseX + switchGap, switchY, data.isflightassiston);
+            drawSwitch(gg, "AntiG", switchBaseX + switchGap * 2, switchY, data.isantigravityon);
 
             //绘制水平和竖直方位条
             var interpolatedFacing = data.getInterpolatedShipFacing(partialTick);
@@ -142,6 +140,12 @@ public class HudOverlay {
         float inv = 1 / scale;
         gg.drawCenteredString(mc.font, Component.literal(text), (int)(x * inv), (int)(y * inv), color);
         gg.pose().popPose();
+    }
+
+    private static void drawSwitch(GuiGraphics gg, String label, int x, int y, boolean active) {
+        int color = active ? MAIN_COLOR : SUB_COLOR;
+        drawCenteredText(gg, label, x, y, color);
+        DrawShape.drawHollowRectangle(gg, x, y, 20, 10, 1, color);
     }
 
 }

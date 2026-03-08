@@ -52,6 +52,8 @@ public class ControlSeatServerData {
     public volatile double shieldmaxcooldowntime = 0;//护盾过载后需要多长时间才能回充
     public volatile double shieldcooldowntime = 0;//护盾过载后准备重新开始回充的时间
     public volatile boolean isshieldon = false;//是否开启护盾
+    public volatile boolean isflightassiston = true;//是否开启飞行辅助
+    public volatile boolean isantigravityon = true;//是否开启反重力
     public volatile double shieldmin = 0;
     public volatile double shieldmax = 0;
 

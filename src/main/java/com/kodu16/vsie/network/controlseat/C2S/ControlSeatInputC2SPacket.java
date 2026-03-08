@@ -86,6 +86,14 @@ public class ControlSeatInputC2SPacket {
                 boolean shield = serverData.isshieldon;
                 serverData.isshieldon = !shield;
             }
+            if((keys & KeysInput.TOGGLEFLIGHTASSIST) !=0) {
+                boolean assist = serverData.isflightassiston;
+                serverData.isflightassiston = !assist;
+            }
+            if((keys & KeysInput.TOGGLEANTIGRAVITY) !=0) {
+                boolean antigravity = serverData.isantigravityon;
+                serverData.isantigravityon = !antigravity;
+            }
             // 可选：标记方块实体为脏以保存更改
             serverData.isviewlocked = pkt.isviewlock;
             serverData.playerrotx = pkt.rotx;;
@@ -104,5 +112,7 @@ public class ControlSeatInputC2SPacket {
         public static final int CHANNEL4 = 1 << 3;
         public static final int SWITCHENEMY = 1 << 4; //切换锁定敌人
         public static final int TOGGLESHIELD = 1 << 5; //切换开关护盾
+        public static final int TOGGLEFLIGHTASSIST = 1 << 6; //切换飞行辅助
+        public static final int TOGGLEANTIGRAVITY = 1 << 7; //切换反重力
     }
 }
