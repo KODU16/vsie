@@ -108,6 +108,10 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
         if (e == null) {
             return false;
         }
+        // 功能：目标实体已经消失（如雪球撞地）时立即判定失效，避免炮塔锁定到最后坐标抖动。
+        if (e.isRemoved() || !e.isAlive()) {
+            return false;
+        }
         if (e instanceof LivingEntity) {
             return false;
         }
