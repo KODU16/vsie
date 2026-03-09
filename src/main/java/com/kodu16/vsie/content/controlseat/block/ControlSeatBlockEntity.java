@@ -9,6 +9,7 @@ import com.kodu16.vsie.content.controlseat.client.Input.ClientMouseHandler;
 import com.kodu16.vsie.content.controlseat.server.SeatRegistry;
 import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
+import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.content.storage.energybattery.AbstractEnergyBatteryBlockEntity;
 import com.kodu16.vsie.content.storage.fueltank.AbstractFuelTankBlockEntity;
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlockEntity;
@@ -56,6 +57,9 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
     public volatile boolean ride = false;
     private boolean hasInitialized = false;
     public boolean previousfirestatus = false;
+
+    // 功能：缓存控制椅当前世界坐标，供屏幕雷达使用。
+    private Vector3d currentworldpos = new Vector3d();
 
 
     //即使我不想写的这么恶心，为了跨维度我还是得干
@@ -439,7 +443,43 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         }
     }
 
-    public void updateScreen(){}
+    public void updateScreen(){
+        // 功能：每 tick 刷新控制椅世界坐标，供雷达投影使用。
+        refreshWorldPosition();
+        List<Vec3> toRemove = new ArrayList<>();
+        this.forEachLinkedPeripheral(pos -> {
+            BlockPos blockPos = BlockPos.containing(pos);
+            BlockEntity be = level.getBlockEntity(blockPos);
+            if (be instanceof AbstractScreenBlockEntity screen) {
+                // 功能：当屏幕尚未绑定玩家时，绑定当前控制椅玩家。
+                if (!screen.hasRadarPlayer() && controlseatData.getPlayer() != null) {
+                    screen.setRadarPlayerUuid(controlseatData.getPlayer().getUUID());
+                }
+                // 功能：持续向屏幕同步控制椅世界坐标，保证雷达中心点实时更新。
+                screen.setRadarControlSeatWorldPos(new Vector3d(currentworldpos));
+                return;
+            }
+            // 功能：清理已经失效或被替换的屏幕链接。
+            toRemove.add(pos);
+        }, 7);
+        for (Vec3 pos : toRemove) {
+            removeLinkedPeripheral(pos, 7);
+        }
+    }
+
+    // 功能：仿照炮塔逻辑，刷新控制椅世界坐标（不在船上为 blockpos，在船上转世界坐标）。
+    public void refreshWorldPosition() {
+        boolean onShip = VSGameUtilsKt.isBlockInShipyard(level, this.getBlockPos());
+        if (onShip) {
+            Ship ship = VSGameUtilsKt.getShipManagingPos(level, this.getBlockPos());
+            if (ship != null) {
+                Vector3d center = VSGameUtilsKt.toWorldCoordinates(ship, this.getBlockPos().getX(), this.getBlockPos().getY(), this.getBlockPos().getZ());
+                currentworldpos = new Vector3d(center.x, center.y, center.z);
+                return;
+            }
+        }
+        currentworldpos = new Vector3d(this.getBlockPos().getX(), this.getBlockPos().getY(), this.getBlockPos().getZ());
+    }
 
     protected boolean isWorking() {
         return true;

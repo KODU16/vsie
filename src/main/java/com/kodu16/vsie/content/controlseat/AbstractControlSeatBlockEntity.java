@@ -223,6 +223,11 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
             linkedFuelTanks.remove(pos);
             setChanged(); // 标记方块实体脏了，强制保存
         }
+        else if (type==7 && linkedScreens.contains(pos)) {
+            // 功能：支持移除无效的屏幕绑定，避免控制椅保留脏链接。
+            linkedScreens.remove(pos);
+            setChanged();
+        }
     }
 
     public void forEachLinkedPeripheral(Consumer<Vec3> action, int type) {
@@ -243,6 +248,10 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         }
         if(type==5) {
             linkedFuelTanks.forEach(action);
+        }
+        if(type==7) {
+            // 功能：提供屏幕外设遍历能力，用于每 tick 向屏幕同步雷达数据。
+            linkedScreens.forEach(action);
         }
     }
 
