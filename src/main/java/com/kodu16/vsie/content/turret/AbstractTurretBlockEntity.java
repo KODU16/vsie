@@ -148,71 +148,106 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             idleTicks = idleTicks-1;
             return;
         }
-        onShip = VSGameUtilsKt.isBlockInShipyard(level, this.getBlockPos());
-        if (onShip) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(level, this.getBlockPos());
-            Vector3d center = VSGameUtilsKt.toWorldCoordinates(ship, this.getBlockPos().getX(), this.getBlockPos().getY()+getYAxisOffset(), this.getBlockPos().getZ());
-            currentworldpos = new Vector3d(center.x, center.y, center.z);
-        }
-        else {
-            currentworldpos = new Vector3d(this.getBlockPos().getX(), this.getBlockPos().getY()+getYAxisOffset(), this.getBlockPos().getZ());
-        }
+        // 功能：统一刷新炮塔世界坐标，减少 tick 主流程分支复杂度。
+        refreshWorldPosition();
         tryInvalidateTarget();
-        if(aimtype == 1)
-            tryFindTargetEntity();
-        if(aimtype == 2)
-            if(!getData().enemyshipsData.isEmpty()) {
-                tryFindtargetShip();
-            }
-            else {
-                return;
-            }
-        if(aimtype!=0) {
-            //LOGGER.warn("targeting entity: " + targetentity);
-            if (targetPreVelocity.size()>=5){
-                targetPreVelocity.remove(0);
-            }
-            if (aimtype==1 && isValidTargetEntity(targetentity)) {
-                targetPreVelocity.add(new Vector3d(targetentity.getDeltaMovement().x, targetentity.getDeltaMovement().y, targetentity.getDeltaMovement().z));
-            }
-            if (aimtype==2 && isValidTargetShip(selectedtargetShip)) {
-                targetPreVelocity.add(new Vector3d(selectedtargetShip.getVelocity()));
-            }
-            if(aimtype==1 && isValidTargetEntity(targetentity) || aimtype==2 && isValidTargetShip(selectedtargetShip)) {
-                if(aimtype==1 && isValidTargetEntity(targetentity) ){
-                    targetPos = new Vector3d(
-                            targetentity.getX(),
-                            targetentity.getY()+targetentity.getEyeHeight(),
-                            targetentity.getZ()
-                    );
-                }
-                else {
-                    targetPos = (Vector3d) selectedtargetShip.getTransform().getPositionInWorld();
-                }
+        // 功能：统一处理目标搜索，若无有效目标则让炮塔回归默认角度。
+        acquireTargetByAimType();
+        if (hasValidTarget()) {
+            // 功能：维护速度采样窗口，为弹道预测提供最近移动趋势。
+            appendTargetVelocitySample();
+            // 功能：统一更新当前目标点，避免实体/舰船重复分支代码。
+            updateCurrentTargetPos();
 
-                targetPos = getShootLocation(targetPos, targetPreVelocity, level, currentworldpos);
-                updateTargetRot();
-                this.xRot0 = closestReachableX(xRot0,getMaxSpinSpeed(),targetxrot);
-                this.yRot0 = closestReachableY(yRot0,getMaxSpinSpeed(),targetyrot);
-                if(xOK && yOK) {
-                    if(aimtype == 1){
-                        targetdistance = Vec.Distance(currentworldpos, targetPos);
-                        shootentity();
-                        idleTicks = getCoolDown();
-                    }
-                    if(aimtype == 2){
-                        //targetdistance = Vec.Distance(currentworldpos, targetPos);
-                        shootship();
-                        idleTicks = getCoolDown();
-                    }
-                }
+            targetPos = getShootLocation(targetPos, targetPreVelocity, level, currentworldpos);
+            updateTargetRot();
+            this.xRot0 = closestReachableX(xRot0, getMaxSpinSpeed(), targetxrot);
+            this.yRot0 = closestReachableY(yRot0, getMaxSpinSpeed(), targetyrot);
+            if (xOK && yOK) {
+                fireWhenLocked();
             }
-
+        } else {
+            // 功能：当周围没有有效敌人时，平滑回到用户设置的默认俯仰/偏航角。
+            returnToDefaultRotation();
         }
         //LogUtils.getLogger().warn("targetx:"+targetxrot+"y:"+targetyrot+"currentx:"+xRot0+"y:"+yRot0+"OK?"+xOK+yOK);
         this.setAnimData(XROT, xRot0);
         this.setAnimData(YROT, yRot0);
         this.markUpdated();
+    }
+
+    // 功能：根据方块是否在船上，更新炮塔在世界中的实际发射原点。
+    private void refreshWorldPosition() {
+        onShip = VSGameUtilsKt.isBlockInShipyard(level, this.getBlockPos());
+        if (onShip) {
+            Ship ship = VSGameUtilsKt.getShipManagingPos(level, this.getBlockPos());
+            Vector3d center = VSGameUtilsKt.toWorldCoordinates(ship, this.getBlockPos().getX(), this.getBlockPos().getY() + getYAxisOffset(), this.getBlockPos().getZ());
+            currentworldpos = new Vector3d(center.x, center.y, center.z);
+            return;
+        }
+        currentworldpos = new Vector3d(this.getBlockPos().getX(), this.getBlockPos().getY() + getYAxisOffset(), this.getBlockPos().getZ());
+    }
+
+    // 功能：按当前索敌模式尝试获取目标，避免在 tick 主逻辑中散落多层 if。
+    private void acquireTargetByAimType() {
+        if (aimtype == 1) {
+            tryFindTargetEntity();
+        } else if (aimtype == 2 && !getData().enemyshipsData.isEmpty()) {
+            tryFindtargetShip();
+        }
+    }
+
+    // 功能：统一判断“当前是否持有有效目标”。
+    private boolean hasValidTarget() {
+        return (aimtype == 1 && isValidTargetEntity(targetentity))
+                || (aimtype == 2 && isValidTargetShip(selectedtargetShip));
+    }
+
+    // 功能：维护最多 5 条目标速度历史，供预测弹道时使用。
+    private void appendTargetVelocitySample() {
+        if (targetPreVelocity.size() >= 5) {
+            targetPreVelocity.remove(0);
+        }
+        if (aimtype == 1 && isValidTargetEntity(targetentity)) {
+            targetPreVelocity.add(new Vector3d(targetentity.getDeltaMovement().x, targetentity.getDeltaMovement().y, targetentity.getDeltaMovement().z));
+        } else if (aimtype == 2 && isValidTargetShip(selectedtargetShip)) {
+            targetPreVelocity.add(new Vector3d(selectedtargetShip.getVelocity()));
+        }
+    }
+
+    // 功能：根据目标类型更新当前瞄准点，供后续弹道预测与旋转计算使用。
+    private void updateCurrentTargetPos() {
+        if (aimtype == 1 && isValidTargetEntity(targetentity)) {
+            targetPos = new Vector3d(
+                    targetentity.getX(),
+                    targetentity.getY() + targetentity.getEyeHeight(),
+                    targetentity.getZ()
+            );
+            return;
+        }
+        if (aimtype == 2 && isValidTargetShip(selectedtargetShip)) {
+            targetPos = (Vector3d) selectedtargetShip.getTransform().getPositionInWorld();
+        }
+    }
+
+    // 功能：在炮口完成对准时触发开火，并设置统一冷却。
+    private void fireWhenLocked() {
+        if (aimtype == 1) {
+            targetdistance = Vec.Distance(currentworldpos, targetPos);
+            shootentity();
+            idleTicks = getCoolDown();
+        } else if (aimtype == 2) {
+            shootship();
+            idleTicks = getCoolDown();
+        }
+    }
+
+    // 功能：无有效目标时将炮塔朝向平滑回归到默认角度（defaultxrot/defaultyrot）。
+    private void returnToDefaultRotation() {
+        this.targetxrot = this.defaultspinx;
+        this.targetyrot = this.defaultspiny;
+        this.xRot0 = closestReachableX(xRot0, getMaxSpinSpeed(), targetxrot);
+        this.yRot0 = closestReachableY(yRot0, getMaxSpinSpeed(), targetyrot);
     }
 
     //use 5 ticks' velocity data to predict movement,providing more accurate prediction
