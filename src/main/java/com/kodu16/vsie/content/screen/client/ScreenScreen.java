@@ -1,7 +1,9 @@
 package com.kodu16.vsie.content.screen.client;
 
+import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.content.screen.server.ScreenContainerMenu;
 import com.kodu16.vsie.network.screen.ScreenC2SPacket;
+import com.kodu16.vsie.network.screen.ScreentypeC2SPacket;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.vsie;
 import net.minecraft.client.gui.GuiGraphics;
@@ -62,7 +64,7 @@ public class ScreenScreen extends AbstractContainerScreen<ScreenContainerMenu> {
 
         // 保存按钮（推荐加上，体验更好）
         int btnX = this.leftPos + 32;
-        int btnY = this.topPos + 115;
+        int btnY = this.topPos + 135;
         this.addRenderableWidget(Button.builder(
                         Component.literal("保存"),
                         button -> saveAndClose()
@@ -75,6 +77,13 @@ public class ScreenScreen extends AbstractContainerScreen<ScreenContainerMenu> {
                         button -> this.minecraft.player.closeContainer()
                 )
                 .bounds(btnX + 72, btnY, 40, 20)
+                .build());
+        BlockPos pos = menu.getBlockEntity().getBlockPos(); // 如果有 getBlockEntity() 方法
+        this.addRenderableWidget(Button.builder(
+                        Component.literal("switch"),
+                        button -> ModNetworking.CHANNEL.sendToServer(new ScreentypeC2SPacket(pos,(menu.getBlockEntity().displaytype+1)%2)))
+                .pos(this.leftPos + 73, this.topPos + 100)
+                .size(30, 15)
                 .build());
     }
 
@@ -152,12 +161,29 @@ public class ScreenScreen extends AbstractContainerScreen<ScreenContainerMenu> {
 
     @Override
     protected void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
+        AbstractScreenBlockEntity screen = menu.getBlockEntity();
         ResourceLocation texture = new ResourceLocation(vsie.ID, "textures/gui/iff/iff_gui.png");
+        ResourceLocation iconradar = new ResourceLocation(vsie.ID, "textures/gui/screen/target_manual.png");
+        ResourceLocation iconserverinfo = new ResourceLocation(vsie.ID, "textures/gui/screen/target_auto.png");
         guiGraphics.blit(texture,   // 用实例字段
                 this.leftPos, this.topPos,
                 0, 0,
                 this.imageWidth, this.imageHeight,
                 this.imageWidth, this.imageHeight);
+        if(screen.displaytype == 0) {
+            guiGraphics.blit(iconradar,   // 用实例字段
+                    this.leftPos+78, this.topPos+70,
+                    0, 0,
+                    20, 20,
+                    20, 20);
+        }
+        if(screen.displaytype == 1) {
+            guiGraphics.blit(iconserverinfo,   // 用实例字段
+                    this.leftPos+78, this.topPos+80,
+                    0, 0,
+                    20, 20,
+                    20, 70);
+        }
     }
 
     @Override

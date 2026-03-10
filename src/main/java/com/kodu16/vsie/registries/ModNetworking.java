@@ -10,6 +10,7 @@ import com.kodu16.vsie.network.controlseat.S2C.ControlSeatStatusS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.NearbyShipsS2CPacket;
 import com.kodu16.vsie.network.fuel.SyncThrusterFuelsPacket;
 import com.kodu16.vsie.network.screen.ScreenC2SPacket;
+import com.kodu16.vsie.network.screen.ScreentypeC2SPacket;
 import com.kodu16.vsie.network.turret.HeavyTurretC2SPacket;
 import com.kodu16.vsie.network.turret.TurretC2SPacket;
 import com.kodu16.vsie.network.turret.TurretDefaultSpinC2SPacket;
@@ -93,7 +94,13 @@ public class ModNetworking {
                 ScreenC2SPacket::decode,
                 ScreenC2SPacket::handle
         );
-
+        CHANNEL.registerMessage(
+                nextId(),
+                ScreentypeC2SPacket.class,
+                ScreentypeC2SPacket::encode,
+                ScreentypeC2SPacket::decode,
+                ScreentypeC2SPacket::handle
+        );
         CHANNEL.registerMessage(
                 nextId(),
                 ControlSeatS2CPacket.class,

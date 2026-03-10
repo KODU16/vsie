@@ -17,7 +17,7 @@ public class BasicScreenBlockEntity extends AbstractScreenBlockEntity {
     }
 
     @Override
-    public String getScreentype() {
+    public String getDisplaytype() {
         return "basic";
     }
 

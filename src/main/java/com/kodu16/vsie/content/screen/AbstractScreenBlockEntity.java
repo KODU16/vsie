@@ -1,10 +1,7 @@
 package com.kodu16.vsie.content.screen;
 
-import com.kodu16.vsie.content.screen.client.functions.ServerInfo;
 import com.kodu16.vsie.content.screen.server.ServerInfoGetter;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
-import dev.engine_room.flywheel.backend.gl.array.VertexAttribute;
-import mekanism.common.registries.MekanismItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
@@ -24,7 +21,7 @@ import java.util.UUID;
 public abstract class AbstractScreenBlockEntity extends SmartBlockEntity implements GeoBlockEntity {
     private ItemStack renderStack = ItemStack.EMPTY;
     private String renderText = "Hello";
-    public int screentype = 0;//0:雷达 1:服务器信息
+    public int displaytype = 0;//0:雷达 1:服务器信息
     public static SerializableDataTicket<Integer> SPINX;
     public static SerializableDataTicket<Integer> SPINY;
     public static SerializableDataTicket<Integer> OFFSETX;
@@ -57,7 +54,11 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
     public ItemStack getRenderStack() { return renderStack; }
     public String getRenderText() { return renderText; }
 
-    public abstract String getScreentype();
+    public abstract String getDisplaytype();
+
+    public void setscreendisplaytype(int type){
+        this.displaytype = type;
+    }
 
     // 功能：读取当前雷达绑定玩家 UUID。
     public UUID getRadarPlayerUuid() {
@@ -89,7 +90,7 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
     @Override
     public void tick() {
         super.tick();
-        if(this.screentype == 1) {
+        if(this.displaytype == 1) {
             if(this.level.isClientSide()) {
                 long[] JVMc = ServerInfoGetter.getJVM();
                 this.clientJVMpercentage = (float) JVMc[0] /JVMc[1];
@@ -132,7 +133,7 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
         // 保存数据到 NBT
         tag.put("RenderStack", renderStack.save(new CompoundTag()));
         tag.putString("RenderText", renderText);
-        tag.putInt("type",screentype);
+        tag.putInt("type", displaytype);
         tag.putInt("spinx",spinx);
         tag.putInt("spiny",spiny);
         tag.putInt("offsetx",offsetx);
@@ -162,7 +163,7 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
             renderText = tag.getString("RenderText");
         }
         if(tag.contains("type")) {
-            screentype = tag.getInt("type");
+            displaytype = tag.getInt("type");
         }
         if(tag.contains("spinx") && tag.contains("spiny") && tag.contains("offsetx") && tag.contains("offfsety") && tag.contains("offsetz")) {
             this.spinx = tag.getInt("spinx");
