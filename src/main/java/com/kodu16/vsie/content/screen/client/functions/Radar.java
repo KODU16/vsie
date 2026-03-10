@@ -1,93 +1,55 @@
-package com.kodu16.vsie.content.screen;
+package com.kodu16.vsie.content.screen.client.functions;
 
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
 import com.kodu16.vsie.content.controlseat.functions.WorldMarkerPainter;
-import com.kodu16.vsie.content.screen.functions.Radar;
-import com.kodu16.vsie.registries.vsieItems;
+import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.ItemRenderer;
-import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.world.item.ItemDisplayContext;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
+import org.joml.Matrix4f;
 import org.joml.Vector3d;
 
 import java.util.Map;
 import java.util.UUID;
-import software.bernie.geckolib.cache.object.GeoBone;
-import software.bernie.geckolib.renderer.GeoRenderer;
-import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
 
-public class AbstractScreenRenderLayer extends GeoRenderLayer<AbstractScreenBlockEntity> {
-
-    public AbstractScreenRenderLayer(GeoRenderer<AbstractScreenBlockEntity> entityRendererIn) {
-        super(entityRendererIn);
-    }
-
-    private static final String NOZZLE_BONE_NAME = "screen";
+public class Radar {
     // 功能：雷达默认中立目标颜色（浅蓝）。
-    private static final int RADAR_COLOR_NEUTRAL = 0xFF66CCFF;
+    private static final int RADAR_COLOR_NEUTRAL = 0xFF6699FF;
     // 功能：雷达敌对目标颜色（红）。
     private static final int RADAR_COLOR_ENEMY = 0xFFFF5555;
     // 功能：雷达友方目标颜色（绿）。
     private static final int RADAR_COLOR_ALLY = 0xFF55FF55;
     // 功能：雷达锁定敌对目标颜色（黄）。
     private static final int RADAR_COLOR_LOCKED_ENEMY = 0xFFFFFF55;
+    // 功能：在屏幕平面绘制一个实心小方框，作为雷达上的船只标记。
     private static Minecraft mc = Minecraft.getInstance();
     ItemRenderer itemRenderer = mc.getItemRenderer();
-    Font font = mc.font;
+    public static void drawSquare(PoseStack poseStack, MultiBufferSource bufferSource, float centerX, float centerY, float halfSize, int argb) {
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.gui());
+        Matrix4f matrix = poseStack.last().pose();
 
-    @Override
-    public void render(PoseStack poseStack, AbstractScreenBlockEntity animatable,
-                       software.bernie.geckolib.cache.object.BakedGeoModel bakedModel,
-                       RenderType renderType, MultiBufferSource bufferSource, VertexConsumer buffer,
-                       float partialTick, int packedLight, int packedOverlay) {
+        float minX = centerX - halfSize;
+        float maxX = centerX + halfSize;
+        float minY = centerY - halfSize;
+        float maxY = centerY + halfSize;
 
-        super.render(poseStack, animatable, bakedModel, renderType, bufferSource, buffer,
-                partialTick, packedLight, packedOverlay);
-    }
+        int a = (argb >> 24) & 0xFF;
+        int r = (argb >> 16) & 0xFF;
+        int g = (argb >> 8) & 0xFF;
+        int b = argb & 0xFF;
 
-    @Override
-    public void renderForBone(PoseStack poseStack, AbstractScreenBlockEntity animatable, GeoBone bone,
-                              RenderType renderType, MultiBufferSource bufferSource, VertexConsumer buffer,
-                              float partialTick, int packedLight, int packedOverlay) {
-        if (!NOZZLE_BONE_NAME.equals(bone.getName())) {
-            super.renderForBone(poseStack, animatable, bone, renderType, bufferSource, buffer,
-                    partialTick, packedLight, packedOverlay);
-            return;
-        }
-        Level level = animatable.getLevel();
-        if (level == null) return;
-
-        ItemStack stack = animatable.getRenderStack();
-        if (stack.isEmpty()) return;
-
-        poseStack.pushPose();
-        // 旋转以平躺于表面（针对顶部面）
-        poseStack.mulPose(Axis.XP.rotationDegrees(-270.0f));  // 对于其他面，使用 Axis.YP 等旋转
-        //poseStack.mulPose(Axis.YP.rotationDegrees(180.0f));  // 对于其他面，使用 Axis.YP 等旋转
-        poseStack.translate(0, 0, -0.05f);  // 调整为目标面，例如 NORTH: translate(0.5, 0.5, 1.0)
-        poseStack.scale(0.99f,0.99f,0.99f);
-        itemRenderer.renderStatic(new ItemStack(vsieItems.SCREEN_BG), ItemDisplayContext.FIXED,
-                LightTexture.FULL_BRIGHT,
-                OverlayTexture.NO_OVERLAY, poseStack, bufferSource,
-                level, 0);
-        //poseStack.scale(0.15f, 0.15f, 0.15f);
-        poseStack.translate(0, 0, -0.05f);  // 调整为目标面，例如 NORTH: translate(0.5, 0.5, 1.0)
-        renderRadar(poseStack, animatable, bufferSource);
-        poseStack.popPose();
+        consumer.vertex(matrix, minX, minY, 0).color(r, g, b, a).endVertex();
+        consumer.vertex(matrix, minX, maxY, 0).color(r, g, b, a).endVertex();
+        consumer.vertex(matrix, maxX, maxY, 0).color(r, g, b, a).endVertex();
+        consumer.vertex(matrix, maxX, minY, 0).color(r, g, b, a).endVertex();
     }
 
     // 功能：读取绑定玩家的 shipsData，并在屏幕上绘制俯视雷达。
-    private void renderRadar(PoseStack poseStack, AbstractScreenBlockEntity screen, MultiBufferSource bufferSource) {
+    public static void renderRadar(PoseStack poseStack, AbstractScreenBlockEntity screen, MultiBufferSource bufferSource) {
         UUID radarPlayerUuid = screen.getRadarPlayerUuid();
         if (radarPlayerUuid == null || mc.level == null) {
             return;
@@ -104,7 +66,7 @@ public class AbstractScreenRenderLayer extends GeoRenderLayer<AbstractScreenBloc
         // 功能：将雷达绘制区域放在屏幕中间，并保持与现有物品/文字渲染同平面。
 
         // 功能：先绘制中心方框，表示当前控制椅所在船只（雷达自身）。
-        Radar.drawSquare(poseStack, bufferSource, 0f, 0f, 0.02f, 0xFF33FF33);
+        Radar.drawSquare(poseStack, bufferSource, 0f, 0f, 0.02f, 0xFF33FFAA);
 
         Vector3d seatWorldPos = screen.getRadarControlSeatWorldPos();
         for (Map.Entry<String, Object> entry : clientData.shipsData.entrySet()) {
@@ -151,11 +113,10 @@ public class AbstractScreenRenderLayer extends GeoRenderLayer<AbstractScreenBloc
     }
 
     // 功能：将 Object 数值安全转成 double，兼容网络包里的 Number 类型。
-    private double toDouble(Object value) {
+    private static double toDouble(Object value) {
         if (value instanceof Number number) {
             return number.doubleValue();
         }
         return 0.0;
     }
-
 }

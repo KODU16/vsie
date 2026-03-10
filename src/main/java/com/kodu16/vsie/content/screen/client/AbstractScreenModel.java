@@ -1,7 +1,6 @@
-package com.kodu16.vsie.content.screen;
+package com.kodu16.vsie.content.screen.client;
 
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
-import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.vsie;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;

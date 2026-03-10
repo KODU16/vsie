@@ -4,7 +4,7 @@ import com.kodu16.vsie.content.controlseat.client.AbstractControlSeatGeoRenderer
 import com.kodu16.vsie.content.turret.ciws.basicciws.BasicCIWSBlockEntity;
 import com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret.HeavyElectroMagnetTurretBlockEntity;
 import com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret.HeavyElectroMagnetTurretGeoRenderer;
-import com.kodu16.vsie.content.screen.AbstractScreenGeoRenderer;
+import com.kodu16.vsie.content.screen.client.AbstractScreenGeoRenderer;
 import com.kodu16.vsie.content.screen.block.BasicScreenBlockEntity;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
 import com.kodu16.vsie.content.storage.ammobox.AmmoBoxBlockEntity;

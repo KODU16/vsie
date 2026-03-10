@@ -6,7 +6,7 @@ import com.kodu16.vsie.content.turret.heavyturret.HeavyTurretContainerMenu;
 import com.kodu16.vsie.content.item.IFF.IFFContainerMenu;
 import com.kodu16.vsie.content.item.shieldtool.ShieldToolContainerMenu;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
-import com.kodu16.vsie.content.screen.ScreenContainerMenu;
+import com.kodu16.vsie.content.screen.server.ScreenContainerMenu;
 import com.kodu16.vsie.content.storage.ammobox.AmmoBoxBlockEntity;
 import com.kodu16.vsie.content.storage.ammobox.AmmoBoxContainerMenu;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;

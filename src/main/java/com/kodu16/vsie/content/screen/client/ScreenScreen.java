@@ -1,5 +1,6 @@
-package com.kodu16.vsie.content.screen;
+package com.kodu16.vsie.content.screen.client;
 
+import com.kodu16.vsie.content.screen.server.ScreenContainerMenu;
 import com.kodu16.vsie.network.screen.ScreenC2SPacket;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.vsie;

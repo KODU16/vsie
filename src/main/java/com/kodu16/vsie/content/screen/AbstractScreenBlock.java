@@ -1,10 +1,6 @@
 package com.kodu16.vsie.content.screen;
 
-import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
-import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
-import com.kodu16.vsie.content.turret.TurretContainerMenu;
-import com.kodu16.vsie.registries.vsieBlockEntities;
-import com.mojang.logging.LogUtils;
+import com.kodu16.vsie.content.screen.server.ScreenContainerMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -34,7 +30,6 @@ import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

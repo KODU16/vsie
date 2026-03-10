@@ -1,5 +1,6 @@
-package com.kodu16.vsie.content.screen;
+package com.kodu16.vsie.content.screen.client;
 
+import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;

@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.screen;
 
+import com.kodu16.vsie.content.screen.client.functions.ServerInfo;
+import com.kodu16.vsie.content.screen.server.ServerInfoGetter;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import dev.engine_room.flywheel.backend.gl.array.VertexAttribute;
 import mekanism.common.registries.MekanismItems;
@@ -22,6 +24,7 @@ import java.util.UUID;
 public abstract class AbstractScreenBlockEntity extends SmartBlockEntity implements GeoBlockEntity {
     private ItemStack renderStack = ItemStack.EMPTY;
     private String renderText = "Hello";
+    public int screentype = 0;//0:雷达 1:服务器信息
     public static SerializableDataTicket<Integer> SPINX;
     public static SerializableDataTicket<Integer> SPINY;
     public static SerializableDataTicket<Integer> OFFSETX;
@@ -33,6 +36,11 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
     public int offsetx;
     public int offsety;
     public int offsetz;
+
+    public float clientJVMpercentage = 0;
+    public float serverJVMpercentage = 0;
+    public int tps = 0;
+    public int phystps = 0;
 
     // 功能：雷达屏幕绑定的控制椅玩家 UUID，用于客户端反查对应玩家的 ClientData。
     private UUID radarPlayerUuid;
@@ -81,8 +89,19 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
     @Override
     public void tick() {
         super.tick();
-        this.renderStack = new ItemStack(MekanismItems.ATOMIC_ALLOY,32);
-        this.renderText = "hello";
+        if(this.screentype == 1) {
+            if(this.level.isClientSide()) {
+                long[] JVMc = ServerInfoGetter.getJVM();
+                this.clientJVMpercentage = (float) JVMc[0] /JVMc[1];
+            } else {
+                long[] JVMs = ServerInfoGetter.getJVM();
+                this.serverJVMpercentage = (float) JVMs[0] /JVMs[1];
+
+                this.phystps = ServerInfoGetter.getServerPhysTPS(this.level);
+
+                this.tps = (int) ServerInfoGetter.getServerTPS(this.level);
+            }
+        }
     }
 
     // 更新数据时同步到客户端
@@ -113,11 +132,16 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
         // 保存数据到 NBT
         tag.put("RenderStack", renderStack.save(new CompoundTag()));
         tag.putString("RenderText", renderText);
+        tag.putInt("type",screentype);
         tag.putInt("spinx",spinx);
         tag.putInt("spiny",spiny);
         tag.putInt("offsetx",offsetx);
         tag.putInt("offsety",offsety);
         tag.putInt("offsetz",offsetz);
+        //tag.putFloat("clientjvm",clientJVMpercentage);
+        tag.putFloat("serverjvm",serverJVMpercentage);
+        tag.putInt("tps",tps);
+        tag.putInt("phystps",phystps);
         // 功能：持久化雷达绑定玩家信息。
         if (radarPlayerUuid != null) {
             tag.putUUID("RadarPlayerUuid", radarPlayerUuid);
@@ -137,6 +161,9 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
         if(tag.contains("RenderText")) {
             renderText = tag.getString("RenderText");
         }
+        if(tag.contains("type")) {
+            screentype = tag.getInt("type");
+        }
         if(tag.contains("spinx") && tag.contains("spiny") && tag.contains("offsetx") && tag.contains("offfsety") && tag.contains("offsetz")) {
             this.spinx = tag.getInt("spinx");
             this.spiny = tag.getInt("spiny");
@@ -145,6 +172,11 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
             this.offsetz = tag.getInt("offsetz");
             this.setdata(this.spinx,this.spiny,this.offsetx,this.offsety,this.offsetz);
         }
+
+        if(tag.contains("serverjvm")) {this.serverJVMpercentage = tag.getFloat("serverjvm");}
+        if(tag.contains("tps")) {this.serverJVMpercentage = tag.getFloat("tps");}
+        if(tag.contains("phystps")) {this.serverJVMpercentage = tag.getFloat("phystps");}
+
         // 功能：读取雷达绑定玩家 UUID。
         radarPlayerUuid = tag.hasUUID("RadarPlayerUuid") ? tag.getUUID("RadarPlayerUuid") : null;
         // 功能：读取雷达用控制椅世界坐标。

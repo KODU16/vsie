@@ -1,6 +1,6 @@
-package com.kodu16.vsie.content.screen;
+package com.kodu16.vsie.content.screen.server;
 
-import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
+import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.registries.ModMenuTypes;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
