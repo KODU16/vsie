@@ -2,6 +2,7 @@ package com.kodu16.vsie.content.screen;
 
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
+import com.kodu16.vsie.content.controlseat.functions.WorldMarkerPainter;
 import com.kodu16.vsie.content.screen.functions.Radar;
 import com.kodu16.vsie.registries.vsieItems;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -32,6 +33,14 @@ public class AbstractScreenRenderLayer extends GeoRenderLayer<AbstractScreenBloc
     }
 
     private static final String NOZZLE_BONE_NAME = "screen";
+    // 功能：雷达默认中立目标颜色（浅蓝）。
+    private static final int RADAR_COLOR_NEUTRAL = 0xFF66CCFF;
+    // 功能：雷达敌对目标颜色（红）。
+    private static final int RADAR_COLOR_ENEMY = 0xFFFF5555;
+    // 功能：雷达友方目标颜色（绿）。
+    private static final int RADAR_COLOR_ALLY = 0xFF55FF55;
+    // 功能：雷达锁定敌对目标颜色（黄）。
+    private static final int RADAR_COLOR_LOCKED_ENEMY = 0xFFFFFF55;
     private static Minecraft mc = Minecraft.getInstance();
     ItemRenderer itemRenderer = mc.getItemRenderer();
     Font font = mc.font;
@@ -118,8 +127,26 @@ public class AbstractScreenRenderLayer extends GeoRenderLayer<AbstractScreenBloc
             // 功能：将世界 XZ 相对坐标投影到屏幕局部平面，形成俯视雷达图。
             float px = (float) (dx / 512.0 * 2.0);
             float py = (float) (dz / 512.0 * 2.0);
+
+            // 功能：复用 WorldMarkerPainter 的敌我识别规则，保证 HUD 与雷达判定一致。
+            String slug = String.valueOf(shipData.getOrDefault("slug", ""));
+            int priority = WorldMarkerPainter.getPriority(clientData.enemy, clientData.ally, slug);
+            int radarColor = RADAR_COLOR_NEUTRAL;
+
+            // 功能：根据敌我关系给雷达点分配颜色（enemy=红，ally=绿，其它=浅蓝）。
+            if (priority == 1) {
+                radarColor = RADAR_COLOR_ENEMY;
+            } else if (priority == 2) {
+                radarColor = RADAR_COLOR_ALLY;
+            }
+
+            // 功能：若该目标是当前锁定敌人，则覆盖为黄色，突出锁定状态。
+            if (!slug.isEmpty() && slug.equals(clientData.lockedenemyslug) && priority == 1) {
+                radarColor = RADAR_COLOR_LOCKED_ENEMY;
+            }
+
             // 跳过中心点附近，避免与本船方框重叠。
-            Radar.drawSquare(poseStack, bufferSource, px, py, 0.02f, 0xFFFF5555);
+            Radar.drawSquare(poseStack, bufferSource, px, py, 0.02f, radarColor);
         }
     }
 
