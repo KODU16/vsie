@@ -95,6 +95,7 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
                 boolean hasInput = desiredForce.lengthSquared() > 1e-6 || desiredTorque.lengthSquared() > 1e-6;
 
                 double throttle = 0.0;
+                // 功能：每个矢量推进器每 tick 都独立计算自己的目标欧拉角，默认保持中位（不偏转）
                 double[] eulerAngle={0,0};
                 if (hasInput) {
                     Vector3d worldXDirection = new Vector3d();
@@ -111,7 +112,8 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
                     transform.getShipToWorld().transformDirection(thrusterData.getDirectionZ(), worldZDirection);
                     worldZDirection.normalize();
 
-                    //eulerAngle = forceTransform(targetthrust,transform,thrusterData.getCoordAxis());
+                    // 功能：有输入时按目标推力方向计算喷口偏转
+                    eulerAngle = forceTransform(targetthrust,transform,thrusterData.getCoordAxis());
 
                     setChanged();
                     // 日志调试
@@ -119,8 +121,9 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
                     //        getBlockPos(), worldYDirection, worldXDirection, worldZDirection, targetthrust, spinrad, pitchrad);
                 }
 
-                if(!hasInput || true){
-                    eulerAngle = forceTransform(new Vector3d(0,-1,0),transform,thrusterData.getCoordAxis());
+                // 功能：无输入时保持默认中位，避免未绑定推进器出现异常偏转
+                if(!hasInput){
+                    eulerAngle = new double[]{0,0};
                 }
 
                 this.spinrad = eulerAngle[0];   //yaw
@@ -196,7 +199,8 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
 
     public double getSpinrad() {return this.spinrad;}
 
-    public double getPitchrad() {return this.spinrad;}
+    // 功能：返回喷口俯仰角（弧度）供渲染读取
+    public double getPitchrad() {return this.pitchrad;}
 
     @Override
     public void onLoad() {
