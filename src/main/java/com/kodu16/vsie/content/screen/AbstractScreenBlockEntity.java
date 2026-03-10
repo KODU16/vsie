@@ -175,8 +175,10 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
         }
 
         if(tag.contains("serverjvm")) {this.serverJVMpercentage = tag.getFloat("serverjvm");}
-        if(tag.contains("tps")) {this.serverJVMpercentage = tag.getFloat("tps");}
-        if(tag.contains("phystps")) {this.serverJVMpercentage = tag.getFloat("phystps");}
+        // 功能：从同步数据恢复 TPS，供 screentype=1 的文字层显示。
+        if(tag.contains("tps")) {this.tps = tag.getInt("tps");}
+        // 功能：从同步数据恢复 PhysTPS，供 screentype=1 的文字层显示。
+        if(tag.contains("phystps")) {this.phystps = tag.getInt("phystps");}
 
         // 功能：读取雷达绑定玩家 UUID。
         radarPlayerUuid = tag.hasUUID("RadarPlayerUuid") ? tag.getUUID("RadarPlayerUuid") : null;
