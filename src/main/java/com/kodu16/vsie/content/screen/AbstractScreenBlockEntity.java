@@ -43,12 +43,14 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
     private static final int SERVERINFO_HISTORY_LIMIT = 20;
     // 功能：控制采样频率，每 100 tick 记录一次。
     private static final int SERVERINFO_SAMPLE_INTERVAL = 100;
-    // 功能：记录已存储的样本数量（最大 20）。
+    // 功能：记录已存储的样本数量（最大 20，仅客户端本地维护）。
     private int serverInfoHistorySize = 0;
-    // 功能：服务端采样计数器（用于 100 tick 触发一次采样）。
+    // 功能：服务端采样计数器（用于 100 tick 触发一次“最新样本”同步）。
     private int serverInfoSampleTickCounter = 0;
-    // 功能：客户端采样计数器（用于本地客户端内存采样，并与服务端指标合并成同一批历史点）。
-    private int clientInfoSampleTickCounter = 0;
+    // 功能：服务端最新样本序号；每产生一个新样本就 +1，并通过 NBT 同步到客户端。
+    private int serverInfoSampleSequence = 0;
+    // 功能：客户端已消费的最新样本序号；用于确保“每次同步只入队一次历史”。
+    private int clientConsumedSampleSequence = -1;
     // 功能：TPS 历史（归一化到 0~1，最大值按 20 计算）。
     private final float[] tpsHistory = new float[SERVERINFO_HISTORY_LIMIT];
     // 功能：PhysTPS 历史（归一化到 0~1，最大值按 60 计算）。
@@ -114,10 +116,9 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
                 long[] JVMc = ServerInfoGetter.getJVM();
                 this.clientJVMpercentage = (float) JVMc[0] /JVMc[1];
 
-                // 功能：客户端每 100 tick 记录一次历史点，并让柱状图随新点加入向左滚动。
-                this.clientInfoSampleTickCounter++;
-                if (this.clientInfoSampleTickCounter >= SERVERINFO_SAMPLE_INTERVAL) {
-                    this.clientInfoSampleTickCounter = 0;
+                // 功能：客户端检测到服务端“新样本序号”后，将最新样本推入本地 20 条历史并删除最旧数据。
+                if (this.clientConsumedSampleSequence != this.serverInfoSampleSequence) {
+                    this.clientConsumedSampleSequence = this.serverInfoSampleSequence;
                     pushServerInfoHistory(
                             clamp01((float) this.tps / 20f),
                             clamp01((float) this.phystps / 60f),
@@ -133,16 +134,11 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
 
                 this.tps = (int) ServerInfoGetter.getServerTPS(this.level);
 
-                // 功能：服务端每 100 tick 采样一次 server 指标并同步到客户端。
+                // 功能：服务端每 100 tick 仅同步“一个最新样本”，避免每次都传整段历史 NBT。
                 this.serverInfoSampleTickCounter++;
                 if (this.serverInfoSampleTickCounter >= SERVERINFO_SAMPLE_INTERVAL) {
                     this.serverInfoSampleTickCounter = 0;
-                    pushServerInfoHistory(
-                            clamp01((float) this.tps / 20f),
-                            clamp01((float) this.phystps / 60f),
-                            clamp01(this.serverJVMpercentage),
-                            clamp01(this.clientJVMpercentage)
-                    );
+                    this.serverInfoSampleSequence++;
                     setChanged();
                 }
             }
@@ -241,14 +237,8 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
         tag.putFloat("serverjvm",serverJVMpercentage);
         tag.putInt("tps",tps);
         tag.putInt("phystps",phystps);
-        // 功能：同步历史曲线所需的数据到客户端。
-        tag.putInt("serverInfoHistorySize", serverInfoHistorySize);
-        for (int i = 0; i < SERVERINFO_HISTORY_LIMIT; i++) {
-            tag.putFloat("tpsHistory" + i, tpsHistory[i]);
-            tag.putFloat("physTpsHistory" + i, physTpsHistory[i]);
-            tag.putFloat("serverMemoryHistory" + i, serverMemoryHistory[i]);
-            tag.putFloat("clientMemoryHistory" + i, clientMemoryHistory[i]);
-        }
+        // 功能：仅同步最新样本序号，让客户端基于该序号在本地维护 20 条历史滑窗。
+        tag.putInt("serverInfoSampleSequence", serverInfoSampleSequence);
         // 功能：持久化雷达绑定玩家信息。
         if (radarPlayerUuid != null) {
             tag.putUUID("RadarPlayerUuid", radarPlayerUuid);
@@ -285,15 +275,9 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
         if(tag.contains("tps")) {this.tps = tag.getInt("tps");}
         // 功能：从同步数据恢复 PhysTPS，供 screentype=1 的文字层显示。
         if(tag.contains("phystps")) {this.phystps = tag.getInt("phystps");}
-        // 功能：恢复并同步柱状图历史数据。
-        if (tag.contains("serverInfoHistorySize")) {
-            this.serverInfoHistorySize = Math.min(tag.getInt("serverInfoHistorySize"), SERVERINFO_HISTORY_LIMIT);
-            for (int i = 0; i < SERVERINFO_HISTORY_LIMIT; i++) {
-                if (tag.contains("tpsHistory" + i)) this.tpsHistory[i] = tag.getFloat("tpsHistory" + i);
-                if (tag.contains("physTpsHistory" + i)) this.physTpsHistory[i] = tag.getFloat("physTpsHistory" + i);
-                if (tag.contains("serverMemoryHistory" + i)) this.serverMemoryHistory[i] = tag.getFloat("serverMemoryHistory" + i);
-                if (tag.contains("clientMemoryHistory" + i)) this.clientMemoryHistory[i] = tag.getFloat("clientMemoryHistory" + i);
-            }
+        // 功能：接收服务端最新样本序号；客户端会在 tick 中将其转成本地历史点。
+        if (tag.contains("serverInfoSampleSequence")) {
+            this.serverInfoSampleSequence = tag.getInt("serverInfoSampleSequence");
         }
 
         // 功能：读取雷达绑定玩家 UUID。
