@@ -39,6 +39,7 @@ public class ServerShipHandler {
     }
     private long lastSendMs = 0;
     private long lastSendStatusMs = 0;
+    private long lastSendInputMs = 0;
     int lastSentEncode = 0;
     int current=0;
     private volatile Vector3d worldXDirection = new Vector3d();
@@ -89,8 +90,9 @@ public class ServerShipHandler {
                 ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()),packetstatus);
             }
 
-            if(now - lastSendStatusMs > 250) {//状态包（慢包out）)
-                //按键包
+            if(now - lastSendInputMs > 250) {//按键包（慢包out）
+                // 功能：独立输入包发送节流时间，避免与状态包共用计时器导致输入包条件永远不成立。
+                lastSendInputMs = now;
                 ControlSeatInputS2CPacket packet = new ControlSeatInputS2CPacket(pos, data.channelencode);
                 ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()), packet);
             }
