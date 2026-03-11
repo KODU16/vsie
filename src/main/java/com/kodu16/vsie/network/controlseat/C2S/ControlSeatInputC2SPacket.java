@@ -76,6 +76,12 @@ public class ControlSeatInputC2SPacket {
             if((keys & KeysInput.CHANNEL4) !=0) {
                 serverData.channel4 = !serverData.getChannel4();
             }
+            // 功能：在服务端输入处理后立即重建频道位掩码，确保 S2C/HUD 使用的是最新频道状态。
+            serverData.channelencode =
+                    (serverData.channel1 ? (1 << 0) : 0)
+                    | (serverData.channel2 ? (1 << 1) : 0)
+                    | (serverData.channel3 ? (1 << 2) : 0)
+                    | (serverData.channel4 ? (1 << 3) : 0);
             if((keys & KeysInput.SWITCHENEMY) !=0) {
                 if(!serverData.enemyshipsData.isEmpty()) {
                     int index = serverData.lockedenemyindex+1;
