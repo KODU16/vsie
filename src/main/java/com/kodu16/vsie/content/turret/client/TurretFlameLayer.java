@@ -21,7 +21,7 @@ public class TurretFlameLayer extends GeoRenderLayer<AbstractTurretBlockEntity> 
     }
 
     // 功能：将特效绑定到炮管骨骼上，仅在该骨骼执行炮口焰绘制。
-    private static final String CANNON_BONE_NAME = "cannon1";
+    private static final String CANNON_BONE_NAME = "cannonend";
     // 功能：使用加法混合渲染炮口焰与闪电，提升发光感。
     private static final RenderType FLAME_RENDER_TYPE = translucentbeamrendertype.SOLID_TRANSLUCENT_BEAM;
     // 功能：固定为全亮光照，避免受环境亮度影响导致特效变暗。
