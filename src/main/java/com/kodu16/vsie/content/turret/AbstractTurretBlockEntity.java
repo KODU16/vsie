@@ -63,7 +63,6 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     public static SerializableDataTicket<Float> XROT; //这是动画计算用的
     public static SerializableDataTicket<Float> YROT;
     public final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
-    public static final RawAnimation SHOOT_ANIMATION = RawAnimation.begin().then("shoot", Animation.LoopType.PLAY_ONCE);
     public double targetdistance;
     public @Nullable LivingEntity targetentity;
     private @Nullable Ship selectedtargetShip;
@@ -220,7 +219,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         if (aimtype == 1 && isValidTargetEntity(targetentity)) {
             targetPos = new Vector3d(
                     targetentity.getX(),
-                    targetentity.getY() + targetentity.getEyeHeight(),
+                    targetentity.getY(),
                     targetentity.getZ()
             );
             return;
@@ -319,7 +318,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         // 关键：这里一定要同步更新 targetPos！！
         this.targetPos = new Vector3d(
                 targetentity.getX(),
-                targetentity.getY()+targetentity.getEyeHeight(),
+                targetentity.getY(),
                 targetentity.getZ()
         );
         setChanged();
@@ -605,12 +604,6 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         if (tag.contains("yrot")) {this.targetyrot = tag.getFloat("yrot");}
         if (tag.contains("defaultyrot")) {this.defaultspiny = tag.getInt("defaultyrot");}
         if (tag.contains("defaultxrot")) {this.defaultspinx = tag.getInt("defaultxrot");}
-    }
-
-    @Override
-    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new AnimationController<>(this, "controller", 0, state -> PlayState.CONTINUE)
-                .triggerableAnim("shoot", SHOOT_ANIMATION));
     }
 
     @Override

@@ -8,6 +8,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Vector3d;
+import software.bernie.geckolib.core.animation.AnimatableManager;
 
 import java.util.List;
 
@@ -61,5 +62,10 @@ public class HeavyElectroMagnetTurretBlockEntity extends AbstractHeavyTurretBloc
     @Override
     public int getmaxpitchdowndegrees() {
         return 20;
+    }
+
+    @Override
+    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+
     }
 }
