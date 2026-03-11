@@ -139,19 +139,35 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         WeaponData data = getData();
         if(type==1){
             data.setChannel1(!data.getChannel1());
-            //LogUtils.getLogger().warn(String.valueOf(Component.literal("setting channel1 to:"+data.getChannel1())));
+            if(data.channel1) {
+                data.channel2 = false;
+                data.channel3 = false;
+                data.channel4 = false;
+            }
         }
         if(type==2){
             data.setChannel2(!data.getChannel2());
-            //LogUtils.getLogger().warn(String.valueOf(Component.literal("setting channel2 to:"+data.getChannel4())));
+            if(data.channel2) {
+                data.channel1 = false;
+                data.channel3 = false;
+                data.channel4 = false;
+            }
         }
         if(type==3){
             data.setChannel3(!data.getChannel3());
-            //LogUtils.getLogger().warn(String.valueOf(Component.literal("setting channel3 to:"+data.getChannel4())));
+            if(data.channel2) {
+                data.channel1 = false;
+                data.channel2 = false;
+                data.channel4 = false;
+            }
         }
         if(type==4){
             data.setChannel4(!data.getChannel4());
-            //LogUtils.getLogger().warn(String.valueOf(Component.literal("setting channel4 to:"+data.getChannel4())));
+            if(data.channel2) {
+                data.channel1 = false;
+                data.channel2 = false;
+                data.channel3 = false;
+            }
         }
     }
 

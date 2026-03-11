@@ -89,10 +89,7 @@ public class ServerShipHandler {
                 ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()),packetstatus);
             }
 
-            current = data.channelencode;
-            if (lastSentEncode!=current) {//慢包（out）
-                lastSentEncode = current;
-
+            if(now - lastSendStatusMs > 250) {//状态包（慢包out）)
                 //按键包
                 ControlSeatInputS2CPacket packet = new ControlSeatInputS2CPacket(pos, data.channelencode);
                 ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()), packet);
