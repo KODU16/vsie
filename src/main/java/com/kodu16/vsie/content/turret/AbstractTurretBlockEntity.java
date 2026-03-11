@@ -3,9 +3,6 @@ package com.kodu16.vsie.content.turret;
 import com.kodu16.vsie.foundation.Vec;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
-import mekanism.common.integration.computer.SpecialComputerMethodWrapper;
-import mekanism.common.integration.computer.annotation.WrappingComputerMethod;
-import mekanism.common.inventory.slot.EnergyInventorySlot;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
@@ -57,7 +54,7 @@ import org.slf4j.Logger;
 
 public abstract class AbstractTurretBlockEntity extends SmartBlockEntity implements GeoBlockEntity, MenuProvider {
     Logger LOGGER = LogUtils.getLogger();
-    @WrappingComputerMethod(wrapper = SpecialComputerMethodWrapper.ComputerIInventorySlotWrapper.class, methodNames = "getEnergyItem", docPlaceholder = "energy slot")
+    // 功能：保留“是否有目标”的动画同步标记，去除对 Mekanism 电脑集成注解的依赖。
     public static SerializableDataTicket<Boolean> HAS_TARGET;
     public Vector3d targetPos = new Vector3d(0,0,0); //这是被选择的那个目标的位置
     public static SerializableDataTicket<Float> XROT; //这是动画计算用的

@@ -1,7 +1,5 @@
 package com.kodu16.vsie.content.turret;
 
-import mekanism.common.tile.component.ITileComponent;
-import mekanism.common.upgrade.IUpgradeData;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
@@ -10,7 +8,8 @@ import org.valkyrienskies.core.api.ships.Ship;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class TurretData implements IUpgradeData {
+// 功能：炮塔状态数据容器，已与 Mekanism 升级系统解耦。
+public final class TurretData {
 
     //turrets only
     public volatile boolean targetsHostile = false;//1:敌对，2:被动，3:玩家，4:船只

@@ -1,7 +1,5 @@
 package com.kodu16.vsie.content.bullet;
 
-import mekanism.common.item.gear.ItemMekaSuitArmor;
-import mekanism.common.registries.MekanismModules;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;

@@ -8,7 +8,6 @@ import com.kodu16.vsie.registries.vsieBlocks;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
-import mekanism.api.providers.IBlockProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;

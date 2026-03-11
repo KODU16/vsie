@@ -1,9 +1,9 @@
 package com.kodu16.vsie.content.weapon;
 
-import mekanism.common.upgrade.IUpgradeData;
 import org.valkyrienskies.core.api.ships.Ship;
 
-public class WeaponData implements IUpgradeData {
+// 功能：武器状态数据容器，已与 Mekanism 升级接口解耦。
+public class WeaponData {
     public volatile boolean channel1 = false;//四个频道（可以同时处在多个）
     public volatile boolean channel2 = false;
     public volatile boolean channel3 = false;

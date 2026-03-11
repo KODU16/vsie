@@ -183,7 +183,7 @@ dependencies {
     //JEI
     implementation fg.deobf("mezz.jei:jei-1.20.1-forge:15.19.0.85")
 
-    implementation fg.deobf("mekanism:Mekanism:${minecraft_version}-${mekanism_version}")
+    // 功能：移除 Mekanism 运行时依赖，避免模组继续加载 Mekanism。
     implementation fg.deobf("software.bernie.geckolib:geckolib-forge-${minecraft_version}:${geckolib_version}")
     //Mixin^2
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
