@@ -6,7 +6,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -24,12 +23,10 @@ public class BulletRenderer<T extends AbstractBulletEntity> extends EntityRender
     private static final int TRAIL_SEGMENTS = 8;
     // 激光拖尾长度切分数量，值越大渐变越平滑。
     private static final int TRAIL_LENGTH_SEGMENTS = 10;
-    // 激光拖尾在模型局部坐标里的总长度（沿着 -X 方向）。
-    private static final float TRAIL_LENGTH = 18.0F;
     // 激光拖尾起始半径（靠近离子弹本体）。
-    private static final float TRAIL_START_RADIUS = 1.8F;
+    private static final float TRAIL_START_RADIUS = 3.6F;
     // 激光拖尾末端半径（远离离子弹）。
-    private static final float TRAIL_END_RADIUS = 0.4F;
+    private static final float TRAIL_END_RADIUS = 0.5F;
     private static final float M_2PI = (float) (Math.PI * 2.0);
 
     public BulletRenderer(EntityRendererProvider.Context pContext) {
@@ -62,16 +59,15 @@ public class BulletRenderer<T extends AbstractBulletEntity> extends EntityRender
             pPoseStack.translate(16F, 0F, 0F);
             pPoseStack.mulPose(Axis.ZP.rotationDegrees(180.0F));
         }
-
         // 绘制离子弹激光拖尾：方向始终沿速度方向反向（本地 -X 轴），并在远端做颜色变浅。
-        renderIonTrail(pPoseStack.last(), vertexconsumer, pPackedLight);
+        renderIonTrail(pPoseStack.last(), vertexconsumer, pPackedLight, pEntity.tickCount*pEntity.tickCount*10);
 
         pPoseStack.popPose();
         super.render(pEntity, pEntityYaw, pPartialTick, pPoseStack, pBuffer, pPackedLight);
     }
 
     // 生成与炮口激光层类似的体积拖尾，并按距离进行颜色/透明度衰减。
-    private void renderIonTrail(PoseStack.Pose pose, VertexConsumer consumer, int packedLight) {
+    private void renderIonTrail(PoseStack.Pose pose, VertexConsumer consumer, int packedLight, float length) {
         Matrix4f matrix4f = pose.pose();
         Matrix3f matrix3f = pose.normal();
 
@@ -88,8 +84,8 @@ public class BulletRenderer<T extends AbstractBulletEntity> extends EntityRender
                 float t1 = i / (float) TRAIL_LENGTH_SEGMENTS;
                 float t2 = (i + 1.0F) / (float) TRAIL_LENGTH_SEGMENTS;
 
-                float x1 = -TRAIL_LENGTH * t1;
-                float x2 = -TRAIL_LENGTH * t2;
+                float x1 = -length * t1;
+                float x2 = -length * t2;
                 float radius1 = Mth.lerp(t1, TRAIL_START_RADIUS, TRAIL_END_RADIUS);
                 float radius2 = Mth.lerp(t2, TRAIL_START_RADIUS, TRAIL_END_RADIUS);
 
@@ -107,10 +103,10 @@ public class BulletRenderer<T extends AbstractBulletEntity> extends EntityRender
 
     // 计算拖尾分段颜色：t 越大表示离子弹越远，颜色越接近高亮浅色。
     private int[] trailColor(float t) {
-        int r = (int) Mth.lerp(t, 90.0F, 200.0F);
-        int g = (int) Mth.lerp(t, 170.0F, 235.0F);
+        int r = (int) Mth.lerp(t, 90.0F, 20.0F);
+        int g = (int) Mth.lerp(t, 170.0F, 100.0F);
         int b = (int) Mth.lerp(t, 255.0F, 255.0F);
-        int a = (int) Mth.lerp(t, 180.0F, 45.0F);
+        int a = (int) Mth.lerp(t, 100.0F, 45.0F);
         return new int[]{r, g, b, a};
     }
 

@@ -16,7 +16,7 @@ public class AbstractTurretGeoRenderer extends GeoBlockRenderer<AbstractTurretBl
 
         // 注册 Layer！这是关键，不会触发任何 override
         this.addRenderLayer(new TurretLaserLayer(this));
-        this.addRenderLayer(new TurretFlameLayer(this));
+        //this.addRenderLayer(new TurretFlameLayer(this));
     }
 
 

@@ -934,7 +934,14 @@
 								"up": {"uv": [232, 332], "uv_size": [1, 64]},
 								"down": {"uv": [210, 397], "uv_size": [1, -64]}
 							}
-						},
+						}
+					]
+				},
+				{
+					"name": "cannonend",
+					"parent": "long_cannon",
+					"pivot": [1, 44, -101],
+					"cubes": [
 						{"origin": [0, 44, -102], "size": [2, 2, 2], "uv": [0, 0]}
 					]
 				},
