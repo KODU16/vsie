@@ -77,6 +77,8 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     public float targetxrot = 0;
     public float targetyrot = 0;
     public int idleTicks = 0;
+    // 功能：记录炮口火焰剩余显示时间（单位：tick），用于实现“开火后延迟熄灭”效果。
+    public int muzzleFlashTicks = 0;
     private static final double SEARCH_RADIUS = 128.0;
     public int defaultspinx = 0;
     public int defaultspiny = 0;
@@ -143,9 +145,13 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     }
 
     public void tick() {
-        if(idleTicks > 1) {
-            idleTicks = idleTicks-1;
-            return;
+        // 功能：冷却时间仅用于禁止开火，不再阻断索敌与转向逻辑。
+        if (idleTicks > 0) {
+            idleTicks = idleTicks - 1;
+        }
+        // 功能：每 tick 衰减炮口火焰显示计时，计时结束后自动隐藏火焰层。
+        if (muzzleFlashTicks > 0) {
+            muzzleFlashTicks = muzzleFlashTicks - 1;
         }
         // 功能：统一刷新炮塔世界坐标，减少 tick 主流程分支复杂度。
         refreshWorldPosition();
@@ -231,14 +237,28 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
     // 功能：在炮口完成对准时触发开火，并设置统一冷却。
     private void fireWhenLocked() {
+        // 功能：冷却期间允许继续索敌与旋转，但禁止重复开火。
+        if (idleTicks > 0) {
+            return;
+        }
         if (aimtype == 1) {
             targetdistance = Vec.Distance(currentworldpos, targetPos);
             shootentity();
             idleTicks = getCoolDown();
+            // 功能：实体目标开火后保持 0.5 秒炮口火焰显示（20tick/s * 0.5s = 10tick）。
+            muzzleFlashTicks = 10;
         } else if (aimtype == 2) {
+            targetdistance = Vec.Distance(currentworldpos, targetPos);
             shootship();
             idleTicks = getCoolDown();
+            // 功能：舰船目标开火后同样保持 0.5 秒炮口火焰显示。
+            muzzleFlashTicks = 10;
         }
+    }
+
+    // 功能：提供统一的炮口火焰可见判定，支持“开火后延时显示”。
+    public boolean shouldRenderMuzzleFlash() {
+        return muzzleFlashTicks > 0;
     }
 
     // 功能：无有效目标时将炮塔朝向平滑回归到默认角度（defaultxrot/defaultyrot）。
@@ -585,6 +605,8 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         tag.putFloat("yrot",this.targetyrot);
         tag.putInt("defaultxrot",this.defaultspinx);
         tag.putInt("defaultyrot",this.defaultspiny);
+        // 功能：同步炮口火焰剩余时间到客户端，确保渲染层可按时显示/熄灭。
+        tag.putInt("muzzleFlashTicks", this.muzzleFlashTicks);
     }
 
     @Override
@@ -604,6 +626,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         if (tag.contains("yrot")) {this.targetyrot = tag.getFloat("yrot");}
         if (tag.contains("defaultyrot")) {this.defaultspiny = tag.getInt("defaultyrot");}
         if (tag.contains("defaultxrot")) {this.defaultspinx = tag.getInt("defaultxrot");}
+        if (tag.contains("muzzleFlashTicks")) {this.muzzleFlashTicks = tag.getInt("muzzleFlashTicks");}
     }
 
     @Override

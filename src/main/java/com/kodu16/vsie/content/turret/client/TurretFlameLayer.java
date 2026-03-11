@@ -43,9 +43,10 @@ public class TurretFlameLayer extends GeoRenderLayer<AbstractTurretBlockEntity> 
     public void render(PoseStack poseStack, AbstractTurretBlockEntity animatable, BakedGeoModel bakedModel,
                        RenderType renderType, MultiBufferSource bufferSource, VertexConsumer bufferSourceBuffer,
                        float partialTick, int packedLight, int packedOverlay) {
-        // 功能：根据目标距离触发炮口焰，targetdistance==0 时不渲染。
+        // 功能：读取当前目标距离，供本层做长度/状态判断（保留原有数据通路）。
         flameLength = animatable.getTargetdistance();
-        if (flameLength == 0d) {
+        // 功能：改为使用“开火后延时标记”控制显示，避免 targetdistance 归零导致火焰只闪一帧。
+        if (!animatable.shouldRenderMuzzleFlash()) {
             return;
         }
 
