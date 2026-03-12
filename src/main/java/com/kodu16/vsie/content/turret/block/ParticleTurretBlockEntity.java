@@ -70,6 +70,11 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
 
     @Override
     public void shootentity() {
+        // 功能：仅允许服务端执行开火逻辑，避免客户端在索敌/预测分支误触发一次射击动画。
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        // 功能：射击动画与真实发射绑定，保证“生成炮弹后”才播放且每次开火仅触发一次。
         triggerAnim("controller", "shoot");
         Vec3 center = getBlockPos().getCenter();
         ParticleBulletEntity bullet = new ParticleBulletEntity(vsieEntities.PARTICLE_BULLET.get(), level);
