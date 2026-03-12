@@ -272,7 +272,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
     }
 
     public void updateWeapon() {
-        if(previousfirestatus == controlseatData.isfiring) return;
+        // 每 tick 都向武器同步一次开火状态与频道，避免因丢包/状态不同步导致“左键按下但武器不发射”。
+        // 仅在状态变化时才同步会出现武器端通道被重置后无法自动恢复的问题。
         previousfirestatus = controlseatData.isfiring;
         List<Vec3> toRemove = new ArrayList<>();
         this.forEachLinkedPeripheral(pos -> {
