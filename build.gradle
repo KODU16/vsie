@@ -83,7 +83,7 @@ repositories {
             includeGroup("curse.maven")
         }
     }
-    maven {
+    /*maven {
         name = "create maven"
         url = "https://maven.tterrag.com/"
         content {
@@ -93,7 +93,7 @@ repositories {
             includeGroup("dev.engine-room.flywheel")
             includeGroup("net.createmod.ponder")
         }
-    }
+    }*/
     maven {
         name = "Valkyrien Skies Internal"
         url = "https://maven.valkyrienskies.org"

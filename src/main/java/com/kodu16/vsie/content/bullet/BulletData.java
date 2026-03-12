@@ -5,6 +5,7 @@ import com.kodu16.vsie.utility.FxData;
 import lombok.Getter;
 import net.minecraft.resources.ResourceLocation;
 
+@SuppressWarnings("removal")
 @Getter
 public class BulletData {
     // 功能：保存子弹的特效配置；兼容数据文件中使用 "fx" 或 "fxData" 两种键名。

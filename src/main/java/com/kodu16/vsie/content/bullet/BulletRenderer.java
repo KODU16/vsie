@@ -35,12 +35,15 @@ public class BulletRenderer<T extends AbstractBulletEntity> extends EntityRender
 
     @Override
     public void render(T pEntity, float pEntityYaw, float pPartialTick, PoseStack pPoseStack, MultiBufferSource pBuffer, int pPackedLight) {
+        if(pEntity.tickCount<=10) {
+            return;
+        }
         fixRotation(pEntity);
         pPoseStack.pushPose();
         pPoseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(pPartialTick, pEntity.yRotO, pEntity.getYRot()) - 90.0F));
         pPoseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(pPartialTick, pEntity.xRotO, pEntity.getXRot())));
 
-        pPoseStack.scale(0.15F, 0.15F, 0.15F);
+        pPoseStack.scale(0.05F, 0.05F, 0.05F);
         pPoseStack.translate(0F, 0F, 0F);
         VertexConsumer vertexconsumer = pBuffer.getBuffer(translucentbeamrendertype.SOLID_TRANSLUCENT_BEAM);
         PoseStack.Pose pose = pPoseStack.last();
@@ -60,7 +63,7 @@ public class BulletRenderer<T extends AbstractBulletEntity> extends EntityRender
             pPoseStack.mulPose(Axis.ZP.rotationDegrees(180.0F));
         }
         // 绘制离子弹激光拖尾：方向始终沿速度方向反向（本地 -X 轴），并在远端做颜色变浅。
-        renderIonTrail(pPoseStack.last(), vertexconsumer, pPackedLight, pEntity.tickCount*pEntity.tickCount*10);
+        //renderIonTrail(pPoseStack.last(), vertexconsumer, pPackedLight, pEntity.tickCount*pEntity.tickCount*10);
 
         pPoseStack.popPose();
         super.render(pEntity, pEntityYaw, pPartialTick, pPoseStack, pBuffer, pPackedLight);

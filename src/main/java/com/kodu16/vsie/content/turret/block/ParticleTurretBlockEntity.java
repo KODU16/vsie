@@ -46,7 +46,7 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
         return "particle";
     }
 
-    public double getYAxisOffset() {return 2.0d;}
+    public double getYAxisOffset() {return 2.35d;}
 
     @Override
     public double getcannonlength() {
@@ -76,7 +76,7 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
         // 功能：为粒子炮子弹写入标准 data，确保子弹第 1 tick 使用 particle_cannon_fire 触发 awake FX。
         bullet.setDataBase(BulletData.createParticleCannonDefault());
         bullet.setPos(new Vec3(this.currentworldpos.x,this.currentworldpos.y,this.currentworldpos.z));
-        bullet.setDeltaMovement(center.vectorTo(new Vec3(targetPos.x,targetPos.y,targetPos.z)).normalize().scale(20.0F));
+        bullet.setDeltaMovement(center.vectorTo(new Vec3(targetPos.x,targetPos.y,targetPos.z)).normalize().scale(1.0F));
         level.addFreshEntity(bullet);
     }
 
