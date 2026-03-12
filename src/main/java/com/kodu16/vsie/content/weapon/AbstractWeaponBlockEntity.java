@@ -196,20 +196,24 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         Vec3 worldFrom = raycastPositions.getFirst();
         Vec3 worldTo = raycastPositions.getSecond();
 
+        // 默认使用最大射程：当射线没有命中任何方块时，激光会显示为武器的最大长度。
+        this.raycastDistance = effectiveMaxDistance;
+        // 默认目标点设置为最大射程末端，便于保持客户端/服务端状态一致。
+        this.targetpos = worldTo;
+
         // Perform raycast using world coordinates
         ClipContext.Fluid clipFluid = ClipContext.Fluid.ANY;
         ClipContext context = new ClipContext(worldFrom, worldTo, ClipContext.Block.COLLIDER, clipFluid, null);
         BlockHitResult hit = level.clip(context);
 
-        BlockPos hitBlockPos;
-
         if (hit.getType() == HitResult.Type.BLOCK) {
             Vec3 hitPos = hit.getLocation();
-            hitBlockPos = hit.getBlockPos();
 
+            // 命中方块时，激光长度严格使用“武器位置 -> 命中位置”的实际距离。
             float distance = (float)worldFrom.distanceTo(hitPos);
             this.raycastDistance = Math.min(distance, effectiveMaxDistance);
-            this.targetpos = new Vec3(hitBlockPos.getX(),hitBlockPos.getY(),hitBlockPos.getZ());
+            // 命中后将目标点改为真实命中点，用于后续爆炸等逻辑。
+            this.targetpos = hitPos;
             LogUtils.getLogger().warn("raycast pose from clip:"+this.targetpos);
         }
         setChanged();
