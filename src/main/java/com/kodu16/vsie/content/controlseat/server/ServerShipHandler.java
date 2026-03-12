@@ -85,7 +85,8 @@ public class ServerShipHandler {
                         data.avalibleenergy,data.totalenergystorage,
                         data.avaliblefuel,data.totalfuelstorage,
                         data.isshieldon, (int) data.avalibleshield, (int) data.totalshield,
-                        data.isflightassiston, data.isantigravityon);
+                        data.isflightassiston, data.isantigravityon,
+                        data.activeWeaponDisplayNames);
                 //LogUtils.getLogger().warn("shieldtotal:"+data.totalshield+"avalible:"+data.avalibleshield);
                 ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()),packetstatus);
             }

@@ -275,19 +275,28 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         // 每 tick 都向武器同步一次开火状态与频道，避免因丢包/状态不同步导致“左键按下但武器不发射”。
         // 仅在状态变化时才同步会出现武器端通道被重置后无法自动恢复的问题。
         previousfirestatus = controlseatData.isfiring;
+        // 功能：提前计算控制椅当前激活频道编码，后续用于“武器-频道匹配”与同步开火输入。
+        int activeSeatChannelEncode = 0;
+        if (controlseatData.getChannel1()) activeSeatChannelEncode |= 1;
+        if (controlseatData.getChannel2()) activeSeatChannelEncode |= 2;
+        if (controlseatData.getChannel3()) activeSeatChannelEncode |= 4;
+        if (controlseatData.getChannel4()) activeSeatChannelEncode |= 8;
+
+        // 功能：缓存当前控制椅激活频道对应的武器显示名，供 HUD 每行展示。
+        List<String> activeWeaponDisplayNames = new ArrayList<>();
         List<Vec3> toRemove = new ArrayList<>();
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof AbstractWeaponBlockEntity weapon) {
-                // 正常发信号
-                int encoded = 0;
-                if (controlseatData.getChannel1()) encoded |= 1;
-                if (controlseatData.getChannel2()) encoded |= 2;
-                if (controlseatData.getChannel3()) encoded |= 4;
-                if (controlseatData.getChannel4()) encoded |= 8;
+                // 功能：武器通过自身频道配置“告知”控制椅是否属于当前激活频道。
+                if (isWeaponInAnyActiveChannel(weapon, activeSeatChannelEncode)) {
+                    activeWeaponDisplayNames.add(weapon.getBlockState().getBlock().getName().getString());
+                }
+
+                // 功能：按当前开火状态向武器同步控制椅频道输入。
                 if (controlseatData.isfiring) {
-                    weapon.receivechannel(encoded);
+                    weapon.receivechannel(activeSeatChannelEncode);
                 } else {
                     weapon.receivechannel(0);
                 }
@@ -303,10 +312,26 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             }
         }, 1);
 
+        // 功能：更新服务端缓存的激活武器显示名，供状态包同步到 HUD。
+        controlseatData.activeWeaponDisplayNames = activeWeaponDisplayNames;
+
         // 循环结束后统一删除
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 1);
         }
+    }
+
+    // 功能：判断武器是否配置在控制椅当前激活频道中的任一频道。
+    private boolean isWeaponInAnyActiveChannel(AbstractWeaponBlockEntity weapon, int activeSeatChannelEncode) {
+        if (activeSeatChannelEncode == 0) {
+            return false;
+        }
+        int weaponChannelEncode = 0;
+        if (weapon.getData().getChannel1()) weaponChannelEncode |= 1;
+        if (weapon.getData().getChannel2()) weaponChannelEncode |= 2;
+        if (weapon.getData().getChannel3()) weaponChannelEncode |= 4;
+        if (weapon.getData().getChannel4()) weaponChannelEncode |= 8;
+        return (weaponChannelEncode & activeSeatChannelEncode) != 0;
     }
 
     public void updateShield() {

@@ -13,6 +13,8 @@ import net.minecraftforge.network.NetworkEvent;
 import org.joml.Vector3d;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 
 
@@ -28,13 +30,16 @@ public class ControlSeatStatusS2CPacket {
     public int shieldtotal;
     public boolean flightassiston;
     public boolean antigravityon;
+    // 功能：承载服务端筛选后的激活武器显示名列表，用于 HUD 文本渲染。
+    public List<String> activeWeaponDisplayNames;
 
     // 构造函数
     public ControlSeatStatusS2CPacket(BlockPos pos,
                                       int energyavalible, int energytotal,
                                       int fuelavalible,int fueltotal,
                                       boolean shieldon, int shieldavalible, int shieldtotal,
-                                      boolean flightassiston, boolean antigravityon) {
+                                      boolean flightassiston, boolean antigravityon,
+                                      List<String> activeWeaponDisplayNames) {
         this.pos = pos;
         this.energyavalible = energyavalible;
         this.energytotal = energytotal;
@@ -45,6 +50,8 @@ public class ControlSeatStatusS2CPacket {
         this.shieldtotal = shieldtotal;
         this.flightassiston = flightassiston;
         this.antigravityon = antigravityon;
+        // 功能：防御性拷贝武器显示名列表，避免网络层外部引用污染包体数据。
+        this.activeWeaponDisplayNames = new ArrayList<>(activeWeaponDisplayNames);
     }
 
     // 编码（序列化）
@@ -59,6 +66,11 @@ public class ControlSeatStatusS2CPacket {
         buf.writeInt(shieldtotal);
         buf.writeBoolean(flightassiston);
         buf.writeBoolean(antigravityon);
+        // 功能：序列化激活武器显示名列表，供客户端 HUD 展示。
+        buf.writeInt(activeWeaponDisplayNames.size());
+        for (String name : activeWeaponDisplayNames) {
+            buf.writeUtf(name);
+        }
     }
 
     // 解码（反序列化）
@@ -73,7 +85,13 @@ public class ControlSeatStatusS2CPacket {
         int shieldtotal = buf.readInt();
         boolean flightassiston = buf.readBoolean();
         boolean antigravityon = buf.readBoolean();
-        return new ControlSeatStatusS2CPacket(pos, energyavalible, energytotal, fuelavalible, fueltotal, shieldon, shieldavalible, shieldtotal, flightassiston, antigravityon);
+        // 功能：反序列化激活武器显示名列表。
+        int weaponNameSize = buf.readInt();
+        List<String> activeWeaponDisplayNames = new ArrayList<>();
+        for (int i = 0; i < weaponNameSize; i++) {
+            activeWeaponDisplayNames.add(buf.readUtf());
+        }
+        return new ControlSeatStatusS2CPacket(pos, energyavalible, energytotal, fuelavalible, fueltotal, shieldon, shieldavalible, shieldtotal, flightassiston, antigravityon, activeWeaponDisplayNames);
     }
 
     // 处理客户端接收到的数据包
@@ -103,6 +121,8 @@ public class ControlSeatStatusS2CPacket {
 
             clientData.isflightassiston = flightassiston;
             clientData.isantigravityon = antigravityon;
+            // 功能：同步客户端 HUD 需要展示的激活武器显示名。
+            clientData.activeWeaponDisplayNames = new ArrayList<>(activeWeaponDisplayNames);
         }));
         ctx.get().setPacketHandled(true);
     }

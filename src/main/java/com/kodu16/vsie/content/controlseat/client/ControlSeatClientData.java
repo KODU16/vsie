@@ -1,6 +1,8 @@
 package com.kodu16.vsie.content.controlseat.client;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -54,6 +56,9 @@ public class ControlSeatClientData {
 
     public volatile boolean isflightassiston = false;
     public volatile boolean isantigravityon = false;
+
+    // 功能：保存服务端下发的“当前激活频道可响应武器”显示名列表，供 HUD 每行绘制。
+    public volatile List<String> activeWeaponDisplayNames = new ArrayList<>();
 
     public void setLastMousex(double x) { lastmousex = x; }
     public void setLastMousey(double x) { lastmousey = x; }

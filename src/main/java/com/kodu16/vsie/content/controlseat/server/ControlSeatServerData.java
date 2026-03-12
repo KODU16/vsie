@@ -57,6 +57,9 @@ public class ControlSeatServerData {
     public volatile double shieldmin = 0;
     public volatile double shieldmax = 0;
 
+    // 功能：缓存“当前控制椅激活频道下可响应的武器显示名”，用于 HUD 展示。
+    public volatile List<String> activeWeaponDisplayNames = new ArrayList<>();
+
     public volatile boolean isviewlocked = false;
     public volatile int playerrotx = 0;
     public volatile int playerroty = 0;

@@ -103,6 +103,9 @@ public class HudOverlay {
             drawSwitch(gg, "3", switchBaseX+35, switchY+10, data.channel3,10,10);
             drawSwitch(gg, "4", switchBaseX+50, switchY+10, data.channel4,10,10);
 
+            // 功能：在 HUD 热量条右侧逐行展示“当前控制椅激活频道下可响应武器”的 displayName。
+            drawActiveWeaponNames(gg, data, centerX, centerY);
+
             //绘制水平和竖直方位条
             var interpolatedFacing = data.getInterpolatedShipFacing(partialTick);
             var interpolatedUp = data.getInterpolatedShipUp(partialTick);
@@ -142,6 +145,16 @@ public class HudOverlay {
         int color = active ? MAIN_COLOR : SUB_COLOR;
         drawCenteredText(gg, label, x, y, color);
         DrawShape.drawHollowRectangle(gg, x, y+2, recwidth, recheight, 1, color);
+    }
+
+    // 功能：把服务端同步来的激活武器 displayName 逐行绘制在热量条右侧。
+    private static void drawActiveWeaponNames(GuiGraphics gg, ControlSeatClientData data, int centerX, int centerY) {
+        int startX = centerX + centerX / 20 + 70;
+        int startY = centerY - 18;
+        int lineHeight = 10;
+        for (int i = 0; i < data.activeWeaponDisplayNames.size(); i++) {
+            drawCenteredText(gg, data.activeWeaponDisplayNames.get(i), startX, startY + i * lineHeight, MAIN_COLOR);
+        }
     }
 
 }
