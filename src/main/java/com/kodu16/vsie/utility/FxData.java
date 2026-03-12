@@ -24,6 +24,14 @@ public class FxData
     @SerializedName("hit")
     private FxUnit hitFx;
 
+    // 功能：创建仅包含 awake 特效的 FxData，供代码内默认配置使用。
+    public static FxData createWithAwake(ResourceLocation awakeFxId)
+    {
+        FxData fxData = new FxData();
+        fxData.awakeFx = FxUnit.create(awakeFxId);
+        return fxData;
+    }
+
     // 功能：统一提取 FX 单元；优先读当前对象，若为空则回退读取嵌套的 "fx" 节点。
     @Nullable
     public FxUnit resolveUnit(java.util.function.Function<FxData, FxUnit> mapper)
@@ -42,5 +50,13 @@ public class FxData
     {
         @SerializedName("id")
         private ResourceLocation id = ResourceLocation.tryBuild(vsie.ID, "null");
+
+        // 功能：通过特效资源位置构造 FxUnit，统一默认值保护。
+        public static FxUnit create(@Nullable ResourceLocation fxId)
+        {
+            FxUnit fxUnit = new FxUnit();
+            fxUnit.id = fxId == null ? ResourceLocation.tryBuild(vsie.ID, "null") : fxId;
+            return fxUnit;
+        }
     }
 }
