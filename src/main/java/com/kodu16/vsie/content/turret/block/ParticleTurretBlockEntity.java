@@ -3,6 +3,12 @@ package com.kodu16.vsie.content.turret.block;
 import com.kodu16.vsie.content.bullet.entity.ParticleBulletEntity;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.registries.vsieEntities;
+import com.kodu16.vsie.utility.FxData;
+import com.kodu16.vsie.utility.vsieFxHelper;
+import com.lowdragmc.photon.client.fx.BlockEffect;
+import com.lowdragmc.photon.client.fx.EntityEffect;
+import com.lowdragmc.photon.client.fx.FXEffect;
+import com.lowdragmc.photon.client.fx.FXHelper;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
@@ -43,6 +49,11 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
     public double getYAxisOffset() {return 2.0d;}
 
     @Override
+    public double getcannonlength() {
+        return 4;
+    }
+
+    @Override
     public float getMaxSpinSpeed() {
         return Mth.PI/64;
     }
@@ -61,11 +72,18 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
     public void shootentity() {
         triggerAnim("controller", "shoot");
         Vec3 center = getBlockPos().getCenter();
-
         ParticleBulletEntity bullet = new ParticleBulletEntity(vsieEntities.PARTICLE_BULLET.get(), level);
         bullet.setPos(new Vec3(this.currentworldpos.x,this.currentworldpos.y,this.currentworldpos.z));
         bullet.setDeltaMovement(center.vectorTo(new Vec3(targetPos.x,targetPos.y,targetPos.z)).normalize().scale(20.0F));
         level.addFreshEntity(bullet);
+        if(this.level.isClientSide())
+            vsieFxHelper.extractFxUnit(getData().fxData, FxData::getAwakeFx)
+                    .map(FxData.FxUnit::getId).map(FXHelper::getFX)
+                    .ifPresent(fx->{
+                        var effect = new EntityEffect(fx, this.level, bullet, EntityEffect.AutoRotate.FORWARD);
+                        effect.setForcedDeath(true);
+                        effect.start();
+                    });
     }
 
     @Override

@@ -35,6 +35,11 @@ public class HeavyElectroMagnetTurretBlockEntity extends AbstractHeavyTurretBloc
     }
 
     @Override
+    public double getcannonlength() {
+        return 10;
+    }
+
+    @Override
     public float getMaxSpinSpeed() {
         return Mth.PI/256;
     }

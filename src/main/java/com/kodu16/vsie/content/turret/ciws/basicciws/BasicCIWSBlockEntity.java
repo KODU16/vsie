@@ -32,6 +32,11 @@ public class BasicCIWSBlockEntity extends AbstractCIWSBlockEntity {
     }
 
     @Override
+    public double getcannonlength() {
+        return 2;
+    }
+
+    @Override
     public float getMaxSpinSpeed() {
         return Mth.PI/4;
     }

@@ -1,7 +1,11 @@
 package com.kodu16.vsie.content.turret;
 
+import com.kodu16.vsie.utility.FxData;
+import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.valkyrienskies.core.api.ships.Ship;
 
@@ -12,9 +16,13 @@ import java.util.List;
 public final class TurretData {
 
     //turrets only
+    @Setter
     public volatile boolean targetsHostile = false;//1:敌对，2:被动，3:玩家，4:船只
+    @Setter
     public volatile boolean targetsPassive = false;
+    @Setter
     public volatile boolean targetsPlayers = false;
+    @Setter
     public volatile boolean targetsShip = false;
 
     //heavy turrets only
@@ -25,22 +33,20 @@ public final class TurretData {
 
     public volatile boolean targetsTrusted = false;
     public volatile Vector3d location;
+    @Getter
+    @Setter
     public volatile double distance;
     public volatile ArrayList<Ship> enemyshipsData = new ArrayList<>();
     public volatile Vec3 directionForward;
     public volatile Vec3 directionUp;
     public volatile Vec3 directionRight;
 
-    public double getDistance() { return distance; }
+    @Nullable
+    public FxData fxData;
+
     public boolean getTargetsHostile() { return targetsHostile; }
     public boolean getTargetsPassive() { return targetsPassive; }
     public boolean getTargetsPlayers() { return targetsPlayers; }
     public boolean getTargetsShip() { return targetsShip; }
 
-    public void setDistance(double distance) { this.distance = distance; }
-    public void setTargetsHostile(boolean targetsHostile) {this.targetsHostile = targetsHostile; }
-    public void setTargetsPassive(boolean targetsPassive) {this.targetsPassive = targetsPassive; }
-    public void setTargetsPlayers(boolean targetsPlayers) {this.targetsPlayers = targetsPlayers; }
-    public void setTargetsShip(boolean targetsShip) {this.targetsShip = targetsShip; }
-    
 }

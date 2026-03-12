@@ -67,9 +67,6 @@ repositories {
     mavenLocal()
     mavenCentral()
     maven { url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/' }
-    maven {
-        url = "https://modmaven.dev/"
-    }
 
     maven {
         name = "Modrinth Maven"
@@ -109,20 +106,6 @@ repositories {
     }
 
     maven {
-        name = "Jared's maven"
-        url = "https://maven.blamejared.com/"
-    }
-
-    maven {
-        name = "Squiddev maven cct"
-        url = "https://maven.squiddev.cc/"
-        content {
-            includeGroup("cc.tweaked")
-            includeModule("org.squiddev", "Cobalt")
-        }
-    }
-
-    maven {
         name = "Create 6.0 maven"
         url = "https://maven.createmod.net"
         content {
@@ -146,6 +129,24 @@ repositories {
             includeGroup("com.rbasamoyai") // THIS IS IMPORTANT
         }
     }
+    maven {
+        name "firstdarkdev"
+        url "https://maven.firstdarkdev.xyz/snapshots"
+    }
+    maven {
+        name "TslatEntityStatus (TES) Maven Repo"
+        url "https://dl.cloudsmith.io/public/tslat/tes/maven/"
+    }
+    maven {
+        // location of the maven that hosts JEI files since January 2023
+        name = "Jared's maven"
+        url = "https://maven.blamejared.com/"
+    }
+    maven {
+        // location of a maven mirror for JEI files, as a fallback
+        name = "ModMaven"
+        url = "https://modmaven.dev"
+    }
 
     //Mixin^2
     //maven { url = "https://maven.bawnorton.com/releases" }
@@ -153,6 +154,8 @@ repositories {
 }
 
 dependencies {
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
     implementation fileTree(dir: 'lib', includes: ['*.jar'])
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
@@ -182,6 +185,10 @@ dependencies {
     runtimeOnly fg.deobf("com.simibubi.create:create-${minecraft_version}:${create_version}:all")
     //JEI
     implementation fg.deobf("mezz.jei:jei-1.20.1-forge:15.19.0.85")
+
+    //photon
+    implementation fg.deobf("com.lowdragmc.ldlib:ldlib-forge-${minecraft_version}:${ldlib_version}") { transitive = false }
+    implementation fg.deobf("com.lowdragmc.photon:photon-forge-${minecraft_version}:${photon_version}") { transitive = false }
 
     // 功能：移除 Mekanism 运行时依赖，避免模组继续加载 Mekanism。
     implementation fg.deobf("software.bernie.geckolib:geckolib-forge-${minecraft_version}:${geckolib_version}")

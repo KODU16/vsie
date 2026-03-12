@@ -1,0 +1,12 @@
+{
+  "fx": {
+    "awake": {
+      "id": "vsie:particle_cannon_fire"
+    },
+    "end": {
+      "id": "vsie:particle_cannon_fire"
+    }
+  },
+  "sound": {
+  }
+}
