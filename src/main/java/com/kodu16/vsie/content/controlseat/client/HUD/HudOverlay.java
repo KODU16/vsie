@@ -35,6 +35,8 @@ public class HudOverlay {
     public static final int SUB_COLOR  = FastColor.ARGB32.color(TEXT_ALPHA, 0x00, 0x66, 0x33);
 
     private static final Minecraft mc = Minecraft.getInstance(); // drawGlowText 要用
+    // 功能：记录上一帧 HUD 渲染时间，用于把慢包同步数据按真实帧间隔进行平滑插值。
+    private static long lastHudRenderTimeNanos = -1L;
 
 
     @SubscribeEvent
@@ -67,16 +69,17 @@ public class HudOverlay {
             float energyRatio = ratio(data.energyavalible, data.energytotal);
             float fuelRatio = ratio(data.fuelavalible, data.fueltotal);
             float shieldRatio = ratio(data.shieldavalible, data.shieldtotal);
-            float throttleRatio = Mth.clamp((data.throttle + 100f) / 200f, 0f, 1f);
+            // 功能：把服务器同步油门作为“目标值”，交给本地每帧平滑跟踪，减少慢包时条形跳变。
+            data.throttleTargetRatio = Mth.clamp((data.throttle + 100f) / 200f, 0f, 1f);
 
-            float smoothEnergyTemp = data.smoothEnergyRatio;
-            float smoothFuelTemp = data.smoothFuelRatio;
-            float smoothShieldTemp = data.smoothShieldRatio;
-            float smoothThrottleTemp = data.smoothThrottle;
-            data.smoothEnergyRatio = smooth(smoothEnergyTemp, energyRatio, partialTick);
-            data.smoothFuelRatio = smooth(smoothFuelTemp, fuelRatio, partialTick);
-            data.smoothShieldRatio = smooth(smoothShieldTemp, shieldRatio, partialTick);
-            data.smoothThrottle = smooth(smoothThrottleTemp, throttleRatio, partialTick);
+            // 功能：按真实渲染帧间隔计算插值权重，避免仅依赖 partialTick 导致慢包时视觉卡顿。
+            float frameDeltaSeconds = computeFrameDeltaSeconds();
+            float hudAlpha = computeSmoothingAlpha(frameDeltaSeconds, 10f);
+
+            data.smoothEnergyRatio = smoothExp(data.smoothEnergyRatio, energyRatio, hudAlpha);
+            data.smoothFuelRatio = smoothExp(data.smoothFuelRatio, fuelRatio, hudAlpha);
+            data.smoothShieldRatio = smoothExp(data.smoothShieldRatio, shieldRatio, hudAlpha);
+            data.smoothThrottle = smoothExp(data.smoothThrottle, data.throttleTargetRatio, hudAlpha);
             int visualThrottle = Mth.floor(Mth.lerp(data.smoothThrottle, -100f, 100f));
 
             // 标题 - 粗体 + 青色
@@ -105,7 +108,7 @@ public class HudOverlay {
             drawSwitch(gg, "4", switchBaseX+50, switchY+10, data.channel4,10,10);
 
             // 功能：在 HUD 热量条右侧逐行展示“当前控制椅激活频道下可响应武器”的名称与冷却进度条。
-            drawActiveWeaponCooldowns(gg, data, centerX, centerY);
+            drawActiveWeaponCooldowns(gg, data, centerX, centerY, hudAlpha);
 
             //绘制水平和竖直方位条
             var interpolatedFacing = data.getInterpolatedShipFacing(partialTick);
@@ -128,8 +131,26 @@ public class HudOverlay {
         return Mth.clamp((float) available / (float) total, 0f, 1f);
     }
 
-    private static float smooth(float current, float target, float factor) {
-        return Mth.lerp(Mth.clamp(factor, 0f, 1f), current, target);
+    // 功能：计算 HUD 两帧之间的真实秒数，为指数平滑提供稳定的时间基准。
+    private static float computeFrameDeltaSeconds() {
+        long now = System.nanoTime();
+        if (lastHudRenderTimeNanos < 0L) {
+            lastHudRenderTimeNanos = now;
+            return 1f / 60f;
+        }
+        long deltaNanos = now - lastHudRenderTimeNanos;
+        lastHudRenderTimeNanos = now;
+        return Mth.clamp(deltaNanos / 1_000_000_000f, 1f / 240f, 1f / 15f);
+    }
+
+    // 功能：根据帧时长与响应速度计算指数平滑权重，让慢包下动画依然连续。
+    private static float computeSmoothingAlpha(float deltaSeconds, float responsePerSecond) {
+        return Mth.clamp(1f - (float) Math.exp(-responsePerSecond * deltaSeconds), 0f, 1f);
+    }
+
+    // 功能：统一指数平滑函数，按 alpha 将当前值渐进逼近目标值。
+    private static float smoothExp(float current, float target, float alpha) {
+        return Mth.lerp(alpha, current, target);
     }
 
     // 方便的居中绘制方法（不带辉光）
@@ -149,12 +170,20 @@ public class HudOverlay {
     }
 
     // 功能：把服务端同步来的激活武器名称与冷却进度（currentTick/getcooldown）逐行绘制在热量条右侧。
-    private static void drawActiveWeaponCooldowns(GuiGraphics gg, ControlSeatClientData data, int centerX, int centerY) {
+    private static void drawActiveWeaponCooldowns(GuiGraphics gg, ControlSeatClientData data, int centerX, int centerY, float hudAlpha) {
         int startX = centerX + centerX / 20 + 90;
         int startY = centerY - 18;
         int lineHeight = 14;
         int barWidth = 52;
         int barHeight = 4;
+
+        // 功能：把平滑数组长度对齐武器行数，确保每行冷却条都有独立插值状态。
+        while (data.smoothWeaponCooldownRatios.size() < data.activeWeaponHudInfos.size()) {
+            data.smoothWeaponCooldownRatios.add(0f);
+        }
+        while (data.smoothWeaponCooldownRatios.size() > data.activeWeaponHudInfos.size()) {
+            data.smoothWeaponCooldownRatios.remove(data.smoothWeaponCooldownRatios.size() - 1);
+        }
 
         for (int i = 0; i < data.activeWeaponHudInfos.size(); i++) {
             ActiveWeaponHudInfo info = data.activeWeaponHudInfos.get(i);
@@ -166,7 +195,10 @@ public class HudOverlay {
             int barCenterX = startX + 55;
             int barCenterY = rowY + 1;
             int safeMaxCooldown = Math.max(1, info.maxCooldown);
-            float progress = Mth.clamp((float) Math.max(0, info.currentTick) / (float) safeMaxCooldown, 0f, 1f);
+            float targetProgress = Mth.clamp((float) Math.max(0, info.currentTick) / (float) safeMaxCooldown, 0f, 1f);
+            // 功能：对每行武器冷却进度做本地平滑，减少服务端慢包导致的突变感。
+            float progress = smoothExp(data.smoothWeaponCooldownRatios.get(i), targetProgress, hudAlpha);
+            data.smoothWeaponCooldownRatios.set(i, progress);
 
             // 功能：绘制冷却进度条外框，作为“油门样式”槽体。
             DrawShape.drawHollowRectangle(gg, barCenterX, barCenterY, barWidth, barHeight + 2, 1, SUB_COLOR);

@@ -60,12 +60,16 @@ public class ControlSeatClientData {
     public volatile float smoothFuelRatio = 0f;
     public volatile float smoothShieldRatio = 0f;
     public volatile float smoothThrottle = 0f;
+    // 功能：缓存油门条的“目标值”，让 HUD 在慢包场景下按帧平滑追踪而不是直接跳变。
+    public volatile float throttleTargetRatio = 0f;
 
     public volatile boolean isflightassiston = false;
     public volatile boolean isantigravityon = false;
 
     // 功能：保存服务端下发的“当前激活频道可响应武器”HUD 数据（名称+冷却），供 HUD 每行绘制。
     public volatile List<ActiveWeaponHudInfo> activeWeaponHudInfos = new ArrayList<>();
+    // 功能：缓存每一行武器冷却进度条的平滑值，避免网络慢包导致进度条卡顿跳帧。
+    public volatile List<Float> smoothWeaponCooldownRatios = new ArrayList<>();
 
     public void setLastMousex(double x) { lastmousex = x; }
     public void setLastMousey(double x) { lastmousey = x; }
