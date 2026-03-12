@@ -1,5 +1,9 @@
 package com.kodu16.vsie.content.bullet;
 
+import com.kodu16.vsie.utility.FxData;
+import com.kodu16.vsie.utility.vsieFxHelper;
+import com.lowdragmc.photon.client.fx.EntityEffect;
+import com.lowdragmc.photon.client.fx.FXHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -39,7 +43,17 @@ public abstract class AbstractBulletEntity extends Projectile {
     @Override
     public void tick() {
         super.tick();
-
+        if(this.tickCount == 1)
+        {
+            if(this.level().isClientSide())
+                vsieFxHelper.extractFxUnit(getDataBase().getFxData(), FxData::getAwakeFx)
+                        .map(FxData.FxUnit::getId).map(FXHelper::getFX)
+                        .ifPresent(fx->{
+                            var effect = new EntityEffect(fx, this.level(), this, EntityEffect.AutoRotate.FORWARD);
+                            effect.setForcedDeath(true);
+                            effect.start();
+                        });
+        }
         if (this.level().isClientSide()) {
             // 可选：客户端插值表现可以保留原逻辑
             this.setPos(this.position().add(this.getDeltaMovement()));

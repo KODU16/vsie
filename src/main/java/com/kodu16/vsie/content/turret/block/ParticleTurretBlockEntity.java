@@ -75,18 +75,6 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
         bullet.setPos(new Vec3(this.currentworldpos.x,this.currentworldpos.y,this.currentworldpos.z));
         bullet.setDeltaMovement(center.vectorTo(new Vec3(targetPos.x,targetPos.y,targetPos.z)).normalize().scale(20.0F));
         level.addFreshEntity(bullet);
-        // 功能：开火后由服务端发送 S2C 包触发子弹 awake FX，避免 shootentity 仅服务端执行时客户端无法进入旧的 isClientSide 分支。
-        vsieFxHelper.extractFxUnit(getData().fxData, FxData::getAwakeFx)
-                .map(FxData.FxUnit::getId)
-                .ifPresent(fxId -> {
-                    // 功能：仅在服务端广播给跟踪该子弹的客户端（含自身），让所有可见玩家都能稳定看到初始特效。
-                    if (!this.level.isClientSide()) {
-                        ModNetworking.CHANNEL.send(
-                                PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> bullet),
-                                new FxEntityS2CPacket(fxId, bullet.getId(), true)
-                        );
-                    }
-                });
     }
 
     @Override
