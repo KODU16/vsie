@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 
@@ -14,8 +16,11 @@ import org.joml.Vector3d;
 public class ControlSeatClientData {
     //clientdata不是每个方块绑定一个！它是每个玩家绑定一个，当玩家坐上椅子时，会与椅子互通数据
 
+    @Getter
     public volatile long lastKeyPressTime = 0;
     public volatile boolean viewLock = false;
+    @Getter
+    @Setter
     public volatile UUID userUUID = null;
     public volatile double accumulatedmousex=0;
     public volatile double accumulatedmousey=0;
@@ -69,12 +74,9 @@ public class ControlSeatClientData {
     public double getAccumulatedMousex() {return accumulatedmousex;}
     public double getAccumulatedMousey() {return accumulatedmousey;}
 
-    public void setUserUUID(UUID uuid) { userUUID = uuid; }
-    public UUID getUserUUID() { return userUUID; }
     public void clearUserUUID() { userUUID=null; }
 
     public void updatelastKeyPressTime() {lastKeyPressTime = System.currentTimeMillis();}
-    public long getLastKeyPressTime() {return lastKeyPressTime;}
 
     // 切换视角锁定状态
     public void toggleViewLock() {viewLock = !viewLock;}

@@ -285,18 +285,19 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         // 功能：缓存当前控制椅激活频道对应的武器显示名，供 HUD 每行展示。
         List<String> activeWeaponDisplayNames = new ArrayList<>();
         List<Vec3> toRemove = new ArrayList<>();
+        int finalActiveSeatChannelEncode = activeSeatChannelEncode;
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof AbstractWeaponBlockEntity weapon) {
                 // 功能：武器通过自身频道配置“告知”控制椅是否属于当前激活频道。
-                if (isWeaponInAnyActiveChannel(weapon, activeSeatChannelEncode)) {
-                    activeWeaponDisplayNames.add(weapon.getBlockState().getBlock().getName().getString());
+                if (isWeaponInAnyActiveChannel(weapon, finalActiveSeatChannelEncode)) {
+                    activeWeaponDisplayNames.add(weapon.getDisplayName().getString());
                 }
 
                 // 功能：按当前开火状态向武器同步控制椅频道输入。
                 if (controlseatData.isfiring) {
-                    weapon.receivechannel(activeSeatChannelEncode);
+                    weapon.receivechannel(finalActiveSeatChannelEncode);
                 } else {
                     weapon.receivechannel(0);
                 }

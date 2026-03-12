@@ -49,7 +49,7 @@ public class InfraKnifeAcceleratorBlockEntity extends AbstractWeaponBlockEntity 
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("Infra Knife Accelerator");
+        return Component.literal("IFRA");
     }
 
     @Override

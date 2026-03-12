@@ -23,7 +23,7 @@ public class BasicMissileLauncherBlockEntity extends AbstractMissileLauncherBloc
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("Basic Missile Launcher");
+        return Component.literal("MSL");
     }
 
     @Override

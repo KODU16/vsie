@@ -79,8 +79,8 @@ public class StatusIndicator {
         DrawShapeToBuffer.drawPartialArc(buffer, mat, centerX + centerX/20 + 2, centerY, SIDEARC_RADIUS+4, SIDEARC_THICKNESS, WHITE,  -31, 31);
 
         //油门条
-        DrawShapeToBuffer.drawThickLine(buffer, mat,centerX-(3*centerX/10)-25, centerY+((centerY/2)), centerX-(3*centerX/8)+25, centerY+((centerY/2)), 4,SUB_COLOR);
-        DrawShapeToBuffer.drawThickLine(buffer, mat,centerX-(3*centerX/10), centerY+((centerY/2)), centerX-(3*centerX/8)+(int)(0.25*throttle), centerY+((centerY/2)), 4,MAIN_COLOR);
+        DrawShapeToBuffer.drawThickLine(buffer, mat,centerX-(3*centerX/10)-25, centerY+((centerY/2)), centerX-(3*centerX/10)+25, centerY+((centerY/2)), 4,SUB_COLOR);
+        DrawShapeToBuffer.drawThickLine(buffer, mat,centerX-(3*centerX/10), centerY+((centerY/2)), centerX-(3*centerX/10)+(int)(0.25*throttle), centerY+((centerY/2)), 4,MAIN_COLOR);
 
         //鼠标控制指示线
         double deltax=(mousex<0?-1:1)*Math.sqrt((double) Math.abs(mousex) /2);

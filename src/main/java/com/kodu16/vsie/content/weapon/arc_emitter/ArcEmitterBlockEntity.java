@@ -39,7 +39,7 @@ public class ArcEmitterBlockEntity extends AbstractWeaponBlockEntity {
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("Arc Emitter");
+        return Component.literal("ARCE");
     }
 
     @Override

@@ -149,7 +149,7 @@ public class HudOverlay {
 
     // 功能：把服务端同步来的激活武器 displayName 逐行绘制在热量条右侧。
     private static void drawActiveWeaponNames(GuiGraphics gg, ControlSeatClientData data, int centerX, int centerY) {
-        int startX = centerX + centerX / 20 + 70;
+        int startX = centerX + centerX / 20 + 90;
         int startY = centerY - 18;
         int lineHeight = 10;
         for (int i = 0; i < data.activeWeaponDisplayNames.size(); i++) {

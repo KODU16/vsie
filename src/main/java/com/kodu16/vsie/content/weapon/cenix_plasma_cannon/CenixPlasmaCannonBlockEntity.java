@@ -1,21 +1,16 @@
 package com.kodu16.vsie.content.weapon.cenix_plasma_cannon;
 
 import com.kodu16.vsie.content.bullet.entity.ParticleBulletEntity;
-import com.kodu16.vsie.content.bullet.entity.PlasmaBulletEntity;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
 import com.kodu16.vsie.registries.vsieEntities;
-import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
-import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 import static com.kodu16.vsie.content.weapon.AbstractWeaponBlock.FACING;
@@ -48,7 +43,7 @@ public class CenixPlasmaCannonBlockEntity extends AbstractWeaponBlockEntity {
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("Cenix Plasma Cannon");
+        return Component.literal("CNXP");
     }
 
     @Override
