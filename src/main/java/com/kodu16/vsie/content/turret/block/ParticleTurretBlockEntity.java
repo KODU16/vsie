@@ -1,5 +1,6 @@
 package com.kodu16.vsie.content.turret.block;
 
+import com.kodu16.vsie.content.bullet.BulletData;
 import com.kodu16.vsie.content.bullet.entity.ParticleBulletEntity;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.network.fx.FxEntityS2CPacket;
@@ -72,6 +73,8 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
         triggerAnim("controller", "shoot");
         Vec3 center = getBlockPos().getCenter();
         ParticleBulletEntity bullet = new ParticleBulletEntity(vsieEntities.PARTICLE_BULLET.get(), level);
+        // 功能：为粒子炮子弹写入标准 data，确保子弹第 1 tick 使用 particle_cannon_fire 触发 awake FX。
+        bullet.setDataBase(BulletData.createParticleCannonDefault());
         bullet.setPos(new Vec3(this.currentworldpos.x,this.currentworldpos.y,this.currentworldpos.z));
         bullet.setDeltaMovement(center.vectorTo(new Vec3(targetPos.x,targetPos.y,targetPos.z)).normalize().scale(20.0F));
         level.addFreshEntity(bullet);

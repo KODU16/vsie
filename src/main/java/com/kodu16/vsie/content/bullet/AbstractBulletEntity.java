@@ -33,6 +33,8 @@ public abstract class AbstractBulletEntity extends Projectile {
 
     private int lifeTime = 0;
     private double damage = 1.0;
+    // 功能：存储当前子弹的数据配置，默认携带 particle_cannon_fire 的 awake FX。
+    private BulletData dataBase = BulletData.createParticleCannonDefault();
 
     public AbstractBulletEntity(EntityType<? extends AbstractBulletEntity> type, Level level) {
         super(type, level);
@@ -46,6 +48,7 @@ public abstract class AbstractBulletEntity extends Projectile {
         if(this.tickCount == 1)
         {
             if(this.level().isClientSide())
+                // 功能：在子弹出生的第 1 tick 读取 dataBase 的 awake FX 并只触发一次。
                 vsieFxHelper.extractFxUnit(getDataBase().getFxData(), FxData::getAwakeFx)
                         .map(FxData.FxUnit::getId).map(FXHelper::getFX)
                         .ifPresent(fx->{
@@ -133,6 +136,17 @@ public abstract class AbstractBulletEntity extends Projectile {
         Entity target = pResult.getEntity();
         target.hurt(this.level().damageSources().onFire(),15);
         this.discard();
+    }
+
+
+    // 功能：获取子弹数据，供 tick 中读取 FX 配置。
+    public BulletData getDataBase() {
+        return dataBase;
+    }
+
+    // 功能：外部可覆盖子弹数据；传入 null 时回退默认 particle_cannon_fire 配置。
+    public void setDataBase(BulletData dataBase) {
+        this.dataBase = dataBase == null ? BulletData.createParticleCannonDefault() : dataBase;
     }
 
     @Override
