@@ -2,13 +2,11 @@ package com.kodu16.vsie.content.turret.block;
 
 import com.kodu16.vsie.content.bullet.entity.ParticleBulletEntity;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
+import com.kodu16.vsie.network.fx.FxEntityS2CPacket;
+import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.registries.vsieEntities;
 import com.kodu16.vsie.utility.FxData;
 import com.kodu16.vsie.utility.vsieFxHelper;
-import com.lowdragmc.photon.client.fx.BlockEffect;
-import com.lowdragmc.photon.client.fx.EntityEffect;
-import com.lowdragmc.photon.client.fx.FXEffect;
-import com.lowdragmc.photon.client.fx.FXHelper;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
@@ -16,6 +14,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.network.PacketDistributor;
 import org.joml.Vector3d;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.core.animation.AnimatableManager;
@@ -76,14 +75,18 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
         bullet.setPos(new Vec3(this.currentworldpos.x,this.currentworldpos.y,this.currentworldpos.z));
         bullet.setDeltaMovement(center.vectorTo(new Vec3(targetPos.x,targetPos.y,targetPos.z)).normalize().scale(20.0F));
         level.addFreshEntity(bullet);
-        if(this.level.isClientSide())
-            vsieFxHelper.extractFxUnit(getData().fxData, FxData::getAwakeFx)
-                    .map(FxData.FxUnit::getId).map(FXHelper::getFX)
-                    .ifPresent(fx->{
-                        var effect = new EntityEffect(fx, this.level, bullet, EntityEffect.AutoRotate.FORWARD);
-                        effect.setForcedDeath(true);
-                        effect.start();
-                    });
+        // 功能：开火后由服务端发送 S2C 包触发子弹 awake FX，避免 shootentity 仅服务端执行时客户端无法进入旧的 isClientSide 分支。
+        vsieFxHelper.extractFxUnit(getData().fxData, FxData::getAwakeFx)
+                .map(FxData.FxUnit::getId)
+                .ifPresent(fxId -> {
+                    // 功能：仅在服务端广播给跟踪该子弹的客户端（含自身），让所有可见玩家都能稳定看到初始特效。
+                    if (!this.level.isClientSide()) {
+                        ModNetworking.CHANNEL.send(
+                                PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> bullet),
+                                new FxEntityS2CPacket(fxId, bullet.getId(), true)
+                        );
+                    }
+                });
     }
 
     @Override
