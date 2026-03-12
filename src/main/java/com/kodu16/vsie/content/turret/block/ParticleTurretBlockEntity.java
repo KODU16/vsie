@@ -46,7 +46,7 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
         return "particle";
     }
 
-    public double getYAxisOffset() {return 2.35d;}
+    public double getYAxisOffset() {return 2.45d;}
 
     @Override
     public double getcannonlength() {
@@ -76,7 +76,7 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
         }
         // 功能：射击动画与真实发射绑定，保证“生成炮弹后”才播放且每次开火仅触发一次。
         triggerAnim("controller", "shoot");
-        Vec3 center = getBlockPos().getCenter();
+        Vec3 center = new Vec3(this.currentworldpos.x,this.currentworldpos.y,this.currentworldpos.z);
         ParticleBulletEntity bullet = new ParticleBulletEntity(vsieEntities.PARTICLE_BULLET.get(), level);
         // 功能：为粒子炮子弹写入标准 data，确保子弹第 1 tick 使用 particle_cannon_fire 触发 awake FX。
         bullet.setDataBase(BulletData.createParticleCannonDefault());

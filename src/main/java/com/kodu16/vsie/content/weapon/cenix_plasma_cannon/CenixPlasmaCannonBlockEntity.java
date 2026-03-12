@@ -41,7 +41,7 @@ public class CenixPlasmaCannonBlockEntity extends AbstractWeaponBlockEntity {
             ServerShip Ship = (ServerShip) VSGameUtilsKt.getShipObjectManagingPos(level, getBlockPos());
             Vector3d currentfacing = new Vector3d(0,1,0);
             Ship.getTransform().getShipToWorld().transformDirection(VectorConversionsMCKt.toJOMLD(this.getBlockState().getValue(FACING).getNormal()),currentfacing);
-            PlasmaBulletEntity bullet = new PlasmaBulletEntity(vsieEntities.PARTICLE_BULLET.get(), level);
+            ParticleBulletEntity bullet = new ParticleBulletEntity(vsieEntities.PARTICLE_BULLET.get(), level);
             bullet.setPos(new Vec3(this.weaponpos.x,this.weaponpos.y,this.weaponpos.z));
             bullet.setDeltaMovement(new Vec3(currentfacing.x*20,currentfacing.y*20,currentfacing.z*20));
             level.addFreshEntity(bullet);

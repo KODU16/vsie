@@ -48,7 +48,7 @@ public abstract class AbstractBulletEntity extends Projectile {
     @Override
     public void tick() {
 
-        if (this.tickCount >= 4 && this.tickCount <= 8) {
+        if (this.tickCount >= 1 && this.tickCount <= 8) {
             if (this.level().isClientSide()) {
                 vsieFxHelper.extractFxUnit(getDataBase().getFxData(), FxData::getAwakeFx)
                         .map(FxData.FxUnit::getId).map(FXHelper::getFX)
