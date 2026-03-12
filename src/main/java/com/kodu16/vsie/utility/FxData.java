@@ -9,6 +9,11 @@ import org.jetbrains.annotations.Nullable;
 @Getter
 public class FxData
 {
+    // 功能：兼容你当前的数据格式（顶层是 "fx" 节点），例如 { "fx": { "awake": ... } }。
+    @Nullable
+    @SerializedName("fx")
+    private FxData nestedFx;
+
     @Nullable
     @SerializedName("awake")
     private FxUnit awakeFx;
@@ -18,6 +23,18 @@ public class FxData
     @Nullable
     @SerializedName("hit")
     private FxUnit hitFx;
+
+    // 功能：统一提取 FX 单元；优先读当前对象，若为空则回退读取嵌套的 "fx" 节点。
+    @Nullable
+    public FxUnit resolveUnit(java.util.function.Function<FxData, FxUnit> mapper)
+    {
+        FxUnit directUnit = mapper.apply(this);
+        if(directUnit != null)
+        {
+            return directUnit;
+        }
+        return nestedFx == null ? null : mapper.apply(nestedFx);
+    }
 
 
     @Getter

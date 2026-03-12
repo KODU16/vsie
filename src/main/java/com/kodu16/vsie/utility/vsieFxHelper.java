@@ -19,9 +19,10 @@ import java.util.function.Function;
 
 public final class vsieFxHelper
 {
+    // 功能：从 FxData 中提取指定 FX；兼容扁平结构和顶层带 "fx" 包裹的结构。
     public static Optional<FxData.FxUnit> extractFxUnit(@Nullable FxData fxData, Function<FxData, FxData.FxUnit> mapper)
     {
-        return Optional.ofNullable(fxData).map(mapper);
+        return Optional.ofNullable(fxData).map(data -> data.resolveUnit(mapper));
     }
 
     @OnlyIn(Dist.CLIENT)
