@@ -139,6 +139,63 @@ public class ShipAnglePainter {
     }
 
     /**
+     * 功能：使用 shipUp（倾斜量）与 shipForward（上下方向符号）计算 Minecraft 坐标系俯仰角，范围 -90°~90°。
+     */
+    public static double getPitchDegrees(Vector3d shipForward, Vector3d shipUp) {
+        if (shipForward == null || shipUp == null) return 0.0;
+        if (shipForward.lengthSquared() < 1e-8 || shipUp.lengthSquared() < 1e-8) return 0.0;
+
+        Vector3d forward = new Vector3d(shipForward).normalize();
+        Vector3d up = new Vector3d(shipUp).normalize();
+
+        // 功能：由 shipUp.y 与世界竖直轴夹角得到“偏离水平”的俯仰绝对值（0~90）。
+        double tiltAbs = Math.toDegrees(Math.acos(Math.max(-1.0, Math.min(1.0, up.y))));
+        tiltAbs = Math.max(0.0, Math.min(90.0, tiltAbs));
+
+        // 功能：使用 forward.y 确定机头上仰/下俯方向，形成 -90~90 的有符号俯仰角。
+        double sign = forward.y >= 0 ? 1.0 : -1.0;
+        return tiltAbs * sign;
+    }
+
+    /**
+     * 功能：在 HUD 上绘制俯仰条，主粗刻线为 -90 / 0 / 90，样式与水平 NEWS 刻线一致。
+     */
+    public static void drawPitchLine(GuiGraphics gg, double pitchDeg, int barX, int centerY, int color) {
+        // 功能：约束俯仰角输入，避免网络插值异常导致绘制越界。
+        pitchDeg = Math.max(-90.0, Math.min(90.0, pitchDeg));
+
+        int ticksEachSide = 8;
+        double pxPer10Deg = 5.0;
+        double fracOffset = (pitchDeg % 10.0) * (pxPer10Deg / 10.0);
+
+        int minorHalfLength = 4;
+        int majorHalfLength = 7;
+        int majorColor = 0xFF88DDFF;
+
+        // 功能：先绘制普通 10° 细刻线，让俯仰条在 ±90 范围内滚动。
+        for (int i = -ticksEachSide; i <= ticksEachSide; i++) {
+            double angle = pitchDeg + i * 10.0;
+            if (angle < -90.0 || angle > 90.0) continue;
+
+            int yPos = centerY + (int) Math.round(i * pxPer10Deg - fracOffset);
+            DrawShape.drawThickLine(gg, barX - minorHalfLength, yPos, barX + minorHalfLength, yPos, 1, color);
+        }
+
+        // 功能：绘制 -90 / 0 / 90 三条粗刻线，替代 NEWS 主方向刻线逻辑。
+        int[] majorAngles = {-90, 0, 90};
+        for (int majorAngle : majorAngles) {
+            double delta = majorAngle - pitchDeg;
+            int yPos = centerY + (int) Math.round(delta * pxPer10Deg / 10.0);
+
+            // 功能：只在可视区域附近绘制粗刻线，避免远离中心时视觉噪点。
+            if (Math.abs(yPos - centerY) > ticksEachSide * pxPer10Deg + 8) continue;
+
+            DrawShape.drawThickLine(gg, barX - majorHalfLength, yPos, barX + majorHalfLength, yPos, 2, majorColor);
+            drawCenteredText(gg, "§l§b" + majorAngle, barX - 16, yPos - 4, 0xFFCCFFFF);
+        }
+    }
+
+    /**
      * 计算向量与三个正轴的夹角，范围 0°～360°
      */
     public static double[] getDirectedAnglesToAxes(Vec3 vec) {

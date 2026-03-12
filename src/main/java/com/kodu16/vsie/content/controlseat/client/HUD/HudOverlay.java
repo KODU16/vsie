@@ -114,8 +114,15 @@ public class HudOverlay {
             var interpolatedFacing = data.getInterpolatedShipFacing(partialTick);
             var interpolatedUp = data.getInterpolatedShipUp(partialTick);
             double[] angles = ShipAnglePainter.getDirectedAnglesToAxes(VectorConversionsMCKt.toMinecraft(interpolatedFacing));
+            // 功能：基于 shipUp + shipFacing 计算当前俯仰角（-90~90），用于左侧俯仰条滚动。
+            double pitchDeg = ShipAnglePainter.getPitchDegrees(interpolatedFacing, interpolatedUp);
             ShipAnglePainter.drawAngleLine(gg, interpolatedFacing, centerX, baseY+10, MAIN_COLOR);
             drawCenteredText(gg, "§l§b"+(int)angles[0], centerX, baseY+5, MAIN_COLOR);
+
+            // 功能：在护盾弧形左侧绘制俯仰条，主粗刻线固定为 -90 / 0 / 90。
+            int shieldArcCenterX = centerX + centerX / 20;
+            int pitchBarX = shieldArcCenterX - 60 - 12;
+            ShipAnglePainter.drawPitchLine(gg, pitchDeg, pitchBarX, centerY, MAIN_COLOR);
 
             //水平仪（未完成，目前画的是一坨构石）
             //float horizonAngle = ShipAnglePainter.getHorizonAngleDegrees(interpolatedFacing, interpolatedUp);
