@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.kodu16.vsie.content.controlseat.ActiveWeaponHudInfo;
+
 
 //请勿在客户端使用，或加入任何仅限客户端的值
 public class ControlSeatServerData {
@@ -57,8 +59,8 @@ public class ControlSeatServerData {
     public volatile double shieldmin = 0;
     public volatile double shieldmax = 0;
 
-    // 功能：缓存“当前控制椅激活频道下可响应的武器显示名”，用于 HUD 展示。
-    public volatile List<String> activeWeaponDisplayNames = new ArrayList<>();
+    // 功能：缓存“当前控制椅激活频道下可响应武器”的 HUD 数据（名称+冷却进度），用于 HUD 展示。
+    public volatile List<ActiveWeaponHudInfo> activeWeaponHudInfos = new ArrayList<>();
 
     public volatile boolean isviewlocked = false;
     public volatile int playerrotx = 0;

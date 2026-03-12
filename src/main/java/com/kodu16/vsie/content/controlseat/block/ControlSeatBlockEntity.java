@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.controlseat.block;
 
 import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
+import com.kodu16.vsie.content.controlseat.ActiveWeaponHudInfo;
 import com.kodu16.vsie.content.controlseat.Initialize;
 import com.kodu16.vsie.content.controlseat.functions.ShieldHandler;
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
@@ -282,8 +283,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         if (controlseatData.getChannel3()) activeSeatChannelEncode |= 4;
         if (controlseatData.getChannel4()) activeSeatChannelEncode |= 8;
 
-        // 功能：缓存当前控制椅激活频道对应的武器显示名，供 HUD 每行展示。
-        List<String> activeWeaponDisplayNames = new ArrayList<>();
+        // 功能：缓存当前控制椅激活频道对应的武器 HUD 信息（名称+冷却进度），供 HUD 每行展示。
+        List<ActiveWeaponHudInfo> activeWeaponHudInfos = new ArrayList<>();
         List<Vec3> toRemove = new ArrayList<>();
         int finalActiveSeatChannelEncode = activeSeatChannelEncode;
         this.forEachLinkedPeripheral(pos -> {
@@ -292,7 +293,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             if (be instanceof AbstractWeaponBlockEntity weapon) {
                 // 功能：武器通过自身频道配置“告知”控制椅是否属于当前激活频道。
                 if (isWeaponInAnyActiveChannel(weapon, finalActiveSeatChannelEncode)) {
-                    activeWeaponDisplayNames.add(weapon.getDisplayName().getString());
+                    // 功能：采集武器名称与冷却进度，供客户端绘制“油门样式”进度条。
+                    activeWeaponHudInfos.add(new ActiveWeaponHudInfo(weapon.getDisplayName().getString(), weapon.currentTick, weapon.getcooldown()));
                 }
 
                 // 功能：按当前开火状态向武器同步控制椅频道输入。
@@ -313,8 +315,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             }
         }, 1);
 
-        // 功能：更新服务端缓存的激活武器显示名，供状态包同步到 HUD。
-        controlseatData.activeWeaponDisplayNames = activeWeaponDisplayNames;
+        // 功能：更新服务端缓存的激活武器 HUD 数据，供状态包同步到 HUD。
+        controlseatData.activeWeaponHudInfos = activeWeaponHudInfos;
 
         // 循环结束后统一删除
         for (Vec3 pos : toRemove) {

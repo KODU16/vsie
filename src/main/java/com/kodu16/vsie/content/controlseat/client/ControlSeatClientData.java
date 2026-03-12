@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.kodu16.vsie.content.controlseat.ActiveWeaponHudInfo;
+
 import lombok.Getter;
 import lombok.Setter;
 import org.joml.Quaterniond;
@@ -62,8 +64,8 @@ public class ControlSeatClientData {
     public volatile boolean isflightassiston = false;
     public volatile boolean isantigravityon = false;
 
-    // 功能：保存服务端下发的“当前激活频道可响应武器”显示名列表，供 HUD 每行绘制。
-    public volatile List<String> activeWeaponDisplayNames = new ArrayList<>();
+    // 功能：保存服务端下发的“当前激活频道可响应武器”HUD 数据（名称+冷却），供 HUD 每行绘制。
+    public volatile List<ActiveWeaponHudInfo> activeWeaponHudInfos = new ArrayList<>();
 
     public void setLastMousex(double x) { lastmousex = x; }
     public void setLastMousey(double x) { lastmousey = x; }

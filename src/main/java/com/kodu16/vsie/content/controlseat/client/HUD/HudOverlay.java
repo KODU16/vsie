@@ -1,5 +1,6 @@
 package com.kodu16.vsie.content.controlseat.client.HUD;
 
+import com.kodu16.vsie.content.controlseat.ActiveWeaponHudInfo;
 import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.kodu16.vsie.content.controlseat.functions.ShipAnglePainter;
@@ -103,8 +104,8 @@ public class HudOverlay {
             drawSwitch(gg, "3", switchBaseX+35, switchY+10, data.channel3,10,10);
             drawSwitch(gg, "4", switchBaseX+50, switchY+10, data.channel4,10,10);
 
-            // 功能：在 HUD 热量条右侧逐行展示“当前控制椅激活频道下可响应武器”的 displayName。
-            drawActiveWeaponNames(gg, data, centerX, centerY);
+            // 功能：在 HUD 热量条右侧逐行展示“当前控制椅激活频道下可响应武器”的名称与冷却进度条。
+            drawActiveWeaponCooldowns(gg, data, centerX, centerY);
 
             //绘制水平和竖直方位条
             var interpolatedFacing = data.getInterpolatedShipFacing(partialTick);
@@ -147,13 +148,41 @@ public class HudOverlay {
         DrawShape.drawHollowRectangle(gg, x, y+2, recwidth, recheight, 1, color);
     }
 
-    // 功能：把服务端同步来的激活武器 displayName 逐行绘制在热量条右侧。
-    private static void drawActiveWeaponNames(GuiGraphics gg, ControlSeatClientData data, int centerX, int centerY) {
+    // 功能：把服务端同步来的激活武器名称与冷却进度（currentTick/getcooldown）逐行绘制在热量条右侧。
+    private static void drawActiveWeaponCooldowns(GuiGraphics gg, ControlSeatClientData data, int centerX, int centerY) {
         int startX = centerX + centerX / 20 + 90;
         int startY = centerY - 18;
-        int lineHeight = 10;
-        for (int i = 0; i < data.activeWeaponDisplayNames.size(); i++) {
-            drawCenteredText(gg, data.activeWeaponDisplayNames.get(i), startX, startY + i * lineHeight, MAIN_COLOR);
+        int lineHeight = 14;
+        int barWidth = 52;
+        int barHeight = 4;
+
+        for (int i = 0; i < data.activeWeaponHudInfos.size(); i++) {
+            ActiveWeaponHudInfo info = data.activeWeaponHudInfos.get(i);
+            int rowY = startY + i * lineHeight;
+
+            // 功能：先绘制武器名称，保持原有 HUD 信息可读性。
+            drawCenteredText(gg, info.displayName, startX, rowY, MAIN_COLOR);
+
+            int barCenterX = startX + 55;
+            int barCenterY = rowY + 1;
+            int safeMaxCooldown = Math.max(1, info.maxCooldown);
+            float progress = Mth.clamp((float) Math.max(0, info.currentTick) / (float) safeMaxCooldown, 0f, 1f);
+
+            // 功能：绘制冷却进度条外框，作为“油门样式”槽体。
+            DrawShape.drawHollowRectangle(gg, barCenterX, barCenterY, barWidth, barHeight + 2, 1, SUB_COLOR);
+
+            // 功能：按 currentTick/getcooldown 线性插值颜色，进度越高越绿，越低越红。
+            int red = Mth.floor(Mth.lerp(progress, 0xFF, 0x00));
+            int green = Mth.floor(Mth.lerp(progress, 0x33, 0xFF));
+            int dynamicColor = FastColor.ARGB32.color(TEXT_ALPHA, red, green, 0x33);
+
+            // 功能：填充进度条，模拟油门推进效果。
+            int fillWidth = Mth.floor((barWidth - 2) * progress);
+            if (fillWidth > 0) {
+                gg.fill(barCenterX - barWidth / 2 + 1, barCenterY - barHeight / 2 + 1,
+                        barCenterX - barWidth / 2 + 1 + fillWidth, barCenterY + barHeight / 2,
+                        dynamicColor);
+            }
         }
     }
 
