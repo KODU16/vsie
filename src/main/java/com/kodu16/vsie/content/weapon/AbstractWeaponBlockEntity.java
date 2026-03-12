@@ -5,6 +5,7 @@ import com.mojang.datafixers.util.Pair;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -43,11 +44,12 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
     // Constants
 
     //variables
-    public ServerShip ship = VSGameUtilsKt.getShipManagingPos((ServerLevel) level, getBlockPos());
     private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
     public WeaponData weaponData;//注意这个data不存固有属性比如射速射程，只存频道之类的
     public boolean hasInitialized;//防止莫名其妙的重置导致变砖
+    @Getter
     private float raycastDistance = 513.0f;//武器的raycast和推进器不太一样，武器是射线检测目标的距离，如果是射弹武器也检测，但不会利用
+    @Getter
     public Vec3 targetpos = new Vec3(0,0,0);
     public Vec3 weaponpos;
     public int currentTick = -1;
@@ -72,43 +74,29 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
     public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
     }
 
-    public float getRaycastDistance() {return this.raycastDistance;}
-
-    public Vec3 getTargetpos() {return this.targetpos;}
-
     public void tick() {
         super.tick();
         currentTick++;
-        if (currentTick % getcooldown() != 0) return;
-
-        // Reset tick counter to prevent overflow
-        if (currentTick >= getcooldown()) {
-            this.raycastDistance = 0;
-            currentTick = 0;
-        }
+        if (currentTick < getcooldown()) return;
+        currentTick = getcooldown();
+        this.raycastDistance = 0;
         if(!needtofire()) {
             getData().isfiring = false;
-            this.raycastDistance = 0;
             return;
         }
         Level level = this.getLevel();
         if (level == null || level.isClientSide()) {
             return;
         }
-        Logger LOGGER = LogUtils.getLogger();
         if (hasInitialized)
         {
+            currentTick = 0;
             getData().isfiring = true;
             BlockPos pos = this.getBlockPos();
             boolean onShip = VSGameUtilsKt.isBlockInShipyard(level, pos);
             if (onShip) {
                 weaponpos = VSGameUtilsKt.toWorldCoordinates(level, pos);
-                LoadedShip Ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos);
-                if (Ship == null) return;
                 fire();
-            }
-            else {
-                weaponpos = new Vec3(this.getBlockPos().getX(), this.getBlockPos().getY(),this.getBlockPos().getZ());
             }
         }
     }

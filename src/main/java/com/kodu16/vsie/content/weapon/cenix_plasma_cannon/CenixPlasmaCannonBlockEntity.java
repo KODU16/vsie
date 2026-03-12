@@ -13,6 +13,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.valkyrienskies.core.api.ships.ServerShip;
+import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -36,16 +37,13 @@ public class CenixPlasmaCannonBlockEntity extends AbstractWeaponBlockEntity {
 
     @Override
     public void fire() {
-        boolean onship = VSGameUtilsKt.isBlockInShipyard(level, getBlockPos());
-        if(onship) {
-            ServerShip Ship = (ServerShip) VSGameUtilsKt.getShipObjectManagingPos(level, getBlockPos());
-            Vector3d currentfacing = new Vector3d(0,1,0);
-            Ship.getTransform().getShipToWorld().transformDirection(VectorConversionsMCKt.toJOMLD(this.getBlockState().getValue(FACING).getNormal()),currentfacing);
-            ParticleBulletEntity bullet = new ParticleBulletEntity(vsieEntities.PARTICLE_BULLET.get(), level);
-            bullet.setPos(new Vec3(this.weaponpos.x,this.weaponpos.y,this.weaponpos.z));
-            bullet.setDeltaMovement(new Vec3(currentfacing.x*20,currentfacing.y*20,currentfacing.z*20));
-            level.addFreshEntity(bullet);
-        }
+        Ship ship = VSGameUtilsKt.getShipObjectManagingPos(level, getBlockPos());
+        Vector3d currentfacing = new Vector3d(0,1,0);
+        ship.getTransform().getShipToWorld().transformDirection(VectorConversionsMCKt.toJOMLD(this.getBlockState().getValue(FACING).getNormal()),currentfacing);
+        ParticleBulletEntity bullet = new ParticleBulletEntity(vsieEntities.PARTICLE_BULLET.get(), level);
+        bullet.setPos(new Vec3(this.weaponpos.x,this.weaponpos.y,this.weaponpos.z));
+        bullet.setDeltaMovement(new Vec3(currentfacing.x*20,currentfacing.y*20,currentfacing.z*20));
+        level.addFreshEntity(bullet);
     }
 
     @Override

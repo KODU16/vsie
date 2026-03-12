@@ -53,12 +53,8 @@ public abstract class AbstractMissileLauncherBlockEntity extends AbstractWeaponB
     public void tick() {
         super.tick();
         currentTick++;
-        if (currentTick % getcooldown() != 0) return;
-
-        // Reset tick counter to prevent overflow
-        if (currentTick >= getcooldown()) {
-            currentTick = 0;
-        }
+        if (currentTick<=getcooldown()) return;
+        currentTick = 0;
         if(!needtofire()) {
             getData().isfiring = false;
             return;
@@ -91,18 +87,12 @@ public abstract class AbstractMissileLauncherBlockEntity extends AbstractWeaponB
             case UP -> new Vec3i(-1,0,0); //朝上，模型正X为西
             case DOWN -> new Vec3i(1,0,0); //朝下，模型正X为东
         };
-        boolean onship = VSGameUtilsKt.isBlockInShipyard(level,this.getBlockPos());
         Vector3d offsetship = new Vector3d();
         Vec3 spawnpos = this.getworldpos();
-        if(ship!=null) {
-            offsetship = ship.getTransform().getShipToWorld().transformDirection(VectorConversionsMCKt.toJOMLD(offset));
-            offsetship.normalize();
-            spawnpos.add(new Vec3(offsetship.x(),offsetship.y(),offsetship.z()));
-        }
-        else {
-            spawnpos.add(Vec3.atLowerCornerOf(new Vec3i((int) -offsetship.x(), (int) -offsetship.y(), (int) -offsetship.z())));
-        }
-
+        Ship ship = VSGameUtilsKt.getShipObjectManagingPos(level, getBlockPos());
+        offsetship = ship.getTransform().getShipToWorld().transformDirection(VectorConversionsMCKt.toJOMLD(offset));
+        offsetship.normalize();
+        spawnpos.add(new Vec3(offsetship.x(),offsetship.y(),offsetship.z()));
         BasicMissileEntity missile = new BasicMissileEntity(
                 vsieEntities.BASIC_MISSILE.get(), level
         );
