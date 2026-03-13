@@ -36,6 +36,9 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
     }
 
     private volatile Vector3d targetPos = new Vector3d(0,0,0);
+    // 功能：记录控制椅的方块朝向，头瞄时将玩家视角从控制椅坐标系转换到重炮坐标系。
+    private volatile Direction controlSeatFacing = Direction.NORTH;
+
 
     public abstract int getmaxpitchdowndegrees();
 
@@ -60,10 +63,9 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
         }
 
         boolean canTrackBySeatView = needtofire() && !getData().isviewlocked && (getData().firetype == 0 || getData().firetype == 2);
-        // 功能：当控制椅视角未锁定且重炮为手动/智能模式时，按玩家视角驱动炮塔实现头瞄。
+        // 功能：当控制椅视角未锁定且重炮为手动/智能模式时，将玩家视角先做“控制椅->重炮”的方向转换后再驱动头瞄。
         if (canTrackBySeatView) {
-            targetxrot = (float) Math.toRadians(getData().playerangleX);
-            targetyrot = (float) Math.toRadians(-getData().playerangleY);
+            updateSeatViewTargetRot();
             this.xRot0 = closestReachableX(xRot0, getMaxSpinSpeed(), targetxrot);
             this.yRot0 = closestReachableY(yRot0, getMaxSpinSpeed(), targetyrot);
             setAnimData(HAS_TARGET, true);
@@ -166,10 +168,46 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
             this.targetPos = pos;
     }
 
-    public void updateplayerstatus(boolean isviewlocked, int rotx, int roty) {
+    public void updateplayerstatus(boolean isviewlocked, int rotx, int roty, Direction seatFacing) {
+        // 功能：保存控制椅实时视角与控制椅朝向，供重型炮塔在头瞄时进行坐标系转换。
         this.getData().isviewlocked = isviewlocked;
         this.getData().playerangleX = rotx;
         this.getData().playerangleY = roty;
+        this.controlSeatFacing = seatFacing;
+    }
+
+    private void updateSeatViewTargetRot() {
+        // 功能：根据控制椅朝向与重炮朝向差值，修正玩家传入 yaw，使头瞄角度与重炮本地坐标系一致。
+        float convertedYaw = convertSeatYawToTurretYaw(getData().playerangleY, controlSeatFacing, this.getBlockState().getValue(AbstractTurretBlock.FACING));
+        this.targetxrot = (float) Math.toRadians(getData().playerangleX);
+        this.targetyrot = (float) Math.toRadians(-convertedYaw);
+    }
+
+    private float convertSeatYawToTurretYaw(float seatYaw, Direction seatFacing, Direction turretFacing) {
+        // 功能：计算控制椅/重炮朝向对应的水平角偏移，得到重炮坐标系下的玩家 yaw。
+        float seatBaseYaw = directionToHorizontalYaw(seatFacing);
+        float turretBaseYaw = directionToHorizontalYaw(turretFacing);
+        float yawDelta = turretBaseYaw - seatBaseYaw;
+        return normalizeDegrees(seatYaw + yawDelta);
+    }
+
+    private float directionToHorizontalYaw(Direction facing) {
+        // 功能：将方块水平朝向映射到与玩家 yaw 一致的角度定义（南=0，西=90，北=180，东=-90）。
+        return switch (facing) {
+            case SOUTH -> 0.0F;
+            case WEST -> 90.0F;
+            case NORTH -> 180.0F;
+            case EAST -> -90.0F;
+            default -> 0.0F;
+        };
+    }
+
+    private float normalizeDegrees(float degrees) {
+        // 功能：将角度归一化到 [-180, 180) 区间，避免跨边界时旋转突变。
+        float normalized = degrees % 360.0F;
+        if (normalized >= 180.0F) normalized -= 360.0F;
+        if (normalized < -180.0F) normalized += 360.0F;
+        return normalized;
     }
 
     private void updateTargetRot() {
