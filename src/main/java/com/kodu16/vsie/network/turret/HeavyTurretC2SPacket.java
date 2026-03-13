@@ -50,8 +50,15 @@ public class HeavyTurretC2SPacket {
                 sender.sendSystemMessage(Component.literal("Invalid turret at " + pos));
                 return;
             }
-            heavyturret.modifyheavytargettype(changetype);
-            LogUtils.getLogger().warn("C2S:setting fire type to:"+changetype);
+            // 功能：复用同一数据包，同时支持“切换开火模式”和“切换频道”。
+            if (changetype >= 100) {
+                int fireType = changetype - 100;
+                heavyturret.modifyheavytargettype(fireType);
+                LogUtils.getLogger().warn("C2S:setting heavy turret fire type to:" + fireType);
+            } else {
+                heavyturret.modifychannel(changetype);
+                LogUtils.getLogger().warn("C2S:changing heavy turret channel:" + changetype);
+            }
             heavyturret.setChanged();
         });
         ctx.setPacketHandled(true);

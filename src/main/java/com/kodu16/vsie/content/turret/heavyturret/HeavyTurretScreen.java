@@ -37,20 +37,40 @@ public class HeavyTurretScreen extends AbstractContainerScreen<HeavyTurretContai
         AbstractHeavyTurretBlockEntity turret = menu.getBlockEntity();  // 这里 menu.getBlockEntity() 返回 TurretBlockEntity
         // 直接用 GuiGraphics 的 blit 方法绘制纹理
         guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
+
+        // 功能：绘制与武器界面一致的 4 路频道状态图标。
+        ResourceLocation iconChannel1 = turret.getData().channel1
+                ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel1_on.png")
+                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel1_off.png");
+        ResourceLocation iconChannel2 = turret.getData().channel2
+                ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel2_on.png")
+                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel2_off.png");
+        ResourceLocation iconChannel3 = turret.getData().channel3
+                ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel3_on.png")
+                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel3_off.png");
+        ResourceLocation iconChannel4 = turret.getData().channel4
+                ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel4_on.png")
+                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel4_off.png");
+
+        guiGraphics.blit(iconChannel1, this.leftPos + 30, this.topPos + 20, 0, 0, 20, 20, 20, 20);
+        guiGraphics.blit(iconChannel2, this.leftPos + 60, this.topPos + 20, 0, 0, 20, 20, 20, 20);
+        guiGraphics.blit(iconChannel3, this.leftPos + 90, this.topPos + 20, 0, 0, 20, 20, 20, 20);
+        guiGraphics.blit(iconChannel4, this.leftPos + 120, this.topPos + 20, 0, 0, 20, 20, 20, 20);
+
         // 根据状态选择不同的图标
         ResourceLocation iconmanual = new ResourceLocation(vsie.ID, "textures/gui/heavyturret/target_manual.png");
         ResourceLocation iconauto = new ResourceLocation(vsie.ID, "textures/gui/heavyturret/target_auto.png");
         ResourceLocation iconsmart = new ResourceLocation(vsie.ID, "textures/gui/heavyturret/target_smart.png");
 
         // 绘制状态图标
-        if(turret.getData().firetype == 0) {
-            guiGraphics.blit(iconmanual, this.leftPos + 78, this.topPos + 70, 0, 0, 20, 20, 19,19);
+        if (turret.getData().firetype == 0) {
+            guiGraphics.blit(iconmanual, this.leftPos + 78, this.topPos + 70, 0, 0, 20, 20, 19, 19);
         }
-        if(turret.getData().firetype == 1) {
-            guiGraphics.blit(iconauto, this.leftPos + 78, this.topPos + 70, 0, 0, 20, 20, 19,19);
+        if (turret.getData().firetype == 1) {
+            guiGraphics.blit(iconauto, this.leftPos + 78, this.topPos + 70, 0, 0, 20, 20, 19, 19);
         }
-        if(turret.getData().firetype == 2) {
-            guiGraphics.blit(iconsmart, this.leftPos + 78, this.topPos + 70, 0, 0, 20, 20, 19,19);
+        if (turret.getData().firetype == 2) {
+            guiGraphics.blit(iconsmart, this.leftPos + 78, this.topPos + 70, 0, 0, 20, 20, 19, 19);
         }
     }
 
@@ -67,9 +87,28 @@ public class HeavyTurretScreen extends AbstractContainerScreen<HeavyTurretContai
     protected void init() {
         super.init();
         BlockPos pos = menu.getBlockEntity().getBlockPos(); // 如果有 getBlockEntity() 方法
+        // 功能：新增与主武器一致的四个频道切换按键。
+        this.addRenderableWidget(Button.builder(
+                Component.literal("CH1"),
+                btn -> ModNetworking.CHANNEL.sendToServer(new HeavyTurretC2SPacket(pos, 1))
+        ).bounds(leftPos + 30, topPos + 40, 20, 10).build());
+        this.addRenderableWidget(Button.builder(
+                Component.literal("CH2"),
+                btn -> ModNetworking.CHANNEL.sendToServer(new HeavyTurretC2SPacket(pos, 2))
+        ).bounds(leftPos + 60, topPos + 40, 20, 10).build());
+        this.addRenderableWidget(Button.builder(
+                Component.literal("CH3"),
+                btn -> ModNetworking.CHANNEL.sendToServer(new HeavyTurretC2SPacket(pos, 3))
+        ).bounds(leftPos + 90, topPos + 40, 20, 10).build());
+        this.addRenderableWidget(Button.builder(
+                Component.literal("CH4"),
+                btn -> ModNetworking.CHANNEL.sendToServer(new HeavyTurretC2SPacket(pos, 4))
+        ).bounds(leftPos + 120, topPos + 40, 20, 10).build());
+
+        // 功能：保留并更新模式切换按钮，使用 100+firetype 编码避免与频道按键冲突。
         this.addRenderableWidget(Button.builder(
                         Component.literal("switch"),
-                        button -> ModNetworking.CHANNEL.sendToServer(new HeavyTurretC2SPacket(pos,(menu.getBlockEntity().getData().firetype+1)%3)))
+                        button -> ModNetworking.CHANNEL.sendToServer(new HeavyTurretC2SPacket(pos, ((menu.getBlockEntity().getData().firetype + 1) % 3) + 100)))
                 .pos(this.leftPos + 73, this.topPos + 100)
                 .size(30, 15)
                 .build());

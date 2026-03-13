@@ -32,6 +32,13 @@ public final class TurretData {
     public volatile boolean isviewlocked = false;
 
     public volatile boolean targetsTrusted = false;
+    // 功能：为重型炮塔提供与主武器一致的 4 路频道开关。
+    public volatile boolean channel1 = true;
+    public volatile boolean channel2 = false;
+    public volatile boolean channel3 = false;
+    public volatile boolean channel4 = false;
+    // 功能：缓存控制椅当前下发给重型炮塔的频道编码。
+    public volatile int receivingchannel = 0;
     public volatile Vector3d location;
     @Getter
     @Setter
@@ -48,5 +55,9 @@ public final class TurretData {
     public boolean getTargetsPassive() { return targetsPassive; }
     public boolean getTargetsPlayers() { return targetsPlayers; }
     public boolean getTargetsShip() { return targetsShip; }
+    public boolean getChannel1() { return channel1; }
+    public boolean getChannel2() { return channel2; }
+    public boolean getChannel3() { return channel3; }
+    public boolean getChannel4() { return channel4; }
 
 }

@@ -58,7 +58,8 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
         else {
             currentworldpos = new Vector3d(Math.round(this.getBlockPos().getX()*10)/10.0, Math.round((this.getBlockPos().getY()+getYAxisOffset())*10)/10.0, Math.round(this.getBlockPos().getZ()*10)/10.0);
         }
-        if(getData().firetype == 1 || (getData().firetype == 2 && getData().isviewlocked && !targetPos.equals(new Vector3d(0,0,0)))) {
+        // 功能：重型炮塔只有在频道匹配时才响应自动/智能射击，行为与主武器一致。
+        if (needtofire() && (getData().firetype == 1 || (getData().firetype == 2 && getData().isviewlocked && !targetPos.equals(new Vector3d(0,0,0))))) {
             LogUtils.getLogger().warn("setting target:"+targetPos);
             updateTargetRot();
             this.xRot0 = closestReachableX(xRot0,getMaxSpinSpeed(),targetxrot);
@@ -90,6 +91,63 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
             return; // 客户端完全不许改！
         }
         getData().firetype = type;
+    }
+
+    // 功能：为重型炮塔提供与主武器一致的频道切换逻辑（四选一）。
+    public void modifychannel(int type) {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        TurretData data = getData();
+        if (type == 1) {
+            data.channel1 = !data.getChannel1();
+            if (data.channel1) {
+                data.channel2 = false;
+                data.channel3 = false;
+                data.channel4 = false;
+            }
+        }
+        if (type == 2) {
+            data.channel2 = !data.getChannel2();
+            if (data.channel2) {
+                data.channel1 = false;
+                data.channel3 = false;
+                data.channel4 = false;
+            }
+        }
+        if (type == 3) {
+            data.channel3 = !data.getChannel3();
+            if (data.channel3) {
+                data.channel1 = false;
+                data.channel2 = false;
+                data.channel4 = false;
+            }
+        }
+        if (type == 4) {
+            data.channel4 = !data.getChannel4();
+            if (data.channel4) {
+                data.channel1 = false;
+                data.channel2 = false;
+                data.channel3 = false;
+            }
+        }
+    }
+
+    // 功能：接收控制椅下发的频道编码，供重型炮塔判定是否允许开火。
+    public void receivechannel(int encode) {
+        getData().receivingchannel = encode;
+    }
+
+    // 功能：判断重型炮塔与控制椅频道是否匹配，逻辑与主武器保持一致。
+    public boolean needtofire() {
+        for (int i = 0; i < 4; i++) {
+            boolean flag = ((getData().receivingchannel >> i) & 1) == 1;
+            if (flag && i == 0 && getData().channel1) return true;
+            if (flag && i == 1 && getData().channel2) return true;
+            if (flag && i == 2 && getData().channel3) return true;
+            if (flag && i == 3 && getData().channel4) return true;
+        }
+        return false;
     }
 
     public void updatespecificenemy(Vector3d pos) {
@@ -197,6 +255,12 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
         tag.putDouble("targetX", targetPos.x);
         tag.putDouble("targetY", targetPos.y);
         tag.putDouble("targetZ", targetPos.z);
+        // 功能：同步重型炮塔频道状态与接收频道编码，确保 GUI 与联动状态一致。
+        tag.putBoolean("channel1", getData().channel1);
+        tag.putBoolean("channel2", getData().channel2);
+        tag.putBoolean("channel3", getData().channel3);
+        tag.putBoolean("channel4", getData().channel4);
+        tag.putInt("receivingchannel", getData().receivingchannel);
     }
 
     @Override
@@ -217,6 +281,12 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
                 tag.getDouble("targetY"),
                 tag.getDouble("targetZ")
         );
+        // 功能：读取重型炮塔四个频道和接收频道编码，恢复频道联动配置。
+        if (tag.contains("channel1")) { this.getData().channel1 = tag.getBoolean("channel1"); }
+        if (tag.contains("channel2")) { this.getData().channel2 = tag.getBoolean("channel2"); }
+        if (tag.contains("channel3")) { this.getData().channel3 = tag.getBoolean("channel3"); }
+        if (tag.contains("channel4")) { this.getData().channel4 = tag.getBoolean("channel4"); }
+        if (tag.contains("receivingchannel")) { this.getData().receivingchannel = tag.getInt("receivingchannel"); }
     }
 
     @Override

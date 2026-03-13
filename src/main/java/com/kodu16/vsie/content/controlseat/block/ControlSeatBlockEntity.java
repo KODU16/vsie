@@ -408,18 +408,32 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
     }
 
     public void updateTurret() {
+        // 功能：先计算控制椅当前激活频道编码，用于向重型炮塔同步与主武器一致的频道输入。
+        int activeSeatChannelEncode = 0;
+        if (controlseatData.getChannel1()) activeSeatChannelEncode |= 1;
+        if (controlseatData.getChannel2()) activeSeatChannelEncode |= 2;
+        if (controlseatData.getChannel3()) activeSeatChannelEncode |= 4;
+        if (controlseatData.getChannel4()) activeSeatChannelEncode |= 8;
+
         List<Vec3> toRemove = new ArrayList<>();
+        int finalActiveSeatChannelEncode = activeSeatChannelEncode;
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof AbstractTurretBlockEntity turret) {
                 this.energyspendpertick += turret.getenergypertick();
-                if(be instanceof AbstractHeavyTurretBlockEntity heavyturret && !controlseatData.enemyshipsData.isEmpty()) {
-                        //LogUtils.getLogger().warn("controlseat target:"+controlseatData.enemyshipsData.get(controlseatData.lockedenemyindex));
-                    heavyturret.updatespecificenemy((Vector3d) controlseatData.enemyshipsData.get(controlseatData.lockedenemyindex).getTransform().getPositionInWorld());
-                    heavyturret.updateplayerstatus(controlseatData.isviewlocked,controlseatData.playerrotx,controlseatData.playerroty);
-                }
-                else {
+                if (be instanceof AbstractHeavyTurretBlockEntity heavyturret) {
+                    // 功能：控制椅更新重型炮塔时，同步频道输入；仅在开火时下发激活频道。
+                    if (controlseatData.isfiring) {
+                        heavyturret.receivechannel(finalActiveSeatChannelEncode);
+                    } else {
+                        heavyturret.receivechannel(0);
+                    }
+                    if (!controlseatData.enemyshipsData.isEmpty()) {
+                        heavyturret.updatespecificenemy((Vector3d) controlseatData.enemyshipsData.get(controlseatData.lockedenemyindex).getTransform().getPositionInWorld());
+                        heavyturret.updateplayerstatus(controlseatData.isviewlocked, controlseatData.playerrotx, controlseatData.playerroty);
+                    }
+                } else {
                     turret.updateenemy(controlseatData.enemyshipsData);
                 }
             } else {
