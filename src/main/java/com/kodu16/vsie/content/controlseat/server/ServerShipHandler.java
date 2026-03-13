@@ -154,7 +154,7 @@ public class ServerShipHandler {
             }
 
             Vector3d Invarianttorque = calculateWorldTorque(controltorque, worldXDirection, worldYDirection, worldZDirection);
-            double forcescale = -1000 * data.getThrottle() * data.thruster_strength / (ship.getMass()*3);
+            double forcescale = -1000 * data.getThrottle() * (data.thruster_strength / (ship.getMass()));
             Vector3d Invariantforce = new Vector3d(worldXDirection.x * forcescale, worldXDirection.y * forcescale, worldXDirection.z * forcescale);
 
             // 计算反向阻尼力矩，与角速度成比例
