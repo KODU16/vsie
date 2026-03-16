@@ -60,6 +60,11 @@ public class vsieKeyMappings {
             GLFW.GLFW_KEY_V,
             "category.vsie" // 键位分类（显示在设置菜单中的类别）
     );
+    public static final KeyMapping KEY_START_WARP = new KeyMapping(
+            "key.vsie.warp", // 键位描述的语言键
+            GLFW.GLFW_KEY_P,
+            "category.vsie" // 键位分类（显示在设置菜单中的类别）
+    );
     public static final KeyMapping KEY_TOGGLE_WEAPON_CHANNEL1 = new KeyMapping(
             "key.vsie.toggle_weapon_channel_1",
             KeyConflictContext.IN_GAME,
@@ -93,12 +98,7 @@ public class vsieKeyMappings {
             "category.vsie"
     );
 
-    // 其他键位可以按照类似的方式进行定义
-    // public static final KeyMapping KEY_ANOTHER_ACTION = new KeyMapping(...);
 
-    /**
-     * 注册所有键位的方法
-     */
     public static void register(IEventBus modBus) {
         // 注册事件监听器，确保键位注册仅发生在客户端
         modBus.addListener(vsieKeyMappings::registerKeyMappings);

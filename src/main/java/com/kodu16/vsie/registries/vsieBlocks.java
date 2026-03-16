@@ -1,5 +1,7 @@
 package com.kodu16.vsie.registries;
 
+import com.kodu16.vsie.content.misc.electromagnet_rail.ElectroMagnetRailBlock;
+import com.kodu16.vsie.content.misc.electromagnet_rail.ElectroMagnetRailCoreBlock;
 import com.kodu16.vsie.content.turret.ciws.basicciws.BasicCIWSBlock;
 import com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret.HeavyElectroMagnetTurretBlock;
 import com.kodu16.vsie.content.screen.block.BasicScreenBlock;
@@ -208,6 +210,22 @@ public class vsieBlocks {
             .simpleItem()
             .register();
     public static final BlockEntry<AmmoBoxBlock> AMMO_BOX_BLOCK = REGISTRATE.block("ammo_box", AmmoBoxBlock::new)
+            .properties(p -> p.mapColor(MapColor.METAL))
+            .properties(p -> p.requiresCorrectToolForDrops())
+            .properties(p -> p.sound(SoundType.METAL))
+            .properties(p -> p.strength(5.5f, 4.0f))
+            .properties(p -> p.noOcclusion())
+            .simpleItem()
+            .register();
+    public static final BlockEntry<ElectroMagnetRailCoreBlock> ELECTRO_MAGNET_RAIL_CORE_BLOCK = REGISTRATE.block("electro_magnet_rail_core", ElectroMagnetRailCoreBlock::new)
+            .properties(p -> p.mapColor(MapColor.METAL))
+            .properties(p -> p.requiresCorrectToolForDrops())
+            .properties(p -> p.sound(SoundType.METAL))
+            .properties(p -> p.strength(5.5f, 4.0f))
+            .properties(p -> p.noOcclusion())
+            .simpleItem()
+            .register();
+    public static final BlockEntry<ElectroMagnetRailBlock> ELECTRO_MAGNET_RAIL_BLOCK = REGISTRATE.block("electro_magnet_rail", ElectroMagnetRailBlock::new)
             .properties(p -> p.mapColor(MapColor.METAL))
             .properties(p -> p.requiresCorrectToolForDrops())
             .properties(p -> p.sound(SoundType.METAL))
