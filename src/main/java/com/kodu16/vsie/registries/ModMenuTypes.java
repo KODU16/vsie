@@ -5,6 +5,8 @@ import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity
 import com.kodu16.vsie.content.turret.heavyturret.HeavyTurretContainerMenu;
 import com.kodu16.vsie.content.item.IFF.IFFContainerMenu;
 import com.kodu16.vsie.content.item.shieldtool.ShieldToolContainerMenu;
+import com.kodu16.vsie.content.misc.electromagnet_rail.ElectroMagnetRailCoreBlockEntity;
+import com.kodu16.vsie.content.misc.electromagnet_rail.ElectroMagnetRailCoreContainerMenu;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.content.screen.server.ScreenContainerMenu;
 import com.kodu16.vsie.content.storage.ammobox.AmmoBoxBlockEntity;
@@ -67,4 +69,12 @@ public class ModMenuTypes {
     public static final RegistryObject<MenuType<ShieldToolContainerMenu>> SHIELD_TOOL_MENU = MENUS.register("shield_tool_menu",
             () -> IForgeMenuType.create((id, inv, data) ->
                     new ShieldToolContainerMenu(id, inv, inv.player.getMainHandItem())));
+
+    public static final RegistryObject<MenuType<ElectroMagnetRailCoreContainerMenu>> ELECTRO_MAGNET_RAIL_CORE_MENU = MENUS.register("electro_magnet_rail_core_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> {
+                // 读取方块坐标并构建电磁轨核心容器。
+                BlockPos pos = data.readBlockPos();
+                ElectroMagnetRailCoreBlockEntity core = (ElectroMagnetRailCoreBlockEntity) inv.player.level().getBlockEntity(pos);
+                return new ElectroMagnetRailCoreContainerMenu(windowId, inv, core);
+            }));
 }

@@ -25,6 +25,8 @@
     "block.vsie.medium_fueltank": "medium fueltank",
     "block.vsie.large_fueltank": "large fueltank",
     "block.vsie.basic_screen": "basic screen",
+    "block.vsie.electro_magnet_rail_core": "electromagnet rail core",
+    "block.vsie.electro_magnet_rail": "electromagnet rail",
 
 
     "item.vsie.control_seat": "control seat",
@@ -60,6 +62,7 @@
     "gui.turret.target_ship": "shoot at vs ships",
 
     "container.vsie.weapon": "weapon menu",
+    "container.vsie.electro_magnet_rail_core": "electromagnet rail core",
 
     "fluid.vsie.dtfuel": "D-T fuel"
 
