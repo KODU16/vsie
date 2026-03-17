@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.misc.electromagnet_rail.core;
 
 import com.kodu16.vsie.content.misc.electromagnet_rail.top.ElectroMagnetRailTopBlock;
+import com.kodu16.vsie.content.misc.electromagnet_rail.top.ElectroMagnetRailTopBlockEntity;
 import com.kodu16.vsie.registries.vsieBlocks;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
@@ -57,6 +58,8 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
     // 记录最近一次“终端检测”结果，供容器菜单同步给客户端 GUI。
     private int terminalStatus = TERMINAL_STATUS_IDLE;
     private BlockPos terminalPos = BlockPos.ZERO;
+    // 光束当前可见长度（单位：方块），每 tick 向终端推进 10 格。
+    private float beamRenderDistance = 0.0f;
 
     public ElectroMagnetRailCoreBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
@@ -68,7 +71,21 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
     }
 
     public void tick(){
+        // 功能：每 tick 校验已绑定终端是否仍然有效，无效则立即解绑并停止光束渲染。
+        if (this.level == null || this.terminalStatus != TERMINAL_STATUS_FOUND || this.terminalPos.equals(BlockPos.ZERO)) {
+            return;
+        }
 
+        if (!isTerminalBindingStillValid()) {
+            clearTerminalBinding();
+            this.setChanged();
+            this.sendData();
+            return;
+        }
+
+        // 功能：光束前沿按固定速度逐 tick 推进，直到延伸至 top。
+        float maxDistance = (float) Math.sqrt(this.worldPosition.distSqr(this.terminalPos));
+        this.beamRenderDistance = Math.min(maxDistance, this.beamRenderDistance + 10.0f);
     }
 
     // 提供给 GUI 与红石比较器读取：统计仓内 rail 总数。
@@ -91,6 +108,8 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
 
         this.terminalStatus = TERMINAL_STATUS_NOT_FOUND;
         this.terminalPos = BlockPos.ZERO;
+        // 功能：每次重新扫描都先重置光束推进长度，避免沿用旧绑定的渲染进度。
+        this.beamRenderDistance = 0.0f;
 
         for (int step = 1; step <= maxDistance; step++) {
             BlockPos checkPos = this.worldPosition.relative(facing, step);
@@ -102,10 +121,13 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
                     // 找到合法终端：记录坐标用于 GUI 展示。
                     this.terminalStatus = TERMINAL_STATUS_FOUND;
                     this.terminalPos = checkPos;
+                    // 功能：重新绑定时重置光束长度，保证从 core 逐步延伸到 top。
+                    this.beamRenderDistance = 0.0f;
                 } else {
                     // 找到终端但朝向错误。
                     this.terminalStatus = TERMINAL_STATUS_FACING_ERROR;
                     this.terminalPos = checkPos;
+                    this.beamRenderDistance = 0.0f;
                 }
                 this.setChanged();
                 this.sendData();
@@ -116,6 +138,7 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
                 // 核心与终端之间出现非 rail 的障碍方块，判定为阻挡。
                 this.terminalStatus = TERMINAL_STATUS_BLOCKED;
                 this.terminalPos = checkPos;
+                this.beamRenderDistance = 0.0f;
                 this.setChanged();
                 this.sendData();
                 return;
@@ -135,6 +158,69 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
     // 提供容器菜单读取检测终端坐标。
     public BlockPos getTerminalPos() {
         return terminalPos;
+    }
+
+    // 提供客户端渲染层读取当前光束推进长度。
+    public float getBeamRenderDistance() {
+        return beamRenderDistance;
+    }
+
+    // 提供渲染层快速判断“可渲染的绑定状态”。
+    public boolean hasValidTerminalBinding() {
+        return this.terminalStatus == TERMINAL_STATUS_FOUND && !this.terminalPos.equals(BlockPos.ZERO) && isTerminalBindingStillValid();
+    }
+
+    // 功能：校验记录的 top 是否仍是同向 top，且 core 到 top 之间无障碍。
+    private boolean isTerminalBindingStillValid() {
+        if (this.level == null || this.terminalPos.equals(BlockPos.ZERO)) {
+            return false;
+        }
+
+        Direction facing = this.getBlockState().getValue(ElectroMagnetRailCoreBlock.FACING);
+        BlockState topState = this.level.getBlockState(this.terminalPos);
+        if (!topState.is(vsieBlocks.ELECTRO_MAGNET_RAIL_TOP_BLOCK.get())) {
+            return false;
+        }
+        if (!(this.level.getBlockEntity(this.terminalPos) instanceof ElectroMagnetRailTopBlockEntity)) {
+            return false;
+        }
+        if (topState.getValue(ElectroMagnetRailTopBlock.FACING) != facing) {
+            return false;
+        }
+
+        int distance = getTerminalDistanceAlongFacing(facing, this.terminalPos);
+        if (distance <= 0) {
+            return false;
+        }
+
+        for (int step = 1; step < distance; step++) {
+            BlockPos checkPos = this.worldPosition.relative(facing, step);
+            BlockState checkState = this.level.getBlockState(checkPos);
+            if (!checkState.isAir() && !checkState.is(vsieBlocks.ELECTRO_MAGNET_RAIL_BLOCK.get())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // 功能：根据朝向计算终端在前方的轴向距离，若方向错误返回 -1。
+    private int getTerminalDistanceAlongFacing(Direction facing, BlockPos targetPos) {
+        int dx = targetPos.getX() - this.worldPosition.getX();
+        int dy = targetPos.getY() - this.worldPosition.getY();
+        int dz = targetPos.getZ() - this.worldPosition.getZ();
+
+        return switch (facing.getAxis()) {
+            case X -> (dy == 0 && dz == 0 && Integer.signum(dx) == facing.getStepX()) ? Math.abs(dx) : -1;
+            case Y -> (dx == 0 && dz == 0 && Integer.signum(dy) == facing.getStepY()) ? Math.abs(dy) : -1;
+            case Z -> (dx == 0 && dy == 0 && Integer.signum(dz) == facing.getStepZ()) ? Math.abs(dz) : -1;
+        };
+    }
+
+    // 功能：清空绑定状态，回到“未绑定”并关闭光束渲染。
+    private void clearTerminalBinding() {
+        this.terminalStatus = TERMINAL_STATUS_IDLE;
+        this.terminalPos = BlockPos.ZERO;
+        this.beamRenderDistance = 0.0f;
     }
 
     @Override
@@ -161,6 +247,9 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
         if (tag.contains("TerminalPos")) {
             this.terminalPos = BlockPos.of(tag.getLong("TerminalPos"));
         }
+        if (tag.contains("BeamRenderDistance")) {
+            this.beamRenderDistance = tag.getFloat("BeamRenderDistance");
+        }
     }
 
     @Override
@@ -170,6 +259,7 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
         // 持久化并同步终端检测状态与坐标。
         tag.putInt("TerminalStatus", this.terminalStatus);
         tag.putLong("TerminalPos", this.terminalPos.asLong());
+        tag.putFloat("BeamRenderDistance", this.beamRenderDistance);
     }
 
     @Override
