@@ -52,7 +52,7 @@ public class ElectroMagnetRailCoreScreen extends AbstractContainerScreen<Electro
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
 
         // 绘制核心仓 2x2 槽位底图，对应容器菜单中的 4 个 rail 槽位。
-        int coreStartX = this.leftPos + 68 - 1;
+        int coreStartX = this.leftPos + 28 - 1;
         int coreStartY = this.topPos + 32 - 1;
         for (int row = 0; row < 2; row++) {
             for (int col = 0; col < 2; col++) {
@@ -94,31 +94,44 @@ public class ElectroMagnetRailCoreScreen extends AbstractContainerScreen<Electro
                 32, 18,
                 0x404040,
                 false);
-
+        drawTerminalMessage(guiGraphics);
         // 在按钮下方显示最近一次终端检测结果。
-        guiGraphics.drawString(this.font,
-                this.getTerminalMessage(),
-                86, 58,
-                0x404040,
-                false);
     }
 
     // 将状态码转换成用户可读中文提示文本。
-    private Component getTerminalMessage() {
+    private void drawTerminalMessage(GuiGraphics guiGraphics) {
         int status = this.menu.getTerminalStatus();
+        if(status == ElectroMagnetRailCoreBlockEntity.TERMINAL_STATUS_IDLE) {
+            return;
+        }
         if (status == ElectroMagnetRailCoreBlockEntity.TERMINAL_STATUS_FOUND) {
-            return Component.literal("已找到电磁导轨终端：" + this.menu.getTerminalPos().toShortString());
+            guiGraphics.drawString(this.font,
+                    Component.literal("已找到电磁导轨终端：" + this.menu.getTerminalPos().toShortString()),
+                    86, 58,
+                    0x00BB44,
+                    false);
         }
         if (status == ElectroMagnetRailCoreBlockEntity.TERMINAL_STATUS_FACING_ERROR) {
-            return Component.literal("电磁导轨终端朝向错误");
+            guiGraphics.drawString(this.font,
+                    Component.literal("电磁导轨终端朝向错误：" + this.menu.getTerminalPos().toShortString()),
+                    86, 58,
+                    0xCC5555,
+                    false);
         }
         if (status == ElectroMagnetRailCoreBlockEntity.TERMINAL_STATUS_BLOCKED) {
-            return Component.literal("电磁导轨终端和核心之间有阻挡");
+            guiGraphics.drawString(this.font,
+                    Component.literal("电磁导轨终端和核心之间有遮挡：" + this.menu.getTerminalPos().toShortString()),
+                    86, 58,
+                    0xCC5555,
+                    false);
         }
         if (status == ElectroMagnetRailCoreBlockEntity.TERMINAL_STATUS_NOT_FOUND) {
-            return Component.literal("未找到可到达的电磁导轨终端");
+            guiGraphics.drawString(this.font,
+                    Component.literal("可到达范围内未找到电磁导轨终端：" + this.menu.getTerminalPos().toShortString()),
+                    86, 58,
+                    0xCC5555,
+                    false);
         }
-        return Component.literal("等待终端检测");
     }
 
     @Override
