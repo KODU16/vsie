@@ -1,4 +1,4 @@
-package com.kodu16.vsie.content.misc.electromagnet_rail;
+package com.kodu16.vsie.content.misc.electromagnet_rail.core;
 
 import com.kodu16.vsie.registries.vsieBlocks;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
@@ -6,7 +6,9 @@ import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -21,11 +23,16 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import software.bernie.geckolib.animatable.GeoBlockEntity;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animatable.instance.SingletonAnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
 
 import java.util.List;
 
-public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implements MenuProvider, IItemHandlerModifiable {
+public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implements MenuProvider, IItemHandlerModifiable, GeoBlockEntity {
     // 核心仓仅有 4 个槽位，且只允许放入 electromagnet_rail 方块物品。
+    public final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
     private final ItemStackHandler inventory = new ItemStackHandler(4) {
         @Override
         protected void onContentsChanged(int slot) {
@@ -74,18 +81,39 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
     }
 
     @Override
-    public void load(CompoundTag tag) {
-        super.load(tag);
+    public void read(CompoundTag tag, boolean clientpacket) {
+        super.read(tag,clientpacket);
         if (tag.contains("Inventory")) {
             inventory.deserializeNBT(tag.getCompound("Inventory"));
         }
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag);
+    protected void write(CompoundTag tag, boolean clientpacket) {
+        super.write(tag,clientpacket);
         tag.put("Inventory", inventory.serializeNBT());
     }
+
+    @Override
+    public CompoundTag getUpdateTag() {
+        CompoundTag tag = super.getUpdateTag();
+        write(tag, true);
+        return tag;
+    }
+
+    @Override
+    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
+        CompoundTag tag = pkt.getTag();
+        if (tag != null) {
+            handleUpdateTag(tag);
+        }
+    }
+
+    @Override
+    public void handleUpdateTag(CompoundTag tag) {
+        read(tag, true);
+    }
+
 
     @Override
     public @NotNull <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
@@ -142,5 +170,15 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
     public void setStackInSlot(int slot, @NotNull ItemStack stack) {
         inventory.setStackInSlot(slot, stack);
         setChanged();
+    }
+
+    @Override
+    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+
+    }
+
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return cache;
     }
 }

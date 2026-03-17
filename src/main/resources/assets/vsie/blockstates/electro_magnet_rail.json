@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "vsie:block/electro_magnet_rail"
+    }
+  }
+}

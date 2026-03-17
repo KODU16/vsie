@@ -70,6 +70,9 @@ public class vsieCreativeTab {
             output.accept(vsieBlocks.SMALL_FUELTANK_BLOCK);
             output.accept(vsieBlocks.MEDIUM_FUELTANK_BLOCK);
             output.accept(vsieBlocks.LARGE_FUELTANK_BLOCK);
+
+            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_CORE_BLOCK);
+            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_BLOCK);
         }
     }
 }

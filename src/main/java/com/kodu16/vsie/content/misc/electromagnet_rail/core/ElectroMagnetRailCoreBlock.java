@@ -1,4 +1,4 @@
-package com.kodu16.vsie.content.misc.electromagnet_rail;
+package com.kodu16.vsie.content.misc.electromagnet_rail.core;
 
 
 import com.kodu16.vsie.registries.vsieBlockEntities;
@@ -17,6 +17,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.DirectionalBlock;
 import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -36,6 +37,11 @@ public class ElectroMagnetRailCoreBlock extends DirectionalBlock implements Enti
         super(properties);
     }
     public static final DirectionProperty FACING = BlockStateProperties.FACING;
+
+    @Override
+    public RenderShape getRenderShape(BlockState State) {
+        return RenderShape.ENTITYBLOCK_ANIMATED;
+    }
 
     @Override
     public BlockEntity newBlockEntity(@Nonnull BlockPos pos, @Nonnull BlockState state) {

@@ -5,8 +5,8 @@ import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity
 import com.kodu16.vsie.content.turret.heavyturret.HeavyTurretContainerMenu;
 import com.kodu16.vsie.content.item.IFF.IFFContainerMenu;
 import com.kodu16.vsie.content.item.shieldtool.ShieldToolContainerMenu;
-import com.kodu16.vsie.content.misc.electromagnet_rail.ElectroMagnetRailCoreBlockEntity;
-import com.kodu16.vsie.content.misc.electromagnet_rail.ElectroMagnetRailCoreContainerMenu;
+import com.kodu16.vsie.content.misc.electromagnet_rail.core.ElectroMagnetRailCoreBlockEntity;
+import com.kodu16.vsie.content.misc.electromagnet_rail.core.ElectroMagnetRailCoreContainerMenu;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.content.screen.server.ScreenContainerMenu;
 import com.kodu16.vsie.content.storage.ammobox.AmmoBoxBlockEntity;

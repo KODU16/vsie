@@ -1,7 +1,7 @@
 package com.kodu16.vsie.registries;
 
 import com.kodu16.vsie.content.misc.electromagnet_rail.ElectroMagnetRailBlock;
-import com.kodu16.vsie.content.misc.electromagnet_rail.ElectroMagnetRailCoreBlock;
+import com.kodu16.vsie.content.misc.electromagnet_rail.core.ElectroMagnetRailCoreBlock;
 import com.kodu16.vsie.content.turret.ciws.basicciws.BasicCIWSBlock;
 import com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret.HeavyElectroMagnetTurretBlock;
 import com.kodu16.vsie.content.screen.block.BasicScreenBlock;

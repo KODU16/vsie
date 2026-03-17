@@ -1,0 +1,59 @@
+{
+	"format_version": "1.12.0",
+	"minecraft:geometry": [
+		{
+			"description": {
+				"identifier": "geometry.electromagnet_rail_core",
+				"texture_width": 128,
+				"texture_height": 128,
+				"visible_bounds_width": 3,
+				"visible_bounds_height": 2.5,
+				"visible_bounds_offset": [0, 0.75, 0]
+			},
+			"bones": [
+				{
+					"name": "bb_main",
+					"pivot": [0, 0, 0],
+					"cubes": [
+						{"origin": [-8, 0, -8], "size": [16, 2, 16], "uv": [0, 0]},
+						{"origin": [-8, 14, -8], "size": [5, 2, 16], "uv": [0, 18]},
+						{"origin": [3, 14, -8], "size": [5, 2, 16], "uv": [0, 36]},
+						{"origin": [-4, 2, -2], "size": [8, 12, 10], "uv": [42, 18]},
+						{"origin": [-4, 2, -8], "size": [1, 12, 6], "uv": [28, 88]},
+						{"origin": [3, 2, -8], "size": [1, 12, 6], "uv": [42, 88]}
+					]
+				},
+				{
+					"name": "railleft",
+					"pivot": [8, 2, 0],
+					"cubes": [
+						{"origin": [8, 10, -5], "size": [4, 4, 10], "uv": [64, 0]},
+						{"origin": [8, 2, -5], "size": [4, 4, 10], "uv": [74, 40]},
+						{"origin": [12, 2, -6], "size": [4, 12, 12], "uv": [0, 54]},
+						{"origin": [4, 2, -6], "size": [4, 12, 12], "uv": [42, 40]}
+					]
+				},
+				{
+					"name": "railright",
+					"pivot": [-8, -6, 0],
+					"cubes": [
+						{"origin": [-16, 2, -6], "size": [4, 12, 12], "uv": [64, 64]},
+						{"origin": [-8, 2, -6], "size": [4, 12, 12], "uv": [32, 64]},
+						{"origin": [-12, 10, -5], "size": [4, 4, 10], "uv": [78, 14]},
+						{"origin": [-12, 2, -5], "size": [4, 4, 10], "uv": [0, 78]}
+					]
+				},
+				{
+					"name": "railright2",
+					"pivot": [-8, -6, 0],
+					"cubes": [
+						{"origin": [-16, 2, -6], "size": [4, 12, 12], "uv": [64, 64]},
+						{"origin": [-8, 2, -6], "size": [4, 12, 12], "uv": [32, 64]},
+						{"origin": [-12, 10, -5], "size": [4, 4, 10], "uv": [78, 14]},
+						{"origin": [-12, 2, -5], "size": [4, 4, 10], "uv": [0, 78]}
+					]
+				}
+			]
+		}
+	]
+}

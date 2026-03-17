@@ -1,4 +1,4 @@
-package com.kodu16.vsie.content.misc.electromagnet_rail;
+package com.kodu16.vsie.content.misc.electromagnet_rail.core;
 
 import com.kodu16.vsie.vsie;
 import net.minecraft.client.gui.GuiGraphics;
