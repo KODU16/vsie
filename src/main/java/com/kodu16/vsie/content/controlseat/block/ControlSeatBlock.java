@@ -14,6 +14,12 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraftforge.network.NetworkHooks;
+import net.minecraft.server.level.ServerPlayer;
+import com.kodu16.vsie.content.controlseat.gui.ControlSeatWarpContainerMenu;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -52,8 +58,19 @@ public class ControlSeatBlock extends AbstractControlSeatBlock {
         ControlSeatBlockEntity blockEntity = (ControlSeatBlockEntity) level.getBlockEntity(pos);
 
         if (player.isSecondaryUseActive()) {
-            player.displayClientMessage(Component.literal("secondary use active"), true);
-            return InteractionResult.CONSUME;  // Handle secondary interaction if needed
+            // 功能：Shift+右键时打开控制椅专用的 warp data chip 仓储 GUI，而不是只显示提示文本。
+            NetworkHooks.openScreen((ServerPlayer) player, new MenuProvider() {
+                @Override
+                public Component getDisplayName() {
+                    return Component.translatable("container.vsie.control_seat_warp");
+                }
+
+                @Override
+                public AbstractContainerMenu createMenu(int id, Inventory inv, Player p) {
+                    return new ControlSeatWarpContainerMenu(id, inv, blockEntity);
+                }
+            }, buf -> buf.writeBlockPos(pos));
+            return InteractionResult.CONSUME;
         }
 
         // Ensure the correct player sits and can interact with the control seat

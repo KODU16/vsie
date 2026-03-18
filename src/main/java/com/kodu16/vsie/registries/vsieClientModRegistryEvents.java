@@ -3,6 +3,7 @@ package com.kodu16.vsie.registries;
 import com.kodu16.vsie.content.turret.heavyturret.HeavyTurretScreen;
 import com.kodu16.vsie.content.item.IFF.IFFScreen;
 import com.kodu16.vsie.content.item.shieldtool.shieldtoolScreen;
+import com.kodu16.vsie.content.controlseat.gui.ControlSeatWarpScreen;
 import com.kodu16.vsie.content.misc.electromagnet_rail.core.ElectroMagnetRailCoreScreen;
 import com.kodu16.vsie.content.missile.AbstractMissileGeoRenderer;
 import com.kodu16.vsie.content.screen.client.ScreenScreen;
@@ -46,6 +47,9 @@ public class vsieClientModRegistryEvents {
         );
         event.enqueueWork(() ->
                 MenuScreens.register(ModMenuTypes.AMMO_BOX_MENU.get(), AmmoBoxScreen::new)
+        );
+        event.enqueueWork(() ->
+                MenuScreens.register(ModMenuTypes.CONTROL_SEAT_WARP_MENU.get(), ControlSeatWarpScreen::new)
         );
         event.enqueueWork(() ->
                 MenuScreens.register(ModMenuTypes.ELECTRO_MAGNET_RAIL_CORE_MENU.get(), ElectroMagnetRailCoreScreen::new)

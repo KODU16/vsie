@@ -8,6 +8,7 @@ import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
 import com.kodu16.vsie.content.controlseat.client.Input.ClientMouseHandler;
 
 import com.kodu16.vsie.content.controlseat.server.SeatRegistry;
+import com.kodu16.vsie.registries.vsieItems;
 import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
@@ -21,9 +22,11 @@ import com.kodu16.vsie.registries.fuel.ThrusterFuelManager;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.fluids.FluidStack;
@@ -49,6 +52,7 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity;
+import net.minecraftforge.items.ItemStackHandler;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,8 +73,26 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
 
     public SmartFluidTankBehaviour tank;
 
+    // 功能：为 Shift+右键打开的控制椅专用 GUI 提供 27 格 warp data chip 存储。
+    private final ItemStackHandler warpChipInventory = new ItemStackHandler(27) {
+        @Override
+        protected void onContentsChanged(int slot) {
+            setChanged();
+        }
+
+        @Override
+        public boolean isItemValid(int slot, ItemStack stack) {
+            // 功能：限制控制椅仓位只接收 warp data chip。
+            return stack.is(vsieItems.WARP_DATA_CHIP.get());
+        }
+    };
+
     public ControlSeatBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
+    }
+
+    public ItemStackHandler getWarpChipInventory() {
+        return warpChipInventory;
     }
 
     public String getcontrolseattype() {
@@ -96,6 +118,22 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
 
     //再从服务端更新推力和力矩
     //窝草你发包怎么不告诉我对应不了服务端
+
+    @Override
+    public void write(CompoundTag tag, boolean clientPacket) {
+        super.write(tag, clientPacket);
+        // 功能：持久化控制椅 GUI 中存放的 warp data chip。
+        tag.put("WarpChipInventory", warpChipInventory.serializeNBT());
+    }
+
+    @Override
+    public void read(CompoundTag tag, boolean clientPacket) {
+        super.read(tag, clientPacket);
+        if (tag.contains("WarpChipInventory")) {
+            // 功能：在区块加载/同步时恢复控制椅 GUI 中保存的 warp data chip。
+            warpChipInventory.deserializeNBT(tag.getCompound("WarpChipInventory"));
+        }
+    }
 
     public void tick() {
         Logger LOGGER = LogUtils.getLogger();

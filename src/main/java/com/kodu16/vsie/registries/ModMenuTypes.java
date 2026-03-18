@@ -5,6 +5,8 @@ import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity
 import com.kodu16.vsie.content.turret.heavyturret.HeavyTurretContainerMenu;
 import com.kodu16.vsie.content.item.IFF.IFFContainerMenu;
 import com.kodu16.vsie.content.item.shieldtool.ShieldToolContainerMenu;
+import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
+import com.kodu16.vsie.content.controlseat.gui.ControlSeatWarpContainerMenu;
 import com.kodu16.vsie.content.misc.electromagnet_rail.core.ElectroMagnetRailCoreBlockEntity;
 import com.kodu16.vsie.content.misc.electromagnet_rail.core.ElectroMagnetRailCoreContainerMenu;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
@@ -54,6 +56,13 @@ public class ModMenuTypes {
                 BlockPos pos = data.readBlockPos();
                 AmmoBoxBlockEntity screen = (AmmoBoxBlockEntity) inv.player.level().getBlockEntity(pos);
                 return new AmmoBoxContainerMenu(windowId, inv, screen);
+            }));
+    public static final RegistryObject<MenuType<ControlSeatWarpContainerMenu>> CONTROL_SEAT_WARP_MENU = MENUS.register("control_seat_warp_menu",
+            () -> IForgeMenuType.create((windowId, inv, data) -> {
+                // 功能：读取控制椅坐标，为 Shift+右键打开的 warp data chip GUI 构建菜单。
+                BlockPos pos = data.readBlockPos();
+                ControlSeatBlockEntity controlSeat = (ControlSeatBlockEntity) inv.player.level().getBlockEntity(pos);
+                return new ControlSeatWarpContainerMenu(windowId, inv, controlSeat);
             }));
     public static final RegistryObject<MenuType<HeavyTurretContainerMenu>> HEAVY_TURRET_MENU = MENUS.register("heavy_turret_menu",
             () -> IForgeMenuType.create((windowId, inv, data) -> {
