@@ -88,6 +88,7 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
 
         if (!isTerminalBindingStillValid()) {
             setAnimData(IS_WORKING, false);
+            updateTopBindingState(this.terminalPos, false);
             clearTerminalBinding();
             this.setChanged();
             this.sendData();
@@ -118,6 +119,7 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
         Direction facing = this.getBlockState().getValue(ElectroMagnetRailCoreBlock.FACING);
         int maxDistance = this.getStoredRailCount();
 
+        BlockPos previousTerminalPos = this.terminalPos;
         this.terminalStatus = TERMINAL_STATUS_NOT_FOUND;
         this.terminalPos = BlockPos.ZERO;
         // 功能：每次重新扫描都先重置光束推进长度，避免沿用旧绑定的渲染进度。
@@ -133,10 +135,16 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
                     // 找到合法终端：记录坐标用于 GUI 展示。
                     this.terminalStatus = TERMINAL_STATUS_FOUND;
                     this.terminalPos = checkPos;
+                    // 功能：同步 top 的绑定状态，让 top 在被当前 core 绑定时展开左右骨骼。
+                    if (!previousTerminalPos.equals(checkPos)) {
+                        updateTopBindingState(previousTerminalPos, false);
+                    }
+                    updateTopBindingState(checkPos, true);
                     // 功能：重新绑定时重置光束长度，保证从 core 逐步延伸到 top。
                     this.beamRenderDistance = 0.0f;
                 } else {
                     // 找到终端但朝向错误。
+                    updateTopBindingState(previousTerminalPos, false);
                     this.terminalStatus = TERMINAL_STATUS_FACING_ERROR;
                     this.terminalPos = checkPos;
                     this.beamRenderDistance = 0.0f;
@@ -148,6 +156,7 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
 
             if (!checkState.isAir() && !checkState.is(vsieBlocks.ELECTRO_MAGNET_RAIL_BLOCK.get())) {
                 // 核心与终端之间出现非 rail 的障碍方块，判定为阻挡。
+                updateTopBindingState(previousTerminalPos, false);
                 this.terminalStatus = TERMINAL_STATUS_BLOCKED;
                 this.terminalPos = checkPos;
                 this.beamRenderDistance = 0.0f;
@@ -158,8 +167,26 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
         }
 
         // 范围内未找到终端。
+        updateTopBindingState(previousTerminalPos, false);
         this.setChanged();
         this.sendData();
+    }
+
+
+    // 功能：在 core 被破坏或强制解绑时，主动通知当前绑定 top 收回左右骨骼。
+    public void releaseBoundTop() {
+        updateTopBindingState(this.terminalPos, false);
+        clearTerminalBinding();
+    }
+
+    // 功能：把 core 的绑定结果同步给指定 top，驱动 top 左右骨骼展开或收回。
+    private void updateTopBindingState(BlockPos topPos, boolean bound) {
+        if (this.level == null || topPos == null || topPos.equals(BlockPos.ZERO)) {
+            return;
+        }
+        if (this.level.getBlockEntity(topPos) instanceof ElectroMagnetRailTopBlockEntity topBlockEntity) {
+            topBlockEntity.setBoundToCore(bound);
+        }
     }
 
     // 提供渲染层快速判断“可渲染的绑定状态”。

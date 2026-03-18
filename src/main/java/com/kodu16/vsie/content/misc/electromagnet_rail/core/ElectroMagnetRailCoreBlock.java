@@ -132,6 +132,8 @@ public class ElectroMagnetRailCoreBlock extends DirectionalBlock implements Enti
         if (state.getBlock() != newState.getBlock() && !level.isClientSide) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof ElectroMagnetRailCoreBlockEntity coreBlockEntity) {
+                // 功能：core 被移除时，主动通知已绑定的 top 收回左右骨骼，避免 top 保持展开状态。
+                coreBlockEntity.releaseBoundTop();
                 // 破坏核心仓时，将 4 个槽位中的 rail 全部作为掉落物抛出到世界，避免物品丢失。
                 SimpleContainer drops = new SimpleContainer(coreBlockEntity.getSlots());
                 for (int slot = 0; slot < coreBlockEntity.getSlots(); slot++) {
