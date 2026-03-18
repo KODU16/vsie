@@ -9,6 +9,7 @@ import com.kodu16.vsie.content.item.HUD.targetframe_enemy_locked;
 import com.kodu16.vsie.content.item.IFF.iff;
 import com.kodu16.vsie.content.item.linker.linker;
 import com.kodu16.vsie.content.item.shieldtool.shieldtool;
+import com.kodu16.vsie.content.item.warpdatachip.warp_data_chip;
 import com.kodu16.vsie.vsie;
 //import com.deltasf.createpropulsion.physics_assembler.AssemblyGaugeItem;
 //import com.deltasf.createpropulsion.utility.BurnableItem;
@@ -34,4 +35,5 @@ public class vsieItems {
     public static final ItemEntry<screen_bg> SCREEN_BG = REGISTRATE.item("screen_bg", screen_bg::new).register();
     public static final ItemEntry<iff> IFF = REGISTRATE.item("iff", iff::new).register();
     public static final ItemEntry<shieldtool> SHIELD_TOOL = REGISTRATE.item("shield_tool", shieldtool::new).register();
+    public static final ItemEntry<warp_data_chip> WRAP_DATA_CHIP = REGISTRATE.item("warp_data_chip", warp_data_chip::new).register();
 }
