@@ -50,7 +50,7 @@ public class ControlSeatWarpContainerMenu extends AbstractContainerMenu {
             }
         }
 
-        int hotbarY = playerInvY + 3 * 18;
+        int hotbarY = playerInvY + 3 * 18+4;
         for (int col = 0; col < 9; col++) {
             int x = startX + col * 18;
             this.addSlot(new Slot(playerInventory, col, x, hotbarY));
