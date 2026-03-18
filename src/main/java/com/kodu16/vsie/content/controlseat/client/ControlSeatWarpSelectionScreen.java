@@ -13,6 +13,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -120,9 +121,9 @@ public class ControlSeatWarpSelectionScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         // 功能：防止界面刚打开时 Screen 尚未拿到 minecraft/font 引用就进入渲染，从而触发原版 renderBackground 空指针。
-        if (this.minecraft == null || this.font == null) {
+        if (this.minecraft == null) {
             return;
         }
 
