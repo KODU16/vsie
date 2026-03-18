@@ -1,5 +1,6 @@
 package com.kodu16.vsie.mixin;
 
+import com.kodu16.vsie.content.controlseat.client.ControlSeatWarpSelectionScreen;
 import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.mojang.logging.LogUtils;
@@ -30,7 +31,10 @@ public class MouseInputMixin {
             data = ClientDataManager.getClientData(player);
         }
         if (data != null && data.isViewLocked()) {
-            // 视角被锁定时，拦截鼠标移动事件
+            if (Minecraft.getInstance().screen instanceof ControlSeatWarpSelectionScreen) {
+                return;
+            }
+            // 功能：仅在没有跃迁选单时拦截鼠标移动；打开选单后允许光标正常悬停按钮。
             ci.cancel();
             data.setAccumulatedx(Mth.clamp(data.getAccumulatedMousex() + xpos - data.getLastMousex(),-2560,2560));
             data.setAccumulatedy(Mth.clamp(data.getAccumulatedMousey() + ypos - data.getLastMousey(),-1440,1440));
@@ -52,6 +56,7 @@ public class MouseInputMixin {
 
         ControlSeatClientData data = ClientDataManager.getClientData(player);
         if (data == null || !data.isViewLocked()) return;
+        if (Minecraft.getInstance().screen instanceof ControlSeatWarpSelectionScreen) return;
 
         // 只处理左键
         if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return;
@@ -78,7 +83,10 @@ public class MouseInputMixin {
             data = ClientDataManager.getClientData(player);
         }
         if (data != null && data.isViewLocked()) {
-            // 视角被锁定时，拦截鼠标滚轮事件
+            if (Minecraft.getInstance().screen instanceof ControlSeatWarpSelectionScreen) {
+                return;
+            }
+            // 功能：仅在没有跃迁选单时拦截滚轮；打开选单后把滚轮交给选单滚动按钮列表。
             ci.cancel();
         }
     }

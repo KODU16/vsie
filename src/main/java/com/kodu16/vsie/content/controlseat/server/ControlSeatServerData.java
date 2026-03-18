@@ -79,6 +79,11 @@ public class ControlSeatServerData {
     // 功能：缓存“当前控制椅激活频道下可响应武器”的 HUD 数据（名称+冷却进度），用于 HUD 展示。
     public volatile List<ActiveWeaponHudInfo> activeWeaponHudInfos = new ArrayList<>();
 
+    // 功能：记录控制椅下一次跃迁所使用的目标坐标、维度与芯片名称，供后续跃迁逻辑读取。
+    public volatile BlockPos warpTargetPos = BlockPos.ZERO;
+    public volatile String warpTargetDimension = "minecraft:overworld";
+    public volatile String warpTargetName = "";
+
     public volatile boolean isviewlocked = false;
     public volatile int playerrotx = 0;
     public volatile int playerroty = 0;

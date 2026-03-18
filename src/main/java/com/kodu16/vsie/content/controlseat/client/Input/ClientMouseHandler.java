@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.controlseat.client.Input;
 
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
+import com.kodu16.vsie.content.controlseat.client.ControlSeatWarpSelectionScreen;
 import com.kodu16.vsie.registries.vsieKeyMappings;
 
 import com.mojang.logging.LogUtils;
@@ -29,6 +30,7 @@ public class ClientMouseHandler {
             if (player.getUUID() == data.getUserUUID() && data.getUserUUID()!=null) {
                 Minecraft minecraft = Minecraft.getInstance();
                 handleMouseLock(player, data, minecraft, pos);
+                handleWarpSelection(data, minecraft, pos);
                 double dx = data.getAccumulatedMousex();
                 double dy = data.getAccumulatedMousey();
                 //LOGGER.warn(String.valueOf(Component.literal("mouseDX:"+dx+"mouseDY:"+dy)));
@@ -45,6 +47,25 @@ public class ClientMouseHandler {
         }
     }
 
+
+    // 功能：视角锁定时按下 warp 键会打开/关闭一个可滚轮滑动的跃迁目标选单。
+    private static void handleWarpSelection(ControlSeatClientData data, Minecraft minecraft, BlockPos pos) {
+        if (!vsieKeyMappings.KEY_START_WARP.consumeClick()) {
+            return;
+        }
+        if (!data.isViewLocked()) {
+            if (minecraft.screen instanceof ControlSeatWarpSelectionScreen) {
+                minecraft.setScreen(null);
+            }
+            return;
+        }
+        if (minecraft.screen instanceof ControlSeatWarpSelectionScreen) {
+            minecraft.setScreen(null);
+            return;
+        }
+        minecraft.setScreen(new ControlSeatWarpSelectionScreen(pos));
+    }
+
     public static void handleMouseLock(LocalPlayer player, ControlSeatClientData data, Minecraft minecraft, BlockPos pos) {
         KeyMapping jumpKey = vsieKeyMappings.KEY_TOGGLE_LOCK; // alt键绑定为默认切换视角锁
         // 如果玩家不存在或没有控制座椅，则把视角锁关掉，UUID清掉并且跳过
@@ -52,6 +73,10 @@ public class ClientMouseHandler {
         if (player == null || !(player.getVehicle() instanceof ShipMountingEntity)) {
             data.disableViewLock();
             data.clearUserUUID();
+            if (minecraft.screen instanceof ControlSeatWarpSelectionScreen) {
+                // 功能：玩家离开控制椅时自动关闭跃迁目标选单，避免残留 UI 挡住游戏视图。
+                minecraft.setScreen(null);
+            }
             //data.reset();
             return;
         }
