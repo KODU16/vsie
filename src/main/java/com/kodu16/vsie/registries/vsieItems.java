@@ -35,5 +35,5 @@ public class vsieItems {
     public static final ItemEntry<screen_bg> SCREEN_BG = REGISTRATE.item("screen_bg", screen_bg::new).register();
     public static final ItemEntry<iff> IFF = REGISTRATE.item("iff", iff::new).register();
     public static final ItemEntry<shieldtool> SHIELD_TOOL = REGISTRATE.item("shield_tool", shieldtool::new).register();
-    public static final ItemEntry<warp_data_chip> WRAP_DATA_CHIP = REGISTRATE.item("warp_data_chip", warp_data_chip::new).register();
+    public static final ItemEntry<warp_data_chip> WARP_DATA_CHIP = REGISTRATE.item("warp_data_chip", warp_data_chip::new).register();
 }

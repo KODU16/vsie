@@ -42,7 +42,7 @@ public class vsieCreativeTab {
             output.accept(vsieItems.LINKER);
             output.accept(vsieItems.IFF);
             output.accept(vsieItems.SHIELD_TOOL);
-            output.accept(vsieItems.WRAP_DATA_CHIP);
+            output.accept(vsieItems.WARP_DATA_CHIP);
             output.accept(vsieBlocks.BASIC_SCREEN_BLOCK);
             output.accept(vsieFluids.DTFUEL.getBucket().get());
 
