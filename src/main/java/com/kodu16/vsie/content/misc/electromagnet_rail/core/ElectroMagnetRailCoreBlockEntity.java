@@ -5,6 +5,7 @@ import com.kodu16.vsie.content.misc.electromagnet_rail.top.ElectroMagnetRailTopB
 import com.kodu16.vsie.registries.vsieBlocks;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -29,6 +30,7 @@ import software.bernie.geckolib.animatable.GeoBlockEntity;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.core.animatable.instance.SingletonAnimatableInstanceCache;
 import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.network.SerializableDataTicket;
 
 import java.util.List;
 
@@ -39,7 +41,8 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
     public static final int TERMINAL_STATUS_FACING_ERROR = 2;
     public static final int TERMINAL_STATUS_NOT_FOUND = 3;
     public static final int TERMINAL_STATUS_BLOCKED = 4;
-
+    public static SerializableDataTicket<Boolean> IS_WORKING;
+    public float prevextend = 0;
     // 核心仓仅有 4 个槽位，且只允许放入 electromagnet_rail 方块物品。
     public final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
     private final ItemStackHandler inventory = new ItemStackHandler(4) {
@@ -55,10 +58,16 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
     };
 
     private LazyOptional<IItemHandlerModifiable> itemHandlerCap = LazyOptional.of(() -> this);
+    // 提供容器菜单读取检测状态。
     // 记录最近一次“终端检测”结果，供容器菜单同步给客户端 GUI。
+    @Getter
     private int terminalStatus = TERMINAL_STATUS_IDLE;
+    // 提供容器菜单读取检测终端坐标。
+    @Getter
     private BlockPos terminalPos = BlockPos.ZERO;
+    // 提供客户端渲染层读取当前光束推进长度。
     // 光束当前可见长度（单位：方块），每 tick 向终端推进 10 格。
+    @Getter
     private float beamRenderDistance = 0.0f;
 
     public ElectroMagnetRailCoreBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
@@ -77,15 +86,17 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
         }
 
         if (!isTerminalBindingStillValid()) {
+            setAnimData(IS_WORKING, false);
             clearTerminalBinding();
             this.setChanged();
             this.sendData();
             return;
         }
+        setAnimData(IS_WORKING,true);
 
         // 功能：光束前沿按固定速度逐 tick 推进，直到延伸至 top。
         float maxDistance = (float) Math.sqrt(this.worldPosition.distSqr(this.terminalPos));
-        this.beamRenderDistance = Math.min(maxDistance, this.beamRenderDistance + 10.0f);
+        this.beamRenderDistance = Math.min(maxDistance, this.beamRenderDistance + 2.0f);
     }
 
     // 提供给 GUI 与红石比较器读取：统计仓内 rail 总数。
@@ -148,21 +159,6 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
         // 范围内未找到终端。
         this.setChanged();
         this.sendData();
-    }
-
-    // 提供容器菜单读取检测状态。
-    public int getTerminalStatus() {
-        return terminalStatus;
-    }
-
-    // 提供容器菜单读取检测终端坐标。
-    public BlockPos getTerminalPos() {
-        return terminalPos;
-    }
-
-    // 提供客户端渲染层读取当前光束推进长度。
-    public float getBeamRenderDistance() {
-        return beamRenderDistance;
     }
 
     // 提供渲染层快速判断“可渲染的绑定状态”。

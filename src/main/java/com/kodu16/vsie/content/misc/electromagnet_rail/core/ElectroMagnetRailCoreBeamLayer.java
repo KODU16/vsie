@@ -3,12 +3,14 @@ package com.kodu16.vsie.content.misc.electromagnet_rail.core;
 import com.kodu16.vsie.foundation.translucentbeamrendertype;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.Direction;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
+import software.bernie.geckolib.network.SerializableDataTicket;
 import software.bernie.geckolib.renderer.GeoRenderer;
 import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
 
@@ -16,7 +18,7 @@ public class ElectroMagnetRailCoreBeamLayer extends GeoRenderLayer<ElectroMagnet
     // 功能：复用项目已有的半透明光束渲染管线，保持与推进器光束一致的视觉风格。
     private static final RenderType BEAM_RENDER_TYPE = translucentbeamrendertype.SOLID_TRANSLUCENT_BEAM;
     private static final int FULL_BRIGHT = 0xF000F0;
-    private static final float BEAM_HALF_WIDTH = 0.12f;
+    private static final float BEAM_HALF_WIDTH = 3/8f;
 
     public ElectroMagnetRailCoreBeamLayer(GeoRenderer<ElectroMagnetRailCoreBlockEntity> entityRendererIn) {
         super(entityRendererIn);
@@ -40,7 +42,8 @@ public class ElectroMagnetRailCoreBeamLayer extends GeoRenderLayer<ElectroMagnet
 
         poseStack.pushPose();
         // 功能：将渲染原点对齐到方块中心，便于按方块单位直接构造光束几何。
-        poseStack.translate(0.5f, 0.5f, 0.5f);
+        //poseStack.translate(0.5f, 0.5f, 0.5f);
+        poseStack.mulPose(Axis.YP.rotationDegrees(-90));
 
         VertexConsumer consumer = bufferSource.getBuffer(BEAM_RENDER_TYPE);
         PoseStack.Pose last = poseStack.last();
