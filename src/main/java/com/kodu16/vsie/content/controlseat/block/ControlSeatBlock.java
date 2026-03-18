@@ -38,15 +38,23 @@ public class ControlSeatBlock extends AbstractControlSeatBlock {
     @Nullable
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(@Nonnull Level level, @Nonnull BlockState state, @Nonnull BlockEntityType<T> type) {
-        if (type == vsieBlockEntities.CONTROL_SEAT_BLOCK_ENTITY.get()) {
+        if (type != vsieBlockEntities.CONTROL_SEAT_BLOCK_ENTITY.get()) {
+            return null;
+        }
+        if (level.isClientSide()) {
+            // 功能：客户端线程只处理输入与界面逻辑，避免在服务端线程误调 RenderSystem。
             return (world, pos, state1, blockEntity) -> {
                 if (blockEntity instanceof ControlSeatBlockEntity controlSeat) {
                     controlSeat.clientTick();
-                    controlSeat.tick();
                 }
             };
         }
-        return null;
+        // 功能：服务端线程只执行控制椅的服务端同步与运算逻辑。
+        return (world, pos, state1, blockEntity) -> {
+            if (blockEntity instanceof ControlSeatBlockEntity controlSeat) {
+                controlSeat.tick();
+            }
+        };
     }
 
     @Override
