@@ -124,6 +124,12 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         super.write(tag, clientPacket);
         // 功能：持久化控制椅 GUI 中存放的 warp data chip。
         tag.put("WarpChipInventory", warpChipInventory.serializeNBT());
+        // 功能：把当前选中的跃迁目标一并写入 NBT，保证区块卸载后 control seat 仍记得下一次跃迁坐标。
+        tag.putInt("WarpTargetX", controlseatData.warpTargetPos.getX());
+        tag.putInt("WarpTargetY", controlseatData.warpTargetPos.getY());
+        tag.putInt("WarpTargetZ", controlseatData.warpTargetPos.getZ());
+        tag.putString("WarpTargetDimension", controlseatData.warpTargetDimension);
+        tag.putString("WarpTargetName", controlseatData.warpTargetName);
     }
 
     @Override
@@ -133,6 +139,10 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             // 功能：在区块加载/同步时恢复控制椅 GUI 中保存的 warp data chip。
             warpChipInventory.deserializeNBT(tag.getCompound("WarpChipInventory"));
         }
+        // 功能：在区块加载/同步时恢复控制椅已经选好的跃迁目标。
+        controlseatData.warpTargetPos = new BlockPos(tag.getInt("WarpTargetX"), tag.getInt("WarpTargetY"), tag.getInt("WarpTargetZ"));
+        controlseatData.warpTargetDimension = tag.getString("WarpTargetDimension");
+        controlseatData.warpTargetName = tag.getString("WarpTargetName");
     }
 
     public void tick() {

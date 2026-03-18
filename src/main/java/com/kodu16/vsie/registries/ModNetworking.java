@@ -4,6 +4,7 @@ package com.kodu16.vsie.registries;
 import com.kodu16.vsie.network.IFF.IFFC2SPacket;
 import com.kodu16.vsie.network.controlseat.C2S.ControlSeatC2SPacket;
 import com.kodu16.vsie.network.controlseat.C2S.ControlSeatInputC2SPacket;
+import com.kodu16.vsie.network.controlseat.C2S.ControlSeatWarpTargetC2SPacket;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatInputS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatStatusS2CPacket;
@@ -54,6 +55,13 @@ public class ModNetworking {
                 ControlSeatInputC2SPacket::encode,
                 ControlSeatInputC2SPacket::decode,
                 ControlSeatInputC2SPacket::handle
+        );
+        CHANNEL.registerMessage(
+                nextId(),
+                ControlSeatWarpTargetC2SPacket.class,
+                ControlSeatWarpTargetC2SPacket::encode,
+                ControlSeatWarpTargetC2SPacket::decode,
+                ControlSeatWarpTargetC2SPacket::handle
         );
         CHANNEL.registerMessage(
                 nextId(),
