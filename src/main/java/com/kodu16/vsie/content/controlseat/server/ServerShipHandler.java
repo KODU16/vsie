@@ -43,6 +43,8 @@ public class ServerShipHandler {
     private static final double WARP_ALIGNMENT_THRESHOLD_DEGREES = 1.0D;
     // 功能：warp projectile 固定以 1 格/tick 飞行，对应用户要求的跃迁特效速度。
     private static final double WARP_PROJECTILE_SPEED_PER_TICK = 1.0D;
+    // 功能：在 warp projectile 消失后额外多等 1 秒，再调用 teleportship 执行正式跃迁。
+    private static final int WARP_TELEPORT_EXTRA_DELAY_TICKS = 20;
     //原先用于加力，现在改成综合的船只信息和行为处理
     //船只的四元数等数据也会被S2C传回用于视角控制之类的
     //说句实话我真想让你按alt直接固定在当前视角得了，但是考虑到我要做HUD我还是选择现在立刻马上就搞S2C
@@ -116,6 +118,9 @@ public class ServerShipHandler {
     }
 
     public void applyForceAndTorque(PhysShipImpl ship) {
+        // 功能：每 tick 先检查是否到了延迟跃迁触发时间，确保弹体寿命结束后能自动执行 teleportship。
+        processPendingWarpTeleport();
+
         Player player = data.getPlayer();
         boolean controlling = true;
         // 1. 玩家为空或已经死了，直接啥都不干
@@ -228,6 +233,9 @@ public class ServerShipHandler {
         if (level == null || level.isClientSide()) {
             return;
         }
+        if (data.hasPendingWarpTeleport) {
+            return;
+        }
         if (data.warpTargetPos == null || data.warpTargetPos.equals(BlockPos.ZERO)) {
             return;
         }
@@ -269,8 +277,29 @@ public class ServerShipHandler {
         );
         level.addFreshEntity(warpProjectile);
 
+        // 功能：按“弹体寿命 k tick + 1 秒”的规则安排后续传送，目标点取玩家所选坐标中心。
+        long executeGameTime = level.getGameTime() + (long) Math.ceil(k) + WARP_TELEPORT_EXTRA_DELAY_TICKS;
+        data.schedulePendingWarpTeleport(new Vector3d(
+                data.warpTargetPos.getX() + 0.5D,
+                data.warpTargetPos.getY() + 0.5D,
+                data.warpTargetPos.getZ() + 0.5D
+        ), executeGameTime);
         data.clearWarpPreparation();
         syncWarpPreparationState();
+    }
+
+    // 功能：在服务器 tick 到达预定时间时调用 teleportship，把船只传送到之前锁定的跃迁目标。
+    private void processPendingWarpTeleport() {
+        Level level = data.level;
+        if (level == null || level.isClientSide() || !data.hasPendingWarpTeleport) {
+            return;
+        }
+        if (level.getGameTime() < data.pendingWarpTeleportGameTime) {
+            return;
+        }
+        Vector3d destination = new Vector3d(data.pendingWarpTeleportPos);
+        data.clearPendingWarpTeleport();
+        teleportship(data, destination);
     }
 
     // 功能：复用控制椅到目标点的归一化方向计算，供自动对准与 warp projectile 发射共用同一方向基准。
@@ -358,7 +387,8 @@ public class ServerShipHandler {
         Vector3dc vel = ship.getVelocity();
         Vector3dc omega = ship.getAngularVelocity();
         Vector3dc centerofmass = ship.getTransform().getPositionInModel();
-        String dimension = String.valueOf(level.dimension());
+        // 功能：只有在控制椅明确记录了目标维度时才透传给 VS；否则留空交给 teleportship 自动决定维度。
+        String dimension = data.warpTargetDimension == null || data.warpTargetDimension.isBlank() ? null : data.warpTargetDimension;
         ServerShipWorld ssw = (ServerShipWorld) VSGameUtilsKt.getShipObjectWorld(level);
         double scale = ship.getTransform().getShipToWorldScaling().x();
         var teleportData = new ShipTeleportDataImpl(destpos, rot, vel, omega, dimension, scale,centerofmass);

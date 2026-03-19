@@ -82,10 +82,17 @@ public class ControlSeatServerData {
 
     // 功能：记录控制椅下一次跃迁所使用的目标坐标、维度与芯片名称，供后续跃迁逻辑读取。
     public volatile BlockPos warpTargetPos = BlockPos.ZERO;
-    public volatile String warpTargetDimension = "minecraft:overworld";
+    // 功能：缓存跃迁目标维度；默认留空，避免在未选择目标时随意写入固定默认维度。
+    public volatile String warpTargetDimension = "";
     public volatile String warpTargetName = "";
     // 功能：标记控制椅是否已进入 warp 准备状态；准备阶段会屏蔽玩家手动姿态/推力输入并启用自动对准。
     public volatile boolean isWarpPreparing = false;
+    // 功能：标记是否已经发射 warp projectile 并进入延迟传送阶段，避免一轮跃迁重复安排传送。
+    public volatile boolean hasPendingWarpTeleport = false;
+    // 功能：缓存延迟传送的目标世界坐标，供弹体寿命结束后执行 teleportship。
+    public volatile Vector3d pendingWarpTeleportPos = new Vector3d();
+    // 功能：记录延迟传送应在服务器哪个 gameTime 执行，实现“弹体寿命 + 1 秒”后再跃迁。
+    public volatile long pendingWarpTeleportGameTime = -1L;
 
     public volatile boolean isviewlocked = false;
     public volatile int playerrotx = 0;
@@ -124,6 +131,8 @@ public class ControlSeatServerData {
     // 功能：进入 warp 准备状态前统一清空手动扭矩与油门，确保后续只由自动对准逻辑接管姿态控制。
     public void startWarpPreparation() {
         this.isWarpPreparing = true;
+        // 功能：开始新的 warp 准备时清空上一轮尚未执行的延迟传送，避免旧任务误触发。
+        clearPendingWarpTeleport();
         this.torque = new Vector3d(0, 0, 0);
         this.throttle = 0;
     }
@@ -132,9 +141,23 @@ public class ControlSeatServerData {
     public void clearWarpPreparation() {
         this.isWarpPreparing = false;
         this.warpTargetPos = BlockPos.ZERO;
-        this.warpTargetDimension = "minecraft:overworld";
+        this.warpTargetDimension = "";
         this.warpTargetName = "";
         this.torque = new Vector3d(0, 0, 0);
         this.throttle = 0;
+    }
+
+    // 功能：安排一条延迟执行的跃迁任务，在 warp projectile 生命周期结束并额外等待 1 秒后传送船只。
+    public void schedulePendingWarpTeleport(Vector3d destination, long executeGameTime) {
+        this.hasPendingWarpTeleport = true;
+        this.pendingWarpTeleportPos = new Vector3d(destination);
+        this.pendingWarpTeleportGameTime = executeGameTime;
+    }
+
+    // 功能：清除已经完成或被打断的延迟跃迁任务，避免残留任务在后续 tick 被再次执行。
+    public void clearPendingWarpTeleport() {
+        this.hasPendingWarpTeleport = false;
+        this.pendingWarpTeleportPos = new Vector3d();
+        this.pendingWarpTeleportGameTime = -1L;
     }
 }
