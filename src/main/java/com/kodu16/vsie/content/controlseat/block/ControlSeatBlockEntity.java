@@ -22,6 +22,7 @@ import com.kodu16.vsie.registries.fuel.ThrusterFuelManager;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
+import lombok.Getter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -74,6 +75,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
     public SmartFluidTankBehaviour tank;
 
     // 功能：为 Shift+右键打开的控制椅专用 GUI 提供 27 格 warp data chip 存储。
+    @Getter
     private final ItemStackHandler warpChipInventory = new ItemStackHandler(27) {
         @Override
         protected void onContentsChanged(int slot) {
@@ -89,10 +91,6 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
 
     public ControlSeatBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
-    }
-
-    public ItemStackHandler getWarpChipInventory() {
-        return warpChipInventory;
     }
 
     public String getcontrolseattype() {
@@ -115,9 +113,6 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         //这是个静态方法，最好提前确定好你在server存好了他上一次的鼠标位置和他上一次操作时间
         ClientMouseHandler.handle(lp, pos);
     }
-
-    //再从服务端更新推力和力矩
-    //窝草你发包怎么不告诉我对应不了服务端
 
     @Override
     public void write(CompoundTag tag, boolean clientPacket) {
