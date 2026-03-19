@@ -351,7 +351,9 @@ public class ServerShipHandler {
         // 返回世界坐标系下d(a, b, c);
     }
 
-    public static void teleportship(ServerShip ship, Level level, Vector3d destpos) {
+    public static void teleportship(ControlSeatServerData data, Vector3d destpos) {
+        ServerShip ship = data.serverShip;
+        Level level = data.level;
         Quaterniondc rot = ship.getTransform().getShipToWorldRotation();
         Vector3dc vel = ship.getVelocity();
         Vector3dc omega = ship.getAngularVelocity();
