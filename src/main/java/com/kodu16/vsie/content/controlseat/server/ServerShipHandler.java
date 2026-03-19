@@ -1,10 +1,13 @@
 package com.kodu16.vsie.content.controlseat.server;
 
 
+import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.functions.ScanNearByShips;
+import com.kodu16.vsie.content.warpprojectile.WarpProjecTileEntity;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatInputS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatStatusS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.NearbyShipsS2CPacket;
+import com.kodu16.vsie.registries.vsieEntities;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -15,6 +18,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
+import org.joml.primitives.AABBdc;
 import org.valkyrienskies.core.api.ships.QueryableShipData;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
@@ -29,6 +33,10 @@ import org.slf4j.Logger;
 
 
 public class ServerShipHandler {
+    // 功能：当控制椅前向与 warp 目标夹角小于 1 度时，视为已完成自动对准并触发 warp projectile。
+    private static final double WARP_ALIGNMENT_THRESHOLD_DEGREES = 1.0D;
+    // 功能：warp projectile 固定以 1 格/tick 飞行，对应用户要求的跃迁特效速度。
+    private static final double WARP_PROJECTILE_SPEED_PER_TICK = 1.0D;
     //原先用于加力，现在改成综合的船只信息和行为处理
     //船只的四元数等数据也会被S2C传回用于视角控制之类的
     //说句实话我真想让你按alt直接固定在当前视角得了，但是考虑到我要做HUD我还是选择现在立刻马上就搞S2C
@@ -155,6 +163,11 @@ public class ServerShipHandler {
                 controltorque.mul(0);
             }
 
+            if (data.isWarpPreparing) {
+                // 功能：一旦自动对准达到阈值，立即在船体位置生成 warp projectile，并退出准备状态防止重复生成。
+                tryLaunchWarpProjectile(ship);
+            }
+
             Vector3d Invarianttorque = calculateWorldTorque(controltorque, worldXDirection, worldYDirection, worldZDirection);
             double forcescale = -1000 * data.getThrottle() * (data.thruster_strength / (ship.getMass()));
             Vector3d Invariantforce = new Vector3d(worldXDirection.x * forcescale, worldXDirection.y * forcescale, worldXDirection.z * forcescale);
@@ -182,16 +195,10 @@ public class ServerShipHandler {
             return new Vector3d(0, 0, 0);
         }
 
-        Vector3d seatWorldPos = convertSeatToWorldPosition(ship);
-        Vector3d targetDirection = new Vector3d(
-                data.warpTargetPos.getX() + 0.5 - seatWorldPos.x,
-                data.warpTargetPos.getY() + 0.5 - seatWorldPos.y,
-                data.warpTargetPos.getZ() + 0.5 - seatWorldPos.z
-        );
-        if (targetDirection.lengthSquared() < 1.0E-6) {
+        Vector3d targetDirection = getNormalizedWarpTargetDirection(ship);
+        if (targetDirection == null) {
             return new Vector3d(0, 0, 0);
         }
-        targetDirection.normalize();
 
         Vector3d currentForward = new Vector3d(worldXDirection).normalize();
         Vector3d rotationAxisWorld = currentForward.cross(targetDirection, new Vector3d());
@@ -207,6 +214,83 @@ public class ServerShipHandler {
         double localYawTorque = Mth.clamp(rotationAxisWorld.dot(worldYDirection), -factor, factor);
         double localPitchTorque = Mth.clamp(rotationAxisWorld.dot(worldZDirection), -factor, factor);
         return new Vector3d(0, localYawTorque, localPitchTorque);
+    }
+
+    // 功能：检查当前船首是否已对准 warp 目标；若夹角小于 1 度，则按船体最大包围盒尺寸生成 warp projectile。
+    private void tryLaunchWarpProjectile(PhysShipImpl ship) {
+        Level level = data.level;
+        if (level == null || level.isClientSide()) {
+            return;
+        }
+        if (data.warpTargetPos == null || data.warpTargetPos.equals(BlockPos.ZERO)) {
+            return;
+        }
+
+        Vector3d launchDirection = getNormalizedWarpTargetDirection(ship);
+        if (launchDirection == null) {
+            return;
+        }
+
+        Vector3d currentForward = new Vector3d(worldXDirection);
+        if (currentForward.lengthSquared() < 1.0E-6D) {
+            return;
+        }
+        currentForward.normalize();
+
+        double alignment = Mth.clamp(currentForward.dot(launchDirection), -1.0D, 1.0D);
+        double angleDegrees = Math.toDegrees(Math.acos(alignment));
+        if (angleDegrees >= WARP_ALIGNMENT_THRESHOLD_DEGREES) {
+            return;
+        }
+
+        AABBdc shipAabb = ship.getWorldAABB();
+        double sizeX = shipAabb.maxX() - shipAabb.minX();
+        double sizeY = shipAabb.maxY() - shipAabb.minY();
+        double sizeZ = shipAabb.maxZ() - shipAabb.minZ();
+        double k = Math.max(sizeX, Math.max(sizeY, sizeZ));
+        if (k <= 0.0D) {
+            return;
+        }
+
+        Vector3dc shipPos = ship.getTransform().getPositionInWorld();
+        WarpProjecTileEntity warpProjectile = new WarpProjecTileEntity(vsieEntities.WARP_PROJECTILE.get(), level);
+        // 功能：在船只 world pos 处生成特效弹体，并让其以 1 格/tick 朝目标飞行 k tick。
+        warpProjectile.setPos(shipPos.x(), shipPos.y(), shipPos.z());
+        warpProjectile.configureLaunch(
+                new net.minecraft.world.phys.Vec3(launchDirection.x, launchDirection.y, launchDirection.z),
+                WARP_PROJECTILE_SPEED_PER_TICK,
+                k
+        );
+        level.addFreshEntity(warpProjectile);
+
+        data.clearWarpPreparation();
+        syncWarpPreparationState();
+    }
+
+    // 功能：复用控制椅到目标点的归一化方向计算，供自动对准与 warp projectile 发射共用同一方向基准。
+    private Vector3d getNormalizedWarpTargetDirection(PhysShipImpl ship) {
+        Vector3d seatWorldPos = convertSeatToWorldPosition(ship);
+        Vector3d targetDirection = new Vector3d(
+                data.warpTargetPos.getX() + 0.5 - seatWorldPos.x,
+                data.warpTargetPos.getY() + 0.5 - seatWorldPos.y,
+                data.warpTargetPos.getZ() + 0.5 - seatWorldPos.z
+        );
+        if (targetDirection.lengthSquared() < 1.0E-6D) {
+            return null;
+        }
+        return targetDirection.normalize();
+    }
+
+    // 功能：warp 准备状态结束后立刻把控制椅方块实体同步给客户端，避免客户端仍显示旧的准备状态。
+    private void syncWarpPreparationState() {
+        if (data.level == null || data.controlSeatPos == null) {
+            return;
+        }
+        if (!(data.level.getBlockEntity(data.controlSeatPos) instanceof ControlSeatBlockEntity controlSeat)) {
+            return;
+        }
+        controlSeat.setChanged();
+        controlSeat.sendData();
     }
 
     // 功能：把控制椅方块坐标转换为世界空间中心点，用于计算“控制椅前向 -> warp 目标”的真实方向向量。

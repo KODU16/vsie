@@ -6,6 +6,7 @@ import com.kodu16.vsie.content.item.shieldtool.shieldtoolScreen;
 import com.kodu16.vsie.content.controlseat.gui.ControlSeatWarpScreen;
 import com.kodu16.vsie.content.misc.electromagnet_rail.core.ElectroMagnetRailCoreScreen;
 import com.kodu16.vsie.content.missile.AbstractMissileGeoRenderer;
+import com.kodu16.vsie.content.warpprojectile.WarpProjectileRenderer;
 import com.kodu16.vsie.content.screen.client.ScreenScreen;
 import com.kodu16.vsie.content.storage.ammobox.AmmoBoxScreen;
 import com.kodu16.vsie.content.turret.client.TurretScreen;
@@ -56,6 +57,10 @@ public class vsieClientModRegistryEvents {
         );
         event.enqueueWork(() ->
                 EntityRenderers.register(vsieEntities.BASIC_MISSILE.get(), AbstractMissileGeoRenderer::new)
+        );
+        event.enqueueWork(() ->
+                // 功能：为 warp projectile 注册空渲染器，仅显示其 Photon 特效而不渲染额外模型。
+                EntityRenderers.register(vsieEntities.WARP_PROJECTILE.get(), WarpProjectileRenderer::new)
         );
         event.enqueueWork(() -> {
             Minecraft.getInstance().particleEngine.register(
