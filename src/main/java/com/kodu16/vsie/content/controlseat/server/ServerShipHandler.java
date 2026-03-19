@@ -9,6 +9,7 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -147,8 +148,9 @@ public class ServerShipHandler {
             transform.getShipToWorld().transformDirection(data.getDirectionRight(), worldZDirection);
             worldZDirection.normalize();
 
+            Vector3d steeringTorque = data.isWarpPreparing ? calculateWarpPreparationTorque(ship) : new Vector3d(torque);
             double torquescale = data.thruster_strength / (Math.sqrt(ship.getMass()));
-            Vector3d controltorque = new Vector3d(torque.x*torquescale, torque.y*torquescale, torque.z*torquescale);
+            Vector3d controltorque = new Vector3d(steeringTorque.x*torquescale, steeringTorque.y*torquescale, steeringTorque.z*torquescale);
             if(controltorque.length()<0.1) {
                 controltorque.mul(0);
             }
@@ -172,6 +174,56 @@ public class ServerShipHandler {
         ship.applyInvariantForce(finalforce);
 
 
+    }
+
+    // 功能：warp 准备状态下根据控制椅前向与目标方向的夹角生成自动对准扭矩；结果被限制在手动鼠标控制的最大输入范围内。
+    private Vector3d calculateWarpPreparationTorque(PhysShipImpl ship) {
+        if (data.warpTargetName == null || data.warpTargetName.isEmpty() || data.warpTargetPos == null || data.warpTargetPos.equals(BlockPos.ZERO)) {
+            return new Vector3d(0, 0, 0);
+        }
+
+        Vector3d seatWorldPos = convertSeatToWorldPosition(ship);
+        Vector3d targetDirection = new Vector3d(
+                data.warpTargetPos.getX() + 0.5 - seatWorldPos.x,
+                data.warpTargetPos.getY() + 0.5 - seatWorldPos.y,
+                data.warpTargetPos.getZ() + 0.5 - seatWorldPos.z
+        );
+        if (targetDirection.lengthSquared() < 1.0E-6) {
+            return new Vector3d(0, 0, 0);
+        }
+        targetDirection.normalize();
+
+        Vector3d currentForward = new Vector3d(worldXDirection).normalize();
+        Vector3d rotationAxisWorld = currentForward.cross(targetDirection, new Vector3d());
+        if (rotationAxisWorld.lengthSquared() < 1.0E-6) {
+            return new Vector3d(0, 0, 0);
+        }
+
+        double alignment = Mth.clamp(currentForward.dot(targetDirection), -1.0D, 1.0D);
+        double angleStrength = Mth.clamp((1.0D - alignment) * 2.0D, 0.0D, 1.0D);
+        rotationAxisWorld.normalize(angleStrength);
+
+        // 功能：只使用 yaw/pitch 两个轴进行自动对准，避免 warp 准备阶段给控制椅引入额外滚转。
+        double localYawTorque = Mth.clamp(rotationAxisWorld.dot(worldYDirection), -1.0D, 1.0D);
+        double localPitchTorque = Mth.clamp(rotationAxisWorld.dot(worldZDirection), -1.0D, 1.0D);
+        return new Vector3d(0, localYawTorque, localPitchTorque);
+    }
+
+    // 功能：把控制椅方块坐标转换为世界空间中心点，用于计算“控制椅前向 -> warp 目标”的真实方向向量。
+    private Vector3d convertSeatToWorldPosition(PhysShipImpl ship) {
+        BlockPos controlSeatPos = data.controlSeatPos;
+        if (controlSeatPos == null) {
+            controlSeatPos = BlockPos.ZERO;
+        }
+        if (VSGameUtilsKt.isBlockInShipyard(data.level, controlSeatPos)) {
+            Vector3d worldCenter = new Vector3d();
+            ship.getTransform().getShipToWorld().transformPosition(
+                    new Vector3d(controlSeatPos.getX() + 0.5, controlSeatPos.getY() + 0.5, controlSeatPos.getZ() + 0.5),
+                    worldCenter
+            );
+            return worldCenter;
+        }
+        return new Vector3d(controlSeatPos.getX() + 0.5, controlSeatPos.getY() + 0.5, controlSeatPos.getZ() + 0.5);
     }
 
     public static BlockPos convertToBlockPos(Vector3dc vector) {

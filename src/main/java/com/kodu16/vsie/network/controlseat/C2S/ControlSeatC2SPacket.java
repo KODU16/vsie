@@ -84,10 +84,16 @@ public class ControlSeatC2SPacket {
             }
             else {
                 ControlSeatServerData serverData = controlSeat.getServerData(); // Ensure this method exists
-                int finalthrottle = Math.max(-100, Math.min(serverData.getThrottle()+finalthrottledelta, 100));
-                //LOGGER.warn(String.valueOf(Component.literal("final throttle:"+finalthrottle)));
-                serverData.setTorque(new Vector3d(0, -mousex, mousey));
-                serverData.setThrottle(finalthrottle);
+                if (serverData.isWarpPreparing) {
+                    // 功能：warp 准备状态期间屏蔽玩家鼠标/键盘产生的姿态与推力输入，改由自动对准逻辑接管。
+                    serverData.setTorque(new Vector3d(0, 0, 0));
+                    serverData.setThrottle(0);
+                } else {
+                    int finalthrottle = Math.max(-100, Math.min(serverData.getThrottle()+finalthrottledelta, 100));
+                    //LOGGER.warn(String.valueOf(Component.literal("final throttle:"+finalthrottle)));
+                    serverData.setTorque(new Vector3d(0, -mousex, mousey));
+                    serverData.setThrottle(finalthrottle);
+                }
 
             }
             ControlSeatServerData serverData = controlSeat.getServerData(); // Ensure this method exists

@@ -83,10 +83,15 @@ public class ControlSeatServerData {
     public volatile BlockPos warpTargetPos = BlockPos.ZERO;
     public volatile String warpTargetDimension = "minecraft:overworld";
     public volatile String warpTargetName = "";
+    // 功能：标记控制椅是否已进入 warp 准备状态；准备阶段会屏蔽玩家手动姿态/推力输入并启用自动对准。
+    public volatile boolean isWarpPreparing = false;
 
     public volatile boolean isviewlocked = false;
     public volatile int playerrotx = 0;
     public volatile int playerroty = 0;
+
+    // 功能：缓存当前控制椅方块坐标，供 warp 自动对准时把座椅位置转换为世界空间。
+    public volatile BlockPos controlSeatPos = BlockPos.ZERO;
 
     public Level level;
 
@@ -110,5 +115,24 @@ public class ControlSeatServerData {
         this.throttle = 0;
         this.player = null;
         this.isfiring = false;
+        // 功能：控制椅失去操作者时强制退出 warp 准备状态，避免残留的自动对准继续作用到空座椅上。
+        clearWarpPreparation();
+    }
+
+    // 功能：进入 warp 准备状态前统一清空手动扭矩与油门，确保后续只由自动对准逻辑接管姿态控制。
+    public void startWarpPreparation() {
+        this.isWarpPreparing = true;
+        this.torque = new Vector3d(0, 0, 0);
+        this.throttle = 0;
+    }
+
+    // 功能：取消 warp 准备状态并清空目标，供玩家按 P 直接退出自动对准时复用。
+    public void clearWarpPreparation() {
+        this.isWarpPreparing = false;
+        this.warpTargetPos = BlockPos.ZERO;
+        this.warpTargetDimension = "minecraft:overworld";
+        this.warpTargetName = "";
+        this.torque = new Vector3d(0, 0, 0);
+        this.throttle = 0;
     }
 }
