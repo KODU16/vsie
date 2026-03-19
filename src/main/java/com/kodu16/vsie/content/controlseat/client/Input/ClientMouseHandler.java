@@ -2,6 +2,8 @@ package com.kodu16.vsie.content.controlseat.client.Input;
 
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.kodu16.vsie.content.controlseat.client.ControlSeatWarpSelectionScreen;
+import com.kodu16.vsie.network.controlseat.C2S.ControlSeatWarpCancelC2SPacket;
+import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.registries.vsieKeyMappings;
 
 import com.mojang.logging.LogUtils;
@@ -53,7 +55,21 @@ public class ClientMouseHandler {
         if (!vsieKeyMappings.KEY_START_WARP.consumeClick()) {
             return;
         }
+        if (minecraft.level == null) {
+            return;
+        }
         if (!data.isViewLocked()) {
+            if (minecraft.screen instanceof ControlSeatWarpSelectionScreen) {
+                minecraft.setScreen(null);
+            }
+            return;
+        }
+        if (!(minecraft.level.getBlockEntity(pos) instanceof com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity controlSeat)) {
+            return;
+        }
+        if (controlSeat.getServerData().isWarpPreparing) {
+            // 功能：warp 准备状态下再次按 P，不再弹出菜单，而是直接通知服务端取消自动对准与目标记录。
+            ModNetworking.CHANNEL.sendToServer(new ControlSeatWarpCancelC2SPacket(pos));
             if (minecraft.screen instanceof ControlSeatWarpSelectionScreen) {
                 minecraft.setScreen(null);
             }

@@ -125,6 +125,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         tag.putInt("WarpTargetZ", controlseatData.warpTargetPos.getZ());
         tag.putString("WarpTargetDimension", controlseatData.warpTargetDimension);
         tag.putString("WarpTargetName", controlseatData.warpTargetName);
+        // 功能：同步 warp 准备状态到客户端，让按下 P 时能正确走“取消准备”而不是再次开菜单。
+        tag.putBoolean("IsWarpPreparing", controlseatData.isWarpPreparing);
     }
 
     @Override
@@ -138,6 +140,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         controlseatData.warpTargetPos = new BlockPos(tag.getInt("WarpTargetX"), tag.getInt("WarpTargetY"), tag.getInt("WarpTargetZ"));
         controlseatData.warpTargetDimension = tag.getString("WarpTargetDimension");
         controlseatData.warpTargetName = tag.getString("WarpTargetName");
+        controlseatData.isWarpPreparing = tag.getBoolean("IsWarpPreparing");
     }
 
     public void tick() {
@@ -145,6 +148,9 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         if (level.isClientSide)
             return;
         if (hasInitialized) {
+
+            // 功能：每 tick 刷新控制椅自身方块坐标，供 warp 自动对准把目标位置转换为控制椅当前的世界朝向基准。
+            controlseatData.controlSeatPos = getBlockPos();
 
             //update
             if (!ride) {

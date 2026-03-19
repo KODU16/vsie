@@ -55,12 +55,14 @@ public class ControlSeatWarpTargetC2SPacket {
                 return;
             }
             ControlSeatServerData serverData = controlSeat.getServerData();
-            // 功能：把玩家选中的芯片目标写入 control seat，供接下来的跃迁逻辑读取下一次目的地。
+            // 功能：把玩家选中的芯片目标写入 control seat，并立刻切入 warp 准备状态以开始自动对准。
             serverData.warpTargetPos = storedWarpData.pos();
             serverData.warpTargetDimension = storedWarpData.dimensionId();
             serverData.warpTargetName = stack.getHoverName().getString();
+            serverData.startWarpPreparation();
             controlSeat.setChanged();
-            sender.sendSystemMessage(Component.literal("已将下一次跃迁目标设为: " + serverData.warpTargetName + " -> " + serverData.warpTargetDimension + " " + serverData.warpTargetPos));
+            controlSeat.sendData();
+            sender.sendSystemMessage(Component.literal("已将下一次跃迁目标设为: " + serverData.warpTargetName + " -> " + serverData.warpTargetDimension + " " + serverData.warpTargetPos + "，控制椅进入 warp 准备状态"));
         });
         ctx.setPacketHandled(true);
     }
