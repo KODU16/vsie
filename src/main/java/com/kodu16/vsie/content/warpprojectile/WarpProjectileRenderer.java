@@ -12,7 +12,6 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import net.minecraft.world.level.block.EndPortalBlock;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
@@ -32,8 +31,8 @@ import java.util.List;
 public class WarpProjectileRenderer extends EntityRenderer<WarpProjecTileEntity> {
     // 功能：指定消失平面使用的末地门纹理，让残影视觉上与末地门效果一致。
     private static final ResourceLocation END_PORTAL_TEXTURE = new ResourceLocation("minecraft", "textures/block/end_portal.png");
-    // 功能：使用带透明度的实体贴图渲染类型，便于直接绘制六边形贴图平面。
-    private static final RenderType DECAY_RENDER_TYPE = RenderType.endPortal();
+    // 功能：改用明确绑定末地门贴图的半透明双面渲染类型，修复 RenderType.endPortal() 不显示自定义六边形顶点的问题。
+    private static final RenderType DECAY_RENDER_TYPE = RenderType.entityTranslucentEmissive(END_PORTAL_TEXTURE, false);
     // 功能：统一约束消失残影持续时间，满足需求中的 80 tick 生命周期。
     private static final int DECAY_DURATION_TICKS = 80;
     // 功能：维护当前世界内所有活跃的跃迁弹消失残影，供世界渲染阶段统一绘制。
@@ -125,7 +124,7 @@ public class WarpProjectileRenderer extends EntityRenderer<WarpProjecTileEntity>
         float innerAlpha = 0.85F * alphaScale;
         float outerAlpha = 0.35F * alphaScale;
 
-        // 功能：先绘制中心到边缘的六个三角面，形成完整的六边形末地门平面。
+        // 功能：先绘制朝向法线的正面六个三角面，形成完整的六边形末地门平面。
         for (int i = 0; i < 6; i++) {
             float angle0 = (float) (Math.PI / 3.0D * i);
             float angle1 = (float) (Math.PI / 3.0D * (i + 1));
@@ -134,21 +133,35 @@ public class WarpProjectileRenderer extends EntityRenderer<WarpProjecTileEntity>
             float x1 = Mth.cos(angle1) * radius;
             float y1 = Mth.sin(angle1) * radius;
 
-            vertex(consumer, matrix4f, matrix3f, 0.0F, 0.0F, 0.0F, 0.5F, 0.5F, innerAlpha);
-            vertex(consumer, matrix4f, matrix3f, x0, y0, 0.0F, 0.5F + x0 / (radius * 2.0F), 0.5F + y0 / (radius * 2.0F), outerAlpha);
-            vertex(consumer, matrix4f, matrix3f, x1, y1, 0.0F, 0.5F + x1 / (radius * 2.0F), 0.5F + y1 / (radius * 2.0F), outerAlpha);
+            vertex(consumer, matrix4f, matrix3f, 0.0F, 0.0F, 0.0F, 0.5F, 0.5F, innerAlpha, 1.0F);
+            vertex(consumer, matrix4f, matrix3f, x0, y0, 0.0F, 0.5F + x0 / (radius * 2.0F), 0.5F + y0 / (radius * 2.0F), outerAlpha, 1.0F);
+            vertex(consumer, matrix4f, matrix3f, x1, y1, 0.0F, 0.5F + x1 / (radius * 2.0F), 0.5F + y1 / (radius * 2.0F), outerAlpha, 1.0F);
+        }
+
+        // 功能：再补绘背面六个三角面，保证玩家从跃迁终点另一侧观察时六边形纹理仍然可见。
+        for (int i = 0; i < 6; i++) {
+            float angle0 = (float) (Math.PI / 3.0D * i);
+            float angle1 = (float) (Math.PI / 3.0D * (i + 1));
+            float x0 = Mth.cos(angle0) * radius;
+            float y0 = Mth.sin(angle0) * radius;
+            float x1 = Mth.cos(angle1) * radius;
+            float y1 = Mth.sin(angle1) * radius;
+
+            vertex(consumer, matrix4f, matrix3f, 0.0F, 0.0F, 0.0F, 0.5F, 0.5F, innerAlpha, -1.0F);
+            vertex(consumer, matrix4f, matrix3f, x1, y1, 0.0F, 0.5F + x1 / (radius * 2.0F), 0.5F + y1 / (radius * 2.0F), outerAlpha, -1.0F);
+            vertex(consumer, matrix4f, matrix3f, x0, y0, 0.0F, 0.5F + x0 / (radius * 2.0F), 0.5F + y0 / (radius * 2.0F), outerAlpha, -1.0F);
         }
     }
 
-    // 功能：向缓冲区写入一个带末地门纹理 UV、全亮度和渐隐透明度的平面顶点。
+    // 功能：向缓冲区写入一个带末地门纹理 UV、全亮度和渐隐透明度的平面顶点，可按需要切换正反面法线。
     private static void vertex(VertexConsumer consumer, Matrix4f pose, Matrix3f normal,
-                               float x, float y, float z, float u, float v, float alpha) {
+                               float x, float y, float z, float u, float v, float alpha, float normalZ) {
         consumer.vertex(pose, x, y, z)
                 .color(1.0F, 1.0F, 1.0F, alpha)
                 .uv(u, v)
                 .overlayCoords(OverlayTexture.NO_OVERLAY)
                 .uv2(LightTexture.FULL_BRIGHT)
-                .normal(normal, 0.0F, 0.0F, 1.0F)
+                .normal(normal, 0.0F, 0.0F, normalZ)
                 .endVertex();
     }
 
