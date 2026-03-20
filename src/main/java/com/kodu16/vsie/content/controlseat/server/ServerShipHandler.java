@@ -212,7 +212,8 @@ public class ServerShipHandler {
         }
 
         Vector3d currentForward = new Vector3d(worldXDirection).normalize();
-        Vector3d rotationAxisWorld = currentForward.cross(targetDirection, new Vector3d());
+        // 功能：自动对准需要生成“从当前朝向转到目标朝向”的右手旋转轴；使用 target x current 会把扭矩方向反过来，导致控制椅围绕目标反方向摆动。
+        Vector3d rotationAxisWorld = targetDirection.cross(currentForward, new Vector3d());
         if (rotationAxisWorld.lengthSquared() < 1.0E-6) {
             return new Vector3d(0, 0, 0);
         }
