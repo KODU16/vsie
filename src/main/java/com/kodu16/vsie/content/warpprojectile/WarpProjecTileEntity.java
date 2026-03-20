@@ -81,17 +81,9 @@ public class WarpProjecTileEntity extends Projectile {
         this.setPos(nextPos);
         lifeTime++;
         if (lifeTime >= this.maxlife) {
+
             this.discard();
         }
-    }
-
-    @Override
-    public void remove(RemovalReason reason) {
-        // 功能：客户端在跃迁弹移除时记录消失位置、速度和半径，供后续 80 tick 六边形平面残留渲染使用。
-        if (this.level().isClientSide() && reason.shouldDestroy()) {
-            WarpProjectileRenderer.spawnDecayEffect(this.position(), this.getDeltaMovement(), (float) this.maxlife);
-        }
-        super.remove(reason);
     }
 
     @Override

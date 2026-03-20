@@ -46,7 +46,7 @@ public class ServerShipHandler {
     // 功能：warp projectile 固定以 1 格/tick 飞行，对应用户要求的跃迁特效速度。
     private static final double WARP_PROJECTILE_SPEED_PER_TICK = 1.0D;
     // 功能：在 warp projectile 消失后额外多等 1 秒，再调用 teleportship 执行正式跃迁。
-    private static final int WARP_TELEPORT_EXTRA_DELAY_TICKS = 20;
+    private static final int WARP_TELEPORT_EXTRA_DELAY_TICKS = 80;
     private ControlSeatServerData data;
     public static final Logger LOGGER = LogUtils.getLogger();
 
@@ -263,7 +263,7 @@ public class ServerShipHandler {
                 new net.minecraft.world.phys.Vec3(launchDirection.x, launchDirection.y, launchDirection.z),
                 k
         );
-        //LogUtils.getLogger().warn("adding projectile at:"+launchDirection+"pos:"+shipPos+"life:"+k);
+        LogUtils.getLogger().warn("adding projectile at:"+launchDirection+"pos:"+shipPos+"life:"+k);
         level.addFreshEntity(warpProjectile);
 
         // 功能：按“弹体寿命 k tick + 1 秒”的规则安排后续传送，目标点取玩家所选坐标中心。
