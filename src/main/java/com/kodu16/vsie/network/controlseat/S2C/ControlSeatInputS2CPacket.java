@@ -63,7 +63,6 @@ public class ControlSeatInputS2CPacket {
                 if(i==0){
                     if ((channelencode & 1<<i) != 0) {
                         clientData.channel1 = true;
-                        LOGGER.warn(String.valueOf(Component.literal("channel open:1")));
                     }
                     else {
                         clientData.channel1 = false;
@@ -72,7 +71,6 @@ public class ControlSeatInputS2CPacket {
                 if(i==1){
                     if ((channelencode & 1<<i) != 0) {
                         clientData.channel2 = true;
-                        LOGGER.warn(String.valueOf(Component.literal("channel open:2")));
                     }
                     else {
                         clientData.channel2 = false;
@@ -81,7 +79,6 @@ public class ControlSeatInputS2CPacket {
                 if(i==2){
                     if ((channelencode & 1<<i) != 0) {
                         clientData.channel3 = true;
-                        LOGGER.warn(String.valueOf(Component.literal("channel open:3")));
                     }
                     else {
                         clientData.channel3 = false;
@@ -90,7 +87,6 @@ public class ControlSeatInputS2CPacket {
                 if(i==3){
                     if ((channelencode & 1<<i) != 0) {
                         clientData.channel4 = true;
-                        LOGGER.warn(String.valueOf(Component.literal("channel open:4")));
                     }
                     else {
                         clientData.channel4 = false;

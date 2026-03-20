@@ -22,7 +22,8 @@ public class WarpProjecTileEntity extends Projectile {
     private static final EntityDataAccessor<Float> MAX_TRAVEL_DISTANCE =
             SynchedEntityData.defineId(WarpProjecTileEntity.class, EntityDataSerializers.FLOAT);
     // 功能：累计当前实体已经飞行的距离，用于达到上限时自动移除。
-    private double travelledDistance = 0.0D;
+    public double maxlife;
+    private int lifeTime = 0;
     // 功能：统一管理跃迁弹射物的生成特效资源，生成时播放 warp_projectile.fx。
     private static final ResourceLocation WARP_PROJECTILE_FX = new ResourceLocation("vsie", "warp_projectile");
 
@@ -39,30 +40,9 @@ public class WarpProjecTileEntity extends Projectile {
     }
 
     // 功能：在生成前一次性配置方向、速度和最大飞行距离，调用方式与 bullet 的生成流程保持一致。
-    public void configureLaunch(Vec3 direction, double speed, double maxTravelDistance) {
-        Vec3 safeDirection = direction == null || direction.lengthSqr() < 1.0E-7D ? Vec3.ZERO : direction.normalize();
-        this.setDeltaMovement(safeDirection.scale(Math.max(0.0D, speed)));
-        this.setMaxTravelDistance(maxTravelDistance);
-        this.travelledDistance = 0.0D;
-    }
-
-    // 功能：允许外部在生成时单独修改速度；会保留原有方向，只更新飞行速度。
-    public void setSpeed(double speed) {
-        Vec3 movement = this.getDeltaMovement();
-        if (movement.lengthSqr() < 1.0E-7D) {
-            return;
-        }
-        this.setDeltaMovement(movement.normalize().scale(Math.max(0.0D, speed)));
-    }
-
-    // 功能：允许外部在生成时单独指定消失前的最大前进距离。
-    public void setMaxTravelDistance(double maxTravelDistance) {
-        this.entityData.set(MAX_TRAVEL_DISTANCE, (float) Math.max(0.0D, maxTravelDistance));
-    }
-
-    // 功能：提供当前配置的最大飞行距离读取接口，便于外部逻辑复用。
-    public double getMaxTravelDistance() {
-        return this.entityData.get(MAX_TRAVEL_DISTANCE);
+    public void configureLaunch(Vec3 direction, double life) {
+        this.setDeltaMovement(direction.scale(5));
+        this.maxlife = life;
     }
 
     @Override
@@ -89,28 +69,13 @@ public class WarpProjecTileEntity extends Projectile {
         // 功能：客户端只负责表现移动，命中与销毁判定交给服务端统一处理。
         if (this.level().isClientSide()) {
             this.setPos(nextPos);
-            this.travelledDistance += movement.length();
-            if (this.travelledDistance >= this.getMaxTravelDistance()) {
-                this.discard();
-            }
-            return;
-        }
-
-        // 功能：沿运动方向做射线检测，命中实体或方块后立即结束飞行。
-        HitResult hitResult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);
-        if (hitResult.getType() == HitResult.Type.ENTITY) {
-            this.onHitEntity((EntityHitResult) hitResult);
-            return;
-        }
-        if (hitResult.getType() == HitResult.Type.BLOCK) {
-            this.onHitBlock((BlockHitResult) hitResult);
             return;
         }
 
         // 功能：未命中时推进实体位置，并累计已飞行距离用于距离销毁。
         this.setPos(nextPos);
-        this.travelledDistance += movement.length();
-        if (this.travelledDistance >= this.getMaxTravelDistance()) {
+        lifeTime++;
+        if (lifeTime >= this.maxlife) {
             this.discard();
         }
     }

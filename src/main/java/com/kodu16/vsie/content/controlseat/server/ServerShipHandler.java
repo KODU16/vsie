@@ -9,6 +9,7 @@ import com.kodu16.vsie.network.controlseat.S2C.ControlSeatStatusS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.NearbyShipsS2CPacket;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import org.jline.utils.Log;
 import org.joml.Matrix4dc;
 import org.joml.Quaterniondc;
 import org.valkyrienskies.core.api.ships.ServerShip;
@@ -41,7 +42,7 @@ import org.slf4j.Logger;
 
 public class ServerShipHandler {
     // 功能：当控制椅前向与 warp 目标夹角小于 1 度时，视为已完成自动对准并触发 warp projectile。
-    private static final double WARP_ALIGNMENT_THRESHOLD_DEGREES = 5.0D;
+    private static final double WARP_ALIGNMENT_THRESHOLD_DEGREES = 1.0D;
     // 功能：warp projectile 固定以 1 格/tick 飞行，对应用户要求的跃迁特效速度。
     private static final double WARP_PROJECTILE_SPEED_PER_TICK = 1.0D;
     // 功能：在 warp projectile 消失后额外多等 1 秒，再调用 teleportship 执行正式跃迁。
@@ -174,6 +175,7 @@ public class ServerShipHandler {
 
             if (data.isWarpPreparing) {
                 // 功能：一旦自动对准达到阈值，立即在船体位置生成 warp projectile，并退出准备状态防止重复生成。
+                LogUtils.getLogger().warn("preparing warp...");
                 tryLaunchWarpProjectile(ship);
             }
 
@@ -227,10 +229,6 @@ public class ServerShipHandler {
 
     // 功能：检查当前船首是否已对准 warp 目标；若夹角小于 1 度，则按船体最大包围盒尺寸生成 warp projectile。
     private void tryLaunchWarpProjectile(PhysShipImpl ship) {
-        Level level = data.level;
-        if (level == null || level.isClientSide()) {
-            return;
-        }
         if (data.hasPendingWarpTeleport) {
             return;
         }
@@ -242,7 +240,6 @@ public class ServerShipHandler {
         if (launchDirection == null) {
             return;
         }
-
         Vector3d currentForward = new Vector3d(worldXDirection);
         if (currentForward.lengthSquared() < 1.0E-6D) {
             return;
@@ -251,28 +248,22 @@ public class ServerShipHandler {
 
         double alignment = Mth.clamp(currentForward.dot(launchDirection), -1.0D, 1.0D);
         double angleDegrees = Math.toDegrees(Math.acos(alignment));
-        if (angleDegrees >= WARP_ALIGNMENT_THRESHOLD_DEGREES) {
+        if (Math.abs(angleDegrees-180) >= WARP_ALIGNMENT_THRESHOLD_DEGREES) {
             return;
         }
-
-        AABBdc shipAabb = ship.getWorldAABB();
-        double sizeX = shipAabb.maxX() - shipAabb.minX();
-        double sizeY = shipAabb.maxY() - shipAabb.minY();
-        double sizeZ = shipAabb.maxZ() - shipAabb.minZ();
-        double k = Math.max(sizeX, Math.max(sizeY, sizeZ));
-        if (k <= 0.0D) {
-            return;
-        }
-        data.getPlayer().sendSystemMessage(Component.literal("准备跃迁"));
+        LogUtils.getLogger().warn(String.valueOf(Component.literal("准备跃迁")));
+        double mass = ship.getMass();
+        double k = Math.pow(mass, (double) 1 /3);
+        Level level = data.level;
         Vector3dc shipPos = ship.getTransform().getPositionInWorld();
         WarpProjecTileEntity warpProjectile = new WarpProjecTileEntity(vsieEntities.WARP_PROJECTILE.get(), level);
         // 功能：在船只 world pos 处生成特效弹体，并让其以 1 格/tick 朝目标飞行 k tick。
         warpProjectile.setPos(shipPos.x(), shipPos.y(), shipPos.z());
         warpProjectile.configureLaunch(
                 new net.minecraft.world.phys.Vec3(launchDirection.x, launchDirection.y, launchDirection.z),
-                WARP_PROJECTILE_SPEED_PER_TICK,
                 k
         );
+        //LogUtils.getLogger().warn("adding projectile at:"+launchDirection+"pos:"+shipPos+"life:"+k);
         level.addFreshEntity(warpProjectile);
 
         // 功能：按“弹体寿命 k tick + 1 秒”的规则安排后续传送，目标点取玩家所选坐标中心。
@@ -323,7 +314,6 @@ public class ServerShipHandler {
             return;
         }
         controlSeat.setChanged();
-        controlSeat.sendData();
     }
 
     // 功能：把控制椅方块坐标转换为世界空间中心点，用于计算“控制椅前向 -> warp 目标”的真实方向向量。
