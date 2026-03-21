@@ -9,6 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
@@ -26,6 +27,8 @@ public class WarpProjecTileEntity extends Projectile {
     // 功能：保存跃迁弹的最大寿命/半径，用于服务端销毁判定与客户端消失平面半径统一。
     public double maxlife;
     private int lifeTime = 0;
+    // 功能：缓存最后一次有效速度方向，供消失特效在弹体停下后仍可按飞行法线方向对齐。
+    private Vec3 lastNonZeroVelocity = Vec3.ZERO;
     // 功能：统一管理跃迁弹射物的生成特效资源，生成时播放 warp_projectile.fx。
     private static final ResourceLocation WARP_PROJECTILE_FX = new ResourceLocation("vsie", "warp_projectile");
     // 功能：统一管理跃迁弹射物的消失特效资源，实体销毁时播放 warp_projectile_vanish.fx。
@@ -66,6 +69,7 @@ public class WarpProjecTileEntity extends Projectile {
         this.maxlife = this.entityData.get(MAX_LIFE);
 
         Vec3 movement = this.getDeltaMovement();
+        this.updateRotationFromVelocity(movement);
 
         Vec3 nextPos = this.position().add(movement);
 
@@ -79,7 +83,9 @@ public class WarpProjecTileEntity extends Projectile {
         this.setPos(nextPos);
         lifeTime++;
         if (lifeTime >= this.maxlife) {
-            this.setDeltaMovement(new Vec3(0,0,0));
+            // 功能：先按最后一次飞行方向刷新朝向，再停止位移，保证消失特效垂直于当前速度播放。
+            this.updateRotationFromVelocity(this.lastNonZeroVelocity);
+            this.setDeltaMovement(Vec3.ZERO);
             this.playVanishFx();
         }
         if(lifeTime>=this.maxlife+80) {
@@ -87,6 +93,22 @@ public class WarpProjecTileEntity extends Projectile {
         }
     }
 
+
+
+    // 功能：根据当前速度同步实体的俯仰与偏航，让 Photon 的 AutoRotate.FORWARD 能获取完整三维朝向。
+    private void updateRotationFromVelocity(Vec3 velocity) {
+        if (velocity.lengthSqr() < 1.0E-6D) {
+            return;
+        }
+
+        this.lastNonZeroVelocity = velocity;
+        float yaw = (float) Math.atan2(velocity.x, velocity.z) * Mth.RAD_TO_DEG;
+        float pitch = (float) Math.atan2(velocity.y, Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)) * Mth.RAD_TO_DEG;
+        this.setYRot(yaw);
+        this.setXRot(pitch);
+        this.yRotO = yaw;
+        this.xRotO = pitch;
+    }
 
     // 功能：在客户端播放一次消失特效，确保跃迁弹移除时能释放 warp_projectile_vanish.fx。
     private void playVanishFx() {
