@@ -48,9 +48,9 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
     }
 
     public void tick() {
-        if(idleTicks > 1) {
-            idleTicks = idleTicks-1;
-            return;
+        // 功能：重型炮塔冷却期间仅禁止开火，不应阻断回正或继续跟踪目标的旋转逻辑。
+        if (idleTicks > 0) {
+            idleTicks = idleTicks - 1;
         }
         onShip = VSGameUtilsKt.isBlockInShipyard(level, this.getBlockPos());
         if (onShip) {
@@ -88,9 +88,12 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
             this.yRot0 = closestReachableY(yRot0,getMaxSpinSpeed(),targetyrot);
             if(!Objects.equals(targetPos, new Vector3d(0, 0, 0))){
                 if(xOK && yOK) {
-                    targetdistance = Vec.Distance(currentworldpos, targetPos);
-                    shootship();
-                    idleTicks = getCoolDown();
+                    // 功能：冷却期间允许炮塔继续转向，但禁止重复开火，确保回正修复后射击节奏保持不变。
+                    if (idleTicks <= 0) {
+                        targetdistance = Vec.Distance(currentworldpos, targetPos);
+                        shootship();
+                        idleTicks = getCoolDown();
+                    }
                 }
             }
             else {
