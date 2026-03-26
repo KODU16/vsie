@@ -18,7 +18,7 @@ import javax.annotation.Nonnull;
 
 public class BasicCIWSBlock extends AbstractCIWSBlock {
     public static final DirectionProperty FACING = BlockStateProperties.FACING;
-    public BasicCIWSBlock(BlockBehaviour.Properties properties) {
+    public BasicCIWSBlock(Properties properties) {
         super(properties);
     }
 

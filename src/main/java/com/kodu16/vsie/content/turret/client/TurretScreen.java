@@ -45,15 +45,15 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
         // 直接用 GuiGraphics 的 blit 方法绘制纹理
         guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
         // 根据状态选择不同的图标
-        ResourceLocation iconhostile = turret.getData().targetsHostile ? new ResourceLocation(vsie.ID, "textures/gui/turret/target_hostile_on.png")
+        ResourceLocation iconhostile = turret.getData().isTargetsHostile() ? new ResourceLocation(vsie.ID, "textures/gui/turret/target_hostile_on.png")
                 : new ResourceLocation(vsie.ID, "textures/gui/turret/target_hostile_off.png");
-        ResourceLocation iconpassive = turret.getData().targetsPassive ? new ResourceLocation(vsie.ID, "textures/gui/turret/target_passive_on.png")
+        ResourceLocation iconpassive = turret.getData().isTargetsPassive() ? new ResourceLocation(vsie.ID, "textures/gui/turret/target_passive_on.png")
                 : new ResourceLocation(vsie.ID, "textures/gui/turret/target_passive_off.png");
-        ResourceLocation iconplayer = turret.getData().targetsPlayers ? new ResourceLocation(vsie.ID, "textures/gui/turret/target_players_on.png")
+        ResourceLocation iconplayer = turret.getData().isTargetsPlayers() ? new ResourceLocation(vsie.ID, "textures/gui/turret/target_players_on.png")
                 : new ResourceLocation(vsie.ID, "textures/gui/turret/target_players_off.png");
-        ResourceLocation iconship = turret.getData().targetsShip ? new ResourceLocation(vsie.ID, "textures/gui/turret/target_ship_on.png")
+        ResourceLocation iconship = turret.getData().isTargetsShip() ? new ResourceLocation(vsie.ID, "textures/gui/turret/target_ship_on.png")
                 : new ResourceLocation(vsie.ID, "textures/gui/turret/target_ship_off.png");
-        ResourceLocation iconciws = turret.getData().targetsShip ? new ResourceLocation(vsie.ID, "textures/gui/turret/target_ciws_on.png")
+        ResourceLocation iconciws = turret.getData().isTargetsShip() ? new ResourceLocation(vsie.ID, "textures/gui/turret/target_ciws_on.png")
                 : new ResourceLocation(vsie.ID, "textures/gui/turret/target_ciws_off.png");
 
         // 绘制状态图标

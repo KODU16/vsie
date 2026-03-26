@@ -1,6 +1,5 @@
 package com.kodu16.vsie.registries;
 
-import com.kodu16.vsie.content.misc.electromagnet_rail.core.ElectroMagnetRailCoreBlockEntity;
 import com.kodu16.vsie.content.missile.AbstractMissileEntity;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
@@ -16,28 +15,43 @@ public class vsieDataTickets {
     public static void registerDataTickets() {
 
         //turret
-        AbstractTurretBlockEntity.HAS_TARGET = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofBoolean(new ResourceLocation(vsie.ID, "has_target")));
-        AbstractTurretBlockEntity.XROT = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofFloat(new ResourceLocation(vsie.ID, "rot_x")));
-        AbstractTurretBlockEntity.YROT = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofFloat(new ResourceLocation(vsie.ID, "rot_y")));
+        AbstractTurretBlockEntity.XROT = addFloat("turret_yaw");
+        AbstractTurretBlockEntity.YROT = addFloat("turret_pitch");
+        AbstractTurretBlockEntity.TURRET_HAS_TARGET = addBoolean("turret_has_target");
 
         //vector thruster
-        AbstractVectorThrusterBlockEntity.FINAL_SPIN = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofDouble(new ResourceLocation(vsie.ID, "final_spin")));
-        AbstractVectorThrusterBlockEntity.FINAL_PITCH = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofDouble(new ResourceLocation(vsie.ID, "final_pitch")));
-        AbstractVectorThrusterBlockEntity.IS_SPINNING = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofBoolean(new ResourceLocation(vsie.ID, "is_spinning")));
+        AbstractVectorThrusterBlockEntity.VECTOR_THRUSTER_YAW =     addDouble("vector_thruster_yaw");
+        AbstractVectorThrusterBlockEntity.VECTOR_THRUSTER_PITCH =   addDouble("vector_thruster_pitch");
+        AbstractVectorThrusterBlockEntity.VECTOR_THRUSTER_IS_SPINNING = addBoolean("vector_thruster_is_spinning");
 
         //missile
-        AbstractMissileEntity.MOMENT_X = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofDouble(new ResourceLocation(vsie.ID, "missile_momentum_x")));
-        AbstractMissileEntity.MOMENT_Y = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofDouble(new ResourceLocation(vsie.ID, "missile_momentum_y")));
-        AbstractMissileEntity.MOMENT_Z = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofDouble(new ResourceLocation(vsie.ID, "missile_momentum_z")));
+        AbstractMissileEntity.MISSILE_MOMENTUM_X = addDouble("missile_momentum_x");
+        AbstractMissileEntity.MISSILE_MOMENTUM_Y = addDouble("missile_momentum_y");
+        AbstractMissileEntity.MISSILE_MOMENTUM_Z = addDouble("missile_momentum_z");
 
         //screen
-        AbstractScreenBlockEntity.SPINX = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofInt(new ResourceLocation(vsie.ID, "screen_spinx")));
-        AbstractScreenBlockEntity.SPINY = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofInt(new ResourceLocation(vsie.ID, "screen_spiny")));
-        AbstractScreenBlockEntity.OFFSETX = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofInt(new ResourceLocation(vsie.ID, "screen_offsetx")));
-        AbstractScreenBlockEntity.OFFSETY = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofInt(new ResourceLocation(vsie.ID, "screen_offsety")));
-        AbstractScreenBlockEntity.OFFSETZ = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofInt(new ResourceLocation(vsie.ID, "screen_offsetz")));
-
-        //electro_magnet_rail
-        ElectroMagnetRailCoreBlockEntity.IS_WORKING = GeckoLibUtil.addDataTicket(SerializableDataTicket.ofBoolean(new ResourceLocation(vsie.ID, "rail_core_is_working")));
+        AbstractScreenBlockEntity.SCREEN_SPIN_X = addInt("screen_spin_x");
+        AbstractScreenBlockEntity.SCREEN_SPIN_Y = addInt("screen_spin_x");
+        AbstractScreenBlockEntity.SCREEN_OFFSET_X = addInt("screen_offset_x");
+        AbstractScreenBlockEntity.SCREEN_OFFSET_Y = addInt("screen_offset_y");
+        AbstractScreenBlockEntity.SCREEN_OFFSET_Z = addInt("screen_offset_z");
     }
+
+
+    private static SerializableDataTicket<Double> addDouble(String pPath){
+        return GeckoLibUtil.addDataTicket(SerializableDataTicket.ofDouble(new ResourceLocation(vsie.ID, pPath)));
+    }
+    private static SerializableDataTicket<Float> addFloat(String pPath){
+        return GeckoLibUtil.addDataTicket(SerializableDataTicket.ofFloat(new ResourceLocation(vsie.ID, pPath)));
+    }
+    private static SerializableDataTicket<Boolean> addBoolean(String pPath){
+        return GeckoLibUtil.addDataTicket(SerializableDataTicket.ofBoolean(new ResourceLocation(vsie.ID, pPath)));
+    }
+    private static SerializableDataTicket<Integer> addInt(String pPath){
+        return GeckoLibUtil.addDataTicket(SerializableDataTicket.ofInt(new ResourceLocation(vsie.ID, pPath)));
+    }
+    private static SerializableDataTicket<String> addString(String pPath){
+        return GeckoLibUtil.addDataTicket(SerializableDataTicket.ofString(new ResourceLocation(vsie.ID, pPath)));
+    }
+
 }

@@ -17,7 +17,7 @@ import javax.annotation.Nonnull;
 
 public class HeavyElectroMagnetTurretBlock extends AbstractHeavyTurretBlock {
     public static final DirectionProperty FACING = BlockStateProperties.FACING;
-    public HeavyElectroMagnetTurretBlock(BlockBehaviour.Properties properties) {
+    public HeavyElectroMagnetTurretBlock(Properties properties) {
         super(properties);
     }
 

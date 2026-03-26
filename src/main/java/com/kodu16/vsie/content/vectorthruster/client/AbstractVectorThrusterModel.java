@@ -89,7 +89,7 @@ public class AbstractVectorThrusterModel extends DefaultedBlockGeoModel<Abstract
     }
 
     private double getspin(AbstractVectorThrusterBlockEntity animatable) {
-        Double spin = animatable.getAnimData(AbstractVectorThrusterBlockEntity.FINAL_SPIN);
+        Double spin = animatable.getAnimData(AbstractVectorThrusterBlockEntity.VECTOR_THRUSTER_YAW);
         if(spin != null) {
             return spin;
         }
@@ -97,7 +97,7 @@ public class AbstractVectorThrusterModel extends DefaultedBlockGeoModel<Abstract
     }
 
     private double getpitch(AbstractVectorThrusterBlockEntity animatable) {
-        Double pitch = animatable.getAnimData(AbstractVectorThrusterBlockEntity.FINAL_PITCH);
+        Double pitch = animatable.getAnimData(AbstractVectorThrusterBlockEntity.VECTOR_THRUSTER_PITCH);
         if(pitch != null) {
             return pitch;
         }

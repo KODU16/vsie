@@ -2,6 +2,7 @@ package com.kodu16.vsie.content.turret.heavyturret;
 
 import com.kodu16.vsie.content.turret.AbstractTurretBlock;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
+import com.kodu16.vsie.content.turret.Initialize;
 import com.kodu16.vsie.content.turret.TurretData;
 import com.kodu16.vsie.foundation.Vec;
 import com.mojang.logging.LogUtils;
@@ -15,6 +16,7 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -48,11 +50,22 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
     }
 
     public void tick() {
-        // 功能：重型炮塔冷却期间仅禁止开火，不应阻断回正或继续跟踪目标的旋转逻辑。
-        if (idleTicks > 0) {
-            idleTicks = idleTicks - 1;
+        Level level = this.getLevel();
+        if (level == null || level.isClientSide()) { return; }
+
+        if (idleTicks-- > 1) { return; }
+
+        if (!hasInitialized){
+            BlockPos pos = this.getBlockPos();
+            BlockState state = this.getBlockState();
+            Initialize.initialize(level,pos,state,pivotPoint);
+
+            hasInitialized = true;
+            return;
         }
+
         onShip = VSGameUtilsKt.isBlockInShipyard(level, this.getBlockPos());
+
         if (onShip) {
             Ship ship = VSGameUtilsKt.getShipManagingPos(level, this.getBlockPos());
             Vector3d center = VSGameUtilsKt.toWorldCoordinates(ship, this.getBlockPos().getX(), this.getBlockPos().getY()+getYAxisOffset(), this.getBlockPos().getZ());
@@ -62,117 +75,93 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
             currentworldpos = new Vector3d(Math.round(this.getBlockPos().getX()*10)/10.0, Math.round((this.getBlockPos().getY()+getYAxisOffset())*10)/10.0, Math.round(this.getBlockPos().getZ()*10)/10.0);
         }
 
-        boolean canTrackBySeatView = !getData().isviewlocked && (getData().firetype == 0 || getData().firetype == 2);
-        boolean canTrackAutoTarget = getData().firetype == 1 || (getData().firetype == 2 && getData().isviewlocked && !targetPos.equals(new Vector3d(0,0,0)));
+        boolean canTrackBySeatView = !getData().isViewLocked && (getData().fireType == 0 || getData().fireType == 2);
         // 功能：当控制椅视角未锁定且重炮为手动/智能模式时，将玩家视角先做“控制椅->重炮”的方向转换后再驱动头瞄。
         if (canTrackBySeatView) {
             updateSeatViewTargetRot();
             this.xRot0 = closestReachableX(xRot0, getMaxSpinSpeed(), targetxrot);
             this.yRot0 = closestReachableY(yRot0, getMaxSpinSpeed(), targetyrot);
-            setAnimData(HAS_TARGET, true);
-        }
-
-        // 功能：当重型炮塔没有手动瞄准或自动目标时，平滑回到 GUI 配置的默认 X/Y 朝向。
-        if (!canTrackBySeatView && !canTrackAutoTarget) {
-            setAnimData(HAS_TARGET, false);
-            returnToDefaultRotation();
-            targetdistance = 0;
-            targetPreVelocity.clear();
+            setAnimData(TURRET_HAS_TARGET, true);
         }
 
         // 功能：重型炮塔只有在频道匹配时才响应自动/智能射击，行为与主武器一致。
-        if (canTrackAutoTarget) {
+        if ((getData().fireType == 1 || (getData().fireType == 2 && getData().isViewLocked && !targetPos.equals(new Vector3d(0,0,0))))) {
             LogUtils.getLogger().warn("setting target:"+targetPos);
             updateTargetRot();
             this.xRot0 = closestReachableX(xRot0,getMaxSpinSpeed(),targetxrot);
             this.yRot0 = closestReachableY(yRot0,getMaxSpinSpeed(),targetyrot);
             if(!Objects.equals(targetPos, new Vector3d(0, 0, 0))){
                 if(xOK && yOK) {
-                    // 功能：冷却期间允许炮塔继续转向，但禁止重复开火，确保回正修复后射击节奏保持不变。
-                    if (idleTicks <= 0) {
-                        targetdistance = Vec.Distance(currentworldpos, targetPos);
-                        shootship();
-                        idleTicks = getCoolDown();
-                    }
+                    targetDistance = Vec.Distance(currentworldpos, targetPos);
+                    shootship();
+                    idleTicks = getCoolDown();
                 }
             }
             else {
                 LogUtils.getLogger().warn("target is null");
-                setAnimData(HAS_TARGET, false);
-                targetdistance = 0;
-                // 功能：自动目标丢失时恢复到玩家配置的默认旋转角，而不是强制回到 0 度。
-                returnToDefaultRotation();
+                setAnimData(TURRET_HAS_TARGET, false);
+                targetDistance = 0;
+                xRot0 = 0;
+                yRot0 = 0;
                 targetPreVelocity.clear();
             }
         }
+
         this.setAnimData(XROT, xRot0);
         this.setAnimData(YROT, yRot0);
         this.markUpdated();
     }
 
     //heavy turret only
-    public void modifyheavytargettype(int type) {
-        if (level == null || level.isClientSide) {
-            return; // 客户端完全不许改！
-        }
-        getData().firetype = type;
+    public void modifyFireType(int type) {
+        if (level == null || level.isClientSide) { return; }// 客户端完全不许改！
+        getData().fireType = type;
     }
 
     // 功能：为重型炮塔提供与主武器一致的频道切换逻辑（四选一）。
-    public void modifychannel(int type) {
-        if (level == null || level.isClientSide) {
-            return;
-        }
+    public void modifyChannel(int channel) {
+        if (level == null || level.isClientSide) { return; }
+
         TurretData data = getData();
-        if (type == 1) {
-            data.channel1 = !data.getChannel1();
-            if (data.channel1) {
-                data.channel2 = false;
-                data.channel3 = false;
-                data.channel4 = false;
+
+        if (channel == 1) {
+            if ( data.isChannel1() )  { data.reset(data.CHANNEL_HIDE); }
+            else {
+                data.reset(data.CHANNEL_HIDE);
+                data.set(data.CHANNEL_1);
             }
         }
-        if (type == 2) {
-            data.channel2 = !data.getChannel2();
-            if (data.channel2) {
-                data.channel1 = false;
-                data.channel3 = false;
-                data.channel4 = false;
+        if (channel == 2) {
+            if ( data.isChannel2() )  { data.reset(data.CHANNEL_HIDE); }
+            else {
+                data.reset(data.CHANNEL_HIDE);
+                data.set(data.CHANNEL_2);
             }
         }
-        if (type == 3) {
-            data.channel3 = !data.getChannel3();
-            if (data.channel3) {
-                data.channel1 = false;
-                data.channel2 = false;
-                data.channel4 = false;
+        if (channel == 3) {
+            if ( data.isChannel3() )  { data.reset(data.CHANNEL_HIDE); }
+            else {
+                data.reset(data.CHANNEL_HIDE);
+                data.set(data.CHANNEL_3);
             }
         }
-        if (type == 4) {
-            data.channel4 = !data.getChannel4();
-            if (data.channel4) {
-                data.channel1 = false;
-                data.channel2 = false;
-                data.channel3 = false;
+        if (channel == 4) {
+            if ( data.isChannel4() )  { data.reset(data.CHANNEL_HIDE); }
+            else {
+                data.reset(data.CHANNEL_HIDE);
+                data.set(data.CHANNEL_4);
             }
         }
     }
 
     // 功能：接收控制椅下发的频道编码，供重型炮塔判定是否允许开火。
-    public void receivechannel(int encode) {
-        getData().receivingchannel = encode;
-    }
+    public void channelFromCtrl(int channel) { getData().channelOfCtrl = channel; }
 
     // 功能：判断重型炮塔与控制椅频道是否匹配，逻辑与主武器保持一致。
-    public boolean needtofire() {
-        for (int i = 0; i < 4; i++) {
-            boolean flag = ((getData().receivingchannel >> i) & 1) == 1;
-            if (flag && i == 0 && getData().channel1) return true;
-            if (flag && i == 1 && getData().channel2) return true;
-            if (flag && i == 2 && getData().channel3) return true;
-            if (flag && i == 3 && getData().channel4) return true;
-        }
-        return false;
+    public boolean isChannelMatch() {
+        TurretData data = getData();
+        int channel = data.getChannelStatus();
+        return (channel & data.channelOfCtrl) != 0;
     }
 
     public void updatespecificenemy(Vector3d pos) {
@@ -182,16 +171,16 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
 
     public void updateplayerstatus(boolean isviewlocked, int rotx, int roty, Direction seatFacing) {
         // 功能：保存控制椅实时视角与控制椅朝向，供重型炮塔在头瞄时进行坐标系转换。
-        this.getData().isviewlocked = isviewlocked;
-        this.getData().playerangleX = rotx;
-        this.getData().playerangleY = roty;
+        this.getData().isViewLocked = isviewlocked;
+        this.getData().playerAngleX = rotx;
+        this.getData().playerAngleY = roty;
         this.controlSeatFacing = seatFacing;
-    }
+    }// 这应该写在控制椅里
 
     private void updateSeatViewTargetRot() {
         // 功能：根据控制椅朝向与重炮朝向差值，修正玩家传入 yaw，使头瞄角度与重炮本地坐标系一致。
-        float convertedYaw = convertSeatYawToTurretYaw(getData().playerangleY, controlSeatFacing, this.getBlockState().getValue(AbstractTurretBlock.FACING));
-        this.targetxrot = (float) Math.toRadians(getData().playerangleX);
+        float convertedYaw = convertSeatYawToTurretYaw(getData().playerAngleY, controlSeatFacing, this.getBlockState().getValue(AbstractTurretBlock.FACING));
+        this.targetxrot = (float) Math.toRadians(getData().playerAngleX);
         this.targetyrot = (float) Math.toRadians(-convertedYaw);
     }
 
@@ -307,23 +296,19 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
     @Override
     protected void write(CompoundTag tag, boolean clientPacket) {
         super.write(tag, clientPacket);
-        tag.putInt("firetype", getData().firetype);
-        tag.putDouble("distance", this.getTargetdistance());
-        tag.putInt("playerxrot",this.getData().playerangleX);
-        tag.putInt("playeryrot",this.getData().playerangleY);
+        tag.putInt("firetype", getData().fireType);
+        tag.putDouble("distance", this.getTargetDistance());
+        tag.putInt("playerxrot",this.getData().playerAngleX);
+        tag.putInt("playeryrot",this.getData().playerAngleY);
         tag.putFloat("xrot",this.targetxrot);
         tag.putFloat("yrot",this.targetyrot);
         tag.putDouble("targetX", targetPos.x);
         tag.putDouble("targetY", targetPos.y);
         tag.putDouble("targetZ", targetPos.z);
-        // 功能：同步重型炮塔频道状态与接收频道编码，确保 GUI 与联动状态一致。
-        tag.putBoolean("channel1", getData().channel1);
-        tag.putBoolean("channel2", getData().channel2);
-        tag.putBoolean("channel3", getData().channel3);
-        tag.putBoolean("channel4", getData().channel4);
-        tag.putInt("defaultxrot",this.defaultspinx);
-        tag.putInt("defaultyrot",this.defaultspiny);
-        tag.putInt("receivingchannel", getData().receivingchannel);
+        // 功能：同步重型炮塔配置寄存器和接收频道编码，确保 GUI 与联动状态一致。
+        // 频道部分被重写！
+        tag.putInt("configregister",this.getData().configRegister);
+        tag.putInt("channelofctrl", getData().channelOfCtrl);
     }
 
     @Override
@@ -333,10 +318,10 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
         if (this.turretData == null) {
             this.turretData = new TurretData();
         }
-        if (tag.contains("firetype")) {this.getData().firetype = tag.getInt("firetype");}
-        if (tag.contains("distance")) {this.targetdistance = tag.getDouble("distance");}
-        if(tag.contains("playerxrot")) {this.getData().playerangleX = tag.getInt("playerxrot");}
-        if(tag.contains("playeryrot")) {this.getData().playerangleY = tag.getInt("playeryrot");}
+        if (tag.contains("firetype")) {this.getData().fireType = tag.getInt("firetype");}
+        if (tag.contains("distance")) {this.targetDistance = tag.getDouble("distance");}
+        if(tag.contains("playerxrot")) {this.getData().playerAngleX = tag.getInt("playerxrot");}
+        if(tag.contains("playeryrot")) {this.getData().playerAngleY = tag.getInt("playeryrot");}
         if (tag.contains("xrot")) {this.targetxrot = tag.getFloat("xrot");}
         if (tag.contains("yrot")) {this.targetyrot = tag.getFloat("yrot");}
         if (tag.contains("targetX")) targetPos = new Vector3d(
@@ -344,14 +329,9 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
                 tag.getDouble("targetY"),
                 tag.getDouble("targetZ")
         );
-        // 功能：读取重型炮塔四个频道和接收频道编码，恢复频道联动配置。
-        if (tag.contains("channel1")) { this.getData().channel1 = tag.getBoolean("channel1"); }
-        if (tag.contains("channel2")) { this.getData().channel2 = tag.getBoolean("channel2"); }
-        if (tag.contains("channel3")) { this.getData().channel3 = tag.getBoolean("channel3"); }
-        if (tag.contains("channel4")) { this.getData().channel4 = tag.getBoolean("channel4"); }
-        if (tag.contains("defaultyrot")) {this.defaultspiny = tag.getInt("defaultyrot");}
-        if (tag.contains("defaultxrot")) {this.defaultspinx = tag.getInt("defaultxrot");}
-        if (tag.contains("receivingchannel")) { this.getData().receivingchannel = tag.getInt("receivingchannel"); }
+        // 功能：读取重型炮塔配置寄存器和接收频道编码，恢复频道联动配置。
+        if (tag.contains("configregister")) { this.getData().configRegister = (byte)tag.getInt("configregister"); }
+        if (tag.contains("channelofctrl")) { this.getData().channelOfCtrl = tag.getInt("channelofctrl"); }
     }
 
     @Override

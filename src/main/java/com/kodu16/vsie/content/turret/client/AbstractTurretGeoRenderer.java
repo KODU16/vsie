@@ -6,8 +6,10 @@ import com.mojang.math.Axis;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3f;
 import software.bernie.geckolib.renderer.GeoBlockRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import org.joml.Matrix4f;
 
 public class AbstractTurretGeoRenderer extends GeoBlockRenderer<AbstractTurretBlockEntity>  {
 

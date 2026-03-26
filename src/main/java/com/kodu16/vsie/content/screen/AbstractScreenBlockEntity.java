@@ -22,11 +22,11 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
     private ItemStack renderStack = ItemStack.EMPTY;
     private String renderText = "Hello";
     public int displaytype = 0;//0:雷达 1:服务器信息
-    public static SerializableDataTicket<Integer> SPINX;
-    public static SerializableDataTicket<Integer> SPINY;
-    public static SerializableDataTicket<Integer> OFFSETX;
-    public static SerializableDataTicket<Integer> OFFSETY;
-    public static SerializableDataTicket<Integer> OFFSETZ;
+    public static SerializableDataTicket<Integer> SCREEN_SPIN_X;
+    public static SerializableDataTicket<Integer> SCREEN_SPIN_Y;
+    public static SerializableDataTicket<Integer> SCREEN_OFFSET_X;
+    public static SerializableDataTicket<Integer> SCREEN_OFFSET_Y;
+    public static SerializableDataTicket<Integer> SCREEN_OFFSET_Z;
 
     public int spinx;
     public int spiny;
@@ -209,15 +209,15 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
     }
 
     public void setdata(int spinx, int spiny, int offsetx, int offsety, int offsetz) {
-        this.setAnimData(SPINX,spinx);
+        this.setAnimData(SCREEN_SPIN_X,spinx);
         this.spinx = spinx;
-        this.setAnimData(SPINY,spiny);
+        this.setAnimData(SCREEN_SPIN_Y,spiny);
         this.spiny = spiny;
-        this.setAnimData(OFFSETX,offsetx);
+        this.setAnimData(SCREEN_OFFSET_X,offsetx);
         this.offsetx = offsetx;
-        this.setAnimData(OFFSETY,offsety);
+        this.setAnimData(SCREEN_OFFSET_Y,offsety);
         this.offsety = offsety;
-        this.setAnimData(OFFSETZ,offsetz);
+        this.setAnimData(SCREEN_OFFSET_Z,offsetz);
         this.offsetz = offsetz;
     }
 

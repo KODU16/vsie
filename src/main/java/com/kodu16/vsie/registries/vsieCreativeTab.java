@@ -42,10 +42,8 @@ public class vsieCreativeTab {
             output.accept(vsieItems.LINKER);
             output.accept(vsieItems.IFF);
             output.accept(vsieItems.SHIELD_TOOL);
-            output.accept(vsieItems.WARP_DATA_CHIP);
             output.accept(vsieBlocks.BASIC_SCREEN_BLOCK);
             output.accept(vsieFluids.DTFUEL.getBucket().get());
-
             output.accept(vsieBlocks.CONTROL_SEAT_BLOCK);
 
             output.accept(vsieBlocks.BASIC_THRUSTER_BLOCK);
@@ -59,7 +57,7 @@ public class vsieCreativeTab {
 
             output.accept(vsieBlocks.SHIELD_GENERATOR_BLOCK);
             output.accept(vsieBlocks.AMMO_BOX_BLOCK);
-            //output.accept(vsieBlocks.BASIC_VECTOR_THRUSTER_BLOCK);
+            output.accept(vsieBlocks.BASIC_VECTOR_THRUSTER_BLOCK);
 
             output.accept(vsieBlocks.INFRA_KNIFE_ACCELERATOR_BLOCK);
             output.accept(vsieBlocks.BASIC_MISSILE_LAUNCHER_BLOCK);
@@ -72,10 +70,6 @@ public class vsieCreativeTab {
             output.accept(vsieBlocks.SMALL_FUELTANK_BLOCK);
             output.accept(vsieBlocks.MEDIUM_FUELTANK_BLOCK);
             output.accept(vsieBlocks.LARGE_FUELTANK_BLOCK);
-
-            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_CORE_BLOCK);
-            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_TOP_BLOCK);
-            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_BLOCK);
         }
     }
 }

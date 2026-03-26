@@ -1,16 +1,11 @@
 package com.kodu16.vsie.content.missile;
 
-import com.kodu16.vsie.content.turret.AbstractTurretBlock;
 import com.kodu16.vsie.foundation.Vec;
 import com.kodu16.vsie.vsie;
 import com.mojang.logging.LogUtils;
-import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
-import org.checkerframework.dataflow.qual.SideEffectFree;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
 import software.bernie.geckolib.core.animatable.model.CoreGeoBone;
 import software.bernie.geckolib.core.animation.AnimationState;
 import software.bernie.geckolib.model.DefaultedEntityGeoModel;
@@ -74,7 +69,7 @@ public class AbstractMissileModel extends DefaultedEntityGeoModel<AbstractMissil
     }
 
     private double getx(AbstractMissileEntity animatable) {
-        Double x = animatable.getAnimData(AbstractMissileEntity.MOMENT_X);
+        Double x = animatable.getAnimData(AbstractMissileEntity.MISSILE_MOMENTUM_X);
         if(x != null) {
             return x;
         }
@@ -82,7 +77,7 @@ public class AbstractMissileModel extends DefaultedEntityGeoModel<AbstractMissil
     }
 
     private double gety(AbstractMissileEntity animatable) {
-        Double y = animatable.getAnimData(AbstractMissileEntity.MOMENT_Y);
+        Double y = animatable.getAnimData(AbstractMissileEntity.MISSILE_MOMENTUM_Y);
         if(y != null) {
             return y;
         }
@@ -90,7 +85,7 @@ public class AbstractMissileModel extends DefaultedEntityGeoModel<AbstractMissil
     }
 
     private double getz(AbstractMissileEntity animatable) {
-        Double z = animatable.getAnimData(AbstractMissileEntity.MOMENT_Z);
+        Double z = animatable.getAnimData(AbstractMissileEntity.MISSILE_MOMENTUM_Z);
         if(z != null) {
             return z;
         }

@@ -2,8 +2,6 @@ package com.kodu16.vsie.content.turret.client;
 
 import com.kodu16.vsie.foundation.translucentbeamrendertype;
 import com.mojang.math.Axis;
-import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
-import net.minecraft.util.Mth;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
@@ -39,7 +37,7 @@ public class TurretLaserLayer extends GeoRenderLayer<AbstractTurretBlockEntity> 
     public void render(PoseStack poseStack, AbstractTurretBlockEntity animatable, BakedGeoModel bakedModel,
                        RenderType renderType, MultiBufferSource bufferSource, VertexConsumer bufferSourceBuffer,
                        float partialTick, int packedLight, int packedOverlay) {
-        FLAME_LENGTH = animatable.getTargetdistance();
+        FLAME_LENGTH = animatable.getTargetDistance();
         if (FLAME_LENGTH < 0.1) {
             return;
         }

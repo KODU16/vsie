@@ -51,35 +51,35 @@ public class AbstractScreenModel extends DefaultedBlockGeoModel<AbstractScreenBl
     }
 
     private Integer getspinX(AbstractScreenBlockEntity animatable) {
-        Integer x = animatable.getAnimData(AbstractScreenBlockEntity.SPINX);
+        Integer x = animatable.getAnimData(AbstractScreenBlockEntity.SCREEN_SPIN_X);
         if(x != null) {
             return x;
         }
         return 0;
     }
     private Integer getspinY(AbstractScreenBlockEntity animatable) {
-        Integer y = animatable.getAnimData(AbstractScreenBlockEntity.SPINY);
+        Integer y = animatable.getAnimData(AbstractScreenBlockEntity.SCREEN_SPIN_Y);
         if(y != null) {
             return y;
         }
         return 0;
     }
     private Integer getoffsetX(AbstractScreenBlockEntity animatable) {
-        Integer ox = animatable.getAnimData(AbstractScreenBlockEntity.OFFSETX);
+        Integer ox = animatable.getAnimData(AbstractScreenBlockEntity.SCREEN_OFFSET_X);
         if(ox != null) {
             return ox;
         }
         return 0;
     }
     private Integer getoffsetY(AbstractScreenBlockEntity animatable) {
-        Integer oy = animatable.getAnimData(AbstractScreenBlockEntity.OFFSETY);
+        Integer oy = animatable.getAnimData(AbstractScreenBlockEntity.SCREEN_OFFSET_Y);
         if(oy != null) {
             return oy;
         }
         return 0;
     }
     private Integer getoffsetZ(AbstractScreenBlockEntity animatable) {
-        Integer oz = animatable.getAnimData(AbstractScreenBlockEntity.OFFSETZ);
+        Integer oz = animatable.getAnimData(AbstractScreenBlockEntity.SCREEN_OFFSET_Z);
         if(oz != null) {
             return oz;
         }

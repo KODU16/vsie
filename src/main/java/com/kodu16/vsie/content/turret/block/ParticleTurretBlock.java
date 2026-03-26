@@ -18,7 +18,7 @@ import javax.annotation.Nonnull;
 public class ParticleTurretBlock extends AbstractTurretBlock {
 
     public static final DirectionProperty FACING = BlockStateProperties.FACING;
-    public ParticleTurretBlock(BlockBehaviour.Properties properties) {
+    public ParticleTurretBlock(Properties properties) {
         super(properties);
         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));
     }

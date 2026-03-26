@@ -16,7 +16,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraftforge.common.MinecraftForge;
-import org.joml.Vector2d;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.Matrix3d;
@@ -44,9 +43,9 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
 
     private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
     public static final DirectionProperty FACING = BlockStateProperties.FACING;
-    public static SerializableDataTicket<Double> FINAL_SPIN;
-    public static SerializableDataTicket<Double> FINAL_PITCH;
-    public static SerializableDataTicket<Boolean> IS_SPINNING;
+    public static SerializableDataTicket<Double> VECTOR_THRUSTER_YAW;
+    public static SerializableDataTicket<Double> VECTOR_THRUSTER_PITCH;
+    public static SerializableDataTicket<Boolean> VECTOR_THRUSTER_IS_SPINNING;
     public double spinrad = 0.0;
     public double pitchrad = 0.0;
     public static float MAX_GIMBAL_ANGLE = 30;
@@ -63,6 +62,7 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
     public void tick() {
         Level level = this.getLevel();
         if (level == null || level.isClientSide()) { return; }
+
         Logger LOGGER = LogUtils.getLogger();
 
         if (hasInitialized) {
@@ -124,14 +124,15 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
                 // 功能：无输入时保持默认中位，避免未绑定推进器出现异常偏转
                 if(!hasInput){
                     eulerAngle = new double[]{0,0};
+                    //eulerAngle = forceTransform(new Vector3d(1,1,1),transform,thrusterData.getCoordAxis());
                 }
 
                 this.spinrad = eulerAngle[0];   //yaw
                 this.pitchrad = eulerAngle[1];  //pitch
                 // 更新数据
                 thrusterData.setThrottle((float) throttle);
-                setAnimData(FINAL_SPIN, spinrad);
-                setAnimData(FINAL_PITCH, pitchrad);
+                setAnimData(VECTOR_THRUSTER_YAW, spinrad);
+                setAnimData(VECTOR_THRUSTER_PITCH, pitchrad);
 
             }
 
@@ -208,36 +209,10 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
         markUpdated();
     }
 
-    //A在B和C的平面上投影与B的夹角
-    public static double projectionAngleToB_rad_signed(
-            Vector3d A,
-            Vector3d B_unit,    // 已单位化
-            Vector3d C_unit     // 已单位化，不与 B 平行
-    ) {
-        // 1. 构造平面内的正交基
-        Vector3d u = new Vector3d(B_unit);
-
-        // 计算 C 在 B 方向上的投影长度
-        double cProjLen = C_unit.dot(u);
-
-        // v = C - (C·u) u
-        Vector3d v = new Vector3d(C_unit).sub(u.x * cProjLen, u.y * cProjLen, u.z * cProjLen);
-
-        // 单位化 v
-        double vLen = v.length();
-        v.div(vLen);   // 现在 v 是单位向量，且垂直于 u
-        // 2. 计算 A 在平面上的投影（其实就是原点到 A 的向量在平面上的分量）
-        double x = A.dot(u);   // 在 B 方向上的分量
-        double y = A.dot(v);   // 在垂直方向上的分量（v 方向）
-        // 3. 用 atan2 得到带符号角度（弧度）
-        double angleRad = Math.atan2(y, x);
-
-        return angleRad;
-    }
 
     // 输入你想要的加力方向 所在船的transform 以及模型自身的CoordAxis
     // 吐出模型应该转的方向
-    public static double[] forceTransform(
+    public double[] forceTransform(
             Vector3d forceInWorld,
             ShipTransform transform,
             Matrix3d modelCoordAxis
@@ -247,7 +222,7 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
 
         // 诡异的坐标变换 根据模型来的
         double yaw = Math.atan2(
-                -forceInModel.x,
+                forceInModel.x,
                 forceInModel.z
         );
         double pitch=Math.atan2(

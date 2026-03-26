@@ -3,7 +3,6 @@ package com.kodu16.vsie.content.turret.ciws;
 import com.kodu16.vsie.content.turret.AbstractTurretBlock;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.turret.TurretData;
-import com.kodu16.vsie.foundation.Vec;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
@@ -11,8 +10,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.MobCategory;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -24,7 +21,6 @@ import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
-import org.valkyrienskies.core.impl.shadow.En;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -91,9 +87,9 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
     private void tryInvalidateTarget() {
         if(aimtype==1) {
             if(!isValidTargetEntity(targetentity)) {
-                setAnimData(HAS_TARGET, false);
+                setAnimData(TURRET_HAS_TARGET, false);
                 targetentity = null;
-                targetdistance = 0;
+                targetDistance = 0;
                 xRot0 = 0;
                 yRot0 = 0;
                 targetPreVelocity.clear();
@@ -101,9 +97,9 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
         }
         else if(aimtype==2) {
             if(!isValidTargetProjectile(targetprojectile)) {
-                setAnimData(HAS_TARGET, false);
+                setAnimData(TURRET_HAS_TARGET, false);
                 targetprojectile = null;
-                targetdistance = 0;
+                targetDistance = 0;
                 xRot0 = 0;
                 yRot0 = 0;
                 targetPreVelocity.clear();

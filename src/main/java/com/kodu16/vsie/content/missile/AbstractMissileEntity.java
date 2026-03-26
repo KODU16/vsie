@@ -1,35 +1,21 @@
 package com.kodu16.vsie.content.missile;
 
-import com.kodu16.vsie.foundation.Vec;
 import com.mojang.logging.LogUtils;
-import net.minecraft.core.Vec3i;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.projectile.AbstractHurtingProjectile;
-import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3d;
 import org.joml.Vector3dc;
-import org.joml.primitives.AABBdc;
 import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.entity.handling.AbstractShipyardEntityHandler;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
-import software.bernie.geckolib.animatable.GeoBlockEntity;
 import software.bernie.geckolib.animatable.GeoEntity;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.core.animatable.instance.SingletonAnimatableInstanceCache;
 import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.network.SerializableDataTicket;
-
-import java.util.Arrays;
 
 public abstract class AbstractMissileEntity extends AbstractHurtingProjectile implements GeoEntity {
     private static final EntityDataAccessor<Float> DATA_SPEED = SynchedEntityData.defineId(AbstractMissileEntity.class, EntityDataSerializers.FLOAT);
@@ -47,9 +33,9 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
 
     public float xRot0 = 0f;
     public float yRot0 = 0f;
-    public static SerializableDataTicket<Double> MOMENT_X;
-    public static SerializableDataTicket<Double> MOMENT_Y;
-    public static SerializableDataTicket<Double> MOMENT_Z;
+    public static SerializableDataTicket<Double> MISSILE_MOMENTUM_X;
+    public static SerializableDataTicket<Double> MISSILE_MOMENTUM_Y;
+    public static SerializableDataTicket<Double> MISSILE_MOMENTUM_Z;
 
     public AbstractMissileEntity(EntityType<? extends AbstractMissileEntity> type, Level level) {
         super(type, level);
@@ -118,9 +104,9 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
 
             // 应用速度和移动
             this.setDeltaMovement(currentDirection.scale(speed));
-            setAnimData(MOMENT_X, currentDirection.x());
-            setAnimData(MOMENT_Y, currentDirection.y());
-            setAnimData(MOMENT_Z, currentDirection.z());
+            setAnimData(MISSILE_MOMENTUM_X, currentDirection.x());
+            setAnimData(MISSILE_MOMENTUM_Y, currentDirection.y());
+            setAnimData(MISSILE_MOMENTUM_Z, currentDirection.z());
             this.move(MoverType.SELF, this.getDeltaMovement());
         }
 

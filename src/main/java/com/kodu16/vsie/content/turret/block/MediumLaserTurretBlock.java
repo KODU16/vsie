@@ -18,7 +18,7 @@ import javax.annotation.Nonnull;
 public class MediumLaserTurretBlock extends AbstractTurretBlock {
 
     public static final DirectionProperty FACING = BlockStateProperties.FACING;
-    public MediumLaserTurretBlock(BlockBehaviour.Properties properties) {
+    public MediumLaserTurretBlock(Properties properties) {
         super(properties);
         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));
     }
