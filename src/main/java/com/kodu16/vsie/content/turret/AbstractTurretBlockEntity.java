@@ -784,32 +784,55 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
 
     public class servo{
-        // Gk =
+        // d^2/dt^2 angle = Kp * (target - angle) - Kd * d/dt angle
         // Phi = Kp/(s^2 + Kd*s + Kp)
         // Omega_N = sqrt(Kp)
         // Epsilon = Kd / ( 2*sqrt(Kp) )
 
-        public float angle = 0;
-        public float omega;
+        public float angle = 0; // rad
+        public float omega = 0;
+        public float beta  = 0;
         private float Kp;
         private float Kd;
         private final float dt = 1f / 20;
-        private float error = 0;
+        private static final float PI = (float) Math.PI;
 
-        public boolean isStable;
+        public boolean isStable = false;
 
-        public void servoInitial(float Kp, float Kd){
+        public void servoInitial(float Kp, float Kd){ // 初始化，其实建议用下面那个
             this.Kp = Kp;
             this.Kd = Kd;
         }
 
-        public boolean updateServo(float target){// 返回是否跟随稳定 等同于isLock
-            this.error = target-this.angle;
-
-            return true;
+        public void servoAutoInitial(int stableTick){ // 输入稳定时间（ticks）就行，注意不要过低！建议至少为2ticks
+            // 如果你输入1tick 可能会看见大风车
+            // 大风车！！！
+            float second = stableTick * dt;
+            this.Kp = 32f / (second * second);
+            this.Kd = 8f / second;
         }
 
+        private static float angleNormalize(float angle) {
+            angle %= 2 * PI;
+            if (angle > PI) angle -= 2 * PI;
+            else if (angle < PI) angle += 2 * PI;
+            return angle;
+        }
 
+        public boolean updateServo(float target){ // 返回"是否跟随稳定"
+            // 控制系统
+            float error = angleNormalize( target - this.angle );
+            this.beta = Kp * error - Kd* this.omega;
+
+            // 系统动力学状态
+            this.omega += this.beta * dt;
+            this.angle += this.omega * dt;
+
+            this.angle = angleNormalize(this.angle);
+            this.isStable = (error <=0.034);; // 2度
+
+            return this.isStable;
+        }
     }
     
     // 目标定位方法和它的三个封装
