@@ -99,8 +99,8 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
     public void modifyTargetType(int type) {
         // 功能：每次修改时都实时读取方块实体当前 level，避免使用构造期缓存的空 level 导致按钮无效。
-        Level currentLevel = this.getLevel();
-        if (currentLevel == null || currentLevel.isClientSide) { return; }
+        this.level = this.getLevel();
+        if (level == null || level.isClientSide) { return; }
 
         TurretData data = getData();
 
@@ -159,9 +159,9 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             }
             // 功能：统一刷新炮塔世界坐标，减少 tick 主流程分支复杂度。
             refreshWorldPosition();
-            tryInvalidateTarget();
             // 功能：统一处理目标搜索，若无有效目标则让炮塔回归默认角度。
             acquireTargetByAimType();
+            tryInvalidateTarget();
 
             if (hasValidTarget()) {
                 // 功能：维护速度采样窗口，为弹道预测提供最近移动趋势。
@@ -189,9 +189,10 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
     // 功能：根据方块是否在船上，更新炮塔在世界中的实际发射原点。
     public void refreshWorldPosition() {
-        onShip = VSGameUtilsKt.isBlockInShipyard(level, this.getBlockPos());
+        Level level1 = this.getLevel();
+        onShip = VSGameUtilsKt.isBlockInShipyard(level1, this.getBlockPos());
         if (onShip) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(level, this.getBlockPos());
+            Ship ship = VSGameUtilsKt.getShipManagingPos(level1, this.getBlockPos());
             Vector3d center = VSGameUtilsKt.toWorldCoordinates(ship, this.getBlockPos().getX(), this.getBlockPos().getY() + getYAxisOffset(), this.getBlockPos().getZ());
             currentworldpos = new Vector3d(center.x, center.y, center.z);
             return;
@@ -243,6 +244,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
     // 功能：在炮口完成对准时触发开火，并设置统一冷却。
     private void fireWhenLocked() {
+        //LogUtils.getLogger().warn("shooting");
         // 功能：冷却期间允许继续索敌与旋转，但禁止重复开火。
         if (idleTicks > 0) {
             return;
@@ -323,7 +325,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         // 功能：索敌阶段不再改动开火冷却，避免冷却与索敌共用计数器导致抖动。
         if (targetentity != null && targetentity.isAlive()) return; // 有活目标就不重复找
 
-        if ((level.getGameTime() + this.hashCode()) % 5 != 0) return;
+        if ((this.getLevel().getGameTime() + this.hashCode()) % 5 != 0) return;
 
         AABB searchBox = new AABB(
                 currentworldpos.x - SEARCH_RADIUS,
@@ -334,7 +336,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
                 currentworldpos.z + SEARCH_RADIUS
         );
 
-        List<LivingEntity> candidates = level.getEntitiesOfClass(LivingEntity.class, searchBox, this::isValidTargetEntity);
+        List<LivingEntity> candidates = this.getLevel().getEntitiesOfClass(LivingEntity.class, searchBox, this::isValidTargetEntity);
 
         if (candidates.isEmpty()) {
             return;
@@ -469,7 +471,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         Vec3 targetPos = new Vec3(pos.x(), pos.y(), pos.z());
         Vec3 lookVec = turretpos.vectorTo(targetPos).normalize().scale(0.75F);
         ClipContext ctx = new ClipContext(turretpos.add(lookVec), targetPos, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, null);
-        return level.clip(ctx).getType().equals(HitResult.Type.MISS);
+        return this.getLevel().clip(ctx).getType().equals(HitResult.Type.MISS);
     }
 
     @Override
@@ -629,9 +631,9 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             case UP -> new Vec3(-1,0,0);
         };
 
-        boolean onship = VSGameUtilsKt.isBlockInShipyard(level,this.getBlockPos());
+        boolean onship = VSGameUtilsKt.isBlockInShipyard(this.getLevel(),this.getBlockPos());
         if(onship) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(level, this.getBlockPos());
+            Ship ship = VSGameUtilsKt.getShipManagingPos(this.getLevel(), this.getBlockPos());
             final ShipTransform transform = ship.getTransform();
             transform.getShipToWorld().transformDirection(new Vector3d(localForward.x,localForward.y,localForward.z), worldXDirection);
             worldXDirection.normalize();
@@ -738,8 +740,9 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         Vector3d finalLocalPos = localBlockPos.add(blockLocalOffset, new Vector3d());
 
         // 最后一步：如果在船上，再统一映射到世界坐标
-        if (onShip) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(level, this.getBlockPos());
+        boolean onship = VSGameUtilsKt.isBlockInShipyard(this.getLevel(), this.getBlockPos());
+        if (onship) {
+            Ship ship = VSGameUtilsKt.getShipManagingPos(this.getLevel(), this.getBlockPos());
             if (ship != null) {
                 Vector3d worldPos = VSGameUtilsKt.toWorldCoordinates(
                         ship,

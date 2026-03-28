@@ -8,6 +8,7 @@ import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.registries.vsieEntities;
 import com.kodu16.vsie.utility.FxData;
 import com.kodu16.vsie.utility.vsieFxHelper;
+import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
@@ -83,20 +84,21 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
     @Override
     public void shootentity() {
         // 功能：仅允许服务端执行开火逻辑，避免客户端在索敌/预测分支误触发一次射击动画。
-        if (level == null || level.isClientSide) {
+        if (this.getLevel() == null || this.getLevel().isClientSide) {
             return;
         }
         // 功能：射击动画与真实发射绑定，保证“生成炮弹后”才播放且每次开火仅触发一次。
         triggerAnim("controller", "shoot");
         // 功能：使用 GeckoLib cannon 骨骼枢轴的真实世界坐标作为粒子炮子弹发射点，修正模型偏移导致的出膛误差。
         Vector3d muzzleWorldPos = this.getCannonPivotWorldPos();
+        LogUtils.getLogger().warn("muzzle world pos:"+muzzleWorldPos);
         Vec3 center = new Vec3(muzzleWorldPos.x, muzzleWorldPos.y, muzzleWorldPos.z);
-        ParticleBulletEntity bullet = new ParticleBulletEntity(vsieEntities.PARTICLE_BULLET.get(), level);
+        ParticleBulletEntity bullet = new ParticleBulletEntity(vsieEntities.PARTICLE_BULLET.get(), this.getLevel());
         // 功能：为粒子炮子弹写入标准 data，确保子弹第 1 tick 使用 particle_cannon_fire 触发 awake FX。
         bullet.setDataBase(BulletData.createParticleCannonDefault());
         bullet.setPos(center);
         bullet.setDeltaMovement(center.vectorTo(new Vec3(targetPos.x,targetPos.y,targetPos.z)).normalize().scale(1.0F));
-        level.addFreshEntity(bullet);
+        this.getLevel().addFreshEntity(bullet);
     }
 
     @Override
