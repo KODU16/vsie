@@ -2,6 +2,7 @@
 package com.kodu16.vsie.network.turret;
 
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
+import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
@@ -51,7 +52,7 @@ public class TurretC2SPacket {
                 sender.sendSystemMessage(Component.literal("Invalid turret at " + pos));
                 return;
             }
-            turret.modifytargettype(changetype);
+            turret.modifyTargetType(pkt.changetype);
             // 可选：标记方块实体为脏以保存更改
             turret.setChanged();
         });

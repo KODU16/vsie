@@ -475,9 +475,9 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
                 if (be instanceof AbstractHeavyTurretBlockEntity heavyturret) {
                     // 功能：控制椅更新重型炮塔时，同步频道输入；仅在开火时下发激活频道。
                     if (controlseatData.isfiring) {
-                        heavyturret.receivechannel(finalActiveSeatChannelEncode);
+                        heavyturret.channelFromCtrl(finalActiveSeatChannelEncode);
                     } else {
-                        heavyturret.receivechannel(0);
+                        heavyturret.channelFromCtrl(0);
                     }
                     // 功能：同步玩家视角状态时，额外下发控制椅方块朝向，供重型炮塔做方向转换后再头瞄。
                     Direction controlSeatFacing = this.getBlockState().getValue(BlockStateProperties.FACING);

@@ -260,11 +260,6 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         }
     }
 
-    // 功能：提供统一的炮口火焰可见判定，支持“开火后延时显示”。
-    public boolean shouldRenderMuzzleFlash() {
-        return muzzleFlashTicks > 0;
-    }
-
 
 
     //use 5 ticks' velocity data to predict movement,providing more accurate prediction

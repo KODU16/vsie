@@ -53,10 +53,10 @@ public class HeavyTurretC2SPacket {
             // 功能：复用同一数据包，同时支持“切换开火模式”和“切换频道”。
             if (changetype >= 100) {
                 int fireType = changetype - 100;
-                heavyturret.modifyheavytargettype(fireType);
+                heavyturret.modifyFireType(fireType);
                 LogUtils.getLogger().warn("C2S:setting heavy turret fire type to:" + fireType);
             } else {
-                heavyturret.modifychannel(changetype);
+                heavyturret.modifyChannel(changetype);
                 LogUtils.getLogger().warn("C2S:changing heavy turret channel:" + changetype);
             }
             heavyturret.setChanged();
