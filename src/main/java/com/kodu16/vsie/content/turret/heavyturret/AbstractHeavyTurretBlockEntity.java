@@ -114,13 +114,17 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
 
     //heavy turret only
     public void modifyFireType(int type) {
-        if (level == null || level.isClientSide) { return; }// 客户端完全不许改！
+        // 功能：实时获取当前 level，修复因父类缓存 level 为空而导致重炮 GUI 按钮不生效的问题。
+        Level currentLevel = this.getLevel();
+        if (currentLevel == null || currentLevel.isClientSide) { return; }// 客户端完全不许改！
         getData().fireType = type;
     }
 
     // 功能：为重型炮塔提供与主武器一致的频道切换逻辑（四选一）。
     public void modifyChannel(int channel) {
-        if (level == null || level.isClientSide) { return; }
+        // 功能：实时获取当前 level，修复因父类缓存 level 为空而导致频道切换请求被提前 return 的问题。
+        Level currentLevel = this.getLevel();
+        if (currentLevel == null || currentLevel.isClientSide) { return; }
 
         TurretData data = getData();
 
