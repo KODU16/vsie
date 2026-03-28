@@ -98,7 +98,9 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     }
 
     public void modifyTargetType(int type) {
-        if (level == null || level.isClientSide) { return; }
+        // 功能：每次修改时都实时读取方块实体当前 level，避免使用构造期缓存的空 level 导致按钮无效。
+        Level currentLevel = this.getLevel();
+        if (currentLevel == null || currentLevel.isClientSide) { return; }
 
         TurretData data = getData();
 
