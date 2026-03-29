@@ -78,6 +78,9 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     // 功能：记录炮口火焰剩余显示时间（单位：tick），用于实现“开火后延迟熄灭”效果。
     public int muzzleFlashTicks = 0;
 
+    // 功能：保存客户端上传的 firepoint 坐标，粒子炮开火时直接作为子弹生成点使用。
+    private Vector3d particleTurretFirePoint = null;
+
     private static final double SEARCH_RADIUS = 128.0;
 
     public Vector3d currentworldpos = new Vector3d(this.getBlockPos().getX(), this.getBlockPos().getY(), this.getBlockPos().getZ());
@@ -757,6 +760,20 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
         // 不在船上，本地坐标就是世界坐标
         return finalLocalPos;
+    }
+
+    // 功能：由 C2S 数据包写入粒子炮 firepoint 坐标，避免服务端再计算 pivot 世界坐标。
+    public void setParticleTurretFirePoint(Vector3d postofire) {
+        if (postofire == null) {
+            this.particleTurretFirePoint = null;
+            return;
+        }
+        this.particleTurretFirePoint = new Vector3d(postofire);
+    }
+
+    // 功能：读取粒子炮 firepoint 坐标，返回副本避免外部意外修改内部状态。
+    public @Nullable Vector3d getParticleTurretFirePoint() {
+        return this.particleTurretFirePoint == null ? null : new Vector3d(this.particleTurretFirePoint);
     }
 
     public float xRot0 = 0;

@@ -89,10 +89,15 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
         }
         // 功能：射击动画与真实发射绑定，保证“生成炮弹后”才播放且每次开火仅触发一次。
         triggerAnim("controller", "shoot");
-        // 功能：使用 GeckoLib cannon 骨骼枢轴的真实世界坐标作为粒子炮子弹发射点，修正模型偏移导致的出膛误差。
-        Vector3d muzzleWorldPos = this.getCannonPivotWorldPos();
-        LogUtils.getLogger().warn("muzzle world pos:"+muzzleWorldPos);
-        Vec3 center = new Vec3(muzzleWorldPos.x, muzzleWorldPos.y, muzzleWorldPos.z);
+        // 功能：暂时停用“通过 pivot 计算世界炮口坐标”的逻辑，改为直接使用客户端上传的 firepoint 坐标。
+//        Vector3d muzzleWorldPos = this.getCannonPivotWorldPos();
+//        LogUtils.getLogger().warn("muzzle world pos:"+muzzleWorldPos);
+        Vector3d postofire = this.getParticleTurretFirePoint();
+        // 功能：如果尚未收到客户端 firepoint，回退到 currentworldpos 以避免空指针。
+        if (postofire == null) {
+            postofire = new Vector3d(this.currentworldpos);
+        }
+        Vec3 center = new Vec3(postofire.x, postofire.y, postofire.z);
         ParticleBulletEntity bullet = new ParticleBulletEntity(vsieEntities.PARTICLE_BULLET.get(), this.getLevel());
         // 功能：为粒子炮子弹写入标准 data，确保子弹第 1 tick 使用 particle_cannon_fire 触发 awake FX。
         bullet.setDataBase(BulletData.createParticleCannonDefault());
