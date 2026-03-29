@@ -1,6 +1,8 @@
 package com.kodu16.vsie.content.turret.client;
 
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
+import com.kodu16.vsie.network.turret.TurretFirePointC2SPacket;
+import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.vsie;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
@@ -61,8 +63,10 @@ public class AbstractTurretModel extends DefaultedBlockGeoModel<AbstractTurretBl
             turret.setRotY(yRot);
         }
         CoreGeoBone firepoint = getAnimationProcessor().getBone("cannonend");
-        if(firepoint!=null) {
-            Vector3d postofire = new Vector3d(firepoint.getPosX(),firepoint.getPosY(),firepoint.getPosZ());
+        if (firepoint != null && "particle".equals(animatable.getturrettype())) {
+            // 功能：读取 cannonend 骨骼坐标并通过 C2S 发给服务端，作为粒子炮子弹生成点。
+            Vector3d postofire = new Vector3d(firepoint.getPosX(), firepoint.getPosY(), firepoint.getPosZ());
+            ModNetworking.CHANNEL.sendToServer(new TurretFirePointC2SPacket(animatable.getBlockPos(), postofire));
         }
     }
     private float lerp(float start, float end) {

@@ -19,6 +19,7 @@ import com.kodu16.vsie.network.screen.ScreentypeC2SPacket;
 import com.kodu16.vsie.network.turret.HeavyTurretC2SPacket;
 import com.kodu16.vsie.network.turret.TurretC2SPacket;
 import com.kodu16.vsie.network.turret.TurretDefaultSpinC2SPacket;
+import com.kodu16.vsie.network.turret.TurretFirePointC2SPacket;
 import com.kodu16.vsie.network.weapon.WeaponC2SPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -84,6 +85,13 @@ public class ModNetworking {
                 TurretDefaultSpinC2SPacket::encode, // 编码方法
                 TurretDefaultSpinC2SPacket::decode, // 解码方法
                 TurretDefaultSpinC2SPacket::handle  // 处理方法
+        );
+        CHANNEL.registerMessage(
+                nextId(),
+                TurretFirePointC2SPacket.class,
+                TurretFirePointC2SPacket::encode,
+                TurretFirePointC2SPacket::decode,
+                TurretFirePointC2SPacket::handle
         );
         CHANNEL.registerMessage(
                 nextId(),
