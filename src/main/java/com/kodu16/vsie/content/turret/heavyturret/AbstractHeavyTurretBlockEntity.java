@@ -1,9 +1,6 @@
 package com.kodu16.vsie.content.turret.heavyturret;
 
-import com.kodu16.vsie.content.turret.AbstractTurretBlock;
-import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
-import com.kodu16.vsie.content.turret.Initialize;
-import com.kodu16.vsie.content.turret.TurretData;
+import com.kodu16.vsie.content.turret.*;
 import com.kodu16.vsie.foundation.Vec;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
@@ -33,8 +30,9 @@ import java.util.Objects;
 public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlockEntity {
     protected AbstractHeavyTurretBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
-        // 初始化 turretData
+        // 初始化 turretData 与 turretProperty
         this.turretData = new TurretData();
+        turretProperty = new TurretProperty();
     }
 
     private volatile Vector3d targetPos = new Vector3d(0,0,0);
@@ -58,7 +56,7 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
         if (!hasInitialized){
             BlockPos pos = this.getBlockPos();
             BlockState state = this.getBlockState();
-            Initialize.initialize(level,pos,state,pivotPoint);
+            Initialize.initialize(level,pos,state, modelPivotPoint);
 
             hasInitialized = true;
             return;
@@ -69,10 +67,10 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
         if (onShip) {
             Ship ship = VSGameUtilsKt.getShipManagingPos(level, this.getBlockPos());
             Vector3d center = VSGameUtilsKt.toWorldCoordinates(ship, this.getBlockPos().getX(), this.getBlockPos().getY()+getYAxisOffset(), this.getBlockPos().getZ());
-            currentworldpos = new Vector3d(center.x, center.y, center.z);
+            currentWorldPos = new Vector3d(center.x, center.y, center.z);
         }
         else {
-            currentworldpos = new Vector3d(Math.round(this.getBlockPos().getX()*10)/10.0, Math.round((this.getBlockPos().getY()+getYAxisOffset())*10)/10.0, Math.round(this.getBlockPos().getZ()*10)/10.0);
+            currentWorldPos = new Vector3d(Math.round(this.getBlockPos().getX()*10)/10.0, Math.round((this.getBlockPos().getY()+getYAxisOffset())*10)/10.0, Math.round(this.getBlockPos().getZ()*10)/10.0);
         }
 
         boolean canTrackBySeatView = !getData().isViewLocked && (getData().fireType == 0 || getData().fireType == 2);
@@ -92,7 +90,7 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
             this.yRot0 = closestReachableY(yRot0,getMaxSpinSpeed(),targetyrot);
             if(!Objects.equals(targetPos, new Vector3d(0, 0, 0))){
                 if(xOK && yOK) {
-                    targetDistance = Vec.Distance(currentworldpos, targetPos);
+                    targetDistance = Vec.Distance(currentWorldPos, targetPos);
                     shootship();
                     idleTicks = getCoolDown();
                 }
@@ -253,9 +251,9 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
 
         // 4. 目标相对炮塔中心的向量（世界坐标）
         Vec3 toTargetWorld = new Vec3(
-                targetPos.x - currentworldpos.x,
-                targetPos.y - currentworldpos.y,
-                targetPos.z - currentworldpos.z
+                targetPos.x - currentWorldPos.x,
+                targetPos.y - currentWorldPos.y,
+                targetPos.z - currentWorldPos.z
         ).normalize();   // 建议先normalize，减少浮点误差影响
 
         if (toTargetWorld.lengthSqr() < 1e-6) return; // 目标在正中心，放弃计算

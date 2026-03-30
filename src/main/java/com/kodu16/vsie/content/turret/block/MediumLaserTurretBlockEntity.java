@@ -1,34 +1,18 @@
 package com.kodu16.vsie.content.turret.block;
 
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
-import com.kodu16.vsie.content.turret.TurretData;
 import com.kodu16.vsie.foundation.Vec;
-import com.kodu16.vsie.registries.vsieBlockEntities;
-import com.kodu16.vsie.registries.vsieBlocks;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.Connection;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import org.joml.Vector3d;
-import org.joml.Vector4f;
 import org.slf4j.Logger;
-import org.valkyrienskies.core.api.ships.LoadedShip;
-import org.valkyrienskies.core.api.ships.properties.ShipTransform;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import software.bernie.geckolib.core.animation.AnimatableManager;
 
 import javax.annotation.Nonnull;
@@ -78,7 +62,7 @@ public class MediumLaserTurretBlockEntity extends AbstractTurretBlockEntity {
     }
 
     public void shootentity() {
-        double distance = Vec.Distance(this.targetPos, currentworldpos);
+        double distance = Vec.Distance(this.targetPos, currentWorldPos);
         double projectionLength = distance;
         turretData.setDistance(projectionLength);
         performRaycast(this.getLevel());

@@ -43,11 +43,6 @@ public final class TurretData {
     @Getter @Setter public volatile double distance;
     public volatile ArrayList<Ship> enemyShipsData = new ArrayList<>();
 
-    @Getter @Setter public volatile Matrix3d coordAxis = new Matrix3d();    //我们规定 模型渲染中 不进行旋转的FACING对应此处单位矩阵
-    @Getter @Setter public volatile Vector3d basePivotOffset = new Vector3d();   //枢轴点偏移
-    @Getter @Setter public volatile Vector3d worldPivotOffset = new Vector3d();   //枢轴点偏移
-
-
     @Nullable public FxData fxData;
 
     public int getTargetStatus()    { return (configRegister&TARGET_HIDE); }

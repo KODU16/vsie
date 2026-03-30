@@ -3,6 +3,7 @@ package com.kodu16.vsie.content.turret.ciws;
 import com.kodu16.vsie.content.turret.AbstractTurretBlock;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.turret.TurretData;
+import com.kodu16.vsie.content.turret.TurretProperty;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
@@ -34,8 +35,9 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
     private static final double SEARCH_RADIUS = 128.0;
     protected AbstractCIWSBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
-        // 初始化 turretData
+        // 初始化 turretData 与 turretProperty
         this.turretData = new TurretData();
+        turretProperty = new TurretProperty();
     }
 
     private @Nullable Entity targetprojectile = null;
@@ -67,7 +69,7 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
             // 功能：统一更新当前目标点，避免实体/舰船重复分支代码。
             updateCurrentTargetPos();
 
-            targetPos = getShootLocation(targetPos, targetPreVelocity, level, currentworldpos);
+            targetPos = getShootLocation(targetPos, targetPreVelocity, level, currentWorldPos);
             updateTargetRot();
             this.xRot0 = closestReachableX(xRot0, getMaxSpinSpeed(), targetxrot);
             this.yRot0 = closestReachableY(yRot0, getMaxSpinSpeed(), targetyrot);
@@ -126,12 +128,12 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
             center = new Vec3(center3d.x(),center3d.y(),center3d.z());
         }
         else {
-            center = new Vec3(this.currentworldpos.x, this.currentworldpos.y, this.currentworldpos.z);
+            center = new Vec3(this.currentWorldPos.x, this.currentWorldPos.y, this.currentWorldPos.z);
         }
         if(isflyingtowards(e,center)){return false;}
 
         // 距离判断（用世界坐标）
-        double distSq = e.distanceToSqr(currentworldpos.x, currentworldpos.y, currentworldpos.z);
+        double distSq = e.distanceToSqr(currentWorldPos.x, currentWorldPos.y, currentWorldPos.z);
         if (distSq > SEARCH_RADIUS * SEARCH_RADIUS) {
             return false;
         }
@@ -144,7 +146,7 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
 
     private boolean canSeeTarget(Vector3d pos) {
 
-        Vec3 turretpos = new Vec3(currentworldpos.x, currentworldpos.y, currentworldpos.z);
+        Vec3 turretpos = new Vec3(currentWorldPos.x, currentWorldPos.y, currentWorldPos.z);
         Vec3 targetPos = new Vec3(Math.round(pos.x()*10)/10.0, Math.round(pos.y()*10)/10.0, Math.round(pos.z()*10)/10.0);
         Vec3 lookVec = turretpos.vectorTo(targetPos).normalize().scale(0.75F);
         ClipContext ctx = new ClipContext(turretpos.add(lookVec), targetPos, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, null);
@@ -189,9 +191,9 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
 
         // 4. 目标相对炮塔中心的向量（世界坐标）
         Vec3 toTargetWorld = new Vec3(
-                targetPos.x - currentworldpos.x,
-                targetPos.y - currentworldpos.y,
-                targetPos.z - currentworldpos.z
+                targetPos.x - currentWorldPos.x,
+                targetPos.y - currentWorldPos.y,
+                targetPos.z - currentWorldPos.z
         ).normalize();   // 建议先normalize，减少浮点误差影响
 
         if (toTargetWorld.lengthSqr() < 1e-6) return; // 目标在正中心，放弃计算
@@ -228,17 +230,17 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
         if (isValidTargetProjectile(targetprojectile)) return; // 有活目标就不重复找
 
         // 功能：检测炮塔是否发生明显位移；若位移过大则重置分块索敌游标。
-        Vec3 currentCenter = new Vec3(currentworldpos.x, currentworldpos.y, currentworldpos.z);
+        Vec3 currentCenter = new Vec3(currentWorldPos.x, currentWorldPos.y, currentWorldPos.z);
         if (projectileScanLastCenter.distanceToSqr(currentCenter) > PROJECTILE_SCAN_CELL_SIZE * PROJECTILE_SCAN_CELL_SIZE) {
             projectileScanCursor = 0;
         }
         projectileScanLastCenter = currentCenter;
 
         // 功能：把搜索半径按网格切分，并在多个tick里渐进扫描，降低大半径时单次AABB查询负载。
-        int minCellX = (int) Math.floor((currentworldpos.x - SEARCH_RADIUS) / PROJECTILE_SCAN_CELL_SIZE);
-        int maxCellX = (int) Math.floor((currentworldpos.x + SEARCH_RADIUS) / PROJECTILE_SCAN_CELL_SIZE);
-        int minCellZ = (int) Math.floor((currentworldpos.z - SEARCH_RADIUS) / PROJECTILE_SCAN_CELL_SIZE);
-        int maxCellZ = (int) Math.floor((currentworldpos.z + SEARCH_RADIUS) / PROJECTILE_SCAN_CELL_SIZE);
+        int minCellX = (int) Math.floor((currentWorldPos.x - SEARCH_RADIUS) / PROJECTILE_SCAN_CELL_SIZE);
+        int maxCellX = (int) Math.floor((currentWorldPos.x + SEARCH_RADIUS) / PROJECTILE_SCAN_CELL_SIZE);
+        int minCellZ = (int) Math.floor((currentWorldPos.z - SEARCH_RADIUS) / PROJECTILE_SCAN_CELL_SIZE);
+        int maxCellZ = (int) Math.floor((currentWorldPos.z + SEARCH_RADIUS) / PROJECTILE_SCAN_CELL_SIZE);
         int cellsX = maxCellX - minCellX + 1;
         int cellsZ = maxCellZ - minCellZ + 1;
         int totalCells = Math.max(cellsX * cellsZ, 1);
@@ -257,16 +259,16 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
             // 功能：每次只查询一个中等体积AABB，避免超大AABB导致的查询退化与漏检。
             AABB cellBox = new AABB(
                     cellX * PROJECTILE_SCAN_CELL_SIZE,
-                    currentworldpos.y - SEARCH_RADIUS,
+                    currentWorldPos.y - SEARCH_RADIUS,
                     cellZ * PROJECTILE_SCAN_CELL_SIZE,
                     (cellX + 1) * PROJECTILE_SCAN_CELL_SIZE,
-                    currentworldpos.y + SEARCH_RADIUS,
+                    currentWorldPos.y + SEARCH_RADIUS,
                     (cellZ + 1) * PROJECTILE_SCAN_CELL_SIZE
             );
 
             List<Entity> candidates = level.getEntitiesOfClass(Entity.class, cellBox, this::isValidTargetProjectile);
             for (Entity candidate : candidates) {
-                double distSq = candidate.distanceToSqr(currentworldpos.x, currentworldpos.y, currentworldpos.z);
+                double distSq = candidate.distanceToSqr(currentWorldPos.x, currentWorldPos.y, currentWorldPos.z);
                 if (distSq < bestDistSq) {
                     bestDistSq = distSq;
                     bestCandidate = candidate;

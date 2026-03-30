@@ -90,7 +90,7 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
             // 功能：为粒子炮子弹写入标准 data，确保子弹第 1 tick 使用 particle_cannon_fire 触发 awake FX。
             bullet.setDataBase(BulletData.createParticleCannonDefault());
             bullet.setPos(firepoint);
-            bullet.setDeltaMovement(new Vec3(targetPos.x-currentworldpos.x,targetPos.y-currentworldpos.y,targetPos.z-currentworldpos.z).normalize().scale(1.0F));
+            bullet.setDeltaMovement(new Vec3(targetPos.x- currentWorldPos.x,targetPos.y- currentWorldPos.y,targetPos.z- currentWorldPos.z).normalize().scale(1.0F));
             this.getLevel().addFreshEntity(bullet);
         }
     }

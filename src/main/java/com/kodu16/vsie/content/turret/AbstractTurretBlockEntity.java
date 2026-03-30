@@ -57,6 +57,8 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     public BlockPos pos = this.getBlockPos();
     public BlockState state = this.getBlockState();
     public boolean onShip = false;
+    protected TurretData turretData;
+    protected static TurretProperty turretProperty;
 
     public Vector3d targetPos = new Vector3d(0,0,0); //这是被选择的那个目标的位置
     @Getter public double targetDistance;
@@ -70,22 +72,20 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     public static SerializableDataTicket<Float> YROT;
     public final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this); // 功能：保留“是否有目标”的动画同步标记，去除对 Mekanism 电脑集成注解的依赖。
 
-
-    public static Vector3d pivotPoint = new Vector3d(); // 模型中的枢轴点 此后会据此自动计算枢轴点的偏移
+    public static Vector3d modelPivotPoint = new Vector3d(); // 模型中的枢轴点 此后会据此自动计算枢轴点的偏移
+    // 功能：读取粒子炮 firepoint 坐标，返回副本避免外部意外修改内部状态。
+    // 功能：保存客户端上传的 firepoint 坐标，粒子炮开火时直接作为子弹生成点使用。
+    @Getter private Vector3d PivotPoint = null;
+    @Getter private Vector3d FirePoint = null;
 
     public int idleTicks = 0;
     // 功能：记录炮口火焰剩余显示时间（单位：tick），用于实现“开火后延迟熄灭”效果。
     public int muzzleFlashTicks = 0;
 
-    // 功能：读取粒子炮 firepoint 坐标，返回副本避免外部意外修改内部状态。
-    // 功能：保存客户端上传的 firepoint 坐标，粒子炮开火时直接作为子弹生成点使用。
-    @Getter
-    private Vector3d FirePoint = null;
 
     private static final double SEARCH_RADIUS = 128.0;
 
-    public Vector3d currentworldpos = new Vector3d(this.getBlockPos().getX(), this.getBlockPos().getY(), this.getBlockPos().getZ());
-    protected TurretData turretData;
+    public Vector3d currentWorldPos = new Vector3d(this.getBlockPos().getX(), this.getBlockPos().getY(), this.getBlockPos().getZ());
 
     public Vector3d worldXDirection = new Vector3d();
     public Vector3d worldYDirection = new Vector3d();
@@ -93,13 +93,19 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
     protected AbstractTurretBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
-        // 初始化 turretData
+        // 初始化 turretData 与 turretProperty
         this.turretData = new TurretData();
+        turretProperty = new TurretProperty();
     }
 
     public TurretData getData() {
         if (turretData == null) { turretData = new TurretData(); }
         return turretData;
+    }
+
+    public TurretProperty getProperty(){
+        if (turretProperty == null) { turretProperty = new TurretProperty(); }
+        return turretProperty;
     }
 
     public void modifyTargetType(int type) {
@@ -137,7 +143,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         if (!hasInitialized){
             BlockPos pos = this.getBlockPos();
             BlockState state = this.getBlockState();
-            Initialize.initialize(level,pos,state,pivotPoint);
+            Initialize.initialize(level,pos,state, modelPivotPoint);
 
             hasInitialized = true;
             return;
@@ -149,10 +155,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         if (onShip && ship != null) {
             final ShipTransform transform = ship.getTransform();
 
-            this.turretData.setWorldPivotOffset(    // 得到实际的枢轴偏移 并且写进去
-                    transform.getShipToWorld().transformDirection(
-                            this.turretData.getBasePivotOffset().normalize().mul(this.turretData.getBasePivotOffset().length())
-                    ));
+            turretProperty.transformPivotOffset(transform);
 
             // 功能：冷却时间仅用于禁止开火，不再阻断索敌与转向逻辑。s
             if (idleTicks > 0) {
@@ -174,7 +177,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
                 // 功能：统一更新当前目标点，避免实体/舰船重复分支代码。
                 updateCurrentTargetPos();
 
-                targetPos = getShootLocation(targetPos, targetPreVelocity, level, currentworldpos);
+                targetPos = getShootLocation(targetPos, targetPreVelocity, level, currentWorldPos);
                 updateTargetRot();
                 this.xRot0 = closestReachableX(xRot0, getMaxSpinSpeed(), targetxrot);
                 this.yRot0 = closestReachableY(yRot0, getMaxSpinSpeed(), targetyrot);
@@ -199,10 +202,10 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         if (onShip) {
             Ship ship = VSGameUtilsKt.getShipManagingPos(level1, this.getBlockPos());
             Vector3d center = VSGameUtilsKt.toWorldCoordinates(ship, this.getBlockPos().getX(), this.getBlockPos().getY() + getYAxisOffset(), this.getBlockPos().getZ());
-            currentworldpos = new Vector3d(center.x, center.y, center.z);
+            currentWorldPos = new Vector3d(center.x, center.y, center.z);
             return;
         }
-        currentworldpos = new Vector3d(this.getBlockPos().getX(), this.getBlockPos().getY() + getYAxisOffset(), this.getBlockPos().getZ());
+        currentWorldPos = new Vector3d(this.getBlockPos().getX(), this.getBlockPos().getY() + getYAxisOffset(), this.getBlockPos().getZ());
     }
 
     // 功能：按当前索敌模式尝试获取目标，避免在 tick 主逻辑中散落多层 if。
@@ -255,13 +258,13 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             return;
         }
         if (aimtype == 1) {
-            targetDistance = Vec.Distance(currentworldpos, targetPos);
+            targetDistance = Vec.Distance(currentWorldPos, targetPos);
             shootentity();
             idleTicks = getCoolDown();
             // 功能：实体目标开火后保持 0.5 秒炮口火焰显示（20tick/s * 0.5s = 10tick）。
             muzzleFlashTicks = 10;
         } else if (aimtype == 2) {
-            targetDistance = Vec.Distance(currentworldpos, targetPos);
+            targetDistance = Vec.Distance(currentWorldPos, targetPos);
             shootship();
             idleTicks = getCoolDown();
             // 功能：舰船目标开火后同样保持 0.5 秒炮口火焰显示。
@@ -333,12 +336,12 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         if ((this.getLevel().getGameTime() + this.hashCode()) % 5 != 0) return;
 
         AABB searchBox = new AABB(
-                currentworldpos.x - SEARCH_RADIUS,
-                currentworldpos.y - SEARCH_RADIUS,
-                currentworldpos.z - SEARCH_RADIUS,
-                currentworldpos.x + SEARCH_RADIUS,
-                currentworldpos.y + SEARCH_RADIUS,
-                currentworldpos.z + SEARCH_RADIUS
+                currentWorldPos.x - SEARCH_RADIUS,
+                currentWorldPos.y - SEARCH_RADIUS,
+                currentWorldPos.z - SEARCH_RADIUS,
+                currentWorldPos.x + SEARCH_RADIUS,
+                currentWorldPos.y + SEARCH_RADIUS,
+                currentWorldPos.z + SEARCH_RADIUS
         );
 
         List<LivingEntity> candidates = this.getLevel().getEntitiesOfClass(LivingEntity.class, searchBox, this::isValidTargetEntity);
@@ -348,7 +351,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         }
 
         targetentity = candidates.stream()
-                .min(Comparator.comparingDouble(e -> e.distanceToSqr(currentworldpos.x, currentworldpos.y, currentworldpos.z)))
+                .min(Comparator.comparingDouble(e -> e.distanceToSqr(currentWorldPos.x, currentWorldPos.y, currentWorldPos.z)))
                 .orElse(null);
         // 关键：这里一定要同步更新 targetPos！！
         this.targetPos = new Vector3d(
@@ -369,7 +372,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
                 .filter(this::isValidTargetShip)
                 .min(Comparator.comparingDouble(ship -> {
                     Vector3d shipPos = new Vector3d(ship.getTransform().getPositionInWorld());
-                    return currentworldpos.distanceSquared(shipPos);
+                    return currentWorldPos.distanceSquared(shipPos);
                 }))
                 .orElse(null);
 
@@ -397,7 +400,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         }
 
         // 距离判断（用世界坐标）
-        double distSq = e.distanceToSqr(currentworldpos.x, currentworldpos.y, currentworldpos.z);
+        double distSq = e.distanceToSqr(currentWorldPos.x, currentWorldPos.y, currentWorldPos.z);
         if (distSq > SEARCH_RADIUS * SEARCH_RADIUS) {
             return false;
         }
@@ -410,7 +413,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             return false;
         }
         Vector3d shippos = new Vector3d (ship.getTransform().getPositionInWorld());
-        Vector3d pos = new Vector3d(currentworldpos.x, currentworldpos.y, currentworldpos.z);
+        Vector3d pos = new Vector3d(currentWorldPos.x, currentWorldPos.y, currentWorldPos.z);
         double distance = Vec.Distance(pos, shippos);
         if(distance > 1280) {
             return false;
@@ -471,7 +474,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     }
 
     private boolean canSeeTarget(Vector3d pos) {
-        Vec3 turretpos = new Vec3(currentworldpos.x, currentworldpos.y, currentworldpos.z);
+        Vec3 turretpos = new Vec3(currentWorldPos.x, currentWorldPos.y, currentWorldPos.z);
         // 功能：移除坐标四舍五入，避免视线判断在边界处抖动导致炮塔抽搐。
         Vec3 targetPos = new Vec3(pos.x(), pos.y(), pos.z());
         Vec3 lookVec = turretpos.vectorTo(targetPos).normalize().scale(0.75F);
@@ -656,9 +659,9 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
         // 4. 目标相对炮塔中心的向量（世界坐标）
         Vec3 toTargetWorld = new Vec3(
-                targetPos.x - currentworldpos.x,
-                targetPos.y - currentworldpos.y,
-                targetPos.z - currentworldpos.z
+                targetPos.x - currentWorldPos.x,
+                targetPos.y - currentWorldPos.y,
+                targetPos.z - currentWorldPos.z
         ).normalize();   // 建议先normalize，减少浮点误差影响
 
         if (toTargetWorld.lengthSqr() < 1e-6) return; // 目标在正中心，放弃计算
@@ -689,12 +692,12 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     }
 
     // 功能：由 C2S 数据包写入粒子炮 firepoint 坐标，避免服务端再计算 pivot 世界坐标。
-    public void setFirePoint(Vector3d postofire) {
-        if (postofire == null) {
+    public void setFirePoint(Vector3d firePoint) {
+        if (firePoint == null) {
             this.FirePoint = null;
             return;
         }
-        this.FirePoint = new Vector3d(postofire);
+        this.FirePoint = new Vector3d(firePoint);
     }
 
     public float xRot0 = 0;
@@ -768,7 +771,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             this.angle += this.omega * dt;
 
             this.angle = angleNormalize(this.angle);
-            this.isStable = (error <=0.034);; // 2度
+            this.isStable = (error <=0.034); // 2度
 
             return this.isStable;
         }
@@ -781,7 +784,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             ShipTransform transform
     ){
         Vector3d dirInShip=transform.getWorldToShip().transformDirection(dirInWorld);
-        Vector3d dirInModel=this.turretData.getCoordAxis().transform(dirInShip);
+        Vector3d dirInModel=turretProperty.getCoordAxis().transform(dirInShip);
 
         // 诡异的坐标变换 根据模型来的
         double yaw = Math.atan2(
@@ -808,7 +811,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             ShipTransform transform
     ){
         Vector3d TurretPos = new Vector3d(this.getBlockPos().getX(),this.getBlockPos().getY(),this.getBlockPos().getZ());
-        TurretPos.add(this.getData().basePivotOffset);
+        TurretPos.add(this.getProperty().worldPivotOffset);
         Vector3d dirInWorld = TargetPosInWorld.sub(TurretPos);
 
         return doSightTransform(dirInWorld, transform);
@@ -818,7 +821,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             ShipTransform transform
     ){
         Vector3d TurretPos = new Vector3d(this.getBlockPos().getX(),this.getBlockPos().getY(),this.getBlockPos().getZ());
-        TurretPos.add(this.getData().basePivotOffset);
+        TurretPos.add(this.getProperty().worldPivotOffset);
         Vector3d TargetPosInWorld = new Vector3d(TargetBlockPosInWorld.getX(),TargetBlockPosInWorld.getY(),TargetBlockPosInWorld.getZ());
         Vector3d dirInWorld = TargetPosInWorld.sub(TurretPos);
 

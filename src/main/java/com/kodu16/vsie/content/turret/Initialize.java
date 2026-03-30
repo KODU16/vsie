@@ -24,7 +24,7 @@ public class Initialize {
 
         if (blockEntity instanceof AbstractTurretBlockEntity turretBlockEntity) {
 
-            TurretData data = turretBlockEntity.getData();
+            TurretProperty property = turretBlockEntity.getProperty();
             Direction facing = state.getValue(FACING); // 获取当前方块的朝向
 
             Matrix3d modelCoordAxis = switch (facing){
@@ -54,8 +54,8 @@ public class Initialize {
                         0,1,0);     // 沿+X旋转90度
             };
 
-            data.setCoordAxis(modelCoordAxis);
-            data.setBasePivotOffset(modelCoordAxis.transpose().transform(modelPivotPoint));//左乘坐标基的逆 正交矩阵中M^T=M^-1
+            property.setCoordAxis(modelCoordAxis);
+            property.setBasePivotOffset(modelCoordAxis.transpose().transform(modelPivotPoint)); //左乘坐标基的逆 正交矩阵中M^T=M^-1
         }
     }
 }

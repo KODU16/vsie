@@ -36,11 +36,12 @@ public class AbstractTurretGeoRenderer extends GeoBlockRenderer<AbstractTurretBl
                           float alpha) {
         super.preRender(poseStack,animatable,model,bufferSource,buffer,isReRender,partialTick,packedLight,packedOverlay,red,green,blue,alpha);
         Optional<GeoBone> bone = model.getBone("cannonend");
+
         if(bone.isPresent()){
-            GeoBone cannonend = bone.get();
-            Vector3d cannonpos = cannonend.getLocalPosition();
-            ModNetworking.CHANNEL.sendToServer(new TurretFirePointC2SPacket(animatable.getBlockPos(), cannonpos));
-            LogUtils.getLogger().warn("sending pos:"+cannonpos);
+            GeoBone muzzle = bone.get();
+            Vector3d muzzlePos = muzzle.getLocalPosition();
+            ModNetworking.CHANNEL.sendToServer(new TurretFirePointC2SPacket(animatable.getBlockPos(), muzzlePos));
+            LogUtils.getLogger().warn("sending pos:"+muzzlePos);
 
         }
     }
