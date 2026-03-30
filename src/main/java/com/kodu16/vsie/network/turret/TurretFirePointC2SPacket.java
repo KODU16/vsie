@@ -13,25 +13,25 @@ import java.util.function.Supplier;
 
 public class TurretFirePointC2SPacket {
     public final BlockPos pos;
-    public final Vector3d postofire;
+    public final Vector3d firePoint;
 
-    public TurretFirePointC2SPacket(BlockPos pos, Vector3d postofire) {
+    public TurretFirePointC2SPacket(BlockPos pos, Vector3d firePoint) {
         this.pos = pos;
-        this.postofire = postofire;
+        this.firePoint = firePoint;
     }
 
     public static void encode(TurretFirePointC2SPacket pkt, FriendlyByteBuf buf) {
         // 功能：把客户端 firepoint 坐标发送到服务端，供粒子炮直接作为生成点使用。
         buf.writeBlockPos(pkt.pos);
-        buf.writeDouble(pkt.postofire.x);
-        buf.writeDouble(pkt.postofire.y);
-        buf.writeDouble(pkt.postofire.z);
+        buf.writeDouble(pkt.firePoint.x);
+        buf.writeDouble(pkt.firePoint.y);
+        buf.writeDouble(pkt.firePoint.z);
     }
 
     public static TurretFirePointC2SPacket decode(FriendlyByteBuf buf) {
         BlockPos pos = buf.readBlockPos();
-        Vector3d postofire = new Vector3d(buf.readDouble(), buf.readDouble(), buf.readDouble());
-        return new TurretFirePointC2SPacket(pos, postofire);
+        Vector3d firePoint = new Vector3d(buf.readDouble(), buf.readDouble(), buf.readDouble());
+        return new TurretFirePointC2SPacket(pos, firePoint);
     }
 
     public static void handle(TurretFirePointC2SPacket pkt, Supplier<NetworkEvent.Context> ctxSup) {
@@ -45,7 +45,7 @@ public class TurretFirePointC2SPacket {
             BlockEntity be = level.getBlockEntity(pkt.pos);
             if (be instanceof AbstractTurretBlockEntity turret) {
                 // 功能：缓存firepoint 坐标，供服务端开火时直接读取。
-                turret.setFirePoint(pkt.postofire);
+                turret.setFirePoint(pkt.firePoint);
             }
         });
         ctx.setPacketHandled(true);
