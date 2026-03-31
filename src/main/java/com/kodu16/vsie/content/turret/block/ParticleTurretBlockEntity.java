@@ -44,7 +44,7 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
         return "particle";
     }
 
-    public double getYAxisOffset() {return 3d;}
+    public double getYAxisOffset() {return 3.3d;}
 
     @Override
     protected Vector3d getTurretPivotInGeoPixels() {
@@ -83,14 +83,13 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
         if(onship && getFirePoint() != null){
             triggerAnim("controller", "shoot");
             Ship ship = VSGameUtilsKt.getShipManagingPos(level,this.getBlockPos());
-            Vec3 center = new Vec3(this.getBlockPos().getX()+getFirePoint().x, this.getBlockPos().getY()+getYAxisOffset(), this.getBlockPos().getZ()+getFirePoint().z);
+            Vec3 center = new Vec3(this.getBlockPos().getX()+getFirePoint().x, this.getBlockPos().getY()+getFirePoint().y+getYAxisOffset(), this.getBlockPos().getZ()+getFirePoint().z);
             Vec3 firepoint = VSGameUtilsKt.toWorldCoordinates(ship,center);
-            LogUtils.getLogger().warn("postofire:"+ firepoint);
             ParticleBulletEntity bullet = new ParticleBulletEntity(vsieEntities.PARTICLE_BULLET.get(), level);
             // 功能：为粒子炮子弹写入标准 data，确保子弹第 1 tick 使用 particle_cannon_fire 触发 awake FX。
             bullet.setDataBase(BulletData.createParticleCannonDefault());
             bullet.setPos(firepoint);
-            bullet.setDeltaMovement(new Vec3(targetPos.x-currentworldpos.x,targetPos.y-currentworldpos.y,targetPos.z-currentworldpos.z).normalize().scale(1.0F));
+            bullet.setDeltaMovement(new Vec3(targetPos.x-firepoint.x,targetPos.y-firepoint.y,targetPos.z-firepoint.z).normalize().scale(1.0F));
             this.getLevel().addFreshEntity(bullet);
         }
     }

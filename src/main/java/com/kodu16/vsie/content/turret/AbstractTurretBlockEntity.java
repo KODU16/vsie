@@ -682,6 +682,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
     // 功能：无有效目标时将炮塔朝向平滑回归到默认角度（defaultxrot/defaultyrot）。
     public void returnToDefaultRotation() {
+        LogUtils.getLogger().warn("returning to:x:"+this.defaultspinx+"y:"+this.defaultspiny);
         this.targetxrot = this.defaultspinx;
         this.targetyrot = this.defaultspiny;
         this.xRot0 = closestReachableX(xRot0, getMaxSpinSpeed(), targetxrot*Mth.PI/180);
