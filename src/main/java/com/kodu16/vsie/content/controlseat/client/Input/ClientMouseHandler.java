@@ -38,11 +38,11 @@ public class ClientMouseHandler {
                 //LOGGER.warn(String.valueOf(Component.literal("mouseDX:"+dx+"mouseDY:"+dy)));
                 //dxdy都是（-1,1）
                 if (data.isViewLocked()) {
-                    ClientSeatInputSender.tickSend(pos, data.getUserUUID(), dx, dy, 0, data.mouseLpress, data.viewLock, (int) player.getXRot(), (int) player.getYHeadRot());
+                    ClientSeatInputSender.tickSend(pos, data.getUserUUID(), dx, dy, 0, data.mouseLpress, data.viewLock, (int) player.getXRot()-180, (int) player.getYHeadRot()+90);
                     //LOGGER.warn(String.valueOf(Component.literal("sending mousepress:"+data.mouseLpress)));
                 }
                 else {
-                    ClientSeatInputSender.tickSend(pos, data.getUserUUID(), 0, 0, 0, false, data.viewLock, (int) player.getXRot(), (int) player.getYHeadRot());
+                    ClientSeatInputSender.tickSend(pos, data.getUserUUID(), 0, 0, 0, false, data.viewLock, (int) player.getXRot()-180, (int) player.getYHeadRot()+90);
                     data.reset();
                 }
             }

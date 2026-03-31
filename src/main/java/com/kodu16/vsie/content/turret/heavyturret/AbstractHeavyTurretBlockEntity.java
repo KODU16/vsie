@@ -53,24 +53,23 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
     }
 
     public void tick() {
-        Level level = this.getLevel();
-        if (level == null || level.isClientSide()) { return; }
+        if (this.getLevel() == null || this.getLevel().isClientSide()) { return; }
 
         if (idleTicks-- > 1) { return; }
 
         if (!hasInitialized){
             BlockPos pos = this.getBlockPos();
             BlockState state = this.getBlockState();
-            Initialize.initialize(level,pos,state,pivotPoint);
+            Initialize.initialize(this.getLevel(),pos,state,pivotPoint);
 
             hasInitialized = true;
             return;
         }
 
-        onShip = VSGameUtilsKt.isBlockInShipyard(level, this.getBlockPos());
+        onShip = VSGameUtilsKt.isBlockInShipyard(this.getLevel(), this.getBlockPos());
 
         if (onShip) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(level, this.getBlockPos());
+            Ship ship = VSGameUtilsKt.getShipManagingPos(this.getLevel(), this.getBlockPos());
             Vector3d center = VSGameUtilsKt.toWorldCoordinates(ship, this.getBlockPos().getX(), this.getBlockPos().getY()+getYAxisOffset(), this.getBlockPos().getZ());
             currentworldpos = new Vector3d(center.x, center.y, center.z);
         }
@@ -229,8 +228,8 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
         Vector3d worldForward = new Vector3d(localForward.x, localForward.y, localForward.z);
         Vector3d worldUp = new Vector3d(localUp.x, localUp.y, localUp.z);
         Vector3d worldRight = new Vector3d(localRight.x, localRight.y, localRight.z);
-        if (VSGameUtilsKt.isBlockInShipyard(level, this.getBlockPos())) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(level, this.getBlockPos());
+        if (VSGameUtilsKt.isBlockInShipyard(this.getLevel(), this.getBlockPos())) {
+            Ship ship = VSGameUtilsKt.getShipManagingPos(this.getLevel(), this.getBlockPos());
             ShipTransform transform = ship.getTransform();
             worldForward = transform.getShipToWorld().transformDirection(worldForward, new Vector3d());
             worldUp = transform.getShipToWorld().transformDirection(worldUp, new Vector3d());
@@ -290,9 +289,9 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
             case UP -> new Vec3(-1,0,0);
         };
 
-        boolean onship = VSGameUtilsKt.isBlockInShipyard(level,this.getBlockPos());
+        boolean onship = VSGameUtilsKt.isBlockInShipyard(this.getLevel(),this.getBlockPos());
         if(onship) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(level, this.getBlockPos());
+            Ship ship = VSGameUtilsKt.getShipManagingPos(this.getLevel(), this.getBlockPos());
             final ShipTransform transform = ship.getTransform();
             transform.getShipToWorld().transformDirection(new Vector3d(localForward.x,localForward.y,localForward.z), worldXDirection);
             worldXDirection.normalize();
