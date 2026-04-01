@@ -30,6 +30,7 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import java.util.List;
 import java.util.Objects;
 
+//0:手动 1:自动 2:智能
 public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlockEntity {
     protected AbstractHeavyTurretBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
@@ -80,28 +81,24 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
             this.yRot0 = closestReachableY(yRot0, getMaxSpinSpeed(), targetyrot);
             setAnimData(TURRET_HAS_TARGET, true);
         }
-
-        // 功能：重型炮塔只有在频道匹配时才响应自动/智能射击，行为与主武器一致。
-        if ((getData().fireType == 1 || (getData().fireType == 2 && getData().isViewLocked && !targetPos.equals(new Vector3d(0,0,0))))) {
-            LogUtils.getLogger().warn("setting target:"+targetPos);
-            updateTargetRot();
-            this.xRot0 = closestReachableX(xRot0,getMaxSpinSpeed(),targetxrot);
-            this.yRot0 = closestReachableY(yRot0,getMaxSpinSpeed(),targetyrot);
-            if(!Objects.equals(targetPos, new Vector3d(0, 0, 0))){
-                if(xOK && yOK) {
-                    targetDistance = Vec.Distance(currentworldpos, targetPos);
-                    shootship();
-                    idleTicks = getCoolDown();
-                }
+        // 已经统一了模式，现在不同模式的区别只在于传入的坐标点的区别
+        LogUtils.getLogger().warn("setting target:"+targetPos);
+        this.xRot0 = closestReachableX(xRot0,getMaxSpinSpeed(),targetxrot);
+        this.yRot0 = closestReachableY(yRot0,getMaxSpinSpeed(),targetyrot);
+        if(!Objects.equals(targetPos, new Vector3d(0, 0, 0))){
+            if(xOK && yOK) {
+                targetDistance = Vec.Distance(currentworldpos, targetPos);
+                shootship();
+                idleTicks = getCoolDown();
             }
-            else {
-                LogUtils.getLogger().warn("target is null");
-                setAnimData(TURRET_HAS_TARGET, false);
-                targetDistance = 0;
-                xRot0 = 0;
-                yRot0 = 0;
-                targetPreVelocity.clear();
-            }
+        }
+        else {
+            LogUtils.getLogger().warn("target is null");
+            setAnimData(TURRET_HAS_TARGET, false);
+            targetDistance = 0;
+            xRot0 = 0;
+            yRot0 = 0;
+            targetPreVelocity.clear();
         }
 
         this.setAnimData(XROT, xRot0);
@@ -153,6 +150,10 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
                 data.set(data.CHANNEL_4);
             }
         }
+    }
+
+    public boolean needupdateenemy(){
+        return getData().fireType ==1 || getData().fireType==2 && getData().isViewLocked;
     }
 
     // 功能：接收控制椅下发的频道编码，供重型炮塔判定是否允许开火。

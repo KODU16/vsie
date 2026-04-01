@@ -479,13 +479,17 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
                     } else {
                         heavyturret.channelFromCtrl(0);
                     }
-                    // 功能：同步玩家视角锁状态，并直接下发客户端计算的手动瞄准目标点给重型炮塔。
-                    heavyturret.updateplayerstatus(
-                            controlseatData.isviewlocked,
-                            new Vector3d(controlseatData.manualAimTargetX, controlseatData.manualAimTargetY, controlseatData.manualAimTargetZ)
-                    );
-                    if (!controlseatData.enemyshipsData.isEmpty()) {
+                    //自动模式直接更新目标，无视玩家位置
+                    if (!controlseatData.enemyshipsData.isEmpty() && heavyturret.needupdateenemy()) {
                         heavyturret.updatespecificenemy((Vector3d) controlseatData.enemyshipsData.get(controlseatData.lockedenemyindex).getTransform().getPositionInWorld());
+                    }
+                    //手动模式更新玩家位置，而不是敌对目标
+                    else{
+                        // 功能：同步玩家视角锁状态，并直接下发客户端计算的手动瞄准目标点给重型炮塔。
+                        heavyturret.updateplayerstatus(
+                                controlseatData.isviewlocked,
+                                new Vector3d(controlseatData.manualAimTargetX, controlseatData.manualAimTargetY, controlseatData.manualAimTargetZ)
+                        );
                     }
                 } else {
                     turret.updateenemy(controlseatData.enemyshipsData);
