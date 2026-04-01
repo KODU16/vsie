@@ -51,7 +51,10 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
     public void tick() {
         if (this.getLevel() == null || this.getLevel().isClientSide()) { return; }
 
-        if (idleTicks-- > 1) { return; }
+        // 功能：冷却时间仅用于限制开火，不再阻断炮塔的持续转向，修复“手动模式间歇性卡顿”。
+        if (idleTicks > 0) {
+            idleTicks = idleTicks - 1;
+        }
 
         if (!hasInitialized){
             BlockPos pos = this.getBlockPos();
@@ -73,26 +76,22 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
             currentworldpos = new Vector3d(Math.round(this.getBlockPos().getX()*10)/10.0, Math.round((this.getBlockPos().getY()+getYAxisOffset())*10)/10.0, Math.round(this.getBlockPos().getZ()*10)/10.0);
         }
 
-        boolean canTrackBySeatView = !getData().isViewLocked && (getData().fireType == 0 || getData().fireType == 2);
-        // 功能：当控制椅视角未锁定且重炮为手动/智能模式时，直接使用输入链路提供的目标点进行转角解算。
-        if (canTrackBySeatView) {
+        // 功能：当目标点有效时，无论手动/自动/智能模式都每 tick 更新一次目标角度，修复“自动模式完全不转向”。
+        boolean hasTargetPos = !Objects.equals(targetPos, new Vector3d(0, 0, 0));
+        if (hasTargetPos) {
             updateTargetRot();
+            LogUtils.getLogger().warn("setting target:"+targetPos);
             this.xRot0 = closestReachableX(xRot0, getMaxSpinSpeed(), targetxrot);
             this.yRot0 = closestReachableY(yRot0, getMaxSpinSpeed(), targetyrot);
             setAnimData(TURRET_HAS_TARGET, true);
-        }
-        // 已经统一了模式，现在不同模式的区别只在于传入的坐标点的区别
-        LogUtils.getLogger().warn("setting target:"+targetPos);
-        this.xRot0 = closestReachableX(xRot0,getMaxSpinSpeed(),targetxrot);
-        this.yRot0 = closestReachableY(yRot0,getMaxSpinSpeed(),targetyrot);
-        if(!Objects.equals(targetPos, new Vector3d(0, 0, 0))){
-            if(xOK && yOK) {
+
+            // 功能：仅在已对准且冷却完成时开火，避免转向与开火逻辑互相阻塞。
+            if (xOK && yOK && idleTicks <= 0) {
                 targetDistance = Vec.Distance(currentworldpos, targetPos);
                 shootship();
                 idleTicks = getCoolDown();
             }
-        }
-        else {
+        } else {
             LogUtils.getLogger().warn("target is null");
             setAnimData(TURRET_HAS_TARGET, false);
             targetDistance = 0;
