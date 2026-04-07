@@ -57,6 +57,8 @@ public class ControlSeatServerData {
     public volatile ArrayList<Ship> enemyshipsData = new ArrayList<>();
 
     public volatile float thruster_strength = 0;
+    // 功能：缓存东南西北上下六个方向（索引顺序：东南西北上下）上，朝向该方向的推进器最大推力总和。
+    public volatile float[] facingMaxThrustSum = new float[6];
 
     public volatile int totalenergystorage = 100;//最大可储存的电量
     public volatile int avalibleenergy = 0;//当前可用的电量
