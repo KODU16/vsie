@@ -21,6 +21,7 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
@@ -81,6 +82,9 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     // 功能：保存客户端上传的 firepoint 坐标，粒子炮开火时直接作为子弹生成点使用。
     @Getter
     private Vector3d FirePoint = null;
+    // 功能：记录“对舰船开火”时沿当前朝向射线检测到的方块坐标，仅保留最近一次结果（无需 NBT 同步）。
+    @Getter
+    private BlockPos lastShipShotHitBlockPos = BlockPos.ZERO;
 
     private static final double SEARCH_RADIUS = 128.0;
 
@@ -262,6 +266,8 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             muzzleFlashTicks = 10;
         } else if (aimtype == 2) {
             targetDistance = Vec.Distance(currentworldpos, targetPos);
+            // 功能：仅在对舰船射击时执行一次 clip 检测，并记录当前朝向命中的方块坐标。
+            recordShipShotHitBlockPos();
             shootship();
             idleTicks = getCoolDown();
             // 功能：舰船目标开火后同样保持 0.5 秒炮口火焰显示。
@@ -477,6 +483,28 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         Vec3 lookVec = turretpos.vectorTo(targetPos).normalize().scale(0.75F);
         ClipContext ctx = new ClipContext(turretpos.add(lookVec), targetPos, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, null);
         return this.getLevel().clip(ctx).getType().equals(HitResult.Type.MISS);
+    }
+
+    // 功能：对舰船目标开火时，基于“炮口当前位置 -> 当前目标点”执行 clip，记录命中的方块 BlockPos。
+    private void recordShipShotHitBlockPos() {
+        Level level = this.getLevel();
+        if (level == null) {
+            this.lastShipShotHitBlockPos = BlockPos.ZERO;
+            return;
+        }
+
+        Vec3 from = new Vec3(currentworldpos.x, currentworldpos.y, currentworldpos.z);
+        Vec3 to = new Vec3(targetPos.x, targetPos.y, targetPos.z);
+        // 功能：构造与武器类似的方块碰撞射线，只检测方块，不检测实体。
+        ClipContext context = new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null);
+        BlockHitResult hitResult = level.clip(context);
+
+        if (hitResult.getType() == HitResult.Type.BLOCK) {
+            this.lastShipShotHitBlockPos = hitResult.getBlockPos();
+            return;
+        }
+        // 功能：未命中方块时重置为 ZERO，避免保留旧数据误判。
+        this.lastShipShotHitBlockPos = BlockPos.ZERO;
     }
 
     @Override
