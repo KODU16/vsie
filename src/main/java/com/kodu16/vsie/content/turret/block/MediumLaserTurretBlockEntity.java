@@ -27,6 +27,7 @@ import org.joml.Vector3d;
 import org.joml.Vector4f;
 import org.slf4j.Logger;
 import org.valkyrienskies.core.api.ships.LoadedShip;
+import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -98,6 +99,11 @@ public class MediumLaserTurretBlockEntity extends AbstractTurretBlockEntity {
             return;
         }
 
+        // 功能：若命中方块与炮塔处于同一艘 ship，则直接跳过破坏与爆炸，避免误伤自身舰体。
+        if (isHitOnCurrentShip(level, hitPos)) {
+            return;
+        }
+
         // 功能：当射线命中方块时，以命中点为中心清空 3*3*3 范围内方块（替换为空气）。
         for (BlockPos pos : BlockPos.betweenClosed(
                 hitPos.offset(-1, -1, -1),
@@ -116,6 +122,17 @@ public class MediumLaserTurretBlockEntity extends AbstractTurretBlockEntity {
                 false,
                 Level.ExplosionInteraction.NONE
         );
+    }
+
+    // 功能：判断射线命中方块是否位于炮塔当前所在 ship，用于过滤自舰命中。
+    private boolean isHitOnCurrentShip(Level level, BlockPos hitPos) {
+        // 功能：获取炮塔所在 ship（若炮塔不在 ship 上则返回 null）。
+        ServerShip turretShip = VSGameUtilsKt.getShipManagingPos(level, this.getBlockPos());
+        // 功能：获取命中方块所在 ship（若命中不在 ship 上则返回 null）。
+        ServerShip hitShip = VSGameUtilsKt.getShipManagingPos(level, hitPos);
+
+        // 功能：仅当双方都在 ship 上且 shipId 相同，才判定为“命中自身 ship”。
+        return turretShip != null && hitShip != null && turretShip.getId() == hitShip.getId();
     }
 
     private void performRaycast(@Nonnull Level level) {
