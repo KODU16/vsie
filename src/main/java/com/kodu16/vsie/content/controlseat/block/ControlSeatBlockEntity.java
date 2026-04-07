@@ -302,6 +302,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         List<Vec3> toRemove = new ArrayList<>();
         // 功能：每次更新推进器前重置“东南西北上下”六方向最大推力总和，避免沿用上一 tick 缓存。
         float[] facingMaxThrustSum = new float[6];
+        // 功能：缓存本 tick 内仍在线的推进器列表，统计完成后再统一下发“同朝向总推力”。
+        List<AbstractThrusterBlockEntity> activeThrusters = new ArrayList<>();
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
@@ -309,7 +311,6 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             if (be instanceof AbstractThrusterBlockEntity thruster) {
                 Logger LOGGER = LogUtils.getLogger();
                 //LOGGER.warn("writing to thrusters:" +blockPos+ "torque:"+controlseatData.getFinaltorque()+"force:"+controlseatData.getFinalforce());
-                thruster.setdata(controlseatData.getFinaltorque(), controlseatData.getFinalforce());
                 this.calculatedstrength+=thruster.getMaxThrust();
                 // 功能：按推进器方块 FACING 统计该方向的最大推力总和（东南西北上下）。
                 Direction thrusterFacing = thruster.getBlockState().getValue(BlockStateProperties.FACING);
@@ -317,12 +318,21 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
                 if (facingIndex >= 0) {
                     facingMaxThrustSum[facingIndex] += thruster.getMaxThrust();
                 }
+                // 功能：记录推进器实例，待方向总推力统计完成后再把结果精确回写给对应推进器。
+                activeThrusters.add(thruster);
                 this.fuelspendcurrenttick += thruster.fuelconsumptionperthrottle()*thruster.getFuelThrottle();
             } else {
                 // 先记下来，循环完了再删
                 toRemove.add(pos);
             }
         }, 0);
+        // 功能：把“同朝向推进器总推力”与控制输入一起下发给每个推进器，供其计算力贡献权重。
+        for (AbstractThrusterBlockEntity thruster : activeThrusters) {
+            Direction thrusterFacing = thruster.getBlockState().getValue(BlockStateProperties.FACING);
+            int facingIndex = getFacingThrustIndex(thrusterFacing);
+            double sameFacingSum = facingIndex >= 0 ? facingMaxThrustSum[facingIndex] : thruster.getMaxThrust();
+            thruster.setdata(controlseatData.getFinaltorque(), controlseatData.getFinalforce(), sameFacingSum);
+        }
         controlseatData.thruster_strength = this.calculatedstrength;
         // 功能：将“东南西北上下”六方向推力统计结果写入控制椅服务端数据，供后续逻辑读取。
         controlseatData.facingMaxThrustSum = facingMaxThrustSum;
