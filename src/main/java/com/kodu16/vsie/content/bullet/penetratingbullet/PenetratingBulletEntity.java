@@ -1,4 +1,4 @@
-/*package com.kodu16.vsie.content.bullet.penetratingbullet;
+package com.kodu16.vsie.content.bullet.penetratingbullet;
 
 import com.kodu16.vsie.content.bullet.AbstractBulletEntity;
 import net.minecraft.core.BlockPos;
@@ -29,7 +29,7 @@ import net.minecraftforge.network.NetworkHooks;
 import java.util.List;
 import java.util.Optional;
 
-public class PenetratingBulletEntity extends AbstractBulletEntity {
+public class PenetratingBulletEntity extends Projectile {
     private int lifeTime = 0;
 
     // 构造函数：接收一个k参数，代表力量系数
@@ -140,7 +140,6 @@ public class PenetratingBulletEntity extends AbstractBulletEntity {
 
     @Override
     protected void defineSynchedData() {
-        super.defineSynchedData();
         this.entityData.define(DATA_K, 1);
     }
 
@@ -164,4 +163,4 @@ public class PenetratingBulletEntity extends AbstractBulletEntity {
         if (tag.contains("K")) this.setK(tag.getInt("K"));
     }
 
-}*/
+}
