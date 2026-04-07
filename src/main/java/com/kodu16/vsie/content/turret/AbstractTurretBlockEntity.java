@@ -604,11 +604,6 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         return new TurretContainerMenu(containerId, inv, this);
     }
 
-    public static int getRandomInt(int min, int max) {
-        Random rand = new Random();
-        return rand.nextInt(max - min + 1) + min;
-    }
-
     @Override
     public CompoundTag getUpdateTag() {
         CompoundTag tag = super.getUpdateTag();
