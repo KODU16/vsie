@@ -85,6 +85,8 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     // 功能：记录“对舰船开火”时沿当前朝向射线检测到的方块坐标，仅保留最近一次结果（无需 NBT 同步）。
     @Getter
     private BlockPos lastShipShotHitBlockPos = BlockPos.ZERO;
+    // 功能：标记“本次对舰船射线是否先命中了自身所在船体”，用于阻止误伤自身舰体的开火。
+    private boolean shipShotBlockedBySelfShip = false;
 
     private static final double SEARCH_RADIUS = 128.0;
 
@@ -270,6 +272,10 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             targetDistance = Vec.Distance(currentworldpos, targetPos);
             // 功能：仅在对舰船射击时执行一次 clip 检测，并记录当前朝向命中的方块坐标。
             recordShipShotHitBlockPos();
+            // 功能：如果射线先命中自身所在船体，则判定目标不可见并直接取消本次开火。
+            if (shipShotBlockedBySelfShip) {
+                return;
+            }
             shootship();
             idleTicks = getCoolDown();
             // 功能：舰船目标开火后同样保持 0.5 秒炮口火焰显示。
@@ -507,9 +513,25 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         return this.getLevel().clip(ctx).getType().equals(HitResult.Type.MISS);
     }
 
+    // 功能：判断指定方块是否属于炮塔自身所在船体，用于拦截“误将自身船体当作可攻击目标”的情况。
+    private boolean isBlockOnSameShipAsTurret(BlockPos blockPos) {
+        Level level = this.getLevel();
+        if (level == null) {
+            return false;
+        }
+        Ship turretShip = VSGameUtilsKt.getShipManagingPos(level, this.getBlockPos());
+        if (turretShip == null) {
+            return false;
+        }
+        Ship hitShip = VSGameUtilsKt.getShipManagingPos(level, blockPos);
+        return hitShip != null && hitShip.getId() == turretShip.getId();
+    }
+
     // 功能：对舰船目标开火时，基于“炮口当前位置 -> 当前目标点”执行 clip，记录命中的方块 BlockPos。
     private void recordShipShotHitBlockPos() {
         Level level = this.getLevel();
+        // 功能：每次开火前先重置“被自身船体遮挡”标记，避免沿用上一次结果导致误判。
+        this.shipShotBlockedBySelfShip = false;
         if (level == null) {
             this.lastShipShotHitBlockPos = BlockPos.ZERO;
             return;
@@ -533,9 +555,16 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             ClipContext context = new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null);
             BlockHitResult hitResult = level.clip(context);
             if (hitResult.getType() == HitResult.Type.BLOCK) {
+                BlockPos hitPos = hitResult.getBlockPos();
+                // 功能：若射线先命中自身船体，则直接判定“目标被自身遮挡”，终止后续开火。
+                if (isBlockOnSameShipAsTurret(hitPos)) {
+                    this.shipShotBlockedBySelfShip = true;
+                    this.lastShipShotHitBlockPos = BlockPos.ZERO;
+                    return;
+                }
                 // 功能：命中后同步更新当前瞄准点，使后续开火持续对准可打击位置。
                 this.targetPos = new Vector3d(shotPoint);
-                this.lastShipShotHitBlockPos = hitResult.getBlockPos();
+                this.lastShipShotHitBlockPos = hitPos;
                 return;
             }
         }
