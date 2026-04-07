@@ -16,6 +16,7 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -87,7 +88,34 @@ public class MediumLaserTurretBlockEntity extends AbstractTurretBlockEntity {
 
     @Override
     public void shootship() {
+        Level level = this.getLevel();
+        if (level == null || level.isClientSide()) {
+            return;
+        }
 
+        BlockPos hitPos = this.getLastShipShotHitBlockPos();
+        if (hitPos.equals(BlockPos.ZERO)) {
+            return;
+        }
+
+        // 功能：当射线命中方块时，以命中点为中心清空 3*3*3 范围内方块（替换为空气）。
+        for (BlockPos pos : BlockPos.betweenClosed(
+                hitPos.offset(-1, -1, -1),
+                hitPos.offset(1, 1, 1)
+        )) {
+            level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+        }
+
+        // 功能：在命中点触发一次不破坏方块的爆炸，仅用于伤害/特效。
+        level.explode(
+                null,
+                hitPos.getX() + 0.5D,
+                hitPos.getY() + 0.5D,
+                hitPos.getZ() + 0.5D,
+                3.0F,
+                false,
+                Level.ExplosionInteraction.NONE
+        );
     }
 
     private void performRaycast(@Nonnull Level level) {
