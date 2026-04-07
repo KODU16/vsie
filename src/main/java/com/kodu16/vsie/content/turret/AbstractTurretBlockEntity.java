@@ -247,7 +247,8 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             return;
         }
         if (aimtype == 2 && isValidTargetShip(selectedtargetShip)) {
-            targetPos = (Vector3d) selectedtargetShip.getTransform().getPositionInWorld();
+            // 功能：对舰船目标每 tick 都重新选择“可见外表面点”，避免始终回写为船只中心点。
+            targetPos = getShipAimPoint(selectedtargetShip);
         }
     }
 
@@ -427,22 +428,8 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
     // 功能：对舰船AABB的多个外表面点做视线检测，只要有一个可见点即判定可见。
     private boolean canSeeShipTarget(Ship ship) {
-        AABBdc worldAabb = ship.getWorldAABB();
-        double centerX = (worldAabb.minX() + worldAabb.maxX()) * 0.5;
-        double centerY = (worldAabb.minY() + worldAabb.maxY()) * 0.5;
-        double centerZ = (worldAabb.minZ() + worldAabb.maxZ()) * 0.5;
-
-        Vector3d[] samplePoints = new Vector3d[] {
-                new Vector3d(centerX, centerY, centerZ),
-                new Vector3d(worldAabb.minX(), centerY, centerZ),
-                new Vector3d(worldAabb.maxX(), centerY, centerZ),
-                new Vector3d(centerX, worldAabb.minY(), centerZ),
-                new Vector3d(centerX, worldAabb.maxY(), centerZ),
-                new Vector3d(centerX, centerY, worldAabb.minZ()),
-                new Vector3d(centerX, centerY, worldAabb.maxZ())
-        };
-
-        for (Vector3d samplePoint : samplePoints) {
+        // 功能：复用统一采样点集合（外表面+中心）做可见性判定，保证索敌与瞄准规则一致。
+        for (Vector3d samplePoint : getShipAimCandidates(ship)) {
             if (canSeeTarget(samplePoint)) {
                 return true;
             }
@@ -452,28 +439,45 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
     // 功能：返回一个优先可见的舰船瞄准点，减少炮塔在“不可见质心”上反复重选目标的抽搐。
     private Vector3d getShipAimPoint(Ship ship) {
-
-        AABBdc worldAabb = ship.getWorldAABB();
-        double centerX = (worldAabb.minX() + worldAabb.maxX()) * 0.5;
-        double centerY = (worldAabb.minY() + worldAabb.maxY()) * 0.5;
-        double centerZ = (worldAabb.minZ() + worldAabb.maxZ()) * 0.5;
-
-        Vector3d[] samplePoints = new Vector3d[] {
-                new Vector3d(centerX, worldAabb.maxY(), centerZ),
-                new Vector3d(worldAabb.minX(), centerY, centerZ),
-                new Vector3d(worldAabb.maxX(), centerY, centerZ),
-                new Vector3d(centerX, centerY, worldAabb.minZ()),
-                new Vector3d(centerX, centerY, worldAabb.maxZ()),
-                new Vector3d(centerX, centerY, centerZ)
-        };
-
-        for (Vector3d samplePoint : samplePoints) {
+        // 功能：按“外表面点优先、中心点兜底”的顺序返回瞄准点，优先击打能看见的位置。
+        for (Vector3d samplePoint : getShipAimCandidates(ship)) {
             if (canSeeTarget(samplePoint)) {
                 return samplePoint;
             }
         }
+        // 功能：当全部点都不可见时，回退到舰船中心，避免返回空值导致后续旋转异常。
+        return new Vector3d(ship.getTransform().getPositionInWorld());
+    }
 
-        return new Vector3d(centerX, centerY, centerZ);
+    // 功能：生成舰船AABB的候选瞄准点（多外表面点+中心兜底），用于可见性检测和射击尝试。
+    private List<Vector3d> getShipAimCandidates(Ship ship) {
+        AABBdc worldAabb = ship.getWorldAABB();
+        double minX = worldAabb.minX();
+        double minY = worldAabb.minY();
+        double minZ = worldAabb.minZ();
+        double maxX = worldAabb.maxX();
+        double maxY = worldAabb.maxY();
+        double maxZ = worldAabb.maxZ();
+        double centerX = (minX + maxX) * 0.5;
+        double centerY = (minY + maxY) * 0.5;
+        double centerZ = (minZ + maxZ) * 0.5;
+
+        List<Vector3d> samplePoints = new ArrayList<>();
+        // 功能：先尝试六个面中心点，计算成本低且能覆盖大多数可见情况。
+        samplePoints.add(new Vector3d(minX, centerY, centerZ));
+        samplePoints.add(new Vector3d(maxX, centerY, centerZ));
+        samplePoints.add(new Vector3d(centerX, minY, centerZ));
+        samplePoints.add(new Vector3d(centerX, maxY, centerZ));
+        samplePoints.add(new Vector3d(centerX, centerY, minZ));
+        samplePoints.add(new Vector3d(centerX, centerY, maxZ));
+        // 功能：再尝试四个上表面角点，提升遮挡场景下找到可见点的概率。
+        samplePoints.add(new Vector3d(minX, maxY, minZ));
+        samplePoints.add(new Vector3d(minX, maxY, maxZ));
+        samplePoints.add(new Vector3d(maxX, maxY, minZ));
+        samplePoints.add(new Vector3d(maxX, maxY, maxZ));
+        // 功能：最后加入中心点作为兜底目标，避免完全失去目标。
+        samplePoints.add(new Vector3d(centerX, centerY, centerZ));
+        return samplePoints;
     }
 
     private boolean canSeeTarget(Vector3d pos) {
@@ -492,18 +496,32 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             this.lastShipShotHitBlockPos = BlockPos.ZERO;
             return;
         }
-
         Vec3 from = new Vec3(currentworldpos.x, currentworldpos.y, currentworldpos.z);
-        Vec3 to = new Vec3(targetPos.x, targetPos.y, targetPos.z);
-        // 功能：构造与武器类似的方块碰撞射线，只检测方块，不检测实体。
-        ClipContext context = new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null);
-        BlockHitResult hitResult = level.clip(context);
-
-        if (hitResult.getType() == HitResult.Type.BLOCK) {
-            this.lastShipShotHitBlockPos = hitResult.getBlockPos();
-            return;
+        List<Vector3d> shotCandidates = new ArrayList<>();
+        // 功能：优先尝试当前已锁定目标点，保证炮口视觉与真实射线一致。
+        shotCandidates.add(new Vector3d(targetPos));
+        if (isValidTargetShip(selectedtargetShip)) {
+            // 功能：若首个目标点射线落空，则继续尝试舰船其余外表面采样点。
+            for (Vector3d candidate : getShipAimCandidates(selectedtargetShip)) {
+                if (candidate.distanceSquared(targetPos) > 1.0e-6) {
+                    shotCandidates.add(candidate);
+                }
+            }
         }
-        // 功能：未命中方块时重置为 ZERO，避免保留旧数据误判。
+
+        for (Vector3d shotPoint : shotCandidates) {
+            Vec3 to = new Vec3(shotPoint.x, shotPoint.y, shotPoint.z);
+            // 功能：构造与武器类似的方块碰撞射线，只检测方块，不检测实体。
+            ClipContext context = new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null);
+            BlockHitResult hitResult = level.clip(context);
+            if (hitResult.getType() == HitResult.Type.BLOCK) {
+                // 功能：命中后同步更新当前瞄准点，使后续开火持续对准可打击位置。
+                this.targetPos = new Vector3d(shotPoint);
+                this.lastShipShotHitBlockPos = hitResult.getBlockPos();
+                return;
+            }
+        }
+        // 功能：所有候选点都未命中方块时重置为 ZERO，避免保留旧数据误判。
         this.lastShipShotHitBlockPos = BlockPos.ZERO;
     }
 
