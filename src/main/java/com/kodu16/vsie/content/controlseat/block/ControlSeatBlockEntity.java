@@ -300,6 +300,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
 
     public void updateThruster() {
         List<Vec3> toRemove = new ArrayList<>();
+        // 功能：每次更新推进器前重置“东南西北上下”六方向最大推力总和，避免沿用上一 tick 缓存。
+        float[] facingMaxThrustSum = new float[6];
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
@@ -309,6 +311,12 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
                 //LOGGER.warn("writing to thrusters:" +blockPos+ "torque:"+controlseatData.getFinaltorque()+"force:"+controlseatData.getFinalforce());
                 thruster.setdata(controlseatData.getFinaltorque(), controlseatData.getFinalforce());
                 this.calculatedstrength+=thruster.getMaxThrust();
+                // 功能：按推进器方块 FACING 统计该方向的最大推力总和（东南西北上下）。
+                Direction thrusterFacing = thruster.getBlockState().getValue(BlockStateProperties.FACING);
+                int facingIndex = getFacingThrustIndex(thrusterFacing);
+                if (facingIndex >= 0) {
+                    facingMaxThrustSum[facingIndex] += thruster.getMaxThrust();
+                }
                 this.fuelspendcurrenttick += thruster.fuelconsumptionperthrottle()*thruster.getFuelThrottle();
             } else {
                 // 先记下来，循环完了再删
@@ -316,10 +324,24 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             }
         }, 0);
         controlseatData.thruster_strength = this.calculatedstrength;
+        // 功能：将“东南西北上下”六方向推力统计结果写入控制椅服务端数据，供后续逻辑读取。
+        controlseatData.facingMaxThrustSum = facingMaxThrustSum;
         // 循环结束后统一删除
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 0);
         }
+    }
+
+    // 功能：把 Direction 映射到推力统计数组索引（东0、南1、西2、北3、上4、下5）。
+    private int getFacingThrustIndex(Direction direction) {
+        return switch (direction) {
+            case EAST -> 0;
+            case SOUTH -> 1;
+            case WEST -> 2;
+            case NORTH -> 3;
+            case UP -> 4;
+            case DOWN -> 5;
+        };
     }
 
     public void updateWeapon() {
