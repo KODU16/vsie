@@ -213,7 +213,8 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     private void acquireTargetByAimType() {
         if (aimtype == 1) {
             tryFindTargetEntity();
-        } else if (aimtype == 2 && !getData().enemyShipsData.isEmpty()) {
+        } else if (aimtype == 2) {
+            // 功能：舰船索敌每 tick 都执行一次，以便在敌舰列表清空时立即退出索敌并回归默认姿态。
             tryFindtargetShip();
         }
     }
@@ -369,7 +370,19 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     // 功能：索敌阶段不再改动开火冷却，避免冷却与索敌共用计数器导致抖动。
     public void tryFindtargetShip() {
         ArrayList<Ship> enemylist = getData().enemyShipsData;
-        if (enemylist.isEmpty()) return;
+        // 功能：若敌舰列表为空，立刻清理当前舰船目标，确保炮塔停止继续追踪已失效目标。
+        if (enemylist.isEmpty()) {
+            selectedtargetShip = null;
+            targetDistance = 0;
+            targetPreVelocity.clear();
+            setAnimData(TURRET_HAS_TARGET, false);
+            return;
+        }
+        // 功能：当当前目标舰已不在最新敌舰列表中时，视为失效目标，触发重选。
+        if (selectedtargetShip != null && !enemylist.contains(selectedtargetShip)) {
+            selectedtargetShip = null;
+        }
+        // 功能：当前目标仍可见且有效时保持锁定，避免无意义抖动切换目标。
         if (isValidTargetShip(selectedtargetShip)) return;
 
         this.selectedtargetShip = enemylist.stream()
@@ -384,6 +397,11 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             // 功能：舰船目标改为“可见瞄准点”（优先可见外表面），避免目标点落在船体内部导致永远无法锁定。
             this.targetPos = getShipAimPoint(this.selectedtargetShip);
             setChanged();
+        } else {
+            // 功能：当所有敌舰都不可见/不可用时，清空锁定，交由主流程回到默认角度。
+            targetDistance = 0;
+            targetPreVelocity.clear();
+            setAnimData(TURRET_HAS_TARGET, false);
         }
     }
 
