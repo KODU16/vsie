@@ -12,6 +12,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraftforge.common.MinecraftForge;
 import org.joml.*;
 import org.slf4j.Logger;
@@ -75,11 +76,13 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
 
     //public abstract int getConsumetick();
 
-    public void setdata(Vector3d inputtorque, Vector3d inputforce)
+    // 功能：接收控制椅下发的目标力/力矩，以及“与本推进器同朝向”的最大推力总和。
+    public void setdata(Vector3d inputtorque, Vector3d inputforce, double sameFacingMaxThrustSum)
     {
         Logger LOGGER = LogUtils.getLogger();
         thrusterData.setInputtorque(inputtorque);
         thrusterData.setInputforce(inputforce);
+        thrusterData.setSameFacingMaxThrustSum(sameFacingMaxThrustSum);
         //LOGGER.warn(String.valueOf(Component.literal("receiving torque:"+thrusterData.getInputtorque()+"force:"+thrusterData.getInputforce())));
     }
 
@@ -141,8 +144,20 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
                 double forceAlignment  = Math.max(0, forceContribution.dot(normDesiredForce));   // 只关心同向贡献
                 double torqueAlignment = Math.max(0, torqueFromThisThruster.dot(normDesiredTorque));
 
-                // 7. 合并力和力矩的贡献（你可以自行调整权重，这里力和力矩同等重要）
-                double totalAlignment = forceAlignment + torqueAlignment;
+                // 功能：力分配改为“同朝向推进器按最大推力占比”分摊，同时考虑该方向总推力对当前目标力的需求程度。
+                double sameFacingThrust = thrusterData.getSameFacingMaxThrustSum();
+                double selfMaxThrust = getMaxThrust();
+                // 功能：兜底，避免同向总推力缺失时出现除零，至少用自身最大推力参与计算。
+                double safeSameFacingThrust = Math.max(sameFacingThrust, selfMaxThrust);
+                // 功能：本推进器在“同朝向推进器组”内的推力占比。
+                double sameFacingShare = safeSameFacingThrust > 1e-6 ? (selfMaxThrust / safeSameFacingThrust) : 0;
+                // 功能：该朝向上目标力需求占总可用推力的比例（0~1）。
+                double forceDemandRatio = desiredForceLen > 1e-6 ? Math.min(1.0, desiredForceLen / safeSameFacingThrust) : 0;
+                // 功能：最终力贡献 = 方向匹配度 × 组内推力占比 × 当前需求比例。
+                double forceContributionWeighted = forceAlignment * sameFacingShare * forceDemandRatio;
+
+                // 7. 合并力和力矩的贡献（保持力矩相关逻辑不变，仅替换力贡献计算）
+                double totalAlignment = forceContributionWeighted + torqueAlignment;
 
                 // 可选：如果你希望纯平动时侧面推进器完全不喷火，可以把 torqueAlignment 权重调高
                 // 例如：double totalAlignment = forceAlignment + 2.0 * torqueAlignment;
