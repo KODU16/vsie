@@ -32,6 +32,7 @@ import com.kodu16.vsie.content.weapon.arc_emitter.ArcEmitterBlockEntity;
 import com.kodu16.vsie.content.weapon.cenix_plasma_cannon.CenixPlasmaCannonBlockEntity;
 import com.kodu16.vsie.content.weapon.client.AbstractWeaponGeoRenderer;
 import com.kodu16.vsie.content.weapon.arc_emitter.ArcEmitterGeoRenderer;
+import com.kodu16.vsie.content.weapon.electro_magnet_rail_cannon.ElectroMagnetRailCannonBlockEntity;
 import com.kodu16.vsie.content.weapon.infra_knife_accelerator.InfraKnifeAcceleratorBlockEntity;
 import com.kodu16.vsie.content.turret.client.AbstractTurretGeoRenderer;
 import com.kodu16.vsie.content.weapon.missile_launcher.block.BasicMissileLauncherBlockEntity;
@@ -91,6 +92,12 @@ public class vsieBlockEntities {
     public static final BlockEntityEntry<CenixPlasmaCannonBlockEntity> CENIX_PLASMA_CANNON_BLOCK_ENTITY =
             REGISTRATE.blockEntity("cenix_plasma_cannon_block_entity", CenixPlasmaCannonBlockEntity::new)
                     .validBlocks(vsieBlocks.CENIX_PLASMA_CANNON_BLOCK)
+                    .renderer(() -> AbstractWeaponGeoRenderer::new)
+                    .register();
+    // 功能：注册电磁导轨炮方块实体，复用通用武器渲染器。
+    public static final BlockEntityEntry<ElectroMagnetRailCannonBlockEntity> ELECTRO_MAGNET_RAIL_CANNON_BLOCK_ENTITY =
+            REGISTRATE.blockEntity("electro_magnet_rail_cannon_block_entity", ElectroMagnetRailCannonBlockEntity::new)
+                    .validBlocks(vsieBlocks.ELECTRO_MAGNET_RAIL_CANNON_BLOCK)
                     .renderer(() -> AbstractWeaponGeoRenderer::new)
                     .register();
 
