@@ -87,7 +87,9 @@ public class ServerShipHandler {
                 ControlSeatS2CPacket packet = new ControlSeatS2CPacket(pos,
                         ForwardDirection, UpDirection,
                         data.enemy,data.ally,slug,
-                        data.getThrottle());
+                        data.getThrottle(),
+                        // 功能：快包携带服务端当前视角锁状态，确保重进世界后的客户端能立即恢复锁定与输入行为。
+                        data.isviewlocked);
                 ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()), packet);
 
                 //扫描全部船只包（扫描敌人包只跑在服务器不用发送）

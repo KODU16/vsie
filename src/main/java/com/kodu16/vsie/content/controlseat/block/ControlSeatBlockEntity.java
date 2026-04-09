@@ -128,6 +128,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         tag.putString("WarpTargetName", controlseatData.warpTargetName);
         // 功能：同步 warp 准备状态到客户端，让按下 P 时能正确走“取消准备”而不是再次开菜单。
         tag.putBoolean("IsWarpPreparing", controlseatData.isWarpPreparing);
+        // 功能：持久化“视角锁定”开关，保证玩家重进世界且仍在座椅上时可恢复控制态。
+        tag.putBoolean("IsViewLocked", controlseatData.isviewlocked);
     }
 
     @Override
@@ -142,6 +144,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         controlseatData.warpTargetDimension = tag.getString("WarpTargetDimension");
         controlseatData.warpTargetName = tag.getString("WarpTargetName");
         controlseatData.isWarpPreparing = tag.getBoolean("IsWarpPreparing");
+        controlseatData.isviewlocked = tag.getBoolean("IsViewLocked");
     }
 
     public void tick() {
@@ -149,6 +152,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         if (level.isClientSide)
             return;
         if (hasInitialized) {
+            // 功能：每 tick 从世界中的真实座椅实体反查当前乘坐玩家，修复重进世界后 ride/player 丢失导致无法控制的问题。
+            refreshSeatOccupancyFromWorld();
 
             // 功能：每 tick 刷新控制椅自身方块坐标，供 warp 自动对准把目标位置转换为控制椅当前的世界朝向基准。
             controlseatData.controlSeatPos = getBlockPos();
@@ -733,6 +738,55 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             // Initialize mouse handler when the player sits down
         }
         return ride;
+    }
+
+    // 功能：根据控制椅方块朝向计算 ShipMountingEntity 应在的挂载坐标，供重连后的座椅实体扫描复用。
+    private Vec3 getSeatMountPosition(BlockPos pos, BlockState state) {
+        Direction facing = state.getValue(BlockStateProperties.FACING);
+        if (facing == Direction.NORTH) {
+            return new Vec3(pos.getX() + 0.5, pos.getY(), pos.getZ());
+        } else if (facing == Direction.SOUTH) {
+            return new Vec3(pos.getX() + 0.5, pos.getY(), pos.getZ() + 1);
+        } else if (facing == Direction.EAST) {
+            return new Vec3(pos.getX() + 1, pos.getY(), pos.getZ() + 0.5);
+        }
+        return new Vec3(pos.getX(), pos.getY(), pos.getZ() + 0.5);
+    }
+
+    // 功能：在服务端 tick 中重建“控制椅 -> 座椅实体 -> 玩家”关系，保证玩家重进后 HUD 与输入链路自动恢复。
+    private void refreshSeatOccupancyFromWorld() {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        BlockState state = getBlockState();
+        Vec3 mountPos = getSeatMountPosition(getBlockPos(), state);
+        AABB searchBox = new AABB(mountPos, mountPos).inflate(1.25D, 1.25D, 1.25D);
+
+        // 功能：先按“是否还活着”清理旧缓存，防止保存了失效 seat UUID 影响 HUD 反查。
+        seats.removeIf(seat -> seat == null || !seat.isAlive());
+
+        Player seatedPlayer = null;
+        for (ShipMountingEntity seatEntity : serverLevel.getEntitiesOfClass(ShipMountingEntity.class, searchBox, Entity::isAlive)) {
+            if (!seats.contains(seatEntity)) {
+                seats.add(seatEntity);
+            }
+            SeatRegistry.SEAT_TO_CONTROLSEAT.put(seatEntity.getUUID(), getBlockPos());
+
+            if (seatedPlayer == null && !seatEntity.getPassengers().isEmpty() && seatEntity.getPassengers().get(0) instanceof Player playerPassenger) {
+                seatedPlayer = playerPassenger;
+            }
+        }
+
+        // 功能：把世界中的实时乘坐状态回写到 controlseatData，避免重进后被当作“无人控制”而 reset。
+        if (seatedPlayer != null) {
+            ride = true;
+            controlseatData.setPlayer(seatedPlayer);
+        } else {
+            ride = false;
+            controlseatData.setPlayer(null);
+            // 功能：无人乘坐时默认解锁视角，防止旧玩家留在锁定态影响后续乘坐者体验。
+            controlseatData.isviewlocked = false;
+        }
     }
 
     private static double[] getAABBdcCenter(AABBdc aabb) {
