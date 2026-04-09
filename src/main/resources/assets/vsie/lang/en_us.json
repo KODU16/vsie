@@ -35,6 +35,7 @@
     "item.vsie.target_frame": "target frame",
     "item.vsie.iff": "IFF",
     "item.vsie.shield_tool": "Shield tool",
+    "item.vsie.particle_container": "Particle Container",
     "item.vsie.warp_data_chip": "Warp Data Chip",
 
     "category.vsie": "vsie controls",

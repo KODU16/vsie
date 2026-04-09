@@ -3,15 +3,18 @@ package com.kodu16.vsie.content.turret.client;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.turret.TurretContainerMenu;
 import com.kodu16.vsie.content.turret.ciws.AbstractCIWSBlockEntity;
+import com.kodu16.vsie.content.turret.block.ParticleTurretBlockEntity;
 import com.kodu16.vsie.network.screen.ScreenC2SPacket;
 import com.kodu16.vsie.network.turret.TurretDefaultSpinC2SPacket;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.network.turret.TurretC2SPacket;
 import com.kodu16.vsie.vsie;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.GuiGraphics;                  // 新增
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -22,6 +25,7 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
     private EditBox editBoxSpinX;
     private EditBox editBoxSpinY;
     private static final ResourceLocation TEXTURE = new ResourceLocation(vsie.ID, "textures/gui/turret/turret_gui.png");
+    private static final ResourceLocation SLOT_TEXTURE = new ResourceLocation(vsie.ID, "textures/gui/slot.png");
 
     public TurretScreen(TurretContainerMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
@@ -65,6 +69,20 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
         }
         else {
             guiGraphics.blit(iconship, this.leftPos + 137, this.topPos + 70, 0, 0, 19, 19, 19,19);
+        }
+        if (turret instanceof ParticleTurretBlockEntity) {
+            // 功能：在粒子炮 GUI 中绘制 3x3 弹药槽底图，位置与容器菜单槽位一一对应。
+            RenderSystem.setShader(GameRenderer::getPositionTexShader);
+            int slotStartX = this.leftPos + 59 - 1;
+            int slotStartY = this.topPos + 17 - 1;
+            for (int row = 0; row < 3; row++) {
+                for (int col = 0; col < 3; col++) {
+                    guiGraphics.blit(SLOT_TEXTURE,
+                            slotStartX + col * 18,
+                            slotStartY + row * 18,
+                            0, 0, 18, 18, 18, 18);
+                }
+            }
         }
     }
 
