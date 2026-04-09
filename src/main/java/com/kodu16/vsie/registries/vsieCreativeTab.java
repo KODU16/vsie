@@ -25,7 +25,7 @@ public class vsieCreativeTab {
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.vsie.base"))
                     .withTabsBefore(CreativeModeTabs.SPAWN_EGGS)
-                    .icon(() -> vsieBlocks.CONTROL_SEAT_BLOCK.asStack())
+                    .icon(vsieBlocks.CONTROL_SEAT_BLOCK::asStack)
                     .displayItems(new RegistrateDisplayItemsGenerator())
                     .build());
 
@@ -65,6 +65,11 @@ public class vsieCreativeTab {
             output.accept(vsieBlocks.BASIC_MISSILE_LAUNCHER_BLOCK);
             output.accept(vsieBlocks.ARC_EMITTER_BLOCK);
             output.accept(vsieBlocks.CENIX_PLASMA_CANNON_BLOCK);
+            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_CANNON_BLOCK);
+
+            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_TOP_BLOCK);
+            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_CORE_BLOCK);
+            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_BLOCK);
 
             output.accept(vsieBlocks.SMALL_ENERGY_BATTERY_BLOCK);
             output.accept(vsieBlocks.MEDIUM_ENERGY_BATTERY_BLOCK);
