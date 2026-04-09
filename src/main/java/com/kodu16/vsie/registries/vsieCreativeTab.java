@@ -42,6 +42,8 @@ public class vsieCreativeTab {
             output.accept(vsieItems.LINKER);
             output.accept(vsieItems.IFF);
             output.accept(vsieItems.SHIELD_TOOL);
+            // 功能：将粒子炮弹药容器加入创造模式物品栏，便于测试和生存拿取。
+            output.accept(vsieItems.PARTICLE_CONTAINER);
             output.accept(vsieBlocks.BASIC_SCREEN_BLOCK);
             output.accept(vsieFluids.DTFUEL.getBucket().get());
             output.accept(vsieBlocks.CONTROL_SEAT_BLOCK);

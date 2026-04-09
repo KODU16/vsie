@@ -1,10 +1,13 @@
 package com.kodu16.vsie.content.turret;
 
+import com.kodu16.vsie.content.turret.block.ParticleTurretBlockEntity;
 import com.kodu16.vsie.registries.ModMenuTypes;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.items.SlotItemHandler;
 
 // MyContainerMenu.java
 public class TurretContainerMenu extends AbstractContainerMenu {
@@ -16,8 +19,17 @@ public class TurretContainerMenu extends AbstractContainerMenu {
         super(ModMenuTypes.TURRET_MENU.get(), id);
         this.blockEntity = be;
 
-        // 这里可以加玩家背包槽位等，一般至少加一下
-        //addPlayerInventory(playerInv);
+        if (be instanceof ParticleTurretBlockEntity particleTurretBlockEntity) {
+            // 功能：为粒子炮添加 3x3 弹药槽，仅接受 particle_container。
+            int slotStartX = 59;
+            int slotStartY = 17;
+            for (int row = 0; row < 3; row++) {
+                for (int col = 0; col < 3; col++) {
+                    int slotIndex = col + row * 3;
+                    this.addSlot(new SlotItemHandler(particleTurretBlockEntity, slotIndex, slotStartX + col * 18, slotStartY + row * 18));
+                }
+            }
+        }
     }
 
     // 标准添加玩家背包代码
@@ -34,8 +46,14 @@ public class TurretContainerMenu extends AbstractContainerMenu {
 
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
-        return ItemStack.EMPTY; // 简单粗暴版
-        // 或者上面完整的标准实现
+        ItemStack original = ItemStack.EMPTY;
+        Slot slot = this.slots.get(index);
+        if (slot != null && slot.hasItem()) {
+            ItemStack stack = slot.getItem();
+            original = stack.copy();
+            // 功能：当前容器仅包含粒子炮 3x3 弹药槽，不包含玩家背包槽，故禁用 shift 快速转移。
+            return ItemStack.EMPTY;
+        }
+        return original;
     }
 }
-

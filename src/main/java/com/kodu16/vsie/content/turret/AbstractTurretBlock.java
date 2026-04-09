@@ -1,5 +1,6 @@
 package com.kodu16.vsie.content.turret;
 
+import com.kodu16.vsie.content.turret.block.ParticleTurretBlockEntity;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -127,6 +128,13 @@ public abstract class AbstractTurretBlock extends DirectionalBlock implements En
 
     @Override
     public void onRemove(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos, @Nonnull BlockState newState, boolean isMoving) {
+        // 功能：当炮塔方块被替换/破坏时，先将粒子炮弹药仓内容物掉落到世界中。
+        if (!state.is(newState.getBlock())) {
+            BlockEntity blockEntity = level.getBlockEntity(pos);
+            if (blockEntity instanceof ParticleTurretBlockEntity particleTurret) {
+                particleTurret.dropStoredContainers(level, pos);
+            }
+        }
         super.onRemove(state, level, pos, newState, isMoving);
         if (level.isClientSide()) return;
 

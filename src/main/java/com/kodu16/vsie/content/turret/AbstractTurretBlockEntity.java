@@ -262,6 +262,10 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         if (idleTicks > 0) {
             return;
         }
+        // 功能：允许子类声明“当前是否满足开火资源条件”（如弹药仓），不满足时仅瞄准不射击。
+        if (!canShootCurrentTarget()) {
+            return;
+        }
         if (aimtype == 1) {
             targetDistance = Vec.Distance(currentworldpos, targetPos);
             shootentity();
@@ -305,6 +309,11 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     public abstract void shootentity();
 
     public abstract void shootship();
+
+    // 功能：子类可覆写该方法控制“是否允许本 tick 开火”，默认始终允许。
+    protected boolean canShootCurrentTarget() {
+        return true;
+    }
 
     // 功能：允许子类声明 Geo 模型中 turret 骨骼的枢轴点（单位：模型像素，原点为方块本地原点）。
     protected Vector3d getTurretPivotInGeoPixels() {

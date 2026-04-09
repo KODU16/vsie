@@ -4,14 +4,25 @@ import com.kodu16.vsie.content.bullet.BulletData;
 import com.kodu16.vsie.content.bullet.entity.ParticleBulletEntity;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.registries.vsieEntities;
+import com.kodu16.vsie.registries.vsieItems;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.common.util.LazyOptional;
+import net.minecraftforge.items.IItemHandlerModifiable;
+import net.minecraftforge.items.ItemStackHandler;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -25,7 +36,22 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.List;
 
-public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
+public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity implements IItemHandlerModifiable {
+    // 功能：粒子炮内部 3x3 弹药仓，仅允许放入 particle_container。
+    private final ItemStackHandler containerInventory = new ItemStackHandler(9) {
+        @Override
+        protected void onContentsChanged(int slot) {
+            setChanged();
+        }
+
+        @Override
+        public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+            return stack.is(vsieItems.PARTICLE_CONTAINER.get());
+        }
+    };
+    // 功能：向漏斗/物流管道暴露物品处理能力，支持自动输入粒子容器。
+    private LazyOptional<IItemHandlerModifiable> itemHandlerCap = LazyOptional.of(() -> this);
+
     public ParticleTurretBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
     }
@@ -73,10 +99,20 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
     }
 
     @Override
+    protected boolean canShootCurrentTarget() {
+        // 功能：没有可用粒子容器时，炮塔只保持瞄准，不执行开火。
+        return hasStoredContainer();
+    }
+
+    @Override
     public void shootentity() {
         Level level = this.getLevel();
         // 功能：仅允许服务端执行开火逻辑，避免客户端在索敌/预测分支误触发一次射击动画。
         if (level == null || level.isClientSide) {
+            return;
+        }
+        // 功能：每次真正开火前消耗 1 个粒子容器，若消耗失败则终止本次射击。
+        if (!consumeOneContainer()) {
             return;
         }
         boolean onship = VSGameUtilsKt.isBlockInShipyard(level,this.getBlockPos());
@@ -108,5 +144,110 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
     @Override
     public AnimatableInstanceCache getAnimatableInstanceCache() {
         return cache;
+    }
+
+    // 功能：判断弹药仓中是否仍有可用粒子容器。
+    private boolean hasStoredContainer() {
+        for (int slot = 0; slot < containerInventory.getSlots(); slot++) {
+            if (!containerInventory.getStackInSlot(slot).isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 功能：从弹药仓按槽位顺序消耗 1 个粒子容器，作为一次射击成本。
+    private boolean consumeOneContainer() {
+        for (int slot = 0; slot < containerInventory.getSlots(); slot++) {
+            ItemStack extracted = containerInventory.extractItem(slot, 1, false);
+            if (!extracted.isEmpty()) {
+                setChanged();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 功能：方块被破坏时将粒子容器掉落到世界，避免物品丢失。
+    public void dropStoredContainers(Level level, BlockPos pos) {
+        for (int slot = 0; slot < containerInventory.getSlots(); slot++) {
+            ItemStack stack = containerInventory.getStackInSlot(slot);
+            if (!stack.isEmpty()) {
+                net.minecraft.world.level.block.Block.popResource(level, pos, stack.copy());
+                containerInventory.setStackInSlot(slot, ItemStack.EMPTY);
+            }
+        }
+    }
+
+    @Override
+    protected void write(CompoundTag tag, boolean clientPacket) {
+        super.write(tag, clientPacket);
+        // 功能：保存粒子炮 3x3 弹药仓数据，保证重进世界后不丢仓内物品。
+        tag.put("ParticleContainerInventory", containerInventory.serializeNBT());
+    }
+
+    @Override
+    protected void read(CompoundTag tag, boolean clientPacket) {
+        super.read(tag, clientPacket);
+        if (tag.contains("ParticleContainerInventory")) {
+            // 功能：读取粒子炮 3x3 弹药仓数据，用于服务端逻辑与 GUI 同步。
+            containerInventory.deserializeNBT(tag.getCompound("ParticleContainerInventory"));
+        }
+    }
+
+    @Override
+    public @NotNull <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
+        if (cap == ForgeCapabilities.ITEM_HANDLER) {
+            return itemHandlerCap.cast();
+        }
+        return super.getCapability(cap, side);
+    }
+
+    @Override
+    public void invalidateCaps() {
+        super.invalidateCaps();
+        itemHandlerCap.invalidate();
+    }
+
+    @Override
+    public void reviveCaps() {
+        super.reviveCaps();
+        itemHandlerCap = LazyOptional.of(() -> this);
+    }
+
+    @Override
+    public int getSlots() {
+        return containerInventory.getSlots();
+    }
+
+    @Override
+    public @NotNull ItemStack getStackInSlot(int slot) {
+        return containerInventory.getStackInSlot(slot);
+    }
+
+    @Override
+    public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
+        return containerInventory.insertItem(slot, stack, simulate);
+    }
+
+    @Override
+    public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
+        return containerInventory.extractItem(slot, amount, simulate);
+    }
+
+    @Override
+    public int getSlotLimit(int slot) {
+        return containerInventory.getSlotLimit(slot);
+    }
+
+    @Override
+    public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+        return containerInventory.isItemValid(slot, stack);
+    }
+
+    @Override
+    public void setStackInSlot(int slot, @NotNull ItemStack stack) {
+        containerInventory.setStackInSlot(slot, stack);
+        setChanged();
     }
 }
