@@ -11,7 +11,7 @@ modClass="com.kodu16.vsie.vsie"
 
 description='''Interstellar!'''
 [[dependencies.${mod_id}]]
-modId="forge"
+modId="neoforge"
 mandatory=true
 versionRange="${forge_version_range}"
 ordering="NONE"
@@ -25,13 +25,13 @@ side="BOTH"
 [[dependencies.${mod_id}]]
 modId="create"
 mandatory=true
-versionRange="[0.5.1.a,)"
+versionRange="[0.6.0,)"
 ordering="NONE"
 side="BOTH"
 [[dependencies.${mod_id}]]
-modId = "valkyrienskies"
+modId = "simulated_project"
 mandatory = true
-versionRange = "[2.4.0,)"
+versionRange = "[1.0.0,)"
 ordering = "AFTER"
 side = "BOTH"
 

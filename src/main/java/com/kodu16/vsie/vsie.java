@@ -1,6 +1,5 @@
 package com.kodu16.vsie;
 
-import com.kodu16.vsie.content.controlseat.server.ControlSeatForceAttachment;
 import com.kodu16.vsie.registries.ModMenuTypes;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.registries.ModParticleTypes;
@@ -15,8 +14,7 @@ import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import com.simibubi.create.foundation.data.CreateRegistrate;
-import org.valkyrienskies.core.api.attachment.AttachmentRegistration;
-import org.valkyrienskies.mod.api.ValkyrienSkies;
+import com.kodu16.vsie.compat.SimulatedProjectCompat;
 import software.bernie.geckolib.GeckoLib;
 
 @Mod(vsie.ID)
@@ -46,12 +44,8 @@ public class vsie {
         ModNetworking.register();
         GeckoLib.initialize();
 
-        AttachmentRegistration registration = ValkyrienSkies.api()
-                .newAttachmentRegistrationBuilder(ControlSeatForceAttachment.class)
-                .useTransientSerializer()
-                .build();
-
-        ValkyrienSkies.api().registerAttachment(registration);
+        // 功能：通过兼容层统一注册物理附件，迁移阶段由 Simulated-Project 接管实现。
+        SimulatedProjectCompat.registerControlSeatAttachment();
     }
     /*// 这个方法会在初始化时调用
     @SubscribeEvent

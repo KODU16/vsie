@@ -1,13 +1,9 @@
 package com.kodu16.vsie.content.screen.server;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.Level;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import com.kodu16.vsie.compat.SimulatedProjectCompat;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.OperatingSystemMXBean;
 
 public class ServerInfoGetter {
 
@@ -28,10 +24,8 @@ public class ServerInfoGetter {
     }
 
     public static int getServerPhysTPS(Level level) {
-        var currentServer = ValkyrienSkiesMod.getCurrentServer();
-        if (currentServer == null) return 0;
-        var pipeline = VSGameUtilsKt.getVsPipeline(currentServer);
-        return (int) pipeline.computePhysTps();
+        // 功能：改为从 Simulated-Project 兼容层读取物理 TPS。
+        return SimulatedProjectCompat.getPhysicsTps(level.getServer());
     }
 
     public static long[] getJVM() {//跑在服务器就是服务端JVM，跑在客户端就是客户端JVM内存

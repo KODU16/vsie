@@ -82,15 +82,7 @@ repositories {
         content {
             includeGroup("curse.maven")
         }
-    }
-    maven {
-        name = "Valkyrien Skies Internal"
-        url = "https://maven.valkyrienskies.org"
-        content {
-            excludeGroup("org.spongepowered")
-        }
-    }
-    maven {
+    }    maven {
         url = "https://maven.theillusivec4.top/"
     }
 
@@ -103,14 +95,6 @@ repositories {
             includeGroup("com.tterrag.registrate")
             includeGroup("dev.engine-room.flywheel")
             includeGroup("net.createmod.ponder")
-        }
-    }
-
-    maven {
-        name = "Kotlin for Forge"
-        url = "https://thedarkcolour.github.io/KotlinForForge/"
-        content {
-            includeModule("thedarkcolour", "kotlinforforge")
         }
     }
 
@@ -148,34 +132,26 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
     implementation fileTree(dir: 'lib', includes: ['*.jar'])
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}" // 功能：临时保留原有 FG 坐标，后续切换到 NeoForge userdev 插件时改为 neoforge 依赖。
     annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
     implementation(jarJar("io.github.llamalad7:mixinextras-forge:0.4.1")) {
         jarJar.ranged(it, "[0.4.1,)")
     }
     implementation "com.fasterxml.jackson.core:jackson-annotations:2.13.3"
-
-    implementation         ("org.valkyrienskies.core:api:${vs_core_version}")
-    implementation         ("org.valkyrienskies.core:impl:${vs_core_version}")
-    //implementation         ("org.valkyrienskies.core:api-game:${vs_core_version}")
-    implementation         ("org.valkyrienskies.core:util:${vs_core_version}")
-    //implementation         ("org.valkyrienskies.core:internal:${vs_core_version}")
-
-    implementation fg.deobf("org.valkyrienskies:valkyrienskies-120-forge:${vs2_version}")
-
-    implementation("maven.modrinth:kotlin-for-forge:${kotlin_version}")
+    // 功能：替换 Valkyrien Skies/KotlinForForge 依赖为 Simulated-Project（1.21.1 迁移入口）。
+    implementation fg.deobf("maven.modrinth:simulated-project:${simulated_project_version}")
 
     // Create
     implementation fg.deobf("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
     implementation fg.deobf("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
     implementation fg.deobf("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
     implementation fg.deobf("com.tterrag.registrate:Registrate:${registrate_version}")
-    implementation fg.deobf("com.rbasamoyai:ritchiesprojectilelib:2.1.1+mc.1.20.1-forge") { transitive = false }
+    implementation fg.deobf("com.rbasamoyai:ritchiesprojectilelib:${rpl_version}") { transitive = false }
     //// RUNTIME ////
     runtimeOnly fg.deobf("com.simibubi.create:create-${minecraft_version}:${create_version}:all")
     //JEI
-    implementation fg.deobf("mezz.jei:jei-1.20.1-forge:15.19.0.85")
+    implementation fg.deobf("mezz.jei:jei-1.21.1-neoforge:19.21.0.247")
 
     //photon
     implementation fg.deobf("com.lowdragmc.ldlib:ldlib-forge-${minecraft_version}:${ldlib_version}") { transitive = false }
