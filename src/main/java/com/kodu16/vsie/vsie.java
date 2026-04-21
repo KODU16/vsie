@@ -10,9 +10,9 @@ import com.kodu16.vsie.registries.vsieEntities;
 import com.kodu16.vsie.registries.vsieFluids;
 import com.kodu16.vsie.registries.vsieItems;
 import com.kodu16.vsie.registries.vsieCreativeTab;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.javafmlmod.FMLJavaModLoadingContext;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.kodu16.vsie.compat.SimulatedProjectCompat;
 import software.bernie.geckolib.GeckoLib;
@@ -28,7 +28,7 @@ public class vsie {
     public static final boolean constDebug = false; //To produce debug and non-debug builds :P
 
     public vsie() {
-        IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
+        IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus(); // 功能：使用 NeoForge 的 Mod 事件总线完成注册。
         REGISTRATE.registerEventListeners(modBus);
         //Content
         vsieBlocks.register();

@@ -2,8 +2,8 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
-    id 'org.parchmentmc.librarian.forgegradle' version '1.+'
+    id 'net.neoforged.gradle.userdev' version '7.0.173' // 功能：启用 NeoForge 1.21.1 的 userdev 构建插件。
+    id 'org.parchmentmc.librarian.forgegradle' version '1.+' // 功能：继续使用 Parchment 映射，保持源码命名可读性。
     id 'org.spongepowered.mixin' version '0.7+'
 }
 
@@ -30,8 +30,8 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
+            property 'forge.logging.markers', 'REGISTRIES' // 功能：沿用日志标记，便于观察注册流程。
+            property 'forge.logging.console.level', 'debug' // 功能：开发环境输出 debug 级别日志。
             mods {
                 "${mod_id}" {
                     source sourceSets.main
@@ -140,7 +140,7 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
     implementation fileTree(dir: 'lib', includes: ['*.jar'])
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}" // 功能：临时保留原有 FG 坐标，后续切换到 NeoForge userdev 插件时改为 neoforge 依赖。
+    minecraft "net.neoforged:neoforge:${neo_version}" // 功能：切换为 NeoForge 1.21.1 的正式依赖坐标。
     annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
     implementation(jarJar("io.github.llamalad7:mixinextras-forge:0.4.1")) {
@@ -193,7 +193,7 @@ mixin {
 tasks.named('processResources', ProcessResources).configure {
     var replaceProperties = [
             minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
-            forge_version: forge_version, forge_version_range: forge_version_range,
+            neo_version: neo_version, neo_version_range: neo_version_range, // 功能：将资源模板变量从 Forge 字段切换到 NeoForge 字段。
             loader_version_range: loader_version_range,
             mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
             mod_authors: mod_authors, mod_description: mod_description,
