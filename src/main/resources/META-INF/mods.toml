@@ -3,8 +3,8 @@ loaderVersion="${loader_version_range}"
 license="MIT"
 [[mods]]
 modId="vsie"
-version="0.0.1"
-displayName="VS:Interstellar_Expansion"
+version="${mod_version}" # 功能：改为读取 gradle.properties 的统一模组版本。
+displayName="${mod_name}" # 功能：改为读取 gradle.properties 的统一模组名称。
 logoFile="icon.png"
 authors="kodu16"
 modClass="com.kodu16.vsie.vsie"
@@ -13,7 +13,7 @@ description='''Interstellar!'''
 [[dependencies.${mod_id}]]
 modId="neoforge"
 mandatory=true
-versionRange="${forge_version_range}"
+versionRange="${neo_version_range}" # 功能：依赖版本范围改为 NeoForge 变量。
 ordering="NONE"
 side="BOTH"
 [[dependencies.${mod_id}]]
