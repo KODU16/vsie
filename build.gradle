@@ -66,6 +66,7 @@ sourceSets.main.resources { srcDirs = ['src/main/resources', 'src/generated/reso
 repositories {
     mavenLocal()
     mavenCentral()
+    maven { url = "https://maven.ryanhcode.dev/releases" } // Sable, Offroad, Simulated, Aeronautics
     maven { url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/' }
 
     maven {
@@ -82,7 +83,8 @@ repositories {
         content {
             includeGroup("curse.maven")
         }
-    }    maven {
+    }
+    maven {
         url = "https://maven.theillusivec4.top/"
     }
 
@@ -123,12 +125,18 @@ repositories {
         url = "https://modmaven.dev"
     }
 
+
+
     //Mixin^2
     //maven { url = "https://maven.bawnorton.com/releases" }
     //maven { url = "https://maven.enjarai.dev/mirrors" }
 }
 
 dependencies {
+    compileOnly("dev.ryanhcode.sable:sable-neoforge-${minecraft_version}:${sable_version}")
+    implementation("dev.ryanhcode.offroad:offroad-neoforge-${minecraft_version}:${offroad_version}")
+    implementation("dev.simulated_team.simulated:simulated-neoforge-${minecraft_version}:${simulated_version}")
+    implementation("dev.eriksonn.aeronautics:aeronautics-neoforge-${minecraft_version}:${aeronautics_version}")
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
     implementation fileTree(dir: 'lib', includes: ['*.jar'])
