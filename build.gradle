@@ -2,7 +2,7 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.140' apply false
+    id 'net.neoforged.moddev' version '2.0.140' // 功能：启用 NeoForge ModDevGradle 插件，替代旧 ForgeGradle 工作流。
     id 'org.spongepowered.mixin' version '0.7+'
 }
 
@@ -30,33 +30,44 @@ base {
     archivesName = mod_id
 }
 
-// Mojang ships Java 17 to end users in 1.18+, so your mod should target Java 17.
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+// 功能：1.21.1 NeoForge 开发环境统一使用 Java 21。
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
-minecraft {
-    mappings channel: mapping_channel, version: mapping_version
-    copyIdeResources = true
-    //accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
-    mixin {
-        // This is needed for MixinSquared as well.
-        add sourceSets.main, "${mod_id}.refmap.json"
-        config "${mod_id}.mixins.json"
+
+neoForge {
+    // 功能：将加载器从 1.20.1 Forge 迁移为 1.21.1 NeoForge。
+    version = neo_version
+
+    parchment {
+        minecraftVersion = minecraft_version
+        mappingsVersion = mapping_version
     }
 
     runs {
-        configureEach {
-            workingDirectory project.file('run')
-            mods {
-                "${mod_id}" {
-                    source sourceSets.main
-                }
-            }
+        client {
+            client()
+            gameDirectory = project.file('run')
+        }
+
+        server {
+            server()
+            gameDirectory = project.file('run-server')
         }
 
         data {
-            workingDirectory project.file('run-data')
+            data()
+            gameDirectory = project.file('run-data')
+            programArguments.addAll('--mod', mod_id, '--all', '--output', file('src/generated/resources/').toString(), '--existing', file('src/main/resources/').toString())
+        }
 
-            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+        configureEach {
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+        }
+    }
+
+    mods {
+        register(mod_id) {
+            sourceSet sourceSets.main
         }
     }
 }
@@ -107,8 +118,9 @@ repositories {
         }
     }
     maven {
+        // 功能：切换到 LDLib2 在 1.21.1 NeoForge 常用的快照仓库地址。
         name "firstdarkdev"
-        url "https://maven.firstdarkdev.xyz/snapshots"
+        url "https://maven.firstdark.dev/snapshots"
     }
     maven {
         name "TslatEntityStatus (TES) Maven Repo"
@@ -132,32 +144,36 @@ repositories {
 }
 
 dependencies {
-    compileOnly("dev.ryanhcode.sable:sable-neoforge-${minecraft_version}:${sable_version}")
+    // 功能：使用 NeoForge 对应的 Sable 主依赖，确保 1.21.1 运行时可加载。
+    implementation("dev.ryanhcode.sable:sable-neoforge-${minecraft_version}:${sable_version}")
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
     implementation fileTree(dir: 'lib', includes: ['*.jar'])
-    minecraft "net.neoforged:neoforge:${neo_version}" // 功能：切换为 NeoForge 1.21.1 的正式依赖坐标。
+    // 功能：NeoForge 1.21.1 的核心加载器依赖。
+    implementation "net.neoforged:neoforge:${neo_version}"
     annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
     implementation(jarJar("io.github.llamalad7:mixinextras-forge:0.4.1")) {
         jarJar.ranged(it, "[0.4.1,)")
     }
     implementation "com.fasterxml.jackson.core:jackson-annotations:2.13.3"
-    // 功能：替换 Valkyrien Skies/KotlinForForge 依赖为 Simulated-Project（1.21.1 迁移入口）。
+    // 功能：保留 Sable 公共 API 依赖，不改动既有代码引用。
     api("dev.ryanhcode.sable:sable-common-${project.minecraft_version}:${project.sable_version}")
     // Create
-    implementation fg.deobf("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
-    implementation fg.deobf("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
-    implementation fg.deobf("com.tterrag.registrate:Registrate:${registrate_version}")
-    implementation fg.deobf("com.rbasamoyai:ritchiesprojectilelib:${rpl_version}") { transitive = false }
+    implementation "dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}"
+    implementation "net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}"
+    implementation "com.tterrag.registrate:Registrate:${registrate_version}"
+    implementation("com.rbasamoyai:ritchiesprojectilelib:${rpl_version}") { transitive = false }
     //// RUNTIME ////
-    runtimeOnly fg.deobf("com.simibubi.create:create-${minecraft_version}:${create_version}:all")
+    runtimeOnly "com.simibubi.create:create-${minecraft_version}:${create_version}:all"
 
-    //photon
-    implementation fg.deobf("com.lowdragmc.ldlib:ldlib-forge-${minecraft_version}:${ldlib_version}") { transitive = false }
-    implementation fg.deobf("com.lowdragmc.photon:photon-forge-${minecraft_version}:${photon_version}") { transitive = false }
+    // photon
+    // 功能：将 LDLib 依赖切换为 NeoForge 命名变体（LDLib2）。
+    implementation("com.lowdragmc.ldlib:ldlib-neoforge-${minecraft_version}:${ldlib_version}") { transitive = false }
+    // 功能：与 LDLib2 保持一致，Photon 也使用 NeoForge 命名变体。
+    implementation("com.lowdragmc.photon:photon-neoforge-${minecraft_version}:${photon_version}") { transitive = false }
 
-    implementation fg.deobf("software.bernie.geckolib:geckolib-forge-${minecraft_version}:${geckolib_version}")
+    implementation "software.bernie.geckolib:geckolib-forge-${minecraft_version}:${geckolib_version}"
     //Mixin^2
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
     // Mixin Extras
