@@ -3,7 +3,7 @@ plugins {
     id 'idea'
     id 'maven-publish'
     id 'net.neoforged.moddev' version '2.0.140' // 功能：启用 NeoForge ModDevGradle 插件，替代旧 ForgeGradle 工作流。
-    id 'org.spongepowered.mixin' version '0.7+'
+    // 功能：NeoForge 1.21.1 + ModDevGradle 不再应用 MixinGradle，避免其强依赖 ForgeGradle 的 minecraft/patcher 扩展导致报错。
 }
 
 def configureModSubprojects(String modName) {
@@ -151,9 +151,11 @@ dependencies {
     implementation fileTree(dir: 'lib', includes: ['*.jar'])
     // 功能：NeoForge 1.21.1 的核心加载器依赖。
     implementation "net.neoforged:neoforge:${neo_version}"
+    // 功能：通过注解处理器启用 Mixin 编译期处理（含 refmap 生成），替代旧 MixinGradle 插件流程。
     annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
-    implementation(jarJar("io.github.llamalad7:mixinextras-forge:0.4.1")) {
+    // 功能：将 MixinExtras 从 Forge 变体切换为 NeoForge 变体，匹配 1.21.1 运行环境。
+    implementation(jarJar("io.github.llamalad7:mixinextras-neoforge:0.4.1")) {
         jarJar.ranged(it, "[0.4.1,)")
     }
     implementation "com.fasterxml.jackson.core:jackson-annotations:2.13.3"
@@ -174,22 +176,6 @@ dependencies {
     implementation("com.lowdragmc.photon:photon-neoforge-${minecraft_version}:${photon_version}") { transitive = false }
 
     implementation "software.bernie.geckolib:geckolib-forge-${minecraft_version}:${geckolib_version}"
-    //Mixin^2
-    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
-    // Mixin Extras
-    compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
-    //implementation("io.github.llamalad7:mixinextras-forge:0.4.1")
-    implementation(jarJar("io.github.llamalad7:mixinextras-forge:0.4.1")) {
-        jarJar.ranged(it, "[0.4.1,)")
-    }
-}
-
-mixin {
-    // 启用 refmap 的生成
-    add sourceSets.main, "vsie.refmap.json" // refmap 文件名
-
-    // 如果没有 refmap 文件，添加后生成
-    // generateRefMap = true
 }
 
 tasks.named('processResources', ProcessResources).configure {
