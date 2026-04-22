@@ -2,10 +2,26 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'net.neoforged.gradle.userdev' version '7.0.173' // 功能：启用 NeoForge 1.21.1 的 userdev 构建插件。
-    id 'org.parchmentmc.librarian.forgegradle' version '1.+' // 功能：继续使用 Parchment 映射，保持源码命名可读性。
+    id 'net.neoforged.moddev' version '2.0.140' apply false
     id 'org.spongepowered.mixin' version '0.7+'
 }
+
+def configureModSubprojects(String modName) {
+    configure(subprojects.findAll { it.path.startsWith(":${modName}:") }) {
+        def modProps = new Properties()
+        file("${rootProject.projectDir}/${modName}/gradle.properties").withInputStream { modProps.load(it) }
+
+        modProps.each { key, value ->
+            project.ext.set(key.toString(), value)
+        }
+
+        version = project.mod_version
+        group = modProps.group
+        description = modProps.description
+    }
+}
+
+configureModSubprojects('vsie')
 
 version = mod_version
 group = mod_group_id
@@ -30,27 +46,11 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES' // 功能：沿用日志标记，便于观察注册流程。
-            property 'forge.logging.console.level', 'debug' // 功能：开发环境输出 debug 级别日志。
             mods {
                 "${mod_id}" {
                     source sourceSets.main
                 }
             }
-        }
-
-        client {
-            property 'forge.enabledGameTestNamespaces', mod_id
-            arg "-mixin.config=vsie.mixins.json"
-        }
-
-        server {
-            property 'forge.enabledGameTestNamespaces', mod_id
-            args '--nogui'
-        }
-
-        gameTestServer {
-            property 'forge.enabledGameTestNamespaces', mod_id
         }
 
         data {
@@ -125,18 +125,14 @@ repositories {
         url = "https://modmaven.dev"
     }
 
-
-
-    //Mixin^2
-    //maven { url = "https://maven.bawnorton.com/releases" }
-    //maven { url = "https://maven.enjarai.dev/mirrors" }
+    maven {
+        name = "RyanHCode Maven"
+        url = "https://maven.ryanhcode.dev/releases"
+    }
 }
 
 dependencies {
     compileOnly("dev.ryanhcode.sable:sable-neoforge-${minecraft_version}:${sable_version}")
-    implementation("dev.ryanhcode.offroad:offroad-neoforge-${minecraft_version}:${offroad_version}")
-    implementation("dev.simulated_team.simulated:simulated-neoforge-${minecraft_version}:${simulated_version}")
-    implementation("dev.eriksonn.aeronautics:aeronautics-neoforge-${minecraft_version}:${aeronautics_version}")
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
     implementation fileTree(dir: 'lib', includes: ['*.jar'])
@@ -148,32 +144,22 @@ dependencies {
     }
     implementation "com.fasterxml.jackson.core:jackson-annotations:2.13.3"
     // 功能：替换 Valkyrien Skies/KotlinForForge 依赖为 Simulated-Project（1.21.1 迁移入口）。
-    implementation fg.deobf("maven.modrinth:simulated-project:${simulated_project_version}")
-
+    api("dev.ryanhcode.sable:sable-common-${project.minecraft_version}:${project.sable_version}")
     // Create
-    implementation fg.deobf("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
     implementation fg.deobf("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
     implementation fg.deobf("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
     implementation fg.deobf("com.tterrag.registrate:Registrate:${registrate_version}")
     implementation fg.deobf("com.rbasamoyai:ritchiesprojectilelib:${rpl_version}") { transitive = false }
     //// RUNTIME ////
     runtimeOnly fg.deobf("com.simibubi.create:create-${minecraft_version}:${create_version}:all")
-    //JEI
-    implementation fg.deobf("mezz.jei:jei-1.21.1-neoforge:19.21.0.247")
 
     //photon
     implementation fg.deobf("com.lowdragmc.ldlib:ldlib-forge-${minecraft_version}:${ldlib_version}") { transitive = false }
     implementation fg.deobf("com.lowdragmc.photon:photon-forge-${minecraft_version}:${photon_version}") { transitive = false }
 
-    // 功能：移除 Mekanism 运行时依赖，避免模组继续加载 Mekanism。
     implementation fg.deobf("software.bernie.geckolib:geckolib-forge-${minecraft_version}:${geckolib_version}")
     //Mixin^2
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
-    /*
-    compileOnly(annotationProcessor("com.github.bawnorton.mixinsquared:mixinsquared-common:0.3.2-beta.4"))
-    implementation(jarJar("com.github.bawnorton.mixinsquared:mixinsquared-forge:0.3.2-beta.4")) {
-        jarJar.ranged(it, "[0.3.2-beta.4,)")
-    }*/
     // Mixin Extras
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
     //implementation("io.github.llamalad7:mixinextras-forge:0.4.1")
@@ -205,39 +191,6 @@ tasks.named('processResources', ProcessResources).configure {
     }
 }
 
-publishing {
-    publications {
-        register('mavenJava', MavenPublication) {
-            artifact jar
-        }
-    }
-    repositories {
-        maven {
-            url "file://${project.projectDir}/mcmodsrepo"
-        }
-    }
-}
-
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-}
-
-tasks.named('jarJar', Jar).configure {
-    archiveClassifier.set('')
-    manifest {
-        attributes([
-                'Specification-Title'     : mod_id,
-                'Specification-Vendor'    : mod_authors,
-                'Specification-Version'   : '1',
-                'Implementation-Title'    : project.name,
-                'Implementation-Version'  : project.jar.archiveVersion,
-                'Implementation-Vendor'   : mod_authors,
-                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-        ])
-    }
-    finalizedBy 'reobfJar'
-}
-
-tasks.named('jar') {
-    enabled = false
 }
