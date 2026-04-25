@@ -2,8 +2,8 @@ package com.kodu16.vsie.content.controlseat.gui;
 
 import com.kodu16.vsie.registries.vsieItems;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.SlotItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.SlotItemHandler;
 
 public class ControlSeatWarpSlot extends SlotItemHandler {
     public ControlSeatWarpSlot(IItemHandler itemHandler, int index, int xPosition, int yPosition) {

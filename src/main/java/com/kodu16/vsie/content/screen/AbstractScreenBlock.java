@@ -28,7 +28,6 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -71,8 +70,9 @@ public abstract class AbstractScreenBlock extends DirectionalBlock implements En
         if (!level.isClientSide)
         {
             BlockEntity be = level.getBlockEntity(pos);
-            if (be instanceof AbstractScreenBlockEntity screen) {
-                NetworkHooks.openScreen((ServerPlayer) player, new MenuProvider() {
+            if (be instanceof AbstractScreenBlockEntity screen && player instanceof ServerPlayer serverPlayer) {
+                // 功能：将屏幕菜单打开方式迁移为 NeoForge 1.21.1 的 openMenu 调用。
+                serverPlayer.openMenu(new MenuProvider() {
                     @Override
                     public Component getDisplayName() {
                         return Component.translatable("container.vsie.screen");
@@ -82,7 +82,7 @@ public abstract class AbstractScreenBlock extends DirectionalBlock implements En
                     public AbstractContainerMenu createMenu(int id, Inventory inv, Player p) {
                         return new ScreenContainerMenu(id, inv, screen);
                     }
-                }, buf -> buf.writeBlockPos(pos)); // 关键：把 pos 写进去
+                }, buf -> buf.writeBlockPos(pos)); // 功能：将屏幕方块位置写入额外菜单数据。
             }
         }
         return InteractionResult.sidedSuccess(level.isClientSide);

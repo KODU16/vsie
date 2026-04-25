@@ -12,7 +12,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.valkyrienskies.core.api.ships.LoadedShip;
@@ -131,8 +130,9 @@ public abstract class AbstractWeaponBlock extends DirectionalBlock implements En
             LOGGER.info("weapon right-clicked at {} by {}, BE = {}", pos, player.getName().getString(),
                     level.getBlockEntity(pos));
             BlockEntity be = level.getBlockEntity(pos);
-            if (be instanceof AbstractWeaponBlockEntity weapon) {
-                NetworkHooks.openScreen((ServerPlayer) player, new MenuProvider() {
+            if (be instanceof AbstractWeaponBlockEntity weapon && player instanceof ServerPlayer serverPlayer) {
+                // 功能：NeoForge 1.21.1 改为通过 ServerPlayer#openMenu 打开服务端菜单。
+                serverPlayer.openMenu(new MenuProvider() {
                     @Override
                     public Component getDisplayName() {
                         return Component.translatable("container.vsie.weapon");
@@ -142,10 +142,9 @@ public abstract class AbstractWeaponBlock extends DirectionalBlock implements En
                     public AbstractContainerMenu createMenu(int id, Inventory inv, Player p) {
                         return new WeaponContainerMenu(id, inv, weapon);
                     }
-                }, buf -> buf.writeBlockPos(pos)); // 关键：把 pos 写进去
+                }, buf -> buf.writeBlockPos(pos)); // 功能：同步武器方块坐标给客户端菜单。
             }
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 }
-

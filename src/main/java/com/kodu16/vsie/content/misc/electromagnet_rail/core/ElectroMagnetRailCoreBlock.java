@@ -30,7 +30,6 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraftforge.network.NetworkHooks;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -93,7 +92,8 @@ public class ElectroMagnetRailCoreBlock extends DirectionalBlock implements Enti
 
         BlockEntity blockEntity = level.getBlockEntity(pos);
         if (blockEntity instanceof ElectroMagnetRailCoreBlockEntity coreBlockEntity && player instanceof ServerPlayer serverPlayer) {
-            NetworkHooks.openScreen(serverPlayer, new MenuProvider() {
+            // 功能：适配 NeoForge 1.21.1，使用 openMenu 打开电磁轨核心菜单并写入方块坐标。
+            serverPlayer.openMenu(new MenuProvider() {
                 @Override
                 public @Nonnull Component getDisplayName() {
                     return Component.translatable("container.vsie.electro_magnet_rail_core");
@@ -103,7 +103,7 @@ public class ElectroMagnetRailCoreBlock extends DirectionalBlock implements Enti
                 public @Nullable AbstractContainerMenu createMenu(int id, @Nonnull Inventory inventory, @Nonnull Player menuPlayer) {
                     return new ElectroMagnetRailCoreContainerMenu(id, inventory, coreBlockEntity);
                 }
-            }, pos);
+            }, buf -> buf.writeBlockPos(pos));
             return InteractionResult.CONSUME;
         }
 

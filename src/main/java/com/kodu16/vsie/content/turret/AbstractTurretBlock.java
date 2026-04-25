@@ -28,7 +28,6 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -72,8 +71,9 @@ public abstract class AbstractTurretBlock extends DirectionalBlock implements En
         {
             Logger LOGGER = LogUtils.getLogger();
             BlockEntity be = level.getBlockEntity(pos);
-            if (be instanceof AbstractTurretBlockEntity turret) {
-                NetworkHooks.openScreen((ServerPlayer) player, new MenuProvider() {
+            if (be instanceof AbstractTurretBlockEntity turret && player instanceof ServerPlayer serverPlayer) {
+                // 功能：NeoForge 1.21.1 使用 ServerPlayer#openMenu 取代旧的 NetworkHooks.openScreen。
+                serverPlayer.openMenu(new MenuProvider() {
                     @Override
                     public Component getDisplayName() {
                         return Component.translatable("container.vsie.turret");
@@ -83,7 +83,7 @@ public abstract class AbstractTurretBlock extends DirectionalBlock implements En
                     public AbstractContainerMenu createMenu(int id, Inventory inv, Player p) {
                         return new TurretContainerMenu(id, inv, turret);
                     }
-                }, buf -> buf.writeBlockPos(pos)); // 关键：把 pos 写进去
+                }, buf -> buf.writeBlockPos(pos)); // 功能：将方块坐标写入额外数据，供客户端菜单构造器读取。
             }
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
