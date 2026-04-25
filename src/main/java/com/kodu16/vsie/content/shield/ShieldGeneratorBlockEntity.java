@@ -24,11 +24,11 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.energy.EnergyStorage;
-import net.minecraftforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.capabilities.Capability;
+import net.neoforged.neoforge.capabilities.ForgeCapabilities;
+import net.neoforged.neoforge.common.util.LazyOptional;
+import net.neoforged.neoforge.energy.EnergyStorage;
+import net.neoforged.neoforge.energy.IEnergyStorage;
 import org.joml.Vector3f;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 
@@ -145,6 +145,7 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
     @Nonnull
     @Override
     public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> cap, @Nullable Direction side) {
+        // 功能：适配 NeoForge 1.21.1 的能源能力接口，允许导线/机器读取与写入护盾发生器电量。
         if (cap == ForgeCapabilities.ENERGY) {
             return energyCap.cast();
         }
@@ -212,7 +213,8 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
     }
 
     private void readVec3(CompoundTag nbt, String key) {
-        if (!nbt.contains(key, Tag.TAG_LIST)) return;
+        // 功能：按 CompoundTag 结构读取控制座标，避免因类型不匹配导致联动位置丢失。
+        if (!nbt.contains(key, Tag.TAG_COMPOUND)) return;
         CompoundTag vecTag = nbt.getCompound(key);
         int x = vecTag.getInt("x");
         int y = vecTag.getInt("y");
