@@ -36,7 +36,6 @@ import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatS2CPacket;
 import com.kodu16.vsie.registries.ModNetworking;
 
-import net.minecraftforge.network.PacketDistributor;
 import org.slf4j.Logger;
 
 
@@ -90,11 +89,11 @@ public class ServerShipHandler {
                         data.getThrottle(),
                         // 功能：快包携带服务端当前视角锁状态，确保重进世界后的客户端能立即恢复锁定与输入行为。
                         data.isviewlocked);
-                ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()), packet);
+                ModNetworking.sendToPlayer(packet, (ServerPlayer) data.getPlayer());
 
                 //扫描全部船只包（扫描敌人包只跑在服务器不用发送）
                 NearbyShipsS2CPacket packetship = new NearbyShipsS2CPacket(data.shipsData);
-                ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()), packetship);
+                ModNetworking.sendToPlayer(packetship, (ServerPlayer) data.getPlayer());
             }
 
             if(now - lastSendStatusMs > 250) {//状态包（慢包out）
@@ -106,14 +105,14 @@ public class ServerShipHandler {
                         data.isflightassiston, data.isantigravityon,
                         data.activeWeaponHudInfos);
                 //LogUtils.getLogger().warn("shieldtotal:"+data.totalshield+"avalible:"+data.avalibleshield);
-                ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()),packetstatus);
+                ModNetworking.sendToPlayer(packetstatus, (ServerPlayer) data.getPlayer());
             }
 
             if(now - lastSendInputMs > 250) {//按键包（慢包out）
                 // 功能：独立输入包发送节流时间，避免与状态包共用计时器导致输入包条件永远不成立。
                 lastSendInputMs = now;
                 ControlSeatInputS2CPacket packet = new ControlSeatInputS2CPacket(pos, data.channelencode);
-                ModNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayer) data.getPlayer()), packet);
+                ModNetworking.sendToPlayer(packet, (ServerPlayer) data.getPlayer());
             }
         }
     }

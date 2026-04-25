@@ -1,12 +1,16 @@
 package com.kodu16.vsie.network.controlseat.S2C;
 
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.mojang.logging.LogUtils;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
 import net.minecraft.client.Minecraft;
 
@@ -14,7 +18,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class NearbyShipsS2CPacket {
+public class NearbyShipsS2CPacket implements CustomPacketPayload {
+    // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
+    public static final CustomPacketPayload.Type<NearbyShipsS2CPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "controlseat_s2c_nearbyshipss2cpacket"));
+    public static final StreamCodec<FriendlyByteBuf, NearbyShipsS2CPacket> STREAM_CODEC = CustomPacketPayload.codec((buf, pkt) -> pkt.encode(buf), NearbyShipsS2CPacket::decode);
+
 
     private final Map<String, Object> shipsData;
 
@@ -69,6 +77,11 @@ public class NearbyShipsS2CPacket {
     }
 
     // 处理逻辑（客户端收到后执行）
+    // 功能：NeoForge 1.21.1 处理器入口，复用旧版实例方法逻辑。
+    public static void handle(NearbyShipsS2CPacket pkt, IPayloadContext context) {
+        pkt.handle(() -> new net.minecraftforge.network.NetworkEvent.Context(context));
+    }
+
     public void handle(Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() ->
                 DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
@@ -91,5 +104,11 @@ public class NearbyShipsS2CPacket {
                 })
         );
         ctx.get().setPacketHandled(true);
+    }
+
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

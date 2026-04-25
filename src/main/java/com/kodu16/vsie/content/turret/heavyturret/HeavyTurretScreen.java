@@ -92,25 +92,25 @@ public class HeavyTurretScreen extends AbstractContainerScreen<HeavyTurretContai
         // 功能：新增与主武器一致的四个频道切换按键。
         this.addRenderableWidget(Button.builder(
                 Component.literal("CH1"),
-                btn -> ModNetworking.CHANNEL.sendToServer(new HeavyTurretC2SPacket(pos, 1))
+                btn -> ModNetworking.sendToServer(new HeavyTurretC2SPacket(pos, 1))
         ).bounds(leftPos + 30, topPos + 40, 20, 10).build());
         this.addRenderableWidget(Button.builder(
                 Component.literal("CH2"),
-                btn -> ModNetworking.CHANNEL.sendToServer(new HeavyTurretC2SPacket(pos, 2))
+                btn -> ModNetworking.sendToServer(new HeavyTurretC2SPacket(pos, 2))
         ).bounds(leftPos + 60, topPos + 40, 20, 10).build());
         this.addRenderableWidget(Button.builder(
                 Component.literal("CH3"),
-                btn -> ModNetworking.CHANNEL.sendToServer(new HeavyTurretC2SPacket(pos, 3))
+                btn -> ModNetworking.sendToServer(new HeavyTurretC2SPacket(pos, 3))
         ).bounds(leftPos + 90, topPos + 40, 20, 10).build());
         this.addRenderableWidget(Button.builder(
                 Component.literal("CH4"),
-                btn -> ModNetworking.CHANNEL.sendToServer(new HeavyTurretC2SPacket(pos, 4))
+                btn -> ModNetworking.sendToServer(new HeavyTurretC2SPacket(pos, 4))
         ).bounds(leftPos + 120, topPos + 40, 20, 10).build());
 
         // 功能：保留并更新模式切换按钮，使用 100+firetype 编码避免与频道按键冲突。
         this.addRenderableWidget(Button.builder(
                         Component.literal("switch"),
-                        button -> ModNetworking.CHANNEL.sendToServer(new HeavyTurretC2SPacket(pos, ((menu.getBlockEntity().getData().fireType + 1) % 3) + 100)))
+                        button -> ModNetworking.sendToServer(new HeavyTurretC2SPacket(pos, ((menu.getBlockEntity().getData().fireType + 1) % 3) + 100)))
                 .pos(this.leftPos + 73, this.topPos + 100)
                 .size(30, 15)
                 .build());

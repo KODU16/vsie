@@ -84,7 +84,7 @@ public class IFFScreen extends AbstractContainerScreen<IFFContainerMenu> {
         String textB = editBoxB.getValue().trim();
 
         // 发送给服务器
-        ModNetworking.CHANNEL.sendToServer(new IFFC2SPacket(textA, textB));
+        ModNetworking.sendToServer(new IFFC2SPacket(textA, textB));
     }
 
     @Override

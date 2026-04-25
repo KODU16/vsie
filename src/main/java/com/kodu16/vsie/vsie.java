@@ -41,7 +41,8 @@ public class vsie {
         vsieDataTickets.registerDataTickets();
         ModMenuTypes.MENUS.register(modBus);
         ModParticleTypes.register(modBus);
-        ModNetworking.register();
+        // 功能：注册 NeoForge 1.21.1 的网络 payload 处理器。
+        ModNetworking.register(modBus);
         GeckoLib.initialize();
 
         // 功能：通过兼容层统一注册物理附件，迁移阶段由 Simulated-Project 接管实现。

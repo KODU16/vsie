@@ -109,24 +109,24 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
 
         this.addRenderableWidget(Button.builder(
                         Component.literal("HOS"),
-                        button -> ModNetworking.CHANNEL.sendToServer(new TurretC2SPacket(pos,1)))
+                        button -> ModNetworking.sendToServer(new TurretC2SPacket(pos,1)))
                 .pos(this.leftPos + 16, this.topPos + 100)
                 .size(27, 15)
                 .build());
         this.addRenderableWidget(Button.builder(
                         Component.literal("PAS"),
-                        button -> ModNetworking.CHANNEL.sendToServer(new TurretC2SPacket(pos,2)))
+                        button -> ModNetworking.sendToServer(new TurretC2SPacket(pos,2)))
                 .pos(this.leftPos + 55, this.topPos + 100)
                 .size(27, 15)
                 .build());
         this.addRenderableWidget(Button.builder(
                         Component.literal("Player"),
-                        button -> ModNetworking.CHANNEL.sendToServer(new TurretC2SPacket(pos,3)))
+                        button -> ModNetworking.sendToServer(new TurretC2SPacket(pos,3)))
                 .pos(this.leftPos + 94, this.topPos + 100)
                 .size(27, 15)
                 .build());        this.addRenderableWidget(Button.builder(
                         Component.literal("Ship"),
-                        button -> ModNetworking.CHANNEL.sendToServer(new TurretC2SPacket(pos,4)))
+                        button -> ModNetworking.sendToServer(new TurretC2SPacket(pos,4)))
                 .pos(this.leftPos + 133, this.topPos + 100)
                 .size(27, 15)
                 .build());
@@ -178,7 +178,7 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
             be.defaultspinx = spinX;
             be.defaultspiny = spinY;
             BlockPos pos = menu.getBlockEntity().getBlockPos();
-            ModNetworking.CHANNEL.sendToServer(
+            ModNetworking.sendToServer(
                     new TurretDefaultSpinC2SPacket(pos, spinX, spinY)
             );
             this.minecraft.player.closeContainer();

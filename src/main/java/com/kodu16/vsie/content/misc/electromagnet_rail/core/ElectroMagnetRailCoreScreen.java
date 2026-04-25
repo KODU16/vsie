@@ -35,7 +35,7 @@ public class ElectroMagnetRailCoreScreen extends AbstractContainerScreen<Electro
         super.init();
         // 添加“检测终端”按钮：点击后向服务端发包执行扫描逻辑。
         this.addRenderableWidget(Button.builder(Component.literal("检测终端"), button ->
-                        ModNetworking.CHANNEL.sendToServer(new ElectroMagnetRailCoreDetectC2SPacket(this.menu.getBlockPosition())))
+                        ModNetworking.sendToServer(new ElectroMagnetRailCoreDetectC2SPacket(this.menu.getBlockPosition())))
                 .pos(this.leftPos + 94, this.topPos + 34)
                 .size(56, 20)
                 .build());

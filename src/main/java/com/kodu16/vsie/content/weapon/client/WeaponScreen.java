@@ -69,19 +69,19 @@ public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
         AbstractWeaponBlockEntity blockEntity = menu.getBlockEntity();
         this.addRenderableWidget(Button.builder(
                 Component.literal("CH1"),
-                btn -> ModNetworking.CHANNEL.sendToServer(new WeaponC2SPacket(pos, 1))
+                btn -> ModNetworking.sendToServer(new WeaponC2SPacket(pos, 1))
         ).bounds(leftPos + 30, topPos + 40, 20, 10).build());
         this.addRenderableWidget(Button.builder(
                 Component.literal("CH2"),
-                btn -> ModNetworking.CHANNEL.sendToServer(new WeaponC2SPacket(pos, 2))
+                btn -> ModNetworking.sendToServer(new WeaponC2SPacket(pos, 2))
         ).bounds(leftPos + 60, topPos + 40, 20, 10).build());
         this.addRenderableWidget(Button.builder(
                 Component.literal("CH3"),
-                btn -> ModNetworking.CHANNEL.sendToServer(new WeaponC2SPacket(pos, 3))
+                btn -> ModNetworking.sendToServer(new WeaponC2SPacket(pos, 3))
         ).bounds(leftPos + 90, topPos + 40, 20, 10).build());
         this.addRenderableWidget(Button.builder(
                 Component.literal("CH4"),
-                btn -> ModNetworking.CHANNEL.sendToServer(new WeaponC2SPacket(pos, 4))
+                btn -> ModNetworking.sendToServer(new WeaponC2SPacket(pos, 4))
         ).bounds(leftPos + 120, topPos + 40, 20, 10).build());
 
     }

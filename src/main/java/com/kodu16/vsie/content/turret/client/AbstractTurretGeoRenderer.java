@@ -39,7 +39,7 @@ public class AbstractTurretGeoRenderer extends GeoBlockRenderer<AbstractTurretBl
         if(bone.isPresent()){
             GeoBone cannonend = bone.get();
             Vector3d cannonpos = cannonend.getLocalPosition();
-            ModNetworking.CHANNEL.sendToServer(new TurretFirePointC2SPacket(animatable.getBlockPos(), cannonpos));
+            ModNetworking.sendToServer(new TurretFirePointC2SPacket(animatable.getBlockPos(), cannonpos));
         }
     }
 

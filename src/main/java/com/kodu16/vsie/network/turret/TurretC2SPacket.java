@@ -1,6 +1,10 @@
 // ControlSeatInputC2SPacket.java
 package com.kodu16.vsie.network.turret;
 
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity;
 import com.mojang.logging.LogUtils;
@@ -15,7 +19,11 @@ import net.minecraft.network.chat.Component;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 
-public class TurretC2SPacket {
+public class TurretC2SPacket implements CustomPacketPayload {
+    // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
+    public static final CustomPacketPayload.Type<TurretC2SPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "turret_turretc2spacket"));
+    public static final StreamCodec<FriendlyByteBuf, TurretC2SPacket> STREAM_CODEC = CustomPacketPayload.codec(TurretC2SPacket::encode, TurretC2SPacket::decode);
+
     public static final Logger LOGGER = LogUtils.getLogger();
     public final BlockPos pos;
     public final int changetype;
@@ -34,6 +42,11 @@ public class TurretC2SPacket {
         BlockPos pos = buf.readBlockPos();
         int changetype = buf.readVarInt();
         return new TurretC2SPacket(pos,changetype);
+    }
+
+    // 功能：NeoForge 1.21.1 处理器入口，复用旧版 Supplier<NetworkEvent.Context> 逻辑。
+    public static void handle(TurretC2SPacket pkt, IPayloadContext context) {
+        handle(pkt, () -> new net.minecraftforge.network.NetworkEvent.Context(context));
     }
 
     public static void handle(TurretC2SPacket pkt, Supplier<NetworkEvent.Context> ctxSup) {
@@ -65,5 +78,11 @@ public class TurretC2SPacket {
             turret.markUpdated();
         });
         ctx.setPacketHandled(true);
+    }
+
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

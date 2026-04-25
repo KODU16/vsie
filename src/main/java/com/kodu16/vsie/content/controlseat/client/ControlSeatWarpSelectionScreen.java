@@ -111,7 +111,7 @@ public class ControlSeatWarpSelectionScreen extends Screen {
 
     // 功能：玩家点选按钮后，把对应仓位发给服务端，由服务端校验并写入控制椅的下一次跃迁目标。
     private void selectWarpTarget(int slot) {
-        ModNetworking.CHANNEL.sendToServer(new ControlSeatWarpTargetC2SPacket(controlSeatPos, slot));
+        ModNetworking.sendToServer(new ControlSeatWarpTargetC2SPacket(controlSeatPos, slot));
         onClose();
     }
 

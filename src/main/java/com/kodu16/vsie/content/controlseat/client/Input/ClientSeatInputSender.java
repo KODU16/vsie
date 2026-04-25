@@ -41,7 +41,7 @@ public class ClientSeatInputSender {
             if (mc.options.keySprint.isDown()) keys |= ControlSeatC2SPacket.Keys.CTRL;
             if (mc.mouseHandler.isLeftPressed()) keys |= ControlSeatC2SPacket.Keys.MOUSEL;
             if (mc.mouseHandler.isRightPressed()) keys |= ControlSeatC2SPacket.Keys.MOUSER;
-            ModNetworking.CHANNEL.sendToServer(
+            ModNetworking.sendToServer(
                     new ControlSeatC2SPacket(pos, (float) mousex, (float) mousey, (float) roll, keys, mouseLpress)
             );
         }
@@ -56,7 +56,7 @@ public class ClientSeatInputSender {
             if (vsieKeyMappings.KEY_TOGGLE_SHIELD.isDown()) keysInput |= ControlSeatInputC2SPacket.KeysInput.TOGGLESHIELD;
             if (vsieKeyMappings.KEY_TOGGLE_FLIGHT_ASSIST.isDown()) keysInput |= ControlSeatInputC2SPacket.KeysInput.TOGGLEFLIGHTASSIST;
             if (vsieKeyMappings.KEY_TOGGLE_ANTI_GRAVITY.isDown()) keysInput |= ControlSeatInputC2SPacket.KeysInput.TOGGLEANTIGRAVITY;
-            ModNetworking.CHANNEL.sendToServer(
+            ModNetworking.sendToServer(
                     // 功能：输入包直接上传客户端计算后的手动瞄准目标点，重型炮塔服务端不再用角度二次换算。
                     new ControlSeatInputC2SPacket(pos, keysInput, isviewlock,
                             manualAimTargetPos.x, manualAimTargetPos.y, manualAimTargetPos.z)

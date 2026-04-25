@@ -1,5 +1,9 @@
 package com.kodu16.vsie.network.controlseat.S2C;
 
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.mojang.logging.LogUtils;
@@ -7,8 +11,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
 import net.minecraft.client.Minecraft;
 
@@ -19,7 +23,11 @@ import org.joml.Vector3d;
 import org.slf4j.Logger;
 
 
-public class ControlSeatS2CPacket {
+public class ControlSeatS2CPacket implements CustomPacketPayload {
+    // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
+    public static final CustomPacketPayload.Type<ControlSeatS2CPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "controlseat_s2c_controlseats2cpacket"));
+    public static final StreamCodec<FriendlyByteBuf, ControlSeatS2CPacket> STREAM_CODEC = CustomPacketPayload.codec((buf, pkt) -> pkt.write(buf), ControlSeatS2CPacket::decode);
+
     private final BlockPos pos;
     private final Vector3d shipFacing;
     private final Vector3d shipUp;
@@ -78,6 +86,11 @@ public class ControlSeatS2CPacket {
     }
 
     // 处理客户端接收到的数据包
+    // 功能：NeoForge 1.21.1 处理器入口，复用旧版实例方法逻辑。
+    public static void handle(ControlSeatS2CPacket pkt, IPayloadContext context) {
+        pkt.handle(() -> new net.minecraftforge.network.NetworkEvent.Context(context));
+    }
+
     public void handle(Supplier<NetworkEvent.Context> ctx) {
         Logger LOGGER = LogUtils.getLogger();
         //LOGGER.warn(String.valueOf(Component.literal("S2C packet created")));
@@ -108,5 +121,11 @@ public class ControlSeatS2CPacket {
             // 这里可以进一步根据需要应用旋转到某个实体或者更新视角
         }));
         ctx.get().setPacketHandled(true);
+    }
+
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }
