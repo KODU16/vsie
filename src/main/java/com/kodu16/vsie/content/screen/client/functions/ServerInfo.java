@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.screen.client.functions;
 
+// 功能：适配 NeoForge 1.21.1 顶点提交流程，使用 addVertex/setColor 等新链式 API。
+
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -104,10 +106,10 @@ public class ServerInfo {
         int g = (argb >> 8) & 0xFF;
         int b = argb & 0xFF;
 
-        consumer.vertex(matrix, left, top, 0).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, left, bottom, 0).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, right, bottom, 0).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, right, top, 0).color(r, g, b, a).endVertex();
+        consumer.addVertex(matrix, left, top, 0).setColor(r, g, b, a);
+        consumer.addVertex(matrix, left, bottom, 0).setColor(r, g, b, a);
+        consumer.addVertex(matrix, right, bottom, 0).setColor(r, g, b, a);
+        consumer.addVertex(matrix, right, top, 0).setColor(r, g, b, a);
     }
 
     // 功能：把 0~1 的比例映射为“低值偏红、高值偏绿”的 ARGB 颜色。

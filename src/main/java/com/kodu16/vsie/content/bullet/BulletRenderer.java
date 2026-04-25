@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.bullet;
 
+// 功能：适配 NeoForge 1.21.1 顶点提交流程，使用 addVertex/setColor 等新链式 API。
+
 // NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
 
 import com.kodu16.vsie.foundation.translucentbeamrendertype;
@@ -130,19 +132,19 @@ public class BulletRenderer<T extends AbstractBulletEntity> extends EntityRender
     }
 
     public void vertex(Matrix4f pMatrix, Matrix3f pNormal, VertexConsumer pConsumer, int pX, int pY, int pZ, float pU, float pV, int pNormalX, int pNormalZ, int pNormalY, int pPackedLight) {
-        pConsumer.vertex(pMatrix, pX, pY, pZ).color(128, 192, 128, 192).uv(pU, pV).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(pPackedLight).normal(pNormal, (float)pNormalX, (float)pNormalY, (float)pNormalZ).endVertex();
+        pConsumer.addVertex(pMatrix, pX, pY, pZ).setColor(128, 192, 128, 192).setUv(pU, pV).setOverlay(OverlayTexture.NO_OVERLAY).setLight(pPackedLight).setNormal((float)pNormalX, (float)pNormalY, (float)pNormalZ);
     }
 
     // 为拖尾提供浮点坐标顶点写入方法，避免整数顶点导致拖尾细节丢失。
     private void vertex(Matrix4f pMatrix, Matrix3f pNormal, VertexConsumer pConsumer,
                         float pX, float pY, float pZ, int[] rgba, int pPackedLight) {
-        pConsumer.vertex(pMatrix, pX, pY, pZ)
-                .color(rgba[0], rgba[1], rgba[2], rgba[3])
-                .uv(0.0F, 0.0F)
-                .overlayCoords(OverlayTexture.NO_OVERLAY)
-                .uv2(pPackedLight)
-                .normal(pNormal, 1.0F, 0.0F, 0.0F)
-                .endVertex();
+        pConsumer.addVertex(pMatrix, pX, pY, pZ)
+                .setColor(rgba[0], rgba[1], rgba[2], rgba[3])
+                .setUv(0.0F, 0.0F)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(pPackedLight)
+                .setNormal(1.0F, 0.0F, 0.0F)
+                ;
     }
 
     private void fixRotation(T entity) {

@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.turret.client;
 
+// 功能：适配 NeoForge 1.21.1 顶点提交流程，使用 addVertex/setColor 等新链式 API。
+
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.foundation.translucentbeamrendertype;
 import com.mojang.blaze3d.vertex.*;
@@ -205,11 +207,11 @@ public class TurretFlameLayer extends GeoRenderLayer<AbstractTurretBlockEntity> 
                                float x,float y,float z,
                                float r,float g,float b,float a){
 
-        vc.vertex(pose,x,y,z)
-                .color(r,g,b,a)
-                .overlayCoords(0)
-                .uv2(FULL_BRIGHT)
-                .normal(normal,0,1,0)
-                .endVertex();
+        vc.addVertex(pose,x,y,z)
+                .setColor(r,g,b,a)
+                .setOverlay(0)
+                .setLight(FULL_BRIGHT)
+                .setNormal(0,1,0)
+                ;
     }
 }

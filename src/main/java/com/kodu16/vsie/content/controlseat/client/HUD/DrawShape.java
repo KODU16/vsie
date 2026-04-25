@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.controlseat.client.HUD;
 
+// 功能：适配 NeoForge 1.21.1 顶点提交流程，使用 addVertex/setColor 等新链式 API。
+
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -50,8 +52,8 @@ public class DrawShape {
                 float iy = sin * innerR;
 
                 // 先外后内，或者先内后外都行，只要顺序一致即可
-                buffer.vertex(mat, cx + ox, cy + oy, 0).color(r, g, b, a).endVertex();
-                buffer.vertex(mat, cx + ix, cy + iy, 0).color(r, g, b, a).endVertex();
+                buffer.addVertex(mat, cx + ox, cy + oy, 0).setColor(r, g, b, a);
+                buffer.addVertex(mat, cx + ix, cy + iy, 0).setColor(r, g, b, a);
             }
 
             BufferUploader.drawWithShader(buffer.end());
@@ -94,9 +96,9 @@ public class DrawShape {
                 float innerY = cy + sin * innerR;
 
                 // Outer ring
-                buffer.vertex(pose, outerX, outerY, 0).color(r, g, b, a).endVertex();
+                buffer.addVertex(pose, outerX, outerY, 0).setColor(r, g, b, a);
                 // Inner ring
-                buffer.vertex(pose, innerX, innerY, 0).color(r, g, b, a).endVertex();
+                buffer.addVertex(pose, innerX, innerY, 0).setColor(r, g, b, a);
             }
 
             // Finish the current drawing operation
@@ -134,28 +136,28 @@ public class DrawShape {
         // 左上外 → 左上内 → 右上外 → 右上内 → 右下外 → 右下内 → 左下外 → 左下内 → 回到左上外
 
         // 左上外
-        buffer.vertex(mat, centerX - halfOuterWidth, centerY - halfOuterHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX - halfOuterWidth, centerY - halfOuterHeight, 0).setColor(r,g,b,a);
         // 左上内
-        buffer.vertex(mat, centerX - halfInnerWidth, centerY - halfInnerHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX - halfInnerWidth, centerY - halfInnerHeight, 0).setColor(r,g,b,a);
 
         // 右上外
-        buffer.vertex(mat, centerX + halfOuterWidth, centerY - halfOuterHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX + halfOuterWidth, centerY - halfOuterHeight, 0).setColor(r,g,b,a);
         // 右上内
-        buffer.vertex(mat, centerX + halfInnerWidth, centerY - halfInnerHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX + halfInnerWidth, centerY - halfInnerHeight, 0).setColor(r,g,b,a);
 
         // 右下外
-        buffer.vertex(mat, centerX + halfOuterWidth, centerY + halfOuterHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX + halfOuterWidth, centerY + halfOuterHeight, 0).setColor(r,g,b,a);
         // 右下内
-        buffer.vertex(mat, centerX + halfInnerWidth, centerY + halfInnerHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX + halfInnerWidth, centerY + halfInnerHeight, 0).setColor(r,g,b,a);
 
         // 左下外
-        buffer.vertex(mat, centerX - halfOuterWidth, centerY + halfOuterHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX - halfOuterWidth, centerY + halfOuterHeight, 0).setColor(r,g,b,a);
         // 左下内
-        buffer.vertex(mat, centerX - halfInnerWidth, centerY + halfInnerHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX - halfInnerWidth, centerY + halfInnerHeight, 0).setColor(r,g,b,a);
 
         // 闭合回到起点（左上外）
-        buffer.vertex(mat, centerX - halfOuterWidth, centerY - halfOuterHeight, 0).color(r,g,b,a).endVertex();
-        buffer.vertex(mat, centerX - halfInnerWidth, centerY - halfInnerHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX - halfOuterWidth, centerY - halfOuterHeight, 0).setColor(r,g,b,a);
+        buffer.addVertex(mat, centerX - halfInnerWidth, centerY - halfInnerHeight, 0).setColor(r,g,b,a);
 
         BufferUploader.drawWithShader(buffer.end());
 
@@ -201,10 +203,10 @@ public class DrawShape {
         float half = thickness / 2f;
 
         // 逆时针顺序
-        buffer.vertex(mat, x1 + nx * half, y1 + ny * half, 0).color(r,g,b,a).endVertex(); // 起点左
-        buffer.vertex(mat, x1 - nx * half, y1 - ny * half, 0).color(r,g,b,a).endVertex(); // 起点右
-        buffer.vertex(mat, x2 + nx * half, y2 + ny * half, 0).color(r,g,b,a).endVertex(); // 终点左
-        buffer.vertex(mat, x2 - nx * half, y2 - ny * half, 0).color(r,g,b,a).endVertex(); // 终点右
+        buffer.addVertex(mat, x1 + nx * half, y1 + ny * half, 0).setColor(r,g,b,a); // 起点左
+        buffer.addVertex(mat, x1 - nx * half, y1 - ny * half, 0).setColor(r,g,b,a); // 起点右
+        buffer.addVertex(mat, x2 + nx * half, y2 + ny * half, 0).setColor(r,g,b,a); // 终点左
+        buffer.addVertex(mat, x2 - nx * half, y2 - ny * half, 0).setColor(r,g,b,a); // 终点右
 
         BufferUploader.drawWithShader(buffer.end());
         RenderSystem.disableBlend();
