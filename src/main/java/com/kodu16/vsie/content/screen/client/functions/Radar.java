@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.screen.client.functions;
 
+// 功能：适配 NeoForge 1.21.1 顶点提交流程，使用 addVertex/setColor 等新链式 API。
+
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
 import com.kodu16.vsie.content.controlseat.functions.WorldMarkerPainter;
@@ -42,10 +44,10 @@ public class Radar {
         int g = (argb >> 8) & 0xFF;
         int b = argb & 0xFF;
 
-        consumer.vertex(matrix, minX, minY, 0).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, minX, maxY, 0).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, maxX, maxY, 0).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, maxX, minY, 0).color(r, g, b, a).endVertex();
+        consumer.addVertex(matrix, minX, minY, 0).setColor(r, g, b, a);
+        consumer.addVertex(matrix, minX, maxY, 0).setColor(r, g, b, a);
+        consumer.addVertex(matrix, maxX, maxY, 0).setColor(r, g, b, a);
+        consumer.addVertex(matrix, maxX, minY, 0).setColor(r, g, b, a);
     }
 
     // 功能：读取绑定玩家的 shipsData，并在屏幕上绘制俯视雷达。

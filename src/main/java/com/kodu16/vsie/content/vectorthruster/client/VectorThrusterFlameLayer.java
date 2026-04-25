@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.vectorthruster.client;
 
+// 功能：适配 NeoForge 1.21.1 顶点提交流程，使用 addVertex/setColor 等新链式 API。
+
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlockEntity;
 import com.kodu16.vsie.content.vectorthruster.AbstractVectorThrusterBlockEntity;
 import com.kodu16.vsie.foundation.translucentbeamrendertype;
@@ -116,11 +118,11 @@ public class VectorThrusterFlameLayer extends GeoRenderLayer<AbstractVectorThrus
 
     private static void vertex(VertexConsumer vc, Matrix4f pose, Matrix3f normal,
                                float x, float y, float z, float r, float g, float b, float a) {
-        vc.vertex(pose, x, y, z)
-                .color(r, g, b, a)
-                .overlayCoords(OverlayTexture.NO_OVERLAY)
-                .uv2(FULL_BRIGHT)
-                .normal(normal, 0f, 1f, 0f)  // 法线随意，半透明渲染通常不依赖光照
-                .endVertex();
+        vc.addVertex(pose, x, y, z)
+                .setColor(r, g, b, a)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(FULL_BRIGHT)
+                .setNormal(0f, 1f, 0f)  // 法线随意，半透明渲染通常不依赖光照
+                ;
     }
 }

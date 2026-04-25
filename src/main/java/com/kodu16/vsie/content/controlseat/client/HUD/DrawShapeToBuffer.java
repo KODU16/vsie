@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.controlseat.client.HUD;
 
+// 功能：适配 NeoForge 1.21.1 顶点提交流程，使用 addVertex/setColor 等新链式 API。
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import org.joml.Matrix4f;
@@ -34,9 +36,9 @@ public class DrawShapeToBuffer {
             float innerY = cy + sin * innerR;
 
             // Outer ring
-            buffer.vertex(mat, outerX, outerY, 0).color(r, g, b, a).endVertex();
+            buffer.addVertex(mat, outerX, outerY, 0).setColor(r, g, b, a);
             // Inner ring
-            buffer.vertex(mat, innerX, innerY, 0).color(r, g, b, a).endVertex();
+            buffer.addVertex(mat, innerX, innerY, 0).setColor(r, g, b, a);
             if(i==0 || i==segments) {
                 insertDegenerate(buffer,mat,outerX,outerY,argb);
             }
@@ -63,28 +65,28 @@ public class DrawShapeToBuffer {
         // 左上外 → 左上内 → 右上外 → 右上内 → 右下外 → 右下内 → 左下外 → 左下内 → 回到左上外
 
         // 左上外
-        buffer.vertex(mat, centerX - halfOuterWidth, centerY - halfOuterHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX - halfOuterWidth, centerY - halfOuterHeight, 0).setColor(r,g,b,a);
         // 左上内
-        buffer.vertex(mat, centerX - halfInnerWidth, centerY - halfInnerHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX - halfInnerWidth, centerY - halfInnerHeight, 0).setColor(r,g,b,a);
 
         // 右上外
-        buffer.vertex(mat, centerX + halfOuterWidth, centerY - halfOuterHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX + halfOuterWidth, centerY - halfOuterHeight, 0).setColor(r,g,b,a);
         // 右上内
-        buffer.vertex(mat, centerX + halfInnerWidth, centerY - halfInnerHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX + halfInnerWidth, centerY - halfInnerHeight, 0).setColor(r,g,b,a);
 
         // 右下外
-        buffer.vertex(mat, centerX + halfOuterWidth, centerY + halfOuterHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX + halfOuterWidth, centerY + halfOuterHeight, 0).setColor(r,g,b,a);
         // 右下内
-        buffer.vertex(mat, centerX + halfInnerWidth, centerY + halfInnerHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX + halfInnerWidth, centerY + halfInnerHeight, 0).setColor(r,g,b,a);
 
         // 左下外
-        buffer.vertex(mat, centerX - halfOuterWidth, centerY + halfOuterHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX - halfOuterWidth, centerY + halfOuterHeight, 0).setColor(r,g,b,a);
         // 左下内
-        buffer.vertex(mat, centerX - halfInnerWidth, centerY + halfInnerHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX - halfInnerWidth, centerY + halfInnerHeight, 0).setColor(r,g,b,a);
 
         // 闭合回到起点（左上外）
-        buffer.vertex(mat, centerX - halfOuterWidth, centerY - halfOuterHeight, 0).color(r,g,b,a).endVertex();
-        buffer.vertex(mat, centerX - halfInnerWidth, centerY - halfInnerHeight, 0).color(r,g,b,a).endVertex();
+        buffer.addVertex(mat, centerX - halfOuterWidth, centerY - halfOuterHeight, 0).setColor(r,g,b,a);
+        buffer.addVertex(mat, centerX - halfInnerWidth, centerY - halfInnerHeight, 0).setColor(r,g,b,a);
     }
 
 
@@ -113,10 +115,10 @@ public class DrawShapeToBuffer {
 
         // 逆时针顺序
         insertDegenerate(buffer,mat,x1,y1,argb);
-        buffer.vertex(mat, x1 + nx * half, y1 + ny * half, 0).color(r,g,b,a).endVertex(); // 起点左
-        buffer.vertex(mat, x1 - nx * half, y1 - ny * half, 0).color(r,g,b,a).endVertex(); // 起点右
-        buffer.vertex(mat, x2 + nx * half, y2 + ny * half, 0).color(r,g,b,a).endVertex(); // 终点左
-        buffer.vertex(mat, x2 - nx * half, y2 - ny * half, 0).color(r,g,b,a).endVertex(); // 终点右
+        buffer.addVertex(mat, x1 + nx * half, y1 + ny * half, 0).setColor(r,g,b,a); // 起点左
+        buffer.addVertex(mat, x1 - nx * half, y1 - ny * half, 0).setColor(r,g,b,a); // 起点右
+        buffer.addVertex(mat, x2 + nx * half, y2 + ny * half, 0).setColor(r,g,b,a); // 终点左
+        buffer.addVertex(mat, x2 - nx * half, y2 - ny * half, 0).setColor(r,g,b,a); // 终点右
         insertDegenerate(buffer,mat,x2,y2,argb);
     }
 
@@ -127,8 +129,8 @@ public class DrawShapeToBuffer {
         float b = (argb & 255) / 255f;
 
         // 重复两次顶点
-        buffer.vertex(mat, x, y, 0).color(r, g, b, a).endVertex();
-        buffer.vertex(mat, x, y, 0).color(r, g, b, a).endVertex();
+        buffer.addVertex(mat, x, y, 0).setColor(r, g, b, a);
+        buffer.addVertex(mat, x, y, 0).setColor(r, g, b, a);
     }
 
 }

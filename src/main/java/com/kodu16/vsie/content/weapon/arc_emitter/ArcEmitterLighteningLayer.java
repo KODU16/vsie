@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.weapon.arc_emitter;
 
+// 功能：适配 NeoForge 1.21.1 顶点提交流程，使用 addVertex/setColor 等新链式 API。
+
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
 import com.kodu16.vsie.foundation.translucentbeamrendertype;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -73,13 +75,13 @@ public class ArcEmitterLighteningLayer extends GeoRenderLayer<AbstractWeaponBloc
             float a = lerp(0.5f, 0.5f, t);
 
             // 画一个四边形（两面对三角形）
-            consumer.vertex(pose, (float)v1.x, (float)v1.y, (float)v1.z).color(r,g,b,a).overlayCoords(0).normal(normal, 0, 1, 0).uv2(FULL_BRIGHT).endVertex();
-            consumer.vertex(pose, (float)v2.x, (float)v2.y, (float)v2.z).color(r,g,b,a).overlayCoords(0).normal(normal, 0, 1, 0).uv2(FULL_BRIGHT).endVertex();
-            consumer.vertex(pose, (float)v4.x, (float)v4.y, (float)v4.z).color(r,g,b,a).overlayCoords(0).normal(normal, 0, 1, 0).uv2(FULL_BRIGHT).endVertex();
+            consumer.addVertex(pose, (float)v1.x, (float)v1.y, (float)v1.z).setColor(r,g,b,a).setOverlay(0).setNormal(0, 1, 0).setLight(FULL_BRIGHT);
+            consumer.addVertex(pose, (float)v2.x, (float)v2.y, (float)v2.z).setColor(r,g,b,a).setOverlay(0).setNormal(0, 1, 0).setLight(FULL_BRIGHT);
+            consumer.addVertex(pose, (float)v4.x, (float)v4.y, (float)v4.z).setColor(r,g,b,a).setOverlay(0).setNormal(0, 1, 0).setLight(FULL_BRIGHT);
 
-            consumer.vertex(pose, (float)v1.x, (float)v1.y, (float)v1.z).color(r,g,b,a).overlayCoords(0).normal(normal, 0, 1, 0).uv2(FULL_BRIGHT).endVertex();
-            consumer.vertex(pose, (float)v4.x, (float)v4.y, (float)v4.z).color(r,g,b,a).overlayCoords(0).normal(normal, 0, 1, 0).uv2(FULL_BRIGHT).endVertex();
-            consumer.vertex(pose, (float)v3.x, (float)v3.y, (float)v3.z).color(r,g,b,a).overlayCoords(0).normal(normal, 0, 1, 0).uv2(FULL_BRIGHT).endVertex();
+            consumer.addVertex(pose, (float)v1.x, (float)v1.y, (float)v1.z).setColor(r,g,b,a).setOverlay(0).setNormal(0, 1, 0).setLight(FULL_BRIGHT);
+            consumer.addVertex(pose, (float)v4.x, (float)v4.y, (float)v4.z).setColor(r,g,b,a).setOverlay(0).setNormal(0, 1, 0).setLight(FULL_BRIGHT);
+            consumer.addVertex(pose, (float)v3.x, (float)v3.y, (float)v3.z).setColor(r,g,b,a).setOverlay(0).setNormal(0, 1, 0).setLight(FULL_BRIGHT);
         }
         poseStack.popPose();
     }

@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.weapon.client;
 
+// 功能：适配 NeoForge 1.21.1 顶点提交流程，使用 addVertex/setColor 等新链式 API。
+
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
 import com.kodu16.vsie.foundation.Vec;
@@ -124,12 +126,12 @@ public class WeaponLaserLayer extends GeoRenderLayer<AbstractWeaponBlockEntity> 
     private static void vertex(VertexConsumer vc, Matrix4f pose, Matrix3f normal,
                                float x, float y, float z,
                                float r, float g, float b, float a) {
-        vc.vertex(pose, x, y, z)
-                .color(r, g, b, a)
-                .overlayCoords(0)
-                .uv2(FULL_BRIGHT)                 // 全亮
-                .normal(normal, 0, 1, 0)          // 法线随便填，shader 不使用光照
-                .endVertex();
+        vc.addVertex(pose, x, y, z)
+                .setColor(r, g, b, a)
+                .setOverlay(0)
+                .setLight(FULL_BRIGHT)                 // 全亮
+                .setNormal(0, 1, 0)          // 法线随便填，shader 不使用光照
+                ;
     }
 
     // 让矩阵的 -Z 轴朝向 dir（dir 必须是单位向量）
