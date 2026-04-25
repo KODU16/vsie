@@ -18,7 +18,6 @@ import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraftforge.network.NetworkHooks;
 
 
 public class AmmoBoxBlock extends Block implements EntityBlock {
@@ -40,8 +39,9 @@ public class AmmoBoxBlock extends Block implements EntityBlock {
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         if (!level.isClientSide) {
             BlockEntity be = level.getBlockEntity(pos);
-            if (be instanceof AmmoBoxBlockEntity ammobox) {
-                NetworkHooks.openScreen((ServerPlayer) player, new MenuProvider() {
+            if (be instanceof AmmoBoxBlockEntity ammobox && player instanceof ServerPlayer serverPlayer) {
+                // 功能：将弹药箱菜单打开逻辑迁移到 NeoForge 1.21.1 的 openMenu API。
+                serverPlayer.openMenu(new MenuProvider() {
                     @Override
                     public Component getDisplayName() {
                         return Component.translatable("container.vsie.ammobox");
@@ -51,7 +51,7 @@ public class AmmoBoxBlock extends Block implements EntityBlock {
                     public AbstractContainerMenu createMenu(int id, Inventory inv, Player p) {
                         return new AmmoBoxContainerMenu(id, inv, ammobox);
                     }
-                }, buf -> buf.writeBlockPos(pos)); // 关键：把 pos 写进去
+                }, buf -> buf.writeBlockPos(pos)); // 功能：同步弹药箱位置给客户端构建菜单。
             }
         }
         return InteractionResult.sidedSuccess(level.isClientSide);

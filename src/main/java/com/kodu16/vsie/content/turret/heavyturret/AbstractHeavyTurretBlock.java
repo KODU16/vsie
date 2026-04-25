@@ -15,7 +15,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -30,8 +29,9 @@ public abstract class AbstractHeavyTurretBlock extends AbstractTurretBlock {
         {
             Logger LOGGER = LogUtils.getLogger();
             BlockEntity be = level.getBlockEntity(pos);
-            if (be instanceof AbstractHeavyTurretBlockEntity turret) {
-                NetworkHooks.openScreen((ServerPlayer) player, new MenuProvider() {
+            if (be instanceof AbstractHeavyTurretBlockEntity turret && player instanceof ServerPlayer serverPlayer) {
+                // 功能：适配 NeoForge 1.21.1 菜单打开流程，使用 openMenu 同步 BlockPos。
+                serverPlayer.openMenu(new MenuProvider() {
                     @Override
                     public Component getDisplayName() {
                         return Component.translatable("container.vsie.heavy_turret");
@@ -41,7 +41,7 @@ public abstract class AbstractHeavyTurretBlock extends AbstractTurretBlock {
                     public AbstractContainerMenu createMenu(int id, Inventory inv, Player p) {
                         return new HeavyTurretContainerMenu(id, inv, turret);
                     }
-                }, buf -> buf.writeBlockPos(pos)); // 关键：把 pos 写进去
+                }, buf -> buf.writeBlockPos(pos)); // 功能：向客户端菜单工厂传递方块坐标。
             }
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
