@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.item.IFF;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 import com.kodu16.vsie.network.IFF.IFFC2SPacket;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.vsie;
@@ -94,7 +96,7 @@ public class IFFScreen extends AbstractContainerScreen<IFFContainerMenu> {
 
     @Override
     protected void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
-        ResourceLocation texture = new ResourceLocation(vsie.ID, "textures/gui/iff/iff_gui.png");
+        ResourceLocation texture = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/iff/iff_gui.png");
         guiGraphics.blit(texture,   // 用实例字段
                 this.leftPos, this.topPos,
                 0, 0,

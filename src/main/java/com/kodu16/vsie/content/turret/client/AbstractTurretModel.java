@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.turret.client;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.network.turret.TurretFirePointC2SPacket;
 import com.kodu16.vsie.registries.ModNetworking;
@@ -17,15 +19,15 @@ import software.bernie.geckolib.model.DefaultedBlockGeoModel;
 public class AbstractTurretModel extends DefaultedBlockGeoModel<AbstractTurretBlockEntity> {
 
     public AbstractTurretModel() {
-        super(new ResourceLocation(vsie.ID,"turret"));
+        super(ResourceLocation.fromNamespaceAndPath(vsie.ID, "turret"));
     }
 
     @Override
     public ResourceLocation getModelResource(AbstractTurretBlockEntity abstractTurretBlockEntity) {
         return switch (abstractTurretBlockEntity.getturrettype()) {
-            case "medium_laser" -> new ResourceLocation(vsie.ID, "geo/block/medium_laser_turret.geo.json");
-            case "particle" -> new ResourceLocation(vsie.ID, "geo/block/particle_turret.geo.json");
-            case "basic_ciws" -> new ResourceLocation(vsie.ID, "geo/block/basic_ciws.geo.json");
+            case "medium_laser" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "geo/block/medium_laser_turret.geo.json");
+            case "particle" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "geo/block/particle_turret.geo.json");
+            case "basic_ciws" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "geo/block/basic_ciws.geo.json");
             default -> throw new IllegalStateException("Unexpected value: " + abstractTurretBlockEntity.getturrettype());
         };
     }
@@ -33,9 +35,9 @@ public class AbstractTurretModel extends DefaultedBlockGeoModel<AbstractTurretBl
     @Override
     public ResourceLocation getTextureResource(AbstractTurretBlockEntity abstractTurretBlockEntity) {
         return switch (abstractTurretBlockEntity.getturrettype()) {
-            case "medium_laser" -> new ResourceLocation(vsie.ID, "textures/block/medium_laser_turret.png");
-            case "particle" -> new ResourceLocation(vsie.ID, "textures/block/particle_turret.png");
-            case "basic_ciws" -> new ResourceLocation(vsie.ID, "textures/block/basic_ciws.png");
+            case "medium_laser" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/block/medium_laser_turret.png");
+            case "particle" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/block/particle_turret.png");
+            case "basic_ciws" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/block/basic_ciws.png");
             default -> throw new IllegalStateException("Unexpected value: " + abstractTurretBlockEntity.getturrettype());
         };
     }
@@ -43,9 +45,9 @@ public class AbstractTurretModel extends DefaultedBlockGeoModel<AbstractTurretBl
     @Override
     public ResourceLocation getAnimationResource(AbstractTurretBlockEntity abstractTurretBlockEntity) {
         return switch (abstractTurretBlockEntity.getturrettype()) {
-            case "medium_laser" -> new ResourceLocation(vsie.ID, "animations/block/medium_laser_anim.json");
-            case "particle" -> new ResourceLocation(vsie.ID, "animations/block/turret/particle_turret_anim.json");
-            case "basic_ciws" -> new ResourceLocation(vsie.ID, "animations/block/basic_ciws_anim.json");
+            case "medium_laser" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/medium_laser_anim.json");
+            case "particle" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/turret/particle_turret_anim.json");
+            case "basic_ciws" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/basic_ciws_anim.json");
             default -> throw new IllegalStateException("Unexpected value: " + abstractTurretBlockEntity.getturrettype());
         };
     }

@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.misc.electromagnet_rail.core;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 import com.kodu16.vsie.network.rail.ElectroMagnetRailCoreDetectC2SPacket;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.vsie;
@@ -16,10 +18,10 @@ import net.minecraft.world.entity.player.Inventory;
 public class ElectroMagnetRailCoreScreen extends AbstractContainerScreen<ElectroMagnetRailCoreContainerMenu> {
 
     private static final ResourceLocation IFF_BG_TEXTURE =
-            new ResourceLocation(vsie.ID, "textures/gui/iff/iff_gui.png");
+            ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/iff/iff_gui.png");
 
     private static final ResourceLocation SLOT_TEXTURE =
-            new ResourceLocation(vsie.ID, "textures/gui/slot.png");
+            ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/slot.png");
 
     public ElectroMagnetRailCoreScreen(ElectroMagnetRailCoreContainerMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);

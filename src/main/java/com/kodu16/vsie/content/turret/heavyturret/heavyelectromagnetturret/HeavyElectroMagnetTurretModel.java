@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.vsie;
 import net.minecraft.resources.ResourceLocation;
@@ -11,17 +13,17 @@ import software.bernie.geckolib.model.DefaultedBlockGeoModel;
 @SuppressWarnings("removal")
 public class HeavyElectroMagnetTurretModel extends DefaultedBlockGeoModel<HeavyElectroMagnetTurretBlockEntity> {
     public HeavyElectroMagnetTurretModel() {
-        super(new ResourceLocation(vsie.ID,"heavy_electromagnet_turret"));
+        super(ResourceLocation.fromNamespaceAndPath(vsie.ID, "heavy_electromagnet_turret"));
     }
     @Override
     public ResourceLocation getModelResource(HeavyElectroMagnetTurretBlockEntity turret) {
-        return new ResourceLocation(vsie.ID, "geo/block/heavy_electromagnet_turret.geo.json");
+        return ResourceLocation.fromNamespaceAndPath(vsie.ID, "geo/block/heavy_electromagnet_turret.geo.json");
     }
     public ResourceLocation getTextureResource(HeavyElectroMagnetTurretBlockEntity turret) {
-        return new ResourceLocation(vsie.ID, "textures/block/heavy_electromagnet_turret.png");
+        return ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/block/heavy_electromagnet_turret.png");
     }
     public ResourceLocation getAnimationResource(HeavyElectroMagnetTurretBlockEntity turret) {
-        return new ResourceLocation(vsie.ID, "animations/block/heavy_electromagnet_turret_anim.json");
+        return ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/heavy_electromagnet_turret_anim.json");
     }
 
     @Override

@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.screen.client;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.vsie;
 import net.minecraft.resources.ResourceLocation;
@@ -11,13 +13,13 @@ import software.bernie.geckolib.model.DefaultedBlockGeoModel;
 @SuppressWarnings({"removal"})
 public class AbstractScreenModel extends DefaultedBlockGeoModel<AbstractScreenBlockEntity> {
     public AbstractScreenModel() {
-        super(new ResourceLocation(vsie.ID,"screen"));
+        super(ResourceLocation.fromNamespaceAndPath(vsie.ID, "screen"));
     }
 
     @Override
     public ResourceLocation getModelResource(AbstractScreenBlockEntity be) {
         return switch (be.getDisplaytype()) {
-            case "basic" -> new ResourceLocation(vsie.ID, "geo/block/basic_screen.geo.json");
+            case "basic" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "geo/block/basic_screen.geo.json");
             default -> throw new IllegalStateException("Unexpected value for Screen");
         };
     }
@@ -25,7 +27,7 @@ public class AbstractScreenModel extends DefaultedBlockGeoModel<AbstractScreenBl
     @Override
     public ResourceLocation getTextureResource(AbstractScreenBlockEntity be) {
         return switch (be.getDisplaytype()) {
-            case "basic" -> new ResourceLocation(vsie.ID, "textures/block/basic_screen.png");
+            case "basic" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/block/basic_screen.png");
             default -> throw new IllegalStateException("Unexpected value for Screen");
         };
     }
@@ -33,7 +35,7 @@ public class AbstractScreenModel extends DefaultedBlockGeoModel<AbstractScreenBl
     @Override
     public ResourceLocation getAnimationResource(AbstractScreenBlockEntity be) {
         return switch (be.getDisplaytype()) {
-            case "basic" -> new ResourceLocation(vsie.ID, "animations/block/basic_screen_anim.json");
+            case "basic" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/basic_screen_anim.json");
             default -> throw new IllegalStateException("Unexpected value for Screen");
         };
     }

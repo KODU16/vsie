@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.warpprojectile;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 import com.lowdragmc.photon.client.fx.EntityEffect;
 import com.lowdragmc.photon.client.fx.FXHelper;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -28,9 +30,9 @@ public class WarpProjecTileEntity extends Projectile {
     // 功能：缓存最后一次有效速度方向，供消失特效在弹体停下后仍可按飞行法线方向对齐。
     private Vec3 lastNonZeroVelocity = Vec3.ZERO;
     // 功能：统一管理跃迁弹射物的生成特效资源，生成时播放 warp_projectile.fx。
-    private static final ResourceLocation WARP_PROJECTILE_FX = new ResourceLocation("vsie", "warp_projectile");
+    private static final ResourceLocation WARP_PROJECTILE_FX = ResourceLocation.fromNamespaceAndPath("vsie", "warp_projectile");
     // 功能：统一管理跃迁弹射物的消失特效资源，实体销毁时播放 warp_projectile_vanish.fx。
-    private static final ResourceLocation WARP_PROJECTILE_VANISH_FX = new ResourceLocation("vsie", "warp_projectile_vanish");
+    private static final ResourceLocation WARP_PROJECTILE_VANISH_FX = ResourceLocation.fromNamespaceAndPath("vsie", "warp_projectile_vanish");
 
     @Override
     protected void defineSynchedData() {

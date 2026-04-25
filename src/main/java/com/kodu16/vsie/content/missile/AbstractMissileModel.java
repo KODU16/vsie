@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.missile;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 import com.kodu16.vsie.foundation.Vec;
 import com.kodu16.vsie.vsie;
 import com.mojang.logging.LogUtils;
@@ -13,12 +15,12 @@ import software.bernie.geckolib.model.DefaultedEntityGeoModel;
 @SuppressWarnings({"removal"})
 public class AbstractMissileModel extends DefaultedEntityGeoModel<AbstractMissileEntity> {
     public AbstractMissileModel() {
-        super(new ResourceLocation(vsie.ID, "missile"));
+        super(ResourceLocation.fromNamespaceAndPath(vsie.ID, "missile"));
     }
     @Override
     public ResourceLocation getModelResource(AbstractMissileEntity missile) {
         return switch (missile.getmissiletype()) {
-            case "basic_missile" -> new ResourceLocation(vsie.ID, "geo/entity/basic_missile.geo.json");
+            case "basic_missile" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "geo/entity/basic_missile.geo.json");
             default -> throw new IllegalStateException("Unexpected value: " + missile.getmissiletype());
         };
     }
@@ -26,7 +28,7 @@ public class AbstractMissileModel extends DefaultedEntityGeoModel<AbstractMissil
     @Override
     public ResourceLocation getTextureResource(AbstractMissileEntity missile) {
         return switch (missile.getmissiletype()) {
-            case "basic_missile" -> new ResourceLocation(vsie.ID, "textures/entity/basic_missile.png");
+            case "basic_missile" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/entity/basic_missile.png");
             default -> throw new IllegalStateException("Unexpected value: " + missile.getmissiletype());
         };
     }
@@ -34,7 +36,7 @@ public class AbstractMissileModel extends DefaultedEntityGeoModel<AbstractMissil
     @Override
     public ResourceLocation getAnimationResource(AbstractMissileEntity missile) {
         return switch (missile.getmissiletype()) {
-            case "basic_missile" -> new ResourceLocation(vsie.ID, "animations/entity/basic_missile_anim.json");
+            case "basic_missile" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/entity/basic_missile_anim.json");
             default -> throw new IllegalStateException("Unexpected value: " + missile.getmissiletype());
         };
     }
