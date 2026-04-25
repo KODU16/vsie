@@ -13,9 +13,9 @@ import com.tterrag.registrate.util.nullness.NonNullBiConsumer;
 
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.fluids.FluidType;
-import net.minecraftforge.fluids.ForgeFlowingFluid;
-import net.minecraftforge.fml.DistExecutor;
+import net.neoforged.fml.DistExecutor;
+import net.neoforged.neoforge.fluids.FluidType;
+import net.neoforged.neoforge.fluids.BaseFlowingFluid;
 
 public class vsieFluids {
     public static final CreateRegistrate REGISTRATE = vsie.registrate();
@@ -30,12 +30,13 @@ public class vsieFluids {
             () -> vsieFluids::createGenericFactory
     );
 
-    public static final FluidEntry<ForgeFlowingFluid.Flowing> DTFUEL = REGISTRATE.fluid("dtfuel",
+    // 功能：NeoForge 1.21.1 将 ForgeFlowingFluid 重命名为 BaseFlowingFluid，这里同步更新流体注册泛型和 Source 构造器。
+    public static final FluidEntry<BaseFlowingFluid.Flowing> DTFUEL = REGISTRATE.fluid("dtfuel",
                     ResourceLocation.fromNamespaceAndPath("minecraft", "block/water_still"),
                     ResourceLocation.fromNamespaceAndPath("minecraft", "block/water_flow"),
                     DTFUEL_TYPE_FACTORY.get())
             .renderType(getSidedRenderType())
-            .source(ForgeFlowingFluid.Source::new)
+            .source(BaseFlowingFluid.Source::new)
             .setData(ProviderType.LANG, LANG())
             .block().setData(ProviderType.LANG, LANG()).build()
             .bucket().setData(ProviderType.LANG, LANG()).build()
