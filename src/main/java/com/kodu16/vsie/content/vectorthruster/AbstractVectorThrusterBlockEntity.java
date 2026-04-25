@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
-import net.minecraftforge.common.MinecraftForge;
+import net.neoforged.neoforge.common.NeoForge;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.Matrix3d;
@@ -143,7 +143,8 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
             BlockState state = level.getBlockState(pos);
             Initialize.initialize(level, pos, state);
 
-            MinecraftForge.EVENT_BUS.register(this);
+            // 功能：迁移到 NeoForge 1.21.1 后，改为向 NeoForge GAME 事件总线注册矢量推进器监听器。
+            NeoForge.EVENT_BUS.register(this);
             hasInitialized = true;
 
             LOGGER.warn(String.valueOf(Component.literal("vector thruster Initialize complete:" + pos)));
