@@ -27,10 +27,10 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RenderLevelStageEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3d;
@@ -38,7 +38,8 @@ import org.joml.Vector3d;
 import java.util.HashMap;
 import java.util.Map;
 
-@Mod.EventBusSubscriber(value = Dist.CLIENT, modid = vsie.ID)
+// 功能：在 NeoForge 1.21.1 客户端 GAME 总线上订阅世界阶段渲染事件以绘制目标标记。
+@EventBusSubscriber(value = Dist.CLIENT, modid = vsie.ID, bus = EventBusSubscriber.Bus.GAME)
 @SuppressWarnings("removal")
 public class WorldMarkerPainter {
     //private static final Component MARKER = Component.literal("[+]").withStyle(ChatFormatting.RED);

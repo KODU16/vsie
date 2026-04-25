@@ -10,18 +10,19 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.CreativeModeTab.DisplayItemsGenerator;
 import net.minecraft.world.item.CreativeModeTab.ItemDisplayParameters;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.EventBusSubscriber.Bus;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.DeferredHolder;
 import net.minecraft.world.item.CreativeModeTab.Output;
 
 @EventBusSubscriber(bus = Bus.MOD)
 public class vsieCreativeTab {
+    // 功能：使用 NeoForge DeferredRegister 注册 VSIE 创造标签页。
     private static final DeferredRegister<CreativeModeTab> REGISTER = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, vsie.ID);
 
-    public static final RegistryObject<CreativeModeTab> BASE_TAB = REGISTER.register("base",
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> BASE_TAB = REGISTER.register("base",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.vsie.base"))
                     .withTabsBefore(CreativeModeTabs.SPAWN_EGGS)

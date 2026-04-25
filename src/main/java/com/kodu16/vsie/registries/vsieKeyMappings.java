@@ -2,17 +2,18 @@ package com.kodu16.vsie.registries;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
-import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
-import net.minecraftforge.client.settings.KeyConflictContext;
-import net.minecraftforge.client.settings.KeyModifier;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.api.distmarker.Dist;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.settings.KeyConflictContext;
+import net.neoforged.neoforge.client.settings.KeyModifier;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.api.distmarker.Dist;
 import org.lwjgl.glfw.GLFW;
 
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.fml.common.EventBusSubscriber;
 
-@Mod.EventBusSubscriber(modid = "vsie", bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+// 功能：通过 NeoForge 1.21.1 的 MOD 总线自动订阅键位注册事件。
+@EventBusSubscriber(modid = "vsie", bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class vsieKeyMappings {
     // 定义所有的键位
     public static final KeyMapping KEY_TOGGLE_LOCK = new KeyMapping(

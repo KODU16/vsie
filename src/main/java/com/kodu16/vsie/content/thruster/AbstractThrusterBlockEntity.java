@@ -13,7 +13,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraftforge.common.MinecraftForge;
+import net.neoforged.neoforge.common.NeoForge;
 import org.joml.*;
 import org.slf4j.Logger;
 import org.valkyrienskies.core.api.ships.LoadedShip;
@@ -185,7 +185,8 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
             BlockPos pos = getBlockPos();
             BlockState state = level.getBlockState(pos);
             Initialize.initialize(level, pos, state);
-            MinecraftForge.EVENT_BUS.register(this);
+            // 功能：迁移到 NeoForge 1.21.1 后，改为向 NeoForge GAME 事件总线注册当前推进器监听器。
+            NeoForge.EVENT_BUS.register(this);
             hasInitialized = true;
             LOGGER.warn(String.valueOf(Component.literal("thruster Initialize complete:"+pos)));
         }

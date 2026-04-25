@@ -2,8 +2,10 @@ package com.kodu16.vsie.content.controlseat.client.Input;
 
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 
 import java.util.HashMap;
@@ -29,8 +31,10 @@ public class ClientDataManager {
     }
 
     // 在 PlayerEventHandler 内部
-    public class PlayerEventHandler {
+    @EventBusSubscriber(modid = "vsie", bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+    public static class PlayerEventHandler {
 
+        // 功能：监听客户端玩家登录事件，确保控制椅 HUD 数据容器在 NeoForge 1.21.1 下及时初始化。
         // 玩家进入时初始化 ClientData
         @SubscribeEvent
         public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
@@ -40,6 +44,7 @@ public class ClientDataManager {
             // 比如你可以通过 player 设置一些默认状态
         }
 
+        // 功能：监听客户端玩家退出事件，避免旧会话数据残留造成 HUD/输入状态串号。
         // 玩家退出时清理 ClientData
         @SubscribeEvent
         public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {

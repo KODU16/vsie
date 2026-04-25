@@ -18,14 +18,15 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.util.Mth;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RenderGuiOverlayEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mod.EventBusSubscriber(value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
+// 功能：在 NeoForge 1.21.1 的 GAME 总线上订阅 HUD 渲染事件。
+@EventBusSubscriber(value = Dist.CLIENT, bus = EventBusSubscriber.Bus.GAME)
 public class HudOverlay {
 
     // 透明度配置（建议后面改成 Config）
@@ -40,7 +41,7 @@ public class HudOverlay {
 
 
     @SubscribeEvent
-    public static void onRenderGuiOverlayEvent(RenderGuiOverlayEvent.Post event) {
+    public static void onRenderGuiOverlayEvent(RenderGuiLayerEvent.Post event) {
         Minecraft mc = Minecraft.getInstance();
         Player player = mc.player;
         if (player == null || player.getVehicle() == null) return;
@@ -55,6 +56,7 @@ public class HudOverlay {
         if (blockEntity instanceof ControlSeatBlockEntity controlseat) {
             ControlSeatClientData data = ClientDataManager.getClientData(player);
             GuiGraphics gg = event.getGuiGraphics();
+            // 功能：NeoForge 1.21.1 改为 GuiLayer 事件，需在这里读取 GUI 绘制上下文。
             int sw = mc.getWindow().getGuiScaledWidth();
             int sh = mc.getWindow().getGuiScaledHeight();
             float partialTick = event.getPartialTick();
