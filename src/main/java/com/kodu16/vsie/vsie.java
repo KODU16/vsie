@@ -12,7 +12,6 @@ import com.kodu16.vsie.registries.vsieItems;
 import com.kodu16.vsie.registries.vsieCreativeTab;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.javafmlmod.FMLJavaModLoadingContext;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.kodu16.vsie.compat.SimulatedProjectCompat;
 import software.bernie.geckolib.GeckoLib;
@@ -27,8 +26,9 @@ public class vsie {
     public static boolean debug = false;
     public static final boolean constDebug = false; //To produce debug and non-debug builds :P
 
-    public vsie() {
-        IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus(); // 功能：使用 NeoForge 的 Mod 事件总线完成注册。
+    // 功能：NeoForge 1.21.1 推荐直接在 Mod 构造器注入 IEventBus，避免依赖旧的 FMLJavaModLoadingContext 取总线方式。
+    public vsie(IEventBus modBus) {
+        // 功能：将 Registrate 的所有注册监听器挂到 NeoForge 的 Mod 事件总线。
         REGISTRATE.registerEventListeners(modBus);
         //Content
         vsieBlocks.register();
@@ -47,15 +47,4 @@ public class vsie {
         // 功能：通过兼容层统一注册物理附件，迁移阶段由 Simulated-Project 接管实现。
         SimulatedProjectCompat.registerControlSeatAttachment();
     }
-    /*// 这个方法会在初始化时调用
-    @SubscribeEvent
-    public void commonSetup(FMLCommonSetupEvent event) {
-        // 做一些通用的设置
-    }
-
-    // 这个方法会在客户端初始化时调用
-    @SubscribeEvent
-    public void clientSetup(FMLClientSetupEvent event) {
-        // 做一些客户端的设置
-    }*/
 }
