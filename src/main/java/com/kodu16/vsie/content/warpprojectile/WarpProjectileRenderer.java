@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.warpprojectile;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 import com.kodu16.vsie.foundation.translucentbeamrendertype;
 import com.kodu16.vsie.vsie;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -18,7 +20,7 @@ import org.joml.Matrix4f;
 @SuppressWarnings({"removal"})
 public class WarpProjectileRenderer<T extends WarpProjecTileEntity> extends EntityRenderer<T> {
 
-    public static final ResourceLocation LASER_TEXTURE = new ResourceLocation(vsie.ID, "textures/entity/bullet.png");
+    public static final ResourceLocation LASER_TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/entity/bullet.png");
     // 激光拖尾横向切分数量，值越大越圆滑。
     private static final int TRAIL_SEGMENTS = 8;
     // 激光拖尾长度切分数量，值越大渐变越平滑。

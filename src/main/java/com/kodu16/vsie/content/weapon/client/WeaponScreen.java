@@ -1,4 +1,6 @@
 package com.kodu16.vsie.content.weapon.client;
+
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
 import com.kodu16.vsie.content.weapon.server.WeaponContainerMenu;
 import com.kodu16.vsie.registries.ModNetworking;
@@ -14,7 +16,7 @@ import net.minecraft.world.entity.player.Inventory;
 
 @SuppressWarnings({"removal"})
 public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
-    private static final ResourceLocation TEXTURE = new ResourceLocation(vsie.ID, "textures/gui/weapon/weapon_gui.png");
+    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/weapon_gui.png");
 
     public WeaponScreen(WeaponContainerMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
@@ -34,17 +36,17 @@ public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
         AbstractWeaponBlockEntity blockEntity = menu.getBlockEntity();
         guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
         ResourceLocation icon_channel1= blockEntity.getData().channel1
-                ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel1_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel1_off.png");
+                ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel1_on.png")
+                : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel1_off.png");
         ResourceLocation icon_channel2 = blockEntity.getData().channel2
-                ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel2_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel2_off.png");
+                ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel2_on.png")
+                : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel2_off.png");
         ResourceLocation icon_channel3 = blockEntity.getData().channel3
-                ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel3_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel3_off.png");
+                ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel3_on.png")
+                : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel3_off.png");
         ResourceLocation icon_channel4 = blockEntity.getData().channel4
-                ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel4_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel4_off.png");
+                ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel4_on.png")
+                : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel4_off.png");
 
         guiGraphics.blit(icon_channel1, this.leftPos + 30, this.topPos + 20, 0, 0, 20, 20, 20,20);
         guiGraphics.blit(icon_channel2, this.leftPos + 60, this.topPos + 20, 0, 0, 20, 20, 20,20);

@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.turret.heavyturret;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 import com.kodu16.vsie.network.turret.HeavyTurretC2SPacket;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.vsie;
@@ -14,7 +16,7 @@ import net.minecraft.world.entity.player.Inventory;
 @SuppressWarnings({"removal"})
 public class HeavyTurretScreen extends AbstractContainerScreen<HeavyTurretContainerMenu> {
 
-    private static final ResourceLocation TEXTURE = new ResourceLocation(vsie.ID, "textures/gui/turret/turret_gui.png");
+    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/turret_gui.png");
 
     public HeavyTurretScreen(HeavyTurretContainerMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
@@ -40,17 +42,17 @@ public class HeavyTurretScreen extends AbstractContainerScreen<HeavyTurretContai
 
         // 功能：绘制与武器界面一致的 4 路频道状态图标。
         ResourceLocation iconChannel1 = turret.getData().isChannel1()
-                ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel1_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel1_off.png");
+                ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel1_on.png")
+                : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel1_off.png");
         ResourceLocation iconChannel2 = turret.getData().isChannel2()
-                ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel2_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel2_off.png");
+                ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel2_on.png")
+                : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel2_off.png");
         ResourceLocation iconChannel3 = turret.getData().isChannel3()
-                ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel3_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel3_off.png");
+                ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel3_on.png")
+                : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel3_off.png");
         ResourceLocation iconChannel4 = turret.getData().isChannel4()
-                ? new ResourceLocation(vsie.ID, "textures/gui/weapon/channel4_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/weapon/channel4_off.png");
+                ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel4_on.png")
+                : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel4_off.png");
 
         guiGraphics.blit(iconChannel1, this.leftPos + 30, this.topPos + 20, 0, 0, 20, 20, 20, 20);
         guiGraphics.blit(iconChannel2, this.leftPos + 60, this.topPos + 20, 0, 0, 20, 20, 20, 20);
@@ -58,9 +60,9 @@ public class HeavyTurretScreen extends AbstractContainerScreen<HeavyTurretContai
         guiGraphics.blit(iconChannel4, this.leftPos + 120, this.topPos + 20, 0, 0, 20, 20, 20, 20);
 
         // 根据状态选择不同的图标
-        ResourceLocation iconmanual = new ResourceLocation(vsie.ID, "textures/gui/heavyturret/target_manual.png");
-        ResourceLocation iconauto = new ResourceLocation(vsie.ID, "textures/gui/heavyturret/target_auto.png");
-        ResourceLocation iconsmart = new ResourceLocation(vsie.ID, "textures/gui/heavyturret/target_smart.png");
+        ResourceLocation iconmanual = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/heavyturret/target_manual.png");
+        ResourceLocation iconauto = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/heavyturret/target_auto.png");
+        ResourceLocation iconsmart = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/heavyturret/target_smart.png");
 
         // 绘制状态图标
         if (turret.getData().fireType == 0) {

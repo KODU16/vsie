@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.controlseat.gui;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 import com.kodu16.vsie.vsie;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.GuiGraphics;
@@ -13,7 +15,7 @@ import net.minecraft.world.entity.player.Inventory;
 public class ControlSeatWarpScreen extends AbstractContainerScreen<ControlSeatWarpContainerMenu> {
 
     private static final ResourceLocation BG_TEXTURE =
-            new ResourceLocation(vsie.ID, "textures/gui/controlseat/control_seat.png");
+            ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/controlseat/control_seat.png");
 
     public ControlSeatWarpScreen(ControlSeatWarpContainerMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);

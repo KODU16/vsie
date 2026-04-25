@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.misc.electromagnet_rail.top;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 
 import com.kodu16.vsie.vsie;
 import net.minecraft.resources.ResourceLocation;
@@ -10,17 +12,17 @@ import software.bernie.geckolib.model.DefaultedBlockGeoModel;
 @SuppressWarnings("removal")
 public class ElectroMagnetRailTopModel extends DefaultedBlockGeoModel<ElectroMagnetRailTopBlockEntity> {
     public ElectroMagnetRailTopModel() {
-        super(new ResourceLocation(vsie.ID,"heavy_electromagnet_turret"));
+        super(ResourceLocation.fromNamespaceAndPath(vsie.ID, "heavy_electromagnet_turret"));
     }
     @Override
     public ResourceLocation getModelResource(ElectroMagnetRailTopBlockEntity Top) {
-        return new ResourceLocation(vsie.ID, "geo/block/electro_magnet_rail_top.geo.json");
+        return ResourceLocation.fromNamespaceAndPath(vsie.ID, "geo/block/electro_magnet_rail_top.geo.json");
     }
     public ResourceLocation getTextureResource(ElectroMagnetRailTopBlockEntity Top) {
-        return new ResourceLocation(vsie.ID, "textures/block/electro_magnet_rail_top.png");
+        return ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/block/electro_magnet_rail_top.png");
     }
     public ResourceLocation getAnimationResource(ElectroMagnetRailTopBlockEntity Top) {
-        return new ResourceLocation(vsie.ID, "animations/block/electro_magnet_rail_top_anim.json");
+        return ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/electro_magnet_rail_top_anim.json");
     }
 
     @Override

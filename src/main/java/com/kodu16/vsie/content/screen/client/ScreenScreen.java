@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.screen.client;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.content.screen.server.ScreenContainerMenu;
 import com.kodu16.vsie.network.screen.ScreenC2SPacket;
@@ -162,9 +164,9 @@ public class ScreenScreen extends AbstractContainerScreen<ScreenContainerMenu> {
     @Override
     protected void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
         AbstractScreenBlockEntity screen = menu.getBlockEntity();
-        ResourceLocation texture = new ResourceLocation(vsie.ID, "textures/gui/iff/iff_gui.png");
-        ResourceLocation iconradar = new ResourceLocation(vsie.ID, "textures/gui/screen/screentype_radar.png");
-        ResourceLocation iconserverinfo = new ResourceLocation(vsie.ID, "textures/gui/screen/screentype_serverinfo.png");
+        ResourceLocation texture = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/iff/iff_gui.png");
+        ResourceLocation iconradar = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/screen/screentype_radar.png");
+        ResourceLocation iconserverinfo = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/screen/screentype_serverinfo.png");
         guiGraphics.blit(texture,   // 用实例字段
                 this.leftPos, this.topPos,
                 0, 0,

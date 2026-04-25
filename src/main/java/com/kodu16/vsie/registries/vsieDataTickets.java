@@ -1,5 +1,7 @@
 package com.kodu16.vsie.registries;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 import com.kodu16.vsie.content.missile.AbstractMissileEntity;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
@@ -39,19 +41,19 @@ public class vsieDataTickets {
 
 
     private static SerializableDataTicket<Double> addDouble(String pPath){
-        return GeckoLibUtil.addDataTicket(SerializableDataTicket.ofDouble(new ResourceLocation(vsie.ID, pPath)));
+        return GeckoLibUtil.addDataTicket(SerializableDataTicket.ofDouble(ResourceLocation.fromNamespaceAndPath(vsie.ID, pPath)));
     }
     private static SerializableDataTicket<Float> addFloat(String pPath){
-        return GeckoLibUtil.addDataTicket(SerializableDataTicket.ofFloat(new ResourceLocation(vsie.ID, pPath)));
+        return GeckoLibUtil.addDataTicket(SerializableDataTicket.ofFloat(ResourceLocation.fromNamespaceAndPath(vsie.ID, pPath)));
     }
     private static SerializableDataTicket<Boolean> addBoolean(String pPath){
-        return GeckoLibUtil.addDataTicket(SerializableDataTicket.ofBoolean(new ResourceLocation(vsie.ID, pPath)));
+        return GeckoLibUtil.addDataTicket(SerializableDataTicket.ofBoolean(ResourceLocation.fromNamespaceAndPath(vsie.ID, pPath)));
     }
     private static SerializableDataTicket<Integer> addInt(String pPath){
-        return GeckoLibUtil.addDataTicket(SerializableDataTicket.ofInt(new ResourceLocation(vsie.ID, pPath)));
+        return GeckoLibUtil.addDataTicket(SerializableDataTicket.ofInt(ResourceLocation.fromNamespaceAndPath(vsie.ID, pPath)));
     }
     private static SerializableDataTicket<String> addString(String pPath){
-        return GeckoLibUtil.addDataTicket(SerializableDataTicket.ofString(new ResourceLocation(vsie.ID, pPath)));
+        return GeckoLibUtil.addDataTicket(SerializableDataTicket.ofString(ResourceLocation.fromNamespaceAndPath(vsie.ID, pPath)));
     }
 
 }

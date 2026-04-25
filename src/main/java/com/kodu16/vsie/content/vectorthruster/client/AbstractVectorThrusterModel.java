@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.vectorthruster.client;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 
 import com.kodu16.vsie.content.vectorthruster.AbstractVectorThrusterBlockEntity;
 import com.kodu16.vsie.vsie;
@@ -16,13 +18,13 @@ import java.util.Map;
 public class AbstractVectorThrusterModel extends DefaultedBlockGeoModel<AbstractVectorThrusterBlockEntity> {
 
     public AbstractVectorThrusterModel() {
-        super(new ResourceLocation(vsie.ID,"vector_thruster"));
+        super(ResourceLocation.fromNamespaceAndPath(vsie.ID, "vector_thruster"));
     }
 
     @Override
     public ResourceLocation getModelResource(AbstractVectorThrusterBlockEntity thruster) {
         return switch (thruster.getthrustertype()) {
-            case "basic_vector" -> new ResourceLocation(vsie.ID, "geo/block/basic_vector_thruster.geo.json");
+            case "basic_vector" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "geo/block/basic_vector_thruster.geo.json");
             default -> throw new IllegalStateException("Unexpected value: " + thruster.getthrustertype());
         };
     }
@@ -30,7 +32,7 @@ public class AbstractVectorThrusterModel extends DefaultedBlockGeoModel<Abstract
     @Override
     public ResourceLocation getTextureResource(AbstractVectorThrusterBlockEntity thruster) {
         return switch (thruster.getthrustertype()) {
-            case "basic_vector" -> new ResourceLocation(vsie.ID, "textures/block/basic_vector_thruster.png");
+            case "basic_vector" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/block/basic_vector_thruster.png");
             default -> throw new IllegalStateException("Unexpected value: " + thruster.getthrustertype());
         };
     }
@@ -38,7 +40,7 @@ public class AbstractVectorThrusterModel extends DefaultedBlockGeoModel<Abstract
     @Override
     public ResourceLocation getAnimationResource(AbstractVectorThrusterBlockEntity thruster) {
         return switch (thruster.getthrustertype()) {
-            case "basic_vector" -> new ResourceLocation(vsie.ID, "animations/block/basic_vector_thruster_anim.json");
+            case "basic_vector" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/basic_vector_thruster_anim.json");
             default -> throw new IllegalStateException("Unexpected value: " + thruster.getthrustertype());
         };
     }

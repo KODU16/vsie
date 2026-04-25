@@ -1,6 +1,8 @@
 // 我爱GPT5
 package com.kodu16.vsie.registries;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 import com.kodu16.vsie.network.IFF.IFFC2SPacket;
 import com.kodu16.vsie.network.controlseat.C2S.ControlSeatC2SPacket;
 import com.kodu16.vsie.network.controlseat.C2S.ControlSeatInputC2SPacket;
@@ -33,7 +35,7 @@ import org.valkyrienskies.core.impl.shadow.CH;
 public class ModNetworking {
     public static final String PROTOCOL = "1";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-            new ResourceLocation("vsie", "main"),
+            ResourceLocation.fromNamespaceAndPath("vsie", "main"),
             () -> PROTOCOL,
             PROTOCOL::equals,
             PROTOCOL::equals

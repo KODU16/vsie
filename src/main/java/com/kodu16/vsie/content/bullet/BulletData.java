@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.bullet;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 import com.google.gson.annotations.SerializedName;
 import com.kodu16.vsie.utility.FxData;
 import lombok.Getter;
@@ -23,6 +25,6 @@ public class BulletData {
 
     // 功能：构造一个默认粒子炮子弹数据，确保 tickCount==1 时可读取到 awake 的 FX，且不触发 Gson 反射异常。
     public static BulletData createParticleCannonDefault() {
-        return new BulletData(FxData.createWithAwake(new ResourceLocation("vsie", "particle_cannon_fire")));
+        return new BulletData(FxData.createWithAwake(ResourceLocation.fromNamespaceAndPath("vsie", "particle_cannon_fire")));
     }
 }

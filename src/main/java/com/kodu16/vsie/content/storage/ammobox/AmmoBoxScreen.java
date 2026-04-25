@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.storage.ammobox;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 import com.kodu16.vsie.vsie;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.GuiGraphics;
@@ -14,10 +16,10 @@ import net.minecraft.world.entity.player.Inventory;
 public class AmmoBoxScreen extends AbstractContainerScreen<AmmoBoxContainerMenu> {
 
     private static final ResourceLocation BG_TEXTURE =
-            new ResourceLocation(vsie.ID, "textures/gui/ammo_box/ammo_box.png");
+            ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/ammo_box/ammo_box.png");
 
     private static final ResourceLocation SLOT_TEXTURE =
-            new ResourceLocation("minecraft", "textures/gui/container/slot.png");
+            ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/slot.png");
 
     public AmmoBoxScreen(AmmoBoxContainerMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);

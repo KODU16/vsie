@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.turret.client;
 
+// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
+
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.turret.TurretContainerMenu;
 import com.kodu16.vsie.content.turret.ciws.AbstractCIWSBlockEntity;
@@ -24,8 +26,8 @@ import net.minecraft.world.entity.player.Inventory;
 public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
     private EditBox editBoxSpinX;
     private EditBox editBoxSpinY;
-    private static final ResourceLocation TEXTURE = new ResourceLocation(vsie.ID, "textures/gui/turret/turret_gui.png");
-    private static final ResourceLocation SLOT_TEXTURE = new ResourceLocation(vsie.ID, "textures/gui/slot.png");
+    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/turret_gui.png");
+    private static final ResourceLocation SLOT_TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/slot.png");
 
     public TurretScreen(TurretContainerMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
@@ -49,16 +51,16 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
         // 直接用 GuiGraphics 的 blit 方法绘制纹理
         guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
         // 根据状态选择不同的图标
-        ResourceLocation iconhostile = turret.getData().isTargetsHostile() ? new ResourceLocation(vsie.ID, "textures/gui/turret/target_hostile_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/turret/target_hostile_off.png");
-        ResourceLocation iconpassive = turret.getData().isTargetsPassive() ? new ResourceLocation(vsie.ID, "textures/gui/turret/target_passive_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/turret/target_passive_off.png");
-        ResourceLocation iconplayer = turret.getData().isTargetsPlayers() ? new ResourceLocation(vsie.ID, "textures/gui/turret/target_players_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/turret/target_players_off.png");
-        ResourceLocation iconship = turret.getData().isTargetsShip() ? new ResourceLocation(vsie.ID, "textures/gui/turret/target_ship_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/turret/target_ship_off.png");
-        ResourceLocation iconciws = turret.getData().isTargetsShip() ? new ResourceLocation(vsie.ID, "textures/gui/turret/target_ciws_on.png")
-                : new ResourceLocation(vsie.ID, "textures/gui/turret/target_ciws_off.png");
+        ResourceLocation iconhostile = turret.getData().isTargetsHostile() ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_hostile_on.png")
+                : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_hostile_off.png");
+        ResourceLocation iconpassive = turret.getData().isTargetsPassive() ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_passive_on.png")
+                : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_passive_off.png");
+        ResourceLocation iconplayer = turret.getData().isTargetsPlayers() ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_players_on.png")
+                : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_players_off.png");
+        ResourceLocation iconship = turret.getData().isTargetsShip() ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_ship_on.png")
+                : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_ship_off.png");
+        ResourceLocation iconciws = turret.getData().isTargetsShip() ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_ciws_on.png")
+                : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_ciws_off.png");
 
         // 绘制状态图标
         guiGraphics.blit(iconhostile, this.leftPos + 20, this.topPos + 70, 0, 0, 19, 19, 19,19); // 你可以调整位置和大小
