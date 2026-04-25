@@ -52,8 +52,8 @@ public class StatusIndicator {
         RenderSystem.setShader(GameRenderer::getPositionColorShader);  // 或者直接用 gui 的
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc(); // 默认 alpha 混合
-        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
-        buffer.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
+        // 功能：NeoForge 1.21.1 使用 Tesselator.begin(...) 直接创建并开始写入缓冲。
+        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
         // ────────────── 能量 ──────────────
         float energyAngle = -210 + 60 * energypercent;
         DrawShapeToBuffer.drawPartialArc(buffer, mat,centerX - centerX/20, centerY, SIDEARC_RADIUS, SIDEARC_THICKNESS, MAIN_COLOR,      -210, energyAngle);
@@ -87,7 +87,8 @@ public class StatusIndicator {
         double deltay=(mousey<0?-1:1)*Math.sqrt((double) Math.abs(mousey) /2);
         DrawShapeToBuffer.drawThickLine(buffer,mat,centerX,centerY, (int) (centerX+deltax), (int) (centerY+deltay), 1, MAIN_COLOR);
 
-        BufferUploader.drawWithShader(buffer.end());
+        // 功能：NeoForge 1.21.1 通过 buildOrThrow() 结束构建并提交到 GPU。
+        BufferUploader.drawWithShader(buffer.buildOrThrow());
 
         RenderSystem.disableBlend();
     }

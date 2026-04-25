@@ -32,8 +32,8 @@ public class DrawShape {
 
             RenderSystem.setShader(GameRenderer::getPositionColorShader);  // 或者直接用 gui 的
             RenderSystem.enableBlend();
-            BufferBuilder buffer = Tesselator.getInstance().getBuilder();
-            buffer.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
+            // 功能：NeoForge 1.21.1 使用 Tesselator.begin(...) 直接创建并开始写入缓冲。
+            BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
 
             float innerR = radius - thickness;
 
@@ -56,7 +56,8 @@ public class DrawShape {
                 buffer.addVertex(mat, cx + ix, cy + iy, 0).setColor(r, g, b, a);
             }
 
-            BufferUploader.drawWithShader(buffer.end());
+            // 功能：NeoForge 1.21.1 通过 buildOrThrow() 结束构建并提交到 GPU。
+            BufferUploader.drawWithShader(buffer.buildOrThrow());
 
             RenderSystem.disableBlend();
         }
@@ -79,8 +80,8 @@ public class DrawShape {
 
             RenderSystem.setShader(GameRenderer::getPositionColorShader);
             RenderSystem.enableBlend();
-            BufferBuilder buffer = Tesselator.getInstance().getBuilder();
-            buffer.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
+            // 功能：NeoForge 1.21.1 使用 Tesselator.begin(...) 直接创建并开始写入缓冲。
+            BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
 
             float innerR = radius - thickness;
 
@@ -102,7 +103,8 @@ public class DrawShape {
             }
 
             // Finish the current drawing operation
-            BufferUploader.drawWithShader(buffer.end());
+            // 功能：NeoForge 1.21.1 通过 buildOrThrow() 结束构建并提交到 GPU。
+            BufferUploader.drawWithShader(buffer.buildOrThrow());
 
             // Disable blend mode after drawing
             RenderSystem.disableBlend();
@@ -129,8 +131,8 @@ public class DrawShape {
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         RenderSystem.enableBlend();
 
-        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
-        buffer.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
+        // 功能：NeoForge 1.21.1 使用 Tesselator.begin(...) 直接创建并开始写入缓冲。
+        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
 
         // 按顺序画四条边（每条边用两个点 + 退化连接）
         // 左上外 → 左上内 → 右上外 → 右上内 → 右下外 → 右下内 → 左下外 → 左下内 → 回到左上外
@@ -159,7 +161,8 @@ public class DrawShape {
         buffer.addVertex(mat, centerX - halfOuterWidth, centerY - halfOuterHeight, 0).setColor(r,g,b,a);
         buffer.addVertex(mat, centerX - halfInnerWidth, centerY - halfInnerHeight, 0).setColor(r,g,b,a);
 
-        BufferUploader.drawWithShader(buffer.end());
+        // 功能：NeoForge 1.21.1 通过 buildOrThrow() 结束构建并提交到 GPU。
+        BufferUploader.drawWithShader(buffer.buildOrThrow());
 
         RenderSystem.disableBlend();
     }
@@ -184,8 +187,8 @@ public class DrawShape {
         // 如果你发现颜色偏暗或不显示，可以临时加这行测试：
         // RenderSystem.disableCull();   // 禁用背面剔除（调试用，正式不建议长期开）
 
-        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
-        buffer.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
+        // 功能：NeoForge 1.21.1 使用 Tesselator.begin(...) 直接创建并开始写入缓冲。
+        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
 
         float dx = x2 - x1;
         float dy = y2 - y1;
@@ -208,7 +211,8 @@ public class DrawShape {
         buffer.addVertex(mat, x2 + nx * half, y2 + ny * half, 0).setColor(r,g,b,a); // 终点左
         buffer.addVertex(mat, x2 - nx * half, y2 - ny * half, 0).setColor(r,g,b,a); // 终点右
 
-        BufferUploader.drawWithShader(buffer.end());
+        // 功能：NeoForge 1.21.1 通过 buildOrThrow() 结束构建并提交到 GPU。
+        BufferUploader.drawWithShader(buffer.buildOrThrow());
         RenderSystem.disableBlend();
     }
 
