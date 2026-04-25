@@ -1,5 +1,9 @@
 package com.kodu16.vsie.network.turret;
 
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
@@ -11,7 +15,11 @@ import org.joml.Vector3d;
 
 import java.util.function.Supplier;
 
-public class TurretFirePointC2SPacket {
+public class TurretFirePointC2SPacket implements CustomPacketPayload {
+    // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
+    public static final CustomPacketPayload.Type<TurretFirePointC2SPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "turret_turretfirepointc2spacket"));
+    public static final StreamCodec<FriendlyByteBuf, TurretFirePointC2SPacket> STREAM_CODEC = CustomPacketPayload.codec(TurretFirePointC2SPacket::encode, TurretFirePointC2SPacket::decode);
+
     public final BlockPos pos;
     public final Vector3d postofire;
 
@@ -34,6 +42,11 @@ public class TurretFirePointC2SPacket {
         return new TurretFirePointC2SPacket(pos, postofire);
     }
 
+    // 功能：NeoForge 1.21.1 处理器入口，复用旧版 Supplier<NetworkEvent.Context> 逻辑。
+    public static void handle(TurretFirePointC2SPacket pkt, IPayloadContext context) {
+        handle(pkt, () -> new net.minecraftforge.network.NetworkEvent.Context(context));
+    }
+
     public static void handle(TurretFirePointC2SPacket pkt, Supplier<NetworkEvent.Context> ctxSup) {
         NetworkEvent.Context ctx = ctxSup.get();
         ctx.enqueueWork(() -> {
@@ -49,5 +62,11 @@ public class TurretFirePointC2SPacket {
             }
         });
         ctx.setPacketHandled(true);
+    }
+
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

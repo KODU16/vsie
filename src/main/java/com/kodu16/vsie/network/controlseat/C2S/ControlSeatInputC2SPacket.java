@@ -1,6 +1,10 @@
 // ControlSeatInputC2SPacket.java
 package com.kodu16.vsie.network.controlseat.C2S;
 
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
 import com.mojang.logging.LogUtils;
@@ -15,7 +19,11 @@ import org.slf4j.Logger;
 
 import java.util.function.Supplier;
 
-public class ControlSeatInputC2SPacket {
+public class ControlSeatInputC2SPacket implements CustomPacketPayload {
+    // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
+    public static final CustomPacketPayload.Type<ControlSeatInputC2SPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "controlseat_c2s_controlseatinputc2spacket"));
+    public static final StreamCodec<FriendlyByteBuf, ControlSeatInputC2SPacket> STREAM_CODEC = CustomPacketPayload.codec(ControlSeatInputC2SPacket::encode, ControlSeatInputC2SPacket::decode);
+
     public static final Logger LOGGER = LogUtils.getLogger();
     public final BlockPos pos;
     public final int keys;   // bitmask
@@ -51,6 +59,11 @@ public class ControlSeatInputC2SPacket {
         double aimTargetY = buf.readDouble();
         double aimTargetZ = buf.readDouble();
         return new ControlSeatInputC2SPacket(pos, keys, isviewlock, aimTargetX, aimTargetY, aimTargetZ);
+    }
+
+    // 功能：NeoForge 1.21.1 处理器入口，复用旧版 Supplier<NetworkEvent.Context> 逻辑。
+    public static void handle(ControlSeatInputC2SPacket pkt, IPayloadContext context) {
+        handle(pkt, () -> new net.minecraftforge.network.NetworkEvent.Context(context));
     }
 
     public static void handle(ControlSeatInputC2SPacket pkt, Supplier<NetworkEvent.Context> ctxSup) {
@@ -127,5 +140,11 @@ public class ControlSeatInputC2SPacket {
         public static final int TOGGLESHIELD = 1 << 5; //切换开关护盾
         public static final int TOGGLEFLIGHTASSIST = 1 << 6; //切换飞行辅助
         public static final int TOGGLEANTIGRAVITY = 1 << 7; //切换反重力
+    }
+
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

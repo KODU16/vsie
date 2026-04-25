@@ -1,5 +1,9 @@
 package com.kodu16.vsie.network.controlseat.C2S;
 
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
 import com.kodu16.vsie.content.item.warpdatachip.warp_data_chip;
@@ -14,7 +18,11 @@ import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
 
-public class ControlSeatWarpTargetC2SPacket {
+public class ControlSeatWarpTargetC2SPacket implements CustomPacketPayload {
+    // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
+    public static final CustomPacketPayload.Type<ControlSeatWarpTargetC2SPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "controlseat_c2s_controlseatwarptargetc2spacket"));
+    public static final StreamCodec<FriendlyByteBuf, ControlSeatWarpTargetC2SPacket> STREAM_CODEC = CustomPacketPayload.codec(ControlSeatWarpTargetC2SPacket::encode, ControlSeatWarpTargetC2SPacket::decode);
+
     public final BlockPos controlSeatPos;
     public final int slot;
 
@@ -30,6 +38,11 @@ public class ControlSeatWarpTargetC2SPacket {
 
     public static ControlSeatWarpTargetC2SPacket decode(FriendlyByteBuf buf) {
         return new ControlSeatWarpTargetC2SPacket(buf.readBlockPos(), buf.readVarInt());
+    }
+
+    // 功能：NeoForge 1.21.1 处理器入口，复用旧版 Supplier<NetworkEvent.Context> 逻辑。
+    public static void handle(ControlSeatWarpTargetC2SPacket pkt, IPayloadContext context) {
+        handle(pkt, () -> new net.minecraftforge.network.NetworkEvent.Context(context));
     }
 
     public static void handle(ControlSeatWarpTargetC2SPacket pkt, Supplier<NetworkEvent.Context> ctxSup) {
@@ -65,5 +78,11 @@ public class ControlSeatWarpTargetC2SPacket {
             sender.sendSystemMessage(Component.literal("已将下一次跃迁目标设为: " + serverData.warpTargetName + " -> " + serverData.warpTargetDimension + " " + serverData.warpTargetPos + "，控制椅进入 warp 准备状态"));
         });
         ctx.setPacketHandled(true);
+    }
+
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

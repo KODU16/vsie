@@ -1,5 +1,9 @@
 package com.kodu16.vsie.network.rail;
 
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.kodu16.vsie.content.misc.electromagnet_rail.core.ElectroMagnetRailCoreBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
@@ -10,7 +14,11 @@ import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
 
-public class ElectroMagnetRailCoreDetectC2SPacket {
+public class ElectroMagnetRailCoreDetectC2SPacket implements CustomPacketPayload {
+    // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
+    public static final CustomPacketPayload.Type<ElectroMagnetRailCoreDetectC2SPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "rail_electromagnetrailcoredetectc2spacket"));
+    public static final StreamCodec<FriendlyByteBuf, ElectroMagnetRailCoreDetectC2SPacket> STREAM_CODEC = CustomPacketPayload.codec(ElectroMagnetRailCoreDetectC2SPacket::encode, ElectroMagnetRailCoreDetectC2SPacket::decode);
+
     private final BlockPos pos;
 
     public ElectroMagnetRailCoreDetectC2SPacket(BlockPos pos) {
@@ -23,6 +31,11 @@ public class ElectroMagnetRailCoreDetectC2SPacket {
 
     public static ElectroMagnetRailCoreDetectC2SPacket decode(FriendlyByteBuf buf) {
         return new ElectroMagnetRailCoreDetectC2SPacket(buf.readBlockPos());
+    }
+
+    // 功能：NeoForge 1.21.1 处理器入口，复用旧版 Supplier<NetworkEvent.Context> 逻辑。
+    public static void handle(ElectroMagnetRailCoreDetectC2SPacket pkt, IPayloadContext context) {
+        handle(pkt, () -> new net.minecraftforge.network.NetworkEvent.Context(context));
     }
 
     public static void handle(ElectroMagnetRailCoreDetectC2SPacket pkt, Supplier<NetworkEvent.Context> ctxSupplier) {
@@ -42,5 +55,11 @@ public class ElectroMagnetRailCoreDetectC2SPacket {
             }
         });
         ctx.setPacketHandled(true);
+    }
+
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

@@ -1,5 +1,9 @@
 package com.kodu16.vsie.network.controlseat.S2C;
 
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.mojang.logging.LogUtils;
@@ -8,8 +12,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
 import org.slf4j.Logger;
 
@@ -17,7 +21,11 @@ import java.util.function.Supplier;
 
 //按键的packet必须慢发包，否则按一下按键跳三下，所以单独出来了
 //不止是按键，也包括IFF之类的不是随时更新的内容
-public class ControlSeatInputS2CPacket {
+public class ControlSeatInputS2CPacket implements CustomPacketPayload {
+    // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
+    public static final CustomPacketPayload.Type<ControlSeatInputS2CPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "controlseat_s2c_controlseatinputs2cpacket"));
+    public static final StreamCodec<FriendlyByteBuf, ControlSeatInputS2CPacket> STREAM_CODEC = CustomPacketPayload.codec((buf, pkt) -> pkt.write(buf), ControlSeatInputS2CPacket::decode);
+
     private final BlockPos pos;
     private final int channelencode;
 
@@ -41,6 +49,11 @@ public class ControlSeatInputS2CPacket {
     }
 
     // 处理客户端接收到的数据包
+    // 功能：NeoForge 1.21.1 处理器入口，复用旧版实例方法逻辑。
+    public static void handle(ControlSeatInputS2CPacket pkt, IPayloadContext context) {
+        pkt.handle(() -> new net.minecraftforge.network.NetworkEvent.Context(context));
+    }
+
     public void handle(Supplier<NetworkEvent.Context> ctx) {
         Logger LOGGER = LogUtils.getLogger();
         //LOGGER.warn(String.valueOf(Component.literal("S2C packet created")));
@@ -100,4 +113,10 @@ public class ControlSeatInputS2CPacket {
     }
 
     // 实现 Packet 接口的方法
+
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
+    }
 }

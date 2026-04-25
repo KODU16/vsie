@@ -83,7 +83,7 @@ public class ClientMouseHandler {
         }
         if (controlSeat.getServerData().isWarpPreparing) {
             // 功能：warp 准备状态下再次按 P，不再弹出菜单，而是直接通知服务端取消自动对准与目标记录。
-            ModNetworking.CHANNEL.sendToServer(new ControlSeatWarpCancelC2SPacket(pos));
+            ModNetworking.sendToServer(new ControlSeatWarpCancelC2SPacket(pos));
             if (minecraft.screen instanceof ControlSeatWarpSelectionScreen) {
                 minecraft.setScreen(null);
             }

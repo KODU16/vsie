@@ -83,7 +83,7 @@ public class ScreenScreen extends AbstractContainerScreen<ScreenContainerMenu> {
         BlockPos pos = menu.getBlockEntity().getBlockPos(); // 如果有 getBlockEntity() 方法
         this.addRenderableWidget(Button.builder(
                         Component.literal("switch"),
-                        button -> ModNetworking.CHANNEL.sendToServer(new ScreentypeC2SPacket(pos,(menu.getBlockEntity().displaytype+1)%2)))
+                        button -> ModNetworking.sendToServer(new ScreentypeC2SPacket(pos,(menu.getBlockEntity().displaytype+1)%2)))
                 .pos(this.leftPos + 73, this.topPos + 45)
                 .size(30, 15)
                 .build());
@@ -130,7 +130,7 @@ public class ScreenScreen extends AbstractContainerScreen<ScreenContainerMenu> {
             be.offsety = offsetY;
             be.offsetz = offsetZ;
             BlockPos pos = menu.getBlockEntity().getBlockPos();
-            ModNetworking.CHANNEL.sendToServer(
+            ModNetworking.sendToServer(
                     new ScreenC2SPacket(pos, spinX, spinY, offsetX, offsetY, offsetZ)
             );
 

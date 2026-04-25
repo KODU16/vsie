@@ -1,5 +1,9 @@
 package com.kodu16.vsie.network.controlseat.S2C;
 
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.kodu16.vsie.content.controlseat.ActiveWeaponHudInfo;
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
@@ -8,8 +12,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
 import org.slf4j.Logger;
 
@@ -18,7 +22,11 @@ import java.util.List;
 import java.util.function.Supplier;
 
 
-public class ControlSeatStatusS2CPacket {
+public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
+    // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
+    public static final CustomPacketPayload.Type<ControlSeatStatusS2CPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "controlseat_s2c_controlseatstatuss2cpacket"));
+    public static final StreamCodec<FriendlyByteBuf, ControlSeatStatusS2CPacket> STREAM_CODEC = CustomPacketPayload.codec((buf, pkt) -> pkt.write(buf), ControlSeatStatusS2CPacket::decode);
+
     //船只整体的各项状态，不需要快包那么快更新，但是也不能很慢
     private final BlockPos pos;
     public int energyavalible;
@@ -100,6 +108,11 @@ public class ControlSeatStatusS2CPacket {
     }
 
     // 处理客户端接收到的数据包
+    // 功能：NeoForge 1.21.1 处理器入口，复用旧版实例方法逻辑。
+    public static void handle(ControlSeatStatusS2CPacket pkt, IPayloadContext context) {
+        pkt.handle(() -> new net.minecraftforge.network.NetworkEvent.Context(context));
+    }
+
     public void handle(Supplier<NetworkEvent.Context> ctx) {
         Logger LOGGER = LogUtils.getLogger();
         ctx.get().enqueueWork(() ->
@@ -129,5 +142,11 @@ public class ControlSeatStatusS2CPacket {
                     clientData.activeWeaponHudInfos = new ArrayList<>(activeWeaponHudInfos);
                 }));
         ctx.get().setPacketHandled(true);
+    }
+
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

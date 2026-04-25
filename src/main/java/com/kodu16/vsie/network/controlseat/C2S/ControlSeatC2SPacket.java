@@ -1,6 +1,10 @@
 // ControlSeatInputC2SPacket.java
 package com.kodu16.vsie.network.controlseat.C2S;
 
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
 import com.mojang.logging.LogUtils;
@@ -16,7 +20,11 @@ import org.joml.Vector3d;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 
-public class ControlSeatC2SPacket {
+public class ControlSeatC2SPacket implements CustomPacketPayload {
+    // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
+    public static final CustomPacketPayload.Type<ControlSeatC2SPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "controlseat_c2s_controlseatc2spacket"));
+    public static final StreamCodec<FriendlyByteBuf, ControlSeatC2SPacket> STREAM_CODEC = CustomPacketPayload.codec(ControlSeatC2SPacket::encode, ControlSeatC2SPacket::decode);
+
     public static final Logger LOGGER = LogUtils.getLogger();
     public final BlockPos pos;
     public final float mousex;
@@ -51,6 +59,11 @@ public class ControlSeatC2SPacket {
         int keys = buf.readVarInt();
         boolean mouseLpress = buf.readBoolean();
         return new ControlSeatC2SPacket(pos, mousex, mousey, roll, keys, mouseLpress);
+    }
+
+    // 功能：NeoForge 1.21.1 处理器入口，复用旧版 Supplier<NetworkEvent.Context> 逻辑。
+    public static void handle(ControlSeatC2SPacket pkt, IPayloadContext context) {
+        handle(pkt, () -> new net.minecraftforge.network.NetworkEvent.Context(context));
     }
 
     public static void handle(ControlSeatC2SPacket pkt, Supplier<NetworkEvent.Context> ctxSup) {
@@ -124,5 +137,11 @@ public class ControlSeatC2SPacket {
         public static final int CTRL  = 1 << 7;
         public static final int MOUSEL = 1 << 8;  // 鼠标左
         public static final int MOUSER  = 1 << 9;  // 鼠标右
+    }
+
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

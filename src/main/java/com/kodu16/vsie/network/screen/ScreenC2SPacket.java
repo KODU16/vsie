@@ -1,5 +1,9 @@
 package com.kodu16.vsie.network.screen;
 
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
@@ -15,7 +19,11 @@ import org.slf4j.Logger;
 
 import java.util.function.Supplier;
 
-public class ScreenC2SPacket {
+public class ScreenC2SPacket implements CustomPacketPayload {
+    // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
+    public static final CustomPacketPayload.Type<ScreenC2SPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "screen_screenc2spacket"));
+    public static final StreamCodec<FriendlyByteBuf, ScreenC2SPacket> STREAM_CODEC = CustomPacketPayload.codec(ScreenC2SPacket::encode, ScreenC2SPacket::decode);
+
 
     private static final Logger LOGGER = LogUtils.getLogger();
     public final BlockPos pos;
@@ -54,6 +62,11 @@ public class ScreenC2SPacket {
         return new ScreenC2SPacket(pos, spinx, spiny, offsetx, offsety, offsetz);
     }
 
+    // 功能：NeoForge 1.21.1 处理器入口，复用旧版 Supplier<NetworkEvent.Context> 逻辑。
+    public static void handle(ScreenC2SPacket msg, IPayloadContext context) {
+        handle(msg, () -> new net.minecraftforge.network.NetworkEvent.Context(context));
+    }
+
     public static void handle(ScreenC2SPacket msg, Supplier<NetworkEvent.Context> ctxSupplier) {
         NetworkEvent.Context ctx = ctxSupplier.get();
 
@@ -70,5 +83,11 @@ public class ScreenC2SPacket {
         });
 
         ctx.setPacketHandled(true);
+    }
+
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

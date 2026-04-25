@@ -1,5 +1,9 @@
 package com.kodu16.vsie.network.IFF;
 
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.mojang.logging.LogUtils;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -11,7 +15,11 @@ import org.slf4j.Logger;
 
 import java.util.function.Supplier;
 
-public class IFFC2SPacket {
+public class IFFC2SPacket implements CustomPacketPayload {
+    // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
+    public static final CustomPacketPayload.Type<IFFC2SPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "iff_iffc2spacket"));
+    public static final StreamCodec<FriendlyByteBuf, IFFC2SPacket> STREAM_CODEC = CustomPacketPayload.codec(IFFC2SPacket::encode, IFFC2SPacket::decode);
+
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
@@ -32,6 +40,11 @@ public class IFFC2SPacket {
         String a = buf.readUtf(64);
         String b = buf.readUtf(64);
         return new IFFC2SPacket(a, b);
+    }
+
+    // 功能：NeoForge 1.21.1 处理器入口，复用旧版 Supplier<NetworkEvent.Context> 逻辑。
+    public static void handle(IFFC2SPacket msg, IPayloadContext context) {
+        handle(msg, () -> new net.minecraftforge.network.NetworkEvent.Context(context));
     }
 
     public static void handle(IFFC2SPacket msg, Supplier<NetworkEvent.Context> ctxSupplier) {
@@ -78,5 +91,11 @@ public class IFFC2SPacket {
         });
 
         ctx.setPacketHandled(true);
+    }
+
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

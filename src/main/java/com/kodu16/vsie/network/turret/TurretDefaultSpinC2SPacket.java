@@ -1,6 +1,10 @@
 // ControlSeatInputC2SPacket.java
 package com.kodu16.vsie.network.turret;
 
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
@@ -14,7 +18,11 @@ import org.slf4j.Logger;
 
 import java.util.function.Supplier;
 
-public class TurretDefaultSpinC2SPacket {
+public class TurretDefaultSpinC2SPacket implements CustomPacketPayload {
+    // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
+    public static final CustomPacketPayload.Type<TurretDefaultSpinC2SPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "turret_turretdefaultspinc2spacket"));
+    public static final StreamCodec<FriendlyByteBuf, TurretDefaultSpinC2SPacket> STREAM_CODEC = CustomPacketPayload.codec(TurretDefaultSpinC2SPacket::encode, TurretDefaultSpinC2SPacket::decode);
+
     public static final Logger LOGGER = LogUtils.getLogger();
     public final BlockPos pos;
     public final int defaultspinx;
@@ -39,6 +47,11 @@ public class TurretDefaultSpinC2SPacket {
         return new TurretDefaultSpinC2SPacket(pos,defaultspinx,defaultspiny);
     }
 
+    // 功能：NeoForge 1.21.1 处理器入口，复用旧版 Supplier<NetworkEvent.Context> 逻辑。
+    public static void handle(TurretDefaultSpinC2SPacket pkt, IPayloadContext context) {
+        handle(pkt, () -> new net.minecraftforge.network.NetworkEvent.Context(context));
+    }
+
     public static void handle(TurretDefaultSpinC2SPacket pkt, Supplier<NetworkEvent.Context> ctxSup) {
         //对于炮塔主要考虑的只有一个，当前数据包改了哪个数值
         NetworkEvent.Context ctx = ctxSup.get();
@@ -55,5 +68,11 @@ public class TurretDefaultSpinC2SPacket {
             turret.setChanged();
         });
         ctx.setPacketHandled(true);
+    }
+
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

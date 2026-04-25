@@ -1,8 +1,6 @@
 // 我爱GPT5
 package com.kodu16.vsie.registries;
 
-// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
-
 import com.kodu16.vsie.network.IFF.IFFC2SPacket;
 import com.kodu16.vsie.network.controlseat.C2S.ControlSeatC2SPacket;
 import com.kodu16.vsie.network.controlseat.C2S.ControlSeatInputC2SPacket;
@@ -13,9 +11,9 @@ import com.kodu16.vsie.network.controlseat.S2C.ControlSeatS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatStatusS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.NearbyShipsS2CPacket;
 import com.kodu16.vsie.network.fuel.SyncThrusterFuelsPacket;
-import com.kodu16.vsie.network.rail.ElectroMagnetRailCoreDetectC2SPacket;
 import com.kodu16.vsie.network.fx.FxBlockS2CPacket;
 import com.kodu16.vsie.network.fx.FxEntityS2CPacket;
+import com.kodu16.vsie.network.rail.ElectroMagnetRailCoreDetectC2SPacket;
 import com.kodu16.vsie.network.screen.ScreenC2SPacket;
 import com.kodu16.vsie.network.screen.ScreentypeC2SPacket;
 import com.kodu16.vsie.network.turret.HeavyTurretC2SPacket;
@@ -23,176 +21,63 @@ import com.kodu16.vsie.network.turret.TurretC2SPacket;
 import com.kodu16.vsie.network.turret.TurretDefaultSpinC2SPacket;
 import com.kodu16.vsie.network.turret.TurretFirePointC2SPacket;
 import com.kodu16.vsie.network.weapon.WeaponC2SPacket;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.NetworkDirection;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.PacketDistributor;
-import net.minecraftforge.network.simple.SimpleChannel;
-import org.valkyrienskies.core.impl.shadow.CH;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
-@SuppressWarnings({"removal"})
-public class ModNetworking {
+public final class ModNetworking {
     public static final String PROTOCOL = "1";
-    public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-            ResourceLocation.fromNamespaceAndPath("vsie", "main"),
-            () -> PROTOCOL,
-            PROTOCOL::equals,
-            PROTOCOL::equals
-    );
 
-    private static int id = 0;
-    private static int nextId() { return id++; }
-
-    public static void register() {
-        // 注册C2S数据包
-        CHANNEL.registerMessage(
-                nextId(),
-                ControlSeatC2SPacket.class,
-                ControlSeatC2SPacket::encode,
-                ControlSeatC2SPacket::decode,
-                ControlSeatC2SPacket::handle
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                ControlSeatInputC2SPacket.class,
-                ControlSeatInputC2SPacket::encode,
-                ControlSeatInputC2SPacket::decode,
-                ControlSeatInputC2SPacket::handle
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                ControlSeatWarpTargetC2SPacket.class,
-                ControlSeatWarpTargetC2SPacket::encode,
-                ControlSeatWarpTargetC2SPacket::decode,
-                ControlSeatWarpTargetC2SPacket::handle
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                ControlSeatWarpCancelC2SPacket.class,
-                ControlSeatWarpCancelC2SPacket::encode,
-                ControlSeatWarpCancelC2SPacket::decode,
-                ControlSeatWarpCancelC2SPacket::handle
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                TurretC2SPacket.class, // 新 C2S 数据包类
-                TurretC2SPacket::encode, // 编码方法
-                TurretC2SPacket::decode, // 解码方法
-                TurretC2SPacket::handle  // 处理方法
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                TurretDefaultSpinC2SPacket.class, // 新 C2S 数据包类
-                TurretDefaultSpinC2SPacket::encode, // 编码方法
-                TurretDefaultSpinC2SPacket::decode, // 解码方法
-                TurretDefaultSpinC2SPacket::handle  // 处理方法
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                TurretFirePointC2SPacket.class,
-                TurretFirePointC2SPacket::encode,
-                TurretFirePointC2SPacket::decode,
-                TurretFirePointC2SPacket::handle
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                HeavyTurretC2SPacket.class, // 新 C2S 数据包类
-                HeavyTurretC2SPacket::encode, // 编码方法
-                HeavyTurretC2SPacket::decode, // 解码方法
-                HeavyTurretC2SPacket::handle  // 处理方法
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                WeaponC2SPacket.class,
-                WeaponC2SPacket::encode,
-                WeaponC2SPacket::decode,
-                WeaponC2SPacket::handle
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                IFFC2SPacket.class,
-                IFFC2SPacket::encode,
-                IFFC2SPacket::decode,
-                IFFC2SPacket::handle
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                ScreenC2SPacket.class,
-                ScreenC2SPacket::encode,
-                ScreenC2SPacket::decode,
-                ScreenC2SPacket::handle
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                ScreentypeC2SPacket.class,
-                ScreentypeC2SPacket::encode,
-                ScreentypeC2SPacket::decode,
-                ScreentypeC2SPacket::handle
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                ElectroMagnetRailCoreDetectC2SPacket.class,
-                ElectroMagnetRailCoreDetectC2SPacket::encode,
-                ElectroMagnetRailCoreDetectC2SPacket::decode,
-                ElectroMagnetRailCoreDetectC2SPacket::handle
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                ControlSeatS2CPacket.class,
-                ControlSeatS2CPacket::write,
-                ControlSeatS2CPacket::decode,
-                ControlSeatS2CPacket::handle
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                ControlSeatInputS2CPacket.class,
-                ControlSeatInputS2CPacket::write,
-                ControlSeatInputS2CPacket::decode,
-                ControlSeatInputS2CPacket::handle
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                ControlSeatStatusS2CPacket.class,
-                ControlSeatStatusS2CPacket::write,
-                ControlSeatStatusS2CPacket::decode,
-                ControlSeatStatusS2CPacket::handle
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                NearbyShipsS2CPacket.class,
-                NearbyShipsS2CPacket::encode,
-                NearbyShipsS2CPacket::decode,
-                NearbyShipsS2CPacket::handle
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                FxBlockS2CPacket.class,
-                FxBlockS2CPacket::encode,
-                FxBlockS2CPacket::decode,
-                FxBlockS2CPacket::handle
-        );
-        CHANNEL.registerMessage(
-                nextId(),
-                FxEntityS2CPacket.class,
-                FxEntityS2CPacket::encode,
-                FxEntityS2CPacket::decode,
-                FxEntityS2CPacket::handle
-        );
-
-        CHANNEL.messageBuilder(SyncThrusterFuelsPacket.class, nextId(), NetworkDirection.PLAY_TO_CLIENT)
-                .encoder(SyncThrusterFuelsPacket::encode)
-                .decoder(SyncThrusterFuelsPacket::decode)
-                .consumerMainThread(SyncThrusterFuelsPacket::handle)
-                .add();
+    private ModNetworking() {
     }
 
-    public static <MSG> void sendToAll(MSG message) {
-        CHANNEL.send(PacketDistributor.ALL.noArg(), message);
+    // 功能：在 NeoForge 1.21.1 中通过事件总线监听 RegisterPayloadHandlersEvent 来注册所有网络载荷。
+    public static void register(IEventBus modBus) {
+        modBus.addListener(ModNetworking::registerPayloads);
     }
 
-    public static <MSG> void sendToPlayer(MSG message, ServerPlayer player) {
-        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), message);
+    // 功能：按方向注册 play 阶段 payload，替代旧版 SimpleChannel#registerMessage。
+    private static void registerPayloads(RegisterPayloadHandlersEvent event) {
+        PayloadRegistrar registrar = event.registrar(PROTOCOL);
+
+        registrar.playToServer(ControlSeatC2SPacket.TYPE, ControlSeatC2SPacket.STREAM_CODEC, ControlSeatC2SPacket::handle);
+        registrar.playToServer(ControlSeatInputC2SPacket.TYPE, ControlSeatInputC2SPacket.STREAM_CODEC, ControlSeatInputC2SPacket::handle);
+        registrar.playToServer(ControlSeatWarpTargetC2SPacket.TYPE, ControlSeatWarpTargetC2SPacket.STREAM_CODEC, ControlSeatWarpTargetC2SPacket::handle);
+        registrar.playToServer(ControlSeatWarpCancelC2SPacket.TYPE, ControlSeatWarpCancelC2SPacket.STREAM_CODEC, ControlSeatWarpCancelC2SPacket::handle);
+        registrar.playToServer(TurretC2SPacket.TYPE, TurretC2SPacket.STREAM_CODEC, TurretC2SPacket::handle);
+        registrar.playToServer(TurretDefaultSpinC2SPacket.TYPE, TurretDefaultSpinC2SPacket.STREAM_CODEC, TurretDefaultSpinC2SPacket::handle);
+        registrar.playToServer(TurretFirePointC2SPacket.TYPE, TurretFirePointC2SPacket.STREAM_CODEC, TurretFirePointC2SPacket::handle);
+        registrar.playToServer(HeavyTurretC2SPacket.TYPE, HeavyTurretC2SPacket.STREAM_CODEC, HeavyTurretC2SPacket::handle);
+        registrar.playToServer(WeaponC2SPacket.TYPE, WeaponC2SPacket.STREAM_CODEC, WeaponC2SPacket::handle);
+        registrar.playToServer(IFFC2SPacket.TYPE, IFFC2SPacket.STREAM_CODEC, IFFC2SPacket::handle);
+        registrar.playToServer(ScreenC2SPacket.TYPE, ScreenC2SPacket.STREAM_CODEC, ScreenC2SPacket::handle);
+        registrar.playToServer(ScreentypeC2SPacket.TYPE, ScreentypeC2SPacket.STREAM_CODEC, ScreentypeC2SPacket::handle);
+        registrar.playToServer(ElectroMagnetRailCoreDetectC2SPacket.TYPE, ElectroMagnetRailCoreDetectC2SPacket.STREAM_CODEC, ElectroMagnetRailCoreDetectC2SPacket::handle);
+
+        registrar.playToClient(ControlSeatS2CPacket.TYPE, ControlSeatS2CPacket.STREAM_CODEC, ControlSeatS2CPacket::handle);
+        registrar.playToClient(ControlSeatInputS2CPacket.TYPE, ControlSeatInputS2CPacket.STREAM_CODEC, ControlSeatInputS2CPacket::handle);
+        registrar.playToClient(ControlSeatStatusS2CPacket.TYPE, ControlSeatStatusS2CPacket.STREAM_CODEC, ControlSeatStatusS2CPacket::handle);
+        registrar.playToClient(NearbyShipsS2CPacket.TYPE, NearbyShipsS2CPacket.STREAM_CODEC, NearbyShipsS2CPacket::handle);
+        registrar.playToClient(FxBlockS2CPacket.TYPE, FxBlockS2CPacket.STREAM_CODEC, FxBlockS2CPacket::handle);
+        registrar.playToClient(FxEntityS2CPacket.TYPE, FxEntityS2CPacket.STREAM_CODEC, FxEntityS2CPacket::handle);
+        registrar.playToClient(SyncThrusterFuelsPacket.TYPE, SyncThrusterFuelsPacket.STREAM_CODEC, SyncThrusterFuelsPacket::handle);
     }
 
+    // 功能：封装客户端->服务端发包，统一替换旧 CHANNEL.sendToServer。
+    public static void sendToServer(CustomPacketPayload payload) {
+        PacketDistributor.sendToServer(payload);
+    }
+
+    // 功能：封装服务端->全体玩家发包，统一替换旧 PacketDistributor.ALL。
+    public static void sendToAll(CustomPacketPayload payload) {
+        PacketDistributor.sendToAllPlayers(payload);
+    }
+
+    // 功能：封装服务端->指定玩家发包，统一替换旧 PacketDistributor.PLAYER。
+    public static void sendToPlayer(CustomPacketPayload payload, ServerPlayer player) {
+        PacketDistributor.sendToPlayer(player, payload);
+    }
 }
