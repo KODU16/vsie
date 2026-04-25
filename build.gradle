@@ -25,6 +25,12 @@ configureModSubprojects('vsie')
 
 version = mod_version
 group = mod_group_id
+/*jarJar.enable()
+reobf {
+    jarJar { }
+}
+
+tasks.jarJar.finalizedBy('reobfJarJar')*/
 
 base {
     archivesName = mod_id
@@ -77,9 +83,6 @@ sourceSets.main.resources { srcDirs = ['src/main/resources', 'src/generated/reso
 repositories {
     mavenLocal()
     mavenCentral()
-    maven { url = "https://maven.ryanhcode.dev/releases" } // Sable, Offroad, Simulated, Aeronautics
-    maven { url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/' }
-
     maven {
         name = "Modrinth Maven"
         url = "https://api.modrinth.com/maven"
@@ -95,6 +98,7 @@ repositories {
             includeGroup("curse.maven")
         }
     }
+    maven { url = "https://maven.ithundxr.dev/snapshots" } // Registrate
     maven {
         url = "https://maven.theillusivec4.top/"
     }
@@ -113,9 +117,6 @@ repositories {
 
     maven { // Ritchie's Projectile Library
         url = "https://maven.realrobotix.me/master/"
-        content {
-            includeGroup("com.rbasamoyai") // THIS IS IMPORTANT
-        }
     }
     maven {
         // 功能：切换到 LDLib2 在 1.21.1 NeoForge 常用的快照仓库地址。
@@ -141,6 +142,14 @@ repositories {
         name = "RyanHCode Maven"
         url = "https://maven.ryanhcode.dev/releases"
     }
+
+    maven {
+        name = 'GeckoLib'
+        url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
+        content {
+            includeGroup("software.bernie.geckolib")
+        }
+    }
 }
 
 dependencies {
@@ -153,29 +162,27 @@ dependencies {
     implementation "net.neoforged:neoforge:${neo_version}"
     // 功能：通过注解处理器启用 Mixin 编译期处理（含 refmap 生成），替代旧 MixinGradle 插件流程。
     annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
-    compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
+    compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.5.0"))
     // 功能：将 MixinExtras 从 Forge 变体切换为 NeoForge 变体，匹配 1.21.1 运行环境。
-    implementation(jarJar("io.github.llamalad7:mixinextras-neoforge:0.4.1")) {
-        jarJar.ranged(it, "[0.4.1,)")
+    implementation(jarJar("io.github.llamalad7:mixinextras-neoforge:0.5.0")) {
     }
     implementation "com.fasterxml.jackson.core:jackson-annotations:2.13.3"
-    // 功能：保留 Sable 公共 API 依赖，不改动既有代码引用。
-    api("dev.ryanhcode.sable:sable-common-${project.minecraft_version}:${project.sable_version}")
     // Create
-    implementation "dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}"
-    implementation "net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}"
-    implementation "com.tterrag.registrate:Registrate:${registrate_version}"
-    implementation("com.rbasamoyai:ritchiesprojectilelib:${rpl_version}") { transitive = false }
+    implementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
+    implementation("net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}")
+    compileOnly("dev.engine-room.flywheel:flywheel-neoforge-api-${minecraft_version}:${flywheel_version}")
+    runtimeOnly("dev.engine-room.flywheel:flywheel-neoforge-${minecraft_version}:${flywheel_version}")
+    implementation("com.tterrag.registrate:Registrate:${registrate_version}")
+    implementation("com.rbasamoyai:ritchiesprojectilelib:2.1.0-dev+mc.1.21.1-neoforge-build.191") { transitive = false }
     //// RUNTIME ////
-    runtimeOnly "com.simibubi.create:create-${minecraft_version}:${create_version}:all"
 
     // photon
     // 功能：将 LDLib 依赖切换为 NeoForge 命名变体（LDLib2）。
-    implementation("com.lowdragmc.ldlib:ldlib-neoforge-${minecraft_version}:${ldlib_version}") { transitive = false }
+    implementation("com.lowdragmc.ldlib2:ldlib2-neoforge-${minecraft_version}:${ldlib_version}:all")
     // 功能：与 LDLib2 保持一致，Photon 也使用 NeoForge 命名变体。
     implementation("com.lowdragmc.photon:photon-neoforge-${minecraft_version}:${photon_version}") { transitive = false }
 
-    implementation "software.bernie.geckolib:geckolib-forge-${minecraft_version}:${geckolib_version}"
+    implementation "software.bernie.geckolib:geckolib-neoforge-${minecraft_version}:${geckolib_version}"
 }
 
 tasks.named('processResources', ProcessResources).configure {
