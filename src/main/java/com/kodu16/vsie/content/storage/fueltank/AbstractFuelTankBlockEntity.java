@@ -3,16 +3,12 @@ package com.kodu16.vsie.content.storage.fueltank;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.capabilities.Capability;
-import net.neoforged.neoforge.capabilities.ForgeCapabilities;
-import net.neoforged.neoforge.common.util.LazyOptional;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
@@ -21,8 +17,6 @@ import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache
 import software.bernie.geckolib.core.animatable.instance.SingletonAnimatableInstanceCache;
 import software.bernie.geckolib.core.animation.AnimatableManager;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
 
 public abstract class AbstractFuelTankBlockEntity extends SmartBlockEntity implements GeoBlockEntity {
@@ -52,8 +46,6 @@ public abstract class AbstractFuelTankBlockEntity extends SmartBlockEntity imple
         }
     };
 
-    private LazyOptional<IFluidHandler> holder = LazyOptional.of(() -> fluidTank);
-
     public BlockPos linkedcontrolseatpos = new BlockPos(0, 0, 0);
     private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
 
@@ -72,26 +64,9 @@ public abstract class AbstractFuelTankBlockEntity extends SmartBlockEntity imple
         return fluidTank;
     }
 
-    @Nonnull
-    @Override
-    public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> cap, @Nullable Direction side) {
-        // 功能：适配 NeoForge 1.21.1 的能力命名空间，继续暴露流体处理能力给桶与管道等交互方。
-        if (cap == ForgeCapabilities.FLUID_HANDLER) {
-            return holder.cast();
-        }
-        return super.getCapability(cap, side);
-    }
-
-    @Override
-    public void invalidateCaps() {
-        super.invalidateCaps();
-        holder.invalidate();
-    }
-
-    @Override
-    public void reviveCaps() {
-        super.reviveCaps();
-        holder = LazyOptional.of(() -> fluidTank);
+    // 功能：提供给 NeoForge 1.21.1 capability 注册器的流体处理器实例。
+    public IFluidHandler getFluidHandler() {
+        return fluidTank;
     }
 
     // ───────────────────────────────────────────────

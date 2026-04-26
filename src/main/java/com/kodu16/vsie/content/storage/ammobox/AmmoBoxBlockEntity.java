@@ -2,7 +2,6 @@ package com.kodu16.vsie.content.storage.ammobox;
 
 import com.kodu16.vsie.registries.vsieBlockEntities;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.MenuProvider;
@@ -14,11 +13,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.IItemHandlerModifiable;
-import net.minecraftforge.items.ItemStackHandler;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
+import net.neoforged.neoforge.items.ItemStackHandler;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -33,33 +29,13 @@ public class AmmoBoxBlockEntity extends BlockEntity implements MenuProvider, IIt
         }
     };
 
-    // 缓存 capability，避免每次 getCapability 都 new 一个 LazyOptional
-    private LazyOptional<IItemHandlerModifiable> itemHandlerCap = LazyOptional.of(() -> this);
-
     public AmmoBoxBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state); // 换成你的注册对象
     }
 
-    // Hopper/管道支持：暴露 ITEM_HANDLER
-    @Override
-    public @NotNull <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
-        if (cap == ForgeCapabilities.ITEM_HANDLER) {
-            return itemHandlerCap.cast();
-        }
-        return super.getCapability(cap, side);
-    }
-
-
-    @Override
-    public void invalidateCaps() {
-        super.invalidateCaps();
-        itemHandlerCap.invalidate();
-    }
-
-    @Override
-    public void reviveCaps() {
-        super.reviveCaps();
-        itemHandlerCap = LazyOptional.of(() -> this);
+    // 功能：提供给 NeoForge 1.21.1 capability 注册器的物品处理器实例。
+    public IItemHandlerModifiable getItemHandler() {
+        return this;
     }
 
     // ========== NBT 保存/加载 ==========
