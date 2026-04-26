@@ -43,8 +43,9 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
     }
 
     @Override
-    protected void defineSynchedData() {
-        this.entityData.define(DATA_AGE, 0);
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        // 功能：适配 NeoForge 1.21.1 的实体数据注册方式，并初始化导弹生命周期计数。
+        builder.define(DATA_AGE, 0);
     }
 
     public void setTarget(Ship ship) {

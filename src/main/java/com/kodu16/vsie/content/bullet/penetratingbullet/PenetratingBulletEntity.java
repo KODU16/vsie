@@ -139,8 +139,9 @@ public class PenetratingBulletEntity extends Projectile {
             SynchedEntityData.defineId(PenetratingBulletEntity.class, EntityDataSerializers.INT);
 
     @Override
-    protected void defineSynchedData() {
-        this.entityData.define(DATA_K, 1);
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        // 功能：适配 NeoForge 1.21.1 的实体同步数据定义方式，并初始化贯穿系数 K。
+        builder.define(DATA_K, 1);
     }
 
     public int getK() { return this.entityData.get(DATA_K); }
