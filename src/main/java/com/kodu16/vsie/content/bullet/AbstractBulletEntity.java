@@ -23,6 +23,7 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.network.syncher.SynchedEntityData;
 import software.bernie.example.registry.EntityRegistry;
 
 import java.util.List;
@@ -167,7 +168,7 @@ public abstract class AbstractBulletEntity extends Projectile {
     }
 
     @Override
-    protected void defineSynchedData() {
-
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        // 功能：适配 NeoForge 1.21.1 的实体同步数据定义签名；当前子弹无需额外同步字段。
     }
 }
