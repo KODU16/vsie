@@ -19,13 +19,9 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.IItemHandlerModifiable;
-import net.minecraftforge.items.ItemStackHandler;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
+import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.core.animatable.instance.SingletonAnimatableInstanceCache;
@@ -58,7 +54,6 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
         }
     };
 
-    private LazyOptional<IItemHandlerModifiable> itemHandlerCap = LazyOptional.of(() -> this);
     // 提供容器菜单读取检测状态。
     // 记录最近一次“终端检测”结果，供容器菜单同步给客户端 GUI。
     @Getter
@@ -307,24 +302,9 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
     }
 
 
-    @Override
-    public @NotNull <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
-        if (cap == ForgeCapabilities.ITEM_HANDLER) {
-            return itemHandlerCap.cast();
-        }
-        return super.getCapability(cap, side);
-    }
-
-    @Override
-    public void invalidateCaps() {
-        super.invalidateCaps();
-        itemHandlerCap.invalidate();
-    }
-
-    @Override
-    public void reviveCaps() {
-        super.reviveCaps();
-        itemHandlerCap = LazyOptional.of(() -> this);
+    // 功能：提供给 NeoForge 1.21.1 capability 注册器的物品处理器实例。
+    public IItemHandlerModifiable getItemHandler() {
+        return this;
     }
 
     // IItemHandlerModifiable 接口转发到内部 ItemStackHandler。

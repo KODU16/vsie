@@ -3,7 +3,6 @@ package com.kodu16.vsie.content.storage.energybattery;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -12,9 +11,6 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.capabilities.Capability;
-import net.neoforged.neoforge.capabilities.ForgeCapabilities;
-import net.neoforged.neoforge.common.util.LazyOptional;
 import net.neoforged.neoforge.energy.EnergyStorage;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
@@ -24,8 +20,6 @@ import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.core.animation.AnimationController;
 import software.bernie.geckolib.core.object.PlayState;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
 
 public abstract class AbstractEnergyBatteryBlockEntity extends SmartBlockEntity implements GeoBlockEntity {
@@ -46,7 +40,6 @@ public abstract class AbstractEnergyBatteryBlockEntity extends SmartBlockEntity 
 
     public abstract String getEnergyBatterytype();
 
-    private final LazyOptional<IEnergyStorage> energyCap = LazyOptional.of(() -> this.energyStorage);
     private final EnergyStorage energyStorage = new EnergyStorage(
             getcapacity(),    // 最大容量 (capacity)
             Integer.MAX_VALUE,      // 最大接收速率 (max receive)   可以设 Integer.MAX_VALUE 如果想无限制
@@ -62,20 +55,9 @@ public abstract class AbstractEnergyBatteryBlockEntity extends SmartBlockEntity 
         this.linkedcontrolseatpos = pos;
     }
 
-    @Nonnull
-    @Override
-    public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> cap, @Nullable Direction side) {
-        // 功能：适配 NeoForge 1.21.1 的能源能力命名空间，继续向外部设备暴露 FE 储能接口。
-        if (cap == ForgeCapabilities.ENERGY) {
-            return energyCap.cast();
-        }
-        return super.getCapability(cap, side);
-    }
-
-    @Override
-    public void invalidateCaps() {
-        super.invalidateCaps();
-        energyCap.invalidate();           // 必须！方块实体移除/区块卸载时调用
+    // 功能：提供给 NeoForge 1.21.1 capability 注册器的 FE 储能接口实例。
+    public IEnergyStorage getEnergyCapability() {
+        return energyStorage;
     }
 
     @Override

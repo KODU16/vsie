@@ -5,7 +5,6 @@ import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -24,16 +23,11 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.capabilities.Capability;
-import net.neoforged.neoforge.capabilities.ForgeCapabilities;
-import net.neoforged.neoforge.common.util.LazyOptional;
 import net.neoforged.neoforge.energy.EnergyStorage;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import org.joml.Vector3f;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
 
 public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
@@ -50,8 +44,6 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
     public BlockPos linkedcontrolseatpos = new BlockPos(0,0,0);
     double RADIUS = 3;
     public int maxreceiverate = 100;
-    // 必须缓存 LazyOptional （Forge 强烈推荐）
-    private final LazyOptional<IEnergyStorage> energyCap = LazyOptional.of(() -> this.energyStorage);
     public EnergyStorage energyStorage = new EnergyStorage(
             100000,    // 最大容量 (capacity)
             maxreceiverate,      // 最大接收速率 (max receive)   可以设 Integer.MAX_VALUE 如果想无限制
@@ -142,20 +134,9 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
         }
     }
 
-    @Nonnull
-    @Override
-    public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> cap, @Nullable Direction side) {
-        // 功能：适配 NeoForge 1.21.1 的能源能力接口，允许导线/机器读取与写入护盾发生器电量。
-        if (cap == ForgeCapabilities.ENERGY) {
-            return energyCap.cast();
-        }
-        return super.getCapability(cap, side);
-    }
-
-    @Override
-    public void invalidateCaps() {
-        super.invalidateCaps();
-        energyCap.invalidate();           // 必须！方块实体移除/区块卸载时调用
+    // 功能：提供给 NeoForge 1.21.1 capability 注册器的 FE 储能接口实例。
+    public IEnergyStorage getEnergyCapability() {
+        return energyStorage;
     }
 
     @Override

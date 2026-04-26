@@ -10,6 +10,7 @@ import com.kodu16.vsie.registries.vsieEntities;
 import com.kodu16.vsie.registries.vsieFluids;
 import com.kodu16.vsie.registries.vsieItems;
 import com.kodu16.vsie.registries.vsieCreativeTab;
+import com.kodu16.vsie.registries.vsieCapabilities;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import com.simibubi.create.foundation.data.CreateRegistrate;
@@ -41,6 +42,8 @@ public class vsie {
         vsieDataTickets.registerDataTickets();
         ModMenuTypes.MENUS.register(modBus);
         ModParticleTypes.register(modBus);
+        // 功能：注册 NeoForge 1.21.1 capability 事件监听器，统一为方块实体挂载物品/流体/能量能力。
+        modBus.addListener(vsieCapabilities::register);
         // 功能：注册 NeoForge 1.21.1 的网络 payload 处理器。
         ModNetworking.register(modBus);
         GeckoLib.initialize();
