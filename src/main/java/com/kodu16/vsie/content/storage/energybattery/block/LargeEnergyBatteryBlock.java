@@ -1,5 +1,6 @@
 package com.kodu16.vsie.content.storage.energybattery.block;
 
+import com.mojang.serialization.MapCodec;
 import com.kodu16.vsie.content.storage.energybattery.AbstractEnergyBatteryBlock;
 import com.kodu16.vsie.registries.vsieBlockEntities;
 import net.minecraft.core.BlockPos;
@@ -8,8 +9,17 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 public class LargeEnergyBatteryBlock extends AbstractEnergyBatteryBlock {
+
+    // 功能：为 NeoForge 1.21.1 提供该方块的序列化 Codec。
+    public static final MapCodec<LargeEnergyBatteryBlock> CODEC = simpleCodec(LargeEnergyBatteryBlock::new);
     public LargeEnergyBatteryBlock(Properties properties) {
         super(properties);
+    }
+
+    @Override
+    public MapCodec<LargeEnergyBatteryBlock> codec() {
+        // 功能：返回方块 Codec，确保方块状态可被数据驱动系统正确反序列化。
+        return CODEC;
     }
 
     @Override

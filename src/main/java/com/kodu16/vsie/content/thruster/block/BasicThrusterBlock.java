@@ -1,5 +1,6 @@
 package com.kodu16.vsie.content.thruster.block;
 
+import com.mojang.serialization.MapCodec;
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlock;
 import com.kodu16.vsie.registries.vsieBlockEntities;
 import com.kodu16.vsie.registries.vsieShapes;
@@ -20,8 +21,17 @@ import javax.annotation.Nullable;
 
 
 public class BasicThrusterBlock extends AbstractThrusterBlock {
+
+    // 功能：为 NeoForge 1.21.1 提供该方块的序列化 Codec。
+    public static final MapCodec<BasicThrusterBlock> CODEC = simpleCodec(BasicThrusterBlock::new);
     public BasicThrusterBlock(BlockBehaviour.Properties properties) {
         super(properties);
+    }
+
+    @Override
+    public MapCodec<BasicThrusterBlock> codec() {
+        // 功能：返回方块 Codec，确保方块状态可被数据驱动系统正确反序列化。
+        return CODEC;
     }
 
     @Override

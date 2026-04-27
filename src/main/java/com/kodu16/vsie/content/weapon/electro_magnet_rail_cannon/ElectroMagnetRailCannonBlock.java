@@ -1,5 +1,6 @@
 package com.kodu16.vsie.content.weapon.electro_magnet_rail_cannon;
 
+import com.mojang.serialization.MapCodec;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlock;
 import com.kodu16.vsie.registries.vsieBlockEntities;
 import net.minecraft.core.BlockPos;
@@ -14,8 +15,17 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class ElectroMagnetRailCannonBlock extends AbstractWeaponBlock {
+
+    // 功能：为 NeoForge 1.21.1 提供该方块的序列化 Codec。
+    public static final MapCodec<ElectroMagnetRailCannonBlock> CODEC = simpleCodec(ElectroMagnetRailCannonBlock::new);
     public ElectroMagnetRailCannonBlock(BlockBehaviour.Properties properties) {
         super(properties);
+    }
+
+    @Override
+    public MapCodec<ElectroMagnetRailCannonBlock> codec() {
+        // 功能：返回方块 Codec，确保方块状态可被数据驱动系统正确反序列化。
+        return CODEC;
     }
 
     @Override

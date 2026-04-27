@@ -1,5 +1,6 @@
 package com.kodu16.vsie.content.screen.block;
 
+import com.mojang.serialization.MapCodec;
 import com.kodu16.vsie.content.screen.AbstractScreenBlock;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.content.thruster.block.BasicThrusterBlockEntity;
@@ -21,8 +22,17 @@ import org.jetbrains.annotations.Nullable;
 
 public class BasicScreenBlock extends AbstractScreenBlock {
 
+    // 功能：为 NeoForge 1.21.1 提供该方块的序列化 Codec。
+    public static final MapCodec<BasicScreenBlock> CODEC = simpleCodec(BasicScreenBlock::new);
+
     public BasicScreenBlock(BlockBehaviour.Properties properties) {
         super(properties);
+    }
+
+    @Override
+    public MapCodec<BasicScreenBlock> codec() {
+        // 功能：返回方块 Codec，确保方块状态可被数据驱动系统正确反序列化。
+        return CODEC;
     }
 
     @Override
