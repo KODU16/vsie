@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.misc.electromagnet_rail.core;
 
 
+import com.mojang.serialization.MapCodec;
 import com.kodu16.vsie.registries.vsieBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -36,10 +37,19 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class ElectroMagnetRailCoreBlock extends DirectionalBlock implements EntityBlock {
+
+    // 功能：为 NeoForge 1.21.1 提供该方块的序列化 Codec。
+    public static final MapCodec<ElectroMagnetRailCoreBlock> CODEC = simpleCodec(ElectroMagnetRailCoreBlock::new);
     public ElectroMagnetRailCoreBlock(BlockBehaviour.Properties properties) {
         super(properties);
     }
     public static final DirectionProperty FACING = BlockStateProperties.FACING;
+
+    @Override
+    public MapCodec<ElectroMagnetRailCoreBlock> codec() {
+        // 功能：返回方块 Codec，确保方块状态可被数据驱动系统正确反序列化。
+        return CODEC;
+    }
 
     @Override
     public RenderShape getRenderShape(BlockState State) {

@@ -1,5 +1,6 @@
 package com.kodu16.vsie.content.turret.block;
 
+import com.mojang.serialization.MapCodec;
 import com.kodu16.vsie.content.turret.AbstractTurretBlock;
 import com.kodu16.vsie.registries.vsieBlockEntities;
 import net.minecraft.core.BlockPos;
@@ -17,10 +18,19 @@ import javax.annotation.Nonnull;
 
 public class MediumLaserTurretBlock extends AbstractTurretBlock {
 
+    // 功能：为 NeoForge 1.21.1 提供该方块的序列化 Codec。
+    public static final MapCodec<MediumLaserTurretBlock> CODEC = simpleCodec(MediumLaserTurretBlock::new);
+
     public static final DirectionProperty FACING = BlockStateProperties.FACING;
     public MediumLaserTurretBlock(Properties properties) {
         super(properties);
         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));
+    }
+
+    @Override
+    public MapCodec<MediumLaserTurretBlock> codec() {
+        // 功能：返回方块 Codec，确保方块状态可被数据驱动系统正确反序列化。
+        return CODEC;
     }
 
     @Override
