@@ -18,7 +18,9 @@ public class Vec {
         // 返回新的向量 (x', y', z')
         return new Vector3d(xPrime, yPrime, zPrime);
     }
-
+    public static Vec3 toVec3(Vector3d a) {
+        return new Vec3(a.x,a.y,a.z);
+    }
     public static Vector3d toVector3d(Vec3 a) {
         return new Vector3d(a.x,a.y,a.z);
     }

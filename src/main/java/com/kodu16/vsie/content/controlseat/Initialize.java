@@ -13,10 +13,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.slf4j.Logger;
-import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 public class Initialize {
     public static void initialize(Level level, BlockPos pos, BlockState state) {
@@ -33,8 +32,8 @@ public class Initialize {
                 Vec3i rightVector;  // 默认右侧向量为零
                 ControlSeatServerData data = controlseatBlockEntity.getControlSeatData();
                 data.setTorque(new Vector3d(0, 0, 0));
-                data.setDirectionForward(VectorConversionsMCKt.toJOMLD(state.getValue(FACING).getNormal()));
-                data.setDirectionUp(VectorConversionsMCKt.toJOMLD(new Vec3i(0, 1, 0)));
+                data.setDirectionForward(state.getValue(FACING).getNormal());
+                data.setDirectionUp(new Vec3i(0, 1, 0));
                 // 修正方向
                 Direction facing = state.getValue(FACING); // 获取当前方块的朝向
                 rightVector = switch (facing) {
@@ -45,7 +44,7 @@ public class Initialize {
                     default -> new Vec3i(1, 0, 0);      // 默认情况，右侧为东（+X方向）
                 };
                 LOGGER.warn(String.valueOf(Component.literal("facing:" + facing + "  right:" + rightVector)));
-                data.setDirectionRight(VectorConversionsMCKt.toJOMLD(rightVector));
+                data.setDirectionRight(rightVector);
                 data.level = level;
                 ServerShipHandler applier = new ServerShipHandler(data);
                 ship.addApplier(pos, applier);

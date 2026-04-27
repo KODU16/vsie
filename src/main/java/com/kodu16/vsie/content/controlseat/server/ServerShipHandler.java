@@ -2,19 +2,19 @@ package com.kodu16.vsie.content.controlseat.server;
 
 
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
-import com.kodu16.vsie.content.controlseat.functions.ScanNearByShips;
 import com.kodu16.vsie.content.warpprojectile.WarpProjecTileEntity;
+import com.kodu16.vsie.foundation.ServerShipUtils;
+import com.kodu16.vsie.foundation.Vec;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatInputS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatStatusS2CPacket;
-import com.kodu16.vsie.network.controlseat.S2C.NearbyShipsS2CPacket;
+import dev.ryanhcode.sable.Sable;
+import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
+import dev.ryanhcode.sable.api.physics.mass.MassData;
+import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
-import org.jline.utils.Log;
-import org.joml.Matrix4dc;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix3dc;
 import org.joml.Quaterniondc;
-import org.valkyrienskies.core.api.ships.ServerShip;
-import org.valkyrienskies.core.api.world.ServerShipWorld;
-import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl;
 import com.kodu16.vsie.registries.vsieEntities;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
@@ -25,18 +25,12 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
-import org.joml.primitives.AABBdc;
-import org.valkyrienskies.core.api.VsCoreApi;
-import org.valkyrienskies.core.api.ships.QueryableShipData;
-import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.core.api.ships.properties.ShipTransform;
-import org.valkyrienskies.core.impl.game.ships.PhysShipImpl;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
-import com.kodu16.vsie.network.controlseat.S2C.ControlSeatS2CPacket;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import com.kodu16.vsie.registries.ModNetworking;
 
 import org.slf4j.Logger;
+
+import javax.annotation.Nullable;
 
 
 public class ServerShipHandler {
@@ -57,24 +51,20 @@ public class ServerShipHandler {
     private long lastSendInputMs = 0;
     int lastSentEncode = 0;
     int current=0;
-    private volatile Vector3d worldXDirection = new Vector3d();
-    private volatile Vector3d worldYDirection = new Vector3d();
-    private volatile Vector3d worldZDirection = new Vector3d();
+    private volatile Vec3 worldXDirection;
+    private volatile Vec3 worldYDirection;
+    private volatile Vec3 worldZDirection;
     //这byd很可能就是死活不发包的原因
-    public void getandsendshipdata(PhysShipImpl ship) {
-        ShipTransform transform = ship.getTransform();
-        Vector3d ForwardDirection = new Vector3d();
-        transform.getShipToWorld().transformDirection(data.getDirectionForward(), ForwardDirection);
-        Vector3d UpDirection = new Vector3d();
-        transform.getShipToWorld().transformDirection(data.getDirectionUp(), UpDirection);
-        BlockPos pos = convertToBlockPos(ship.getCenterOfMass());
+    public void getandsendshipdata(ServerSubLevel subLevel,BlockPos pos) {
+        Vec3 ForwardDirection =  subLevel.logicalPose().transformNormal(Vec3.atLowerCornerOf(data.getDirectionForward()));
+        Vec3 UpDirection =  subLevel.logicalPose().transformNormal(Vec3.atLowerCornerOf(data.getDirectionUp()));
+        Vec3 RightDirection =  subLevel.logicalPose().transformNormal(Vec3.atLowerCornerOf(data.getDirectionRight()));
         Level level = data.level;
         long now = System.currentTimeMillis();
-
         if (data.getPlayer() != null) {
             if (now - lastSendMs > 50) {//快包
                 lastSendMs = now;
-                QueryableShipData<Ship> qsd = VSGameUtilsKt.getAllShips(level);
+                /*QueryableShipData<Su> qsd = VSGameUtilsKt.getAllShips(level);
                 data.shipsData = ScanNearByShips.scanships(qsd,pos,level);
                 data.enemyshipsData = ScanNearByShips.scanenemyships(qsd,pos,level, data.enemy, data.ally);
                 //信息包
@@ -93,7 +83,7 @@ public class ServerShipHandler {
 
                 //扫描全部船只包（扫描敌人包只跑在服务器不用发送）
                 NearbyShipsS2CPacket packetship = new NearbyShipsS2CPacket(data.shipsData);
-                ModNetworking.sendToPlayer(packetship, (ServerPlayer) data.getPlayer());
+                ModNetworking.sendToPlayer(packetship, (ServerPlayer) data.getPlayer());*/
             }
 
             if(now - lastSendStatusMs > 250) {//状态包（慢包out）
@@ -117,9 +107,9 @@ public class ServerShipHandler {
         }
     }
 
-    public void applyForceAndTorque(PhysShipImpl ship) {
+    public void applyForceAndTorque(ServerSubLevel subLevel,BlockPos pos) {
         // 功能：每 tick 先检查是否到了延迟跃迁触发时间，确保弹体寿命结束后能自动执行 teleportship。
-        processPendingWarpTeleport();
+        processPendingWarpTeleport(subLevel);
 
         Player player = data.getPlayer();
         boolean controlling = true;
@@ -138,15 +128,20 @@ public class ServerShipHandler {
             controlling = false;
         }
 
-        double mass = ship.getMass();
-        final ShipTransform transform = ship.getTransform();
+        MassData massData = subLevel.getMassTracker();
+        double mass = massData.getMass();
 
-        Vector3d invomega = ship.getOmega().negate(new Vector3d()).mul(10);
-        Vector3d invtorque = ship.getMomentOfInertia().transform(invomega);
-        Vector3dc invforce = ship.getVelocity().negate(new Vector3d()).mul(mass);
+        RigidBodyHandle handle = RigidBodyHandle.of(subLevel);
+        Vector3d omega = handle.getAngularVelocity(new Vector3d());
+        Matrix3dc momentOfInertia = massData.getInertiaTensor();
+        Vector3d velocity = handle.getLinearVelocity(new Vector3d());
 
-        Vector3d finaltorque = new Vector3d();
-        Vector3d finalforce  = new Vector3d();
+        Vector3d invomega = omega.negate(new Vector3d()).mul(10);
+        Vector3d invtorque = momentOfInertia.transform(invomega);
+        Vector3dc invforce = velocity.negate(new Vector3d()).mul(mass);
+
+        Vector3d finaltorque = new Vector3d(0,0,0);
+        Vector3d finalforce  = new Vector3d(0,0,0);
 
         if (data.isflightassiston) {
             finaltorque.add(invtorque);
@@ -157,18 +152,14 @@ public class ServerShipHandler {
         }
 
         if(controlling) {
-            Vector3dc force = data.getForce();
-            Vector3d torque = data.getTorque();
+            Vec3 force = data.getForce();
+            Vec3 torque = data.getTorque();
+            worldXDirection =  subLevel.logicalPose().transformNormal(Vec3.atLowerCornerOf(data.getDirectionForward())).normalize();
+            worldYDirection =  subLevel.logicalPose().transformNormal(Vec3.atLowerCornerOf(data.getDirectionUp())).normalize();
+            worldZDirection =  subLevel.logicalPose().transformNormal(Vec3.atLowerCornerOf(data.getDirectionRight())).normalize();
 
-            transform.getShipToWorld().transformDirection(data.getDirectionForward(), worldXDirection);
-            worldXDirection.normalize();
-            transform.getShipToWorld().transformDirection(data.getDirectionUp(), worldYDirection);
-            worldYDirection.normalize();
-            transform.getShipToWorld().transformDirection(data.getDirectionRight(), worldZDirection);
-            worldZDirection.normalize();
-
-            Vector3d steeringTorque = data.isWarpPreparing ? calculateWarpPreparationTorque(ship) : new Vector3d(torque);
-            double torquescale = data.thruster_strength*5 / (Math.sqrt(ship.getMass()));
+            Vec3 steeringTorque = data.isWarpPreparing ? calculateWarpPreparationTorque(subLevel,pos) : torque;
+            double torquescale = data.thruster_strength*5 / (Math.sqrt(mass));
             Vector3d controltorque = new Vector3d(steeringTorque.x*torquescale, steeringTorque.y*torquescale, steeringTorque.z*torquescale);
             if(controltorque.length()<0.1) {
                 controltorque.mul(0);
@@ -177,59 +168,57 @@ public class ServerShipHandler {
             if (data.isWarpPreparing) {
                 // 功能：一旦自动对准达到阈值，立即在船体位置生成 warp projectile，并退出准备状态防止重复生成。
                 LogUtils.getLogger().warn("preparing warp...");
-                tryLaunchWarpProjectile(ship);
+                tryLaunchWarpProjectile(subLevel);
             }
 
-            Vector3d Invarianttorque = calculateWorldTorque(controltorque, worldXDirection, worldYDirection, worldZDirection);
-            double forcescale = -1000 * data.getThrottle() * (data.thruster_strength / (ship.getMass()));
-            Vector3d Invariantforce = new Vector3d(worldXDirection.x * forcescale, worldXDirection.y * forcescale, worldXDirection.z * forcescale);
+            Vec3 Invarianttorque = calculateWorldTorque(controltorque, worldXDirection, worldYDirection, worldZDirection);
+            double forcescale = data.getThrottle() * (data.thruster_strength / mass);
+            Vec3 Invariantforce = new Vec3(worldXDirection.x * forcescale, worldXDirection.y * forcescale, worldXDirection.z * forcescale);
 
             // 计算反向阻尼力矩，与角速度成比例
             if (Double.isNaN(torque.x()) || Double.isNaN(torque.y()) || Double.isNaN(torque.z())) {
                 return;
             }
-            finaltorque.add(Invarianttorque);
-            finalforce.add(Invariantforce);
+            finaltorque.add(Vec.toVector3d(Invarianttorque));
+            finalforce.add(Vec.toVector3d(Invariantforce));
         }
         data.setFinaltorque(finaltorque);
         data.setFinalforce(finalforce);
         //到这才算施加真正的力
-        ship.applyInvariantTorque(finaltorque);
-        ship.applyInvariantForce(finalforce);
-
-
+        ServerShipUtils.applyWorldForceAndTorqueAtCenterOfMass(subLevel,finalforce,finaltorque);
     }
 
     // 功能：warp 准备状态下根据控制椅前向与目标方向的夹角生成自动对准扭矩；结果被限制在手动鼠标控制的最大输入范围内。
-    private Vector3d calculateWarpPreparationTorque(PhysShipImpl ship) {
+    private Vec3 calculateWarpPreparationTorque(ServerSubLevel subLevel,BlockPos pos) {
         if (data.warpTargetName == null || data.warpTargetName.isEmpty() || data.warpTargetPos == null || data.warpTargetPos.equals(BlockPos.ZERO)) {
-            return new Vector3d(0, 0, 0);
+            return new Vec3(0, 0, 0);
         }
 
-        Vector3d targetDirection = getNormalizedWarpTargetDirection(ship);
+        Vec3 targetDirection = getNormalizedWarpTargetDirection(pos);
         if (targetDirection == null) {
-            return new Vector3d(0, 0, 0);
+            return new Vec3(0, 0, 0);
         }
 
-        Vector3d currentForward = new Vector3d(worldXDirection).normalize();
+        Vec3 currentForward = worldXDirection.normalize();
         // 功能：自动对准需要生成“从当前朝向转到目标朝向”的右手旋转轴；使用 target x current 会把扭矩方向反过来，导致控制椅围绕目标反方向摆动。
-        Vector3d rotationAxisWorld = targetDirection.cross(currentForward, new Vector3d());
-        if (rotationAxisWorld.lengthSquared() < 1.0E-6) {
-            return new Vector3d(0, 0, 0);
+        Vec3 rotationAxisWorld = targetDirection.cross(currentForward);
+        if (rotationAxisWorld.lengthSqr() < 1.0E-6) {
+            return new Vec3(0, 0, 0);
         }
 
         double alignment = Mth.clamp(currentForward.dot(targetDirection), -1.0D, 1.0D);
         double angleStrength = Mth.clamp((1.0D - alignment) * 2.0D, 0.0D, 1.0D);
-        rotationAxisWorld.normalize(angleStrength);
-        double factor = ship.getMass()/2;
+        rotationAxisWorld.normalize();
+        rotationAxisWorld.scale(angleStrength);
+        double factor = subLevel.getMassTracker().getMass();
         // 功能：只使用 yaw/pitch 两个轴进行自动对准，避免 warp 准备阶段给控制椅引入额外滚转。
         double localYawTorque = Mth.clamp(rotationAxisWorld.dot(worldYDirection)*20, -factor, factor);
         double localPitchTorque = Mth.clamp(rotationAxisWorld.dot(worldZDirection)*20, -factor, factor);
-        return new Vector3d(0, localYawTorque, localPitchTorque);
+        return new Vec3(0, localYawTorque, localPitchTorque);
     }
 
     // 功能：检查当前船首是否已对准 warp 目标；若夹角小于 1 度，则按船体最大包围盒尺寸生成 warp projectile。
-    private void tryLaunchWarpProjectile(PhysShipImpl ship) {
+    private void tryLaunchWarpProjectile(ServerSubLevel subLevel) {
         if (data.hasPendingWarpTeleport) {
             return;
         }
@@ -237,26 +226,22 @@ public class ServerShipHandler {
             return;
         }
 
-        Vector3d launchDirection = getNormalizedWarpTargetDirection(ship);
+        Vec3 launchDirection = getNormalizedWarpTargetDirection(data.controlSeatPos);
         if (launchDirection == null) {
             return;
         }
-        Vector3d currentForward = new Vector3d(worldXDirection);
-        if (currentForward.lengthSquared() < 1.0E-6D) {
-            return;
-        }
-        currentForward.normalize();
 
-        double alignment = Mth.clamp(currentForward.dot(launchDirection), -1.0D, 1.0D);
+        double alignment = Mth.clamp(worldXDirection.dot(launchDirection), -1.0D, 1.0D);
         double angleDegrees = Math.toDegrees(Math.acos(alignment));
         if (Math.abs(angleDegrees-180) >= WARP_ALIGNMENT_THRESHOLD_DEGREES) {
             return;
         }
         LogUtils.getLogger().warn(String.valueOf(Component.literal("准备跃迁")));
-        double mass = ship.getMass();
+        MassData massData = subLevel.getMassTracker();
+        double mass = massData.getMass();
         double k = Math.pow(mass, (double) 1 /3);
         Level level = data.level;
-        Vector3dc shipPos = ship.getTransform().getPositionInWorld();
+        Vec3 shipPos = ServerShipUtils.getStructureCenterWorld(subLevel);
         WarpProjecTileEntity warpProjectile = new WarpProjecTileEntity(vsieEntities.WARP_PROJECTILE.get(), level);
         // 功能：在船只 world pos 处生成特效弹体，并让其以 1 格/tick 朝目标飞行 k tick。
         warpProjectile.setPos(shipPos.x(), shipPos.y(), shipPos.z());
@@ -279,7 +264,7 @@ public class ServerShipHandler {
     }
 
     // 功能：在服务器 tick 到达预定时间时调用 teleportship，把船只传送到之前锁定的跃迁目标。
-    private void processPendingWarpTeleport() {
+    private void processPendingWarpTeleport(ServerSubLevel subLevel) {
         Level level = data.level;
         if (level == null || level.isClientSide() || !data.hasPendingWarpTeleport) {
             return;
@@ -287,20 +272,20 @@ public class ServerShipHandler {
         if (level.getGameTime() < data.pendingWarpTeleportGameTime) {
             return;
         }
-        Vector3d destination = new Vector3d(data.pendingWarpTeleportPos);
         data.clearPendingWarpTeleport();
-        teleportship(data, destination);
+        ServerShipUtils.teleportKeepOrientation(subLevel,data.pendingWarpTeleportPos);
     }
 
     // 功能：复用控制椅到目标点的归一化方向计算，供自动对准与 warp projectile 发射共用同一方向基准。
-    private Vector3d getNormalizedWarpTargetDirection(PhysShipImpl ship) {
-        Vector3d seatWorldPos = convertSeatToWorldPosition(ship);
-        Vector3d targetDirection = new Vector3d(
+    private Vec3 getNormalizedWarpTargetDirection(BlockPos pos) {
+        SubLevel sublevel = getSubLevelAtBlockPos(data.level,pos);
+        Vec3 seatWorldPos = sublevel.logicalPose().transformPosition(Vec3.atLowerCornerOf(pos));
+        Vec3 targetDirection = new Vec3(
                 data.warpTargetPos.getX() + 0.5 - seatWorldPos.x,
                 data.warpTargetPos.getY() + 0.5 - seatWorldPos.y,
                 data.warpTargetPos.getZ() + 0.5 - seatWorldPos.z
         );
-        if (targetDirection.lengthSquared() < 1.0E-6D) {
+        if (targetDirection.lengthSqr() < 1.0E-6D) {
             return null;
         }
         return targetDirection.normalize();
@@ -317,22 +302,6 @@ public class ServerShipHandler {
         controlSeat.setChanged();
     }
 
-    // 功能：把控制椅方块坐标转换为世界空间中心点，用于计算“控制椅前向 -> warp 目标”的真实方向向量。
-    private Vector3d convertSeatToWorldPosition(PhysShipImpl ship) {
-        BlockPos controlSeatPos = data.controlSeatPos;
-        if (controlSeatPos == null) {
-            controlSeatPos = BlockPos.ZERO;
-        }
-        if (VSGameUtilsKt.isBlockInShipyard(data.level, controlSeatPos)) {
-            Vector3d worldCenter = new Vector3d();
-            ship.getTransform().getShipToWorld().transformPosition(
-                    new Vector3d(controlSeatPos.getX() + 0.5, controlSeatPos.getY() + 0.5, controlSeatPos.getZ() + 0.5),
-                    worldCenter
-            );
-            return worldCenter;
-        }
-        return new Vector3d(controlSeatPos.getX() + 0.5, controlSeatPos.getY() + 0.5, controlSeatPos.getZ() + 0.5);
-    }
 
     public static BlockPos convertToBlockPos(Vector3dc vector) {
         // 获取 Vector3dc 的坐标
@@ -345,7 +314,7 @@ public class ServerShipHandler {
         return new BlockPos(x, y, z);
     }
 
-    public static Vector3d calculateWorldTorque(Vector3d localTorque, Vector3d worldDirectionX, Vector3d worldDirectionY, Vector3d worldDirectionZ) {
+    public static Vec3 calculateWorldTorque(Vector3d localTorque, Vec3 worldDirectionX, Vec3 worldDirectionY, Vec3 worldDirectionZ) {
         // 旋转矩阵是由控制椅X, Y, Z轴在世界坐标系下的单位向量构成的
         // 构建旋转矩阵
         double[][] rotationMatrix = new double[3][3];
@@ -365,23 +334,12 @@ public class ServerShipHandler {
         double a = rotationMatrix[0][0] * localTorque.x + rotationMatrix[0][1] * localTorque.y + rotationMatrix[0][2] * localTorque.z;
         double b = rotationMatrix[1][0] * localTorque.x + rotationMatrix[1][1] * localTorque.y + rotationMatrix[1][2] * localTorque.z;
         double c = rotationMatrix[2][0] * localTorque.x + rotationMatrix[2][1] * localTorque.y + rotationMatrix[2][2] * localTorque.z;
-        return new Vector3d(a,b,c);
+        return new Vec3(a,b,c);
         // 返回世界坐标系下d(a, b, c);
     }
 
-    public static void teleportship(ControlSeatServerData data, Vector3d destpos) {
-        ServerShip ship = data.serverShip;
-        Level level = data.level;
-        Quaterniondc rot = ship.getTransform().getShipToWorldRotation();
-        Vector3dc vel = ship.getVelocity();
-        Vector3dc omega = ship.getAngularVelocity();
-        Vector3dc centerofmass = ship.getTransform().getPositionInModel();
-        // 功能：只有在控制椅明确记录了目标维度时才透传给 VS；否则留空交给 teleportship 自动决定维度。
-        String dimension = data.warpTargetDimension == null || data.warpTargetDimension.isBlank() ? null : data.warpTargetDimension;
-        ServerShipWorld ssw = (ServerShipWorld) VSGameUtilsKt.getShipObjectWorld(level);
-        double scale = ship.getTransform().getShipToWorldScaling().x();
-        var teleportData = new ShipTeleportDataImpl(destpos, rot, vel, omega, dimension, scale,centerofmass);
-        ValkyrienSkiesMod.getVsCore().teleportShip(ssw, ship,teleportData);
+    public static @Nullable SubLevel getSubLevelAtBlockPos(Level level, BlockPos pos) {
+        return Sable.HELPER.getContaining(level, pos);
     }
 
 }

@@ -3,11 +3,11 @@ package com.kodu16.vsie.content.controlseat.server;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import net.minecraft.world.entity.player.Player;
-import org.valkyrienskies.core.api.ships.ServerShip;
-import org.valkyrienskies.core.api.ships.Ship;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,10 +21,10 @@ import com.kodu16.vsie.content.controlseat.ActiveWeaponHudInfo;
 public class ControlSeatServerData {
     public volatile List<BlockPos> thrusterpositionslist = new ArrayList<>(); // 用来存储推进器的位置
     @Getter
-    public volatile Vector3d force =  new Vector3d(0,0,0);
+    public volatile Vec3 force =  new Vec3(0,0,0);
     @Getter
     @Setter
-    public volatile Vector3d torque = new Vector3d(0,0,0);
+    public volatile Vec3 torque = new Vec3(0,0,0);
     @Getter
     @Setter
     public volatile int throttle = 0;
@@ -35,13 +35,13 @@ public class ControlSeatServerData {
     //Direction in ship space. Expected to be normalized
     @Setter
     @Getter
-    private volatile Vector3d directionForward;
+    private volatile Vec3i directionForward;
     @Setter
     @Getter
-    private volatile Vector3d directionUp;
+    private volatile Vec3i directionUp;
     @Setter
     @Getter
-    private volatile Vector3d directionRight;
+    private volatile Vec3i directionRight;
 
     public volatile boolean channel1 = true;
     public volatile boolean channel2 = true;
@@ -123,8 +123,8 @@ public class ControlSeatServerData {
 
 
     public void reset() {
-        this.torque = new Vector3d(0,0,0);
-        this.force = new Vector3d(0,0,0);
+        this.torque = new Vec3(0,0,0);
+        this.force = new Vec3(0,0,0);
         this.throttle = 0;
         this.player = null;
         this.isfiring = false;
@@ -137,7 +137,7 @@ public class ControlSeatServerData {
         this.isWarpPreparing = true;
         // 功能：开始新的 warp 准备时清空上一轮尚未执行的延迟传送，避免旧任务误触发。
         clearPendingWarpTeleport();
-        this.torque = new Vector3d(0, 0, 0);
+        this.torque = new Vec3(0, 0, 0);
         this.throttle = 0;
     }
 
@@ -147,7 +147,7 @@ public class ControlSeatServerData {
         this.warpTargetPos = BlockPos.ZERO;
         this.warpTargetDimension = "";
         this.warpTargetName = "";
-        this.torque = new Vector3d(0, 0, 0);
+        this.torque = new Vec3(0, 0, 0);
         this.throttle = 0;
     }
 
