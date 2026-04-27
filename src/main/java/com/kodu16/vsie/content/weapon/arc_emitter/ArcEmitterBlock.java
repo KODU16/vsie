@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.weapon.arc_emitter;
 
+import com.mojang.serialization.MapCodec;
+
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlock;
 import com.kodu16.vsie.registries.vsieBlockEntities;
 import net.minecraft.core.BlockPos;
@@ -13,6 +15,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class ArcEmitterBlock extends AbstractWeaponBlock {
+    // 功能：为 NeoForge 1.21.1 的方块序列化系统提供当前方向方块的 Codec。
+    public static final MapCodec<ArcEmitterBlock> CODEC = simpleCodec(ArcEmitterBlock::new);
+
     public ArcEmitterBlock(Properties properties) {
         super(properties);
     }
@@ -34,4 +39,11 @@ public class ArcEmitterBlock extends AbstractWeaponBlock {
         }
         return null;
     }
+
+    // 功能：返回当前方向方块的 Codec，供注册表和数据驱动系统反序列化使用。
+    @Override
+    protected MapCodec<? extends ArcEmitterBlock> codec() {
+        return CODEC;
+    }
+
 }

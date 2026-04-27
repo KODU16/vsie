@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.controlseat;
 
+import com.mojang.serialization.MapCodec;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -115,4 +117,9 @@ public abstract class AbstractControlSeatBlock extends DirectionalBlock implemen
     public BlockState mirror(@Nonnull BlockState state, @Nonnull Mirror mirrorIn) {
         return state.rotate(mirrorIn.getRotation(state.getValue(FACING)));
     }
+
+    // 功能：约束所有方向方块子类必须提供 NeoForge 1.21.1 所需的方块 Codec。
+    @Override
+    protected abstract MapCodec<? extends AbstractControlSeatBlock> codec();
+
 }

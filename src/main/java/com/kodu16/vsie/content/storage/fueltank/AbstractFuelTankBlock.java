@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.storage.fueltank;
 
+import com.mojang.serialization.MapCodec;
+
 import com.simibubi.create.content.equipment.wrench.WrenchItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -110,5 +112,10 @@ public abstract class AbstractFuelTankBlock extends DirectionalBlock implements 
         // 功能：空手交互暂不处理，返回 PASS 交给其他系统（例如事件）继续判定。
         return InteractionResult.PASS;
     }
+
+
+    // 功能：约束所有方向方块子类必须提供 NeoForge 1.21.1 所需的方块 Codec。
+    @Override
+    protected abstract MapCodec<? extends AbstractFuelTankBlock> codec();
 
 }

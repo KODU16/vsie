@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.vectorthruster;
 
+import com.mojang.serialization.MapCodec;
+
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -72,4 +74,9 @@ public abstract class AbstractVectorThrusterBlock extends DirectionalBlock imple
     @Nullable
     @Override
     public abstract BlockEntity newBlockEntity(BlockPos pos, BlockState state);
+
+    // 功能：约束所有方向方块子类必须提供 NeoForge 1.21.1 所需的方块 Codec。
+    @Override
+    protected abstract MapCodec<? extends AbstractVectorThrusterBlock> codec();
+
 }

@@ -29,6 +29,9 @@ import javax.annotation.Nullable;
 
 
 public class ControlSeatBlock extends AbstractControlSeatBlock {
+    // 功能：为 NeoForge 1.21.1 的方块序列化系统提供当前方向方块的 Codec。
+    public static final MapCodec<ControlSeatBlock> CODEC = simpleCodec(ControlSeatBlock::new);
+
     public ControlSeatBlock(BlockBehaviour.Properties properties) {
         super(properties);
     }
@@ -101,5 +104,12 @@ public class ControlSeatBlock extends AbstractControlSeatBlock {
         }
     }
 
+
+
+    // 功能：返回当前方向方块的 Codec，供注册表和数据驱动系统反序列化使用。
+    @Override
+    protected MapCodec<? extends ControlSeatBlock> codec() {
+        return CODEC;
+    }
 
 }

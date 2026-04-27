@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.weapon;
 
+import com.mojang.serialization.MapCodec;
+
 
 import com.kodu16.vsie.content.weapon.server.WeaponContainerMenu;
 import com.mojang.logging.LogUtils;
@@ -155,4 +157,9 @@ public abstract class AbstractWeaponBlock extends DirectionalBlock implements En
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
+
+    // 功能：约束所有方向方块子类必须提供 NeoForge 1.21.1 所需的方块 Codec。
+    @Override
+    protected abstract MapCodec<? extends AbstractWeaponBlock> codec();
+
 }

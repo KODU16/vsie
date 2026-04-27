@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.turret;
 
+import com.mojang.serialization.MapCodec;
+
 import com.kodu16.vsie.content.turret.block.ParticleTurretBlockEntity;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
@@ -155,4 +157,9 @@ public abstract class AbstractTurretBlock extends DirectionalBlock implements En
     public void neighborChanged(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos, @Nonnull Block block, @Nonnull BlockPos fromPos, boolean isMoving) {
         if (level.isClientSide()) return;
     }
+
+    // 功能：约束所有方向方块子类必须提供 NeoForge 1.21.1 所需的方块 Codec。
+    @Override
+    protected abstract MapCodec<? extends AbstractTurretBlock> codec();
+
 }

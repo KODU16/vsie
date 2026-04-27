@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.weapon.missile_launcher.block;
 
+import com.mojang.serialization.MapCodec;
+
 import com.kodu16.vsie.content.weapon.missile_launcher.AbstractMissileLauncherBlock;
 
 import com.kodu16.vsie.registries.vsieBlockEntities;
@@ -14,6 +16,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class BasicMissileLauncherBlock extends AbstractMissileLauncherBlock {
+    // 功能：为 NeoForge 1.21.1 的方块序列化系统提供当前方向方块的 Codec。
+    public static final MapCodec<BasicMissileLauncherBlock> CODEC = simpleCodec(BasicMissileLauncherBlock::new);
+
     public BasicMissileLauncherBlock(Properties properties) {
         super(properties);
     }
@@ -35,4 +40,11 @@ public class BasicMissileLauncherBlock extends AbstractMissileLauncherBlock {
         }
         return null;
     }
+
+    // 功能：返回当前方向方块的 Codec，供注册表和数据驱动系统反序列化使用。
+    @Override
+    protected MapCodec<? extends BasicMissileLauncherBlock> codec() {
+        return CODEC;
+    }
+
 }

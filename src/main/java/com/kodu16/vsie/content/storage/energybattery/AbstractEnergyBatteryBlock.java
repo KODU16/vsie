@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.storage.energybattery;
 
+import com.mojang.serialization.MapCodec;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
@@ -68,5 +70,10 @@ public abstract class AbstractEnergyBatteryBlock extends DirectionalBlock implem
     public BlockState mirror(@Nonnull BlockState state, @Nonnull Mirror mirrorIn) {
         return state.rotate(mirrorIn.getRotation(state.getValue(FACING)));
     }
+
+
+    // 功能：约束所有方向方块子类必须提供 NeoForge 1.21.1 所需的方块 Codec。
+    @Override
+    protected abstract MapCodec<? extends AbstractEnergyBatteryBlock> codec();
 
 }

@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.shield;
 
+import com.mojang.serialization.MapCodec;
+
 import com.kodu16.vsie.registries.vsieBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -22,6 +24,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class ShieldGeneratorBlock extends DirectionalBlock implements EntityBlock {
+    // 功能：为 NeoForge 1.21.1 的方块序列化系统提供当前方向方块的 Codec。
+    public static final MapCodec<ShieldGeneratorBlock> CODEC = simpleCodec(ShieldGeneratorBlock::new);
+
     public ShieldGeneratorBlock(BlockBehaviour.Properties properties) {
         super(properties);
     }
@@ -63,4 +68,11 @@ public class ShieldGeneratorBlock extends DirectionalBlock implements EntityBloc
     protected void createBlockStateDefinition(@Nonnull StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING);
     }
+
+    // 功能：返回当前方向方块的 Codec，供注册表和数据驱动系统反序列化使用。
+    @Override
+    protected MapCodec<? extends ShieldGeneratorBlock> codec() {
+        return CODEC;
+    }
+
 }
