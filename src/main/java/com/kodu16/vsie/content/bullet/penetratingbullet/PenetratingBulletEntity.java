@@ -24,7 +24,6 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
-import net.minecraftforge.network.NetworkHooks;
 
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +37,11 @@ public class PenetratingBulletEntity extends Projectile {
         this.noPhysics = true;
         this.setNoGravity(true);
         this.setK(1);
+    }
+
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+
     }
 
     @Override
@@ -137,11 +141,6 @@ public class PenetratingBulletEntity extends Projectile {
 
     private static final EntityDataAccessor<Integer> DATA_K =
             SynchedEntityData.defineId(PenetratingBulletEntity.class, EntityDataSerializers.INT);
-
-    @Override
-    protected void defineSynchedData() {
-        this.entityData.define(DATA_K, 1);
-    }
 
     public int getK() { return this.entityData.get(DATA_K); }
 
