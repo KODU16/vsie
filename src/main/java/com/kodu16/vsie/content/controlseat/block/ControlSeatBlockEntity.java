@@ -8,6 +8,7 @@ import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
 import com.kodu16.vsie.content.controlseat.client.Input.ClientMouseHandler;
 
 import com.kodu16.vsie.content.controlseat.server.SeatRegistry;
+import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.registries.vsieItems;
 import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
@@ -22,6 +23,7 @@ import com.kodu16.vsie.registries.fuel.ThrusterFuelManager;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import lombok.Getter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.sounds.SoundEvents;
@@ -32,7 +34,6 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import org.joml.primitives.AABBdc;
 import org.slf4j.Logger;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -49,12 +50,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
-import org.valkyrienskies.core.api.ships.ServerShip;
-import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
-import org.valkyrienskies.mod.common.entity.ShipMountingEntity;
 import net.neoforged.neoforge.items.ItemStackHandler;
+import software.bernie.geckolib.animation.AnimatableManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -213,15 +210,12 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             updateShieldEnergyAvalible();
             int currentcooldown = (int) controlseatData.shieldcooldowntime;
             if(controlseatData.shieldcooldowntime <= 0) {
-                Ship ship = VSGameUtilsKt.getShipManagingPos(level,this.getBlockPos());
-                Vec3 center = null;
-                if (ship == null) {
+                SubLevel sublevel = ServerShipUtils.getSubLevelAtBlockPos(level,this.getBlockPos());
+                if (sublevel == null) {
                     return;
                 }
-                double[] c = getAABBdcCenter(ship.getWorldAABB());
-                center = new Vec3(c[0],c[1],c[2]);
+                Vec3 center = ServerShipUtils.getStructureCenterWorld(sublevel);
                 AABB searchBox = new AABB(this.getBlockPos()).inflate(controlseatData.shieldradius + 3.0); // 多搜一点，防止高速实体一帧穿过去
-
                 // 核心：只筛选“没有生命值 + 速度够快 + 不是玩家也不是盔甲架”之类的实体
                 Vec3 finalCenter = center;
                 level.getEntitiesOfClass(Entity.class, searchBox, entity -> {
@@ -801,5 +795,10 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
 
     public FluidThrusterProperties getFuelProperties(Fluid fluid) {
         return ThrusterFuelManager.getProperties(fluid);
+    }
+
+    @Override
+    public void registerControllers(AnimatableManager.ControllerRegistrar controllerRegistrar) {
+
     }
 }

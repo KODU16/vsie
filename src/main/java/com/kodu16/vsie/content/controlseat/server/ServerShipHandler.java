@@ -278,7 +278,7 @@ public class ServerShipHandler {
 
     // 功能：复用控制椅到目标点的归一化方向计算，供自动对准与 warp projectile 发射共用同一方向基准。
     private Vec3 getNormalizedWarpTargetDirection(BlockPos pos) {
-        SubLevel sublevel = getSubLevelAtBlockPos(data.level,pos);
+        SubLevel sublevel = ServerShipUtils.getSubLevelAtBlockPos(data.level,pos);
         Vec3 seatWorldPos = sublevel.logicalPose().transformPosition(Vec3.atLowerCornerOf(pos));
         Vec3 targetDirection = new Vec3(
                 data.warpTargetPos.getX() + 0.5 - seatWorldPos.x,
@@ -300,18 +300,6 @@ public class ServerShipHandler {
             return;
         }
         controlSeat.setChanged();
-    }
-
-
-    public static BlockPos convertToBlockPos(Vector3dc vector) {
-        // 获取 Vector3dc 的坐标
-        int x = (int) Math.floor(vector.x());
-        int y = (int) Math.floor(vector.y());
-        int z = (int) Math.floor(vector.z());
-
-        // 创建并返回 BlockPos 对象
-        //我讨厌vector3dc
-        return new BlockPos(x, y, z);
     }
 
     public static Vec3 calculateWorldTorque(Vector3d localTorque, Vec3 worldDirectionX, Vec3 worldDirectionY, Vec3 worldDirectionZ) {
@@ -336,10 +324,6 @@ public class ServerShipHandler {
         double c = rotationMatrix[2][0] * localTorque.x + rotationMatrix[2][1] * localTorque.y + rotationMatrix[2][2] * localTorque.z;
         return new Vec3(a,b,c);
         // 返回世界坐标系下d(a, b, c);
-    }
-
-    public static @Nullable SubLevel getSubLevelAtBlockPos(Level level, BlockPos pos) {
-        return Sable.HELPER.getContaining(level, pos);
     }
 
 }

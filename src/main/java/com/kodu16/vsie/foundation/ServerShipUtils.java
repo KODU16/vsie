@@ -1,11 +1,14 @@
 package com.kodu16.vsie.foundation;
 
+import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
 import dev.ryanhcode.sable.api.physics.mass.MassData;
 import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
 import dev.ryanhcode.sable.companion.math.JOMLConversion;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
@@ -104,5 +107,9 @@ public final class ServerShipUtils {
                 new Vector3d(targetWorldPos),
                 currentOrientation
         );
+    }
+
+    public static @Nullable SubLevel getSubLevelAtBlockPos(Level level, BlockPos pos) {
+        return Sable.HELPER.getContaining(level, pos);
     }
 }

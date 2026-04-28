@@ -1,5 +1,6 @@
 package com.kodu16.vsie.content.controlseat.server;
 
+import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.BlockPos;
@@ -106,7 +107,7 @@ public class ControlSeatServerData {
     public volatile BlockPos controlSeatPos = BlockPos.ZERO;
 
     public Level level;
-    public ServerShip serverShip;
+    public ServerSubLevel serverShip;
 
 
     @Getter
