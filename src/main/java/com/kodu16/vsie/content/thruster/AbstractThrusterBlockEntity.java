@@ -5,6 +5,7 @@ import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -247,7 +248,8 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
     protected void read(CompoundTag tag, boolean clientPacket) {
         super.read(tag, clientPacket);
 
-        if (tag.contains("raycastDistance", CompoundTag.TAG_FLOAT)) {
+        // 功能：适配 1.21.1 NeoForge 的 NBT 类型检查常量，使用 Tag.TAG_FLOAT 读取浮点射线距离。
+        if (tag.contains("raycastDistance", Tag.TAG_FLOAT)) {
             this.raycastDistance = tag.getFloat("raycastDistance");
         } else {
             this.raycastDistance = 0;
