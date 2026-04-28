@@ -1,5 +1,6 @@
 package com.kodu16.vsie.registries;
 
+import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntityRenderer;
 import com.kodu16.vsie.content.turret.heavyturret.HeavyTurretScreen;
 import com.kodu16.vsie.content.item.IFF.IFFScreen;
 import com.kodu16.vsie.content.item.shieldtool.shieldtoolScreen;
@@ -61,6 +62,9 @@ public class vsieClientModRegistryEvents {
         );
         event.enqueueWork(() ->
                 EntityRenderers.register(vsieEntities.WARP_PROJECTILE.get(), WarpProjectileRenderer::new)
+        );
+        event.enqueueWork(() ->
+                EntityRenderers.register(vsieEntities.CONTROL_SEAT_MOUNT_ENTITY.get(), ControlSeatMountEntityRenderer::new)
         );
         event.enqueueWork(() -> {
             Minecraft.getInstance().particleEngine.register(

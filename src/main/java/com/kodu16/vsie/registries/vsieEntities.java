@@ -3,6 +3,7 @@ package com.kodu16.vsie.registries;
 import com.kodu16.vsie.content.bullet.BulletRenderer;
 import com.kodu16.vsie.content.bullet.entity.ParticleBulletEntity;
 import com.kodu16.vsie.content.bullet.entity.CenixPlasmaBulletEntity;
+import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
 import com.kodu16.vsie.content.missile.entity.BasicMissileEntity;
 import com.kodu16.vsie.content.warpprojectile.WarpProjecTileEntity;
 import com.kodu16.vsie.vsie;
@@ -32,6 +33,11 @@ public class vsieEntities {
             REGISTRATE.entity("warp_projectile", WarpProjecTileEntity::new, MobCategory.MISC)
                     // 功能：注册 warp 特效弹体实体，供控制椅自动对准完成后在服务器生成。
                     .tag(RPLTags.PRECISE_MOTION)
+                    .register();
+    public static final EntityEntry<ControlSeatMountEntity> CONTROL_SEAT_MOUNT_ENTITY =
+            REGISTRATE.entity("control_seat_mount", ControlSeatMountEntity::new, MobCategory.MISC)
+                    // 功能：注册 warp 特效弹体实体，供控制椅自动对准完成后在服务器生成。
+                    //.tag(RPLTags.PRECISE_MOTION)
                     .register();
 
 }
