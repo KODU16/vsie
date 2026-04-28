@@ -9,6 +9,7 @@ import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
@@ -330,7 +331,8 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         if (this.weaponData == null) {
             this.weaponData = new WeaponData();
         }
-        if (tag.contains("raycastDistance", CompoundTag.TAG_FLOAT)) {this.raycastDistance = tag.getFloat("raycastDistance");}
+        // 功能：适配 1.21.1 NeoForge 的 NBT 类型检查常量，使用 Tag.TAG_FLOAT 读取浮点射线距离。
+        if (tag.contains("raycastDistance", Tag.TAG_FLOAT)) {this.raycastDistance = tag.getFloat("raycastDistance");}
         if(tag.contains("target_x") && tag.contains("target_y") && tag.contains("target_z")) {this.targetpos = new Vec3(tag.getDouble("target_x"), tag.getDouble("target_y"), tag.getDouble("target_z"));}
         if (tag.contains("channel1")) {weaponData.setChannel1(tag.getBoolean("channel1"));}
         if (tag.contains("channel2")) {weaponData.setChannel2(tag.getBoolean("channel2"));}

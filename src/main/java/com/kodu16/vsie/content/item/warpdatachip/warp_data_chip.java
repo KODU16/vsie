@@ -2,6 +2,7 @@ package com.kodu16.vsie.content.item.warpdatachip;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
@@ -42,7 +43,8 @@ public class warp_data_chip extends Item {
             return null;
         }
         CompoundTag tag = stack.getTag();
-        if (tag == null || !tag.contains(KEY_WARP_DATA, CompoundTag.TAG_COMPOUND)) {
+        // 功能：1.21.1 NeoForge 中 contains 类型常量应使用 Tag.TAG_*，这里校验 WarpData 是复合标签。
+        if (tag == null || !tag.contains(KEY_WARP_DATA, Tag.TAG_COMPOUND)) {
             return null;
         }
         CompoundTag warpDataTag = tag.getCompound(KEY_WARP_DATA);
