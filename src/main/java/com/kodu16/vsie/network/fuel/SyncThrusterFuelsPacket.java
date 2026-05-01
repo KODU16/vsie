@@ -1,25 +1,41 @@
 package com.kodu16.vsie.network.fuel;
 
+import io.netty.buffer.ByteBuf;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Supplier;
 
 import com.kodu16.vsie.network.fuel.FluidThrusterProperties;
 import com.kodu16.vsie.registries.fuel.ThrusterFuelManager;
 
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraftforge.network.NetworkEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
 
 public class SyncThrusterFuelsPacket implements CustomPacketPayload {
     // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
     public static final CustomPacketPayload.Type<SyncThrusterFuelsPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "fuel_syncthrusterfuelspacket"));
-    public static final StreamCodec<FriendlyByteBuf, SyncThrusterFuelsPacket> STREAM_CODEC = CustomPacketPayload.codec((buf, pkt) -> pkt.encode(buf), SyncThrusterFuelsPacket::decode);
+    private static final StreamCodec<ByteBuf, FluidThrusterProperties> FLUID_THRUSTER_PROPERTIES_STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.FLOAT,
+            properties -> properties.thrustMultiplier,
+            ByteBufCodecs.FLOAT,
+            properties -> properties.consumptionMultiplier,
+            FluidThrusterProperties::new
+    );
+    private static final StreamCodec<ByteBuf, Map<ResourceLocation, FluidThrusterProperties>> FUEL_MAP_STREAM_CODEC = ByteBufCodecs.map(
+            HashMap::new,
+            ResourceLocation.STREAM_CODEC,
+            FLUID_THRUSTER_PROPERTIES_STREAM_CODEC
+    );
+    public static final StreamCodec<RegistryFriendlyByteBuf, SyncThrusterFuelsPacket> STREAM_CODEC = StreamCodec.composite(
+            FUEL_MAP_STREAM_CODEC,
+            SyncThrusterFuelsPacket::fuelMap,
+            SyncThrusterFuelsPacket::new
+    );
 
     private final Map<ResourceLocation, FluidThrusterProperties> fuelMap;
 
@@ -38,26 +54,15 @@ public class SyncThrusterFuelsPacket implements CustomPacketPayload {
         this.fuelMap = fuelMap;
     }
 
-    public static SyncThrusterFuelsPacket decode(FriendlyByteBuf buf) {
-        Map<ResourceLocation, FluidThrusterProperties> map = buf.readMap(FriendlyByteBuf::readResourceLocation, FluidThrusterProperties::decode);
-        return new SyncThrusterFuelsPacket(map);
-    }
-
-    public void encode(FriendlyByteBuf buf) {
-        buf.writeMap(this.fuelMap, FriendlyByteBuf::writeResourceLocation, (b, props) -> props.encode(b));
+    private Map<ResourceLocation, FluidThrusterProperties> fuelMap() {
+        return this.fuelMap;
     }
 
     // 功能：NeoForge 1.21.1 处理器入口，复用旧版实例方法逻辑。
     public static void handle(SyncThrusterFuelsPacket pkt, IPayloadContext context) {
-        pkt.handle(() -> new net.minecraftforge.network.NetworkEvent.Context(context));
-    }
-
-    public void handle(Supplier<NetworkEvent.Context> supplier) {
-        NetworkEvent.Context context = supplier.get();
         context.enqueueWork(() -> {
-            ThrusterFuelManager.updateClient(this.fuelMap);
+            ThrusterFuelManager.updateClient(pkt.fuelMap);
         });
-        context.setPacketHandled(true);
     }
 
 

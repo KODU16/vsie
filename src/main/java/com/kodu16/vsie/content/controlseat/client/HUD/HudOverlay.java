@@ -3,8 +3,8 @@ package com.kodu16.vsie.content.controlseat.client.HUD;
 import com.kodu16.vsie.content.controlseat.ActiveWeaponHudInfo;
 import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
+import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
 import com.kodu16.vsie.content.controlseat.functions.ShipAnglePainter;
-import com.kodu16.vsie.content.controlseat.server.SeatRegistry;
 import com.kodu16.vsie.registries.vsieItems;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
@@ -22,8 +22,6 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 // 功能：在 NeoForge 1.21.1 的 GAME 总线上订阅 HUD 渲染事件。
 @EventBusSubscriber(value = Dist.CLIENT, bus = EventBusSubscriber.Bus.GAME)
@@ -47,9 +45,9 @@ public class HudOverlay {
         if (player == null || player.getVehicle() == null) return;
 
         // 必须是 VS2 的船骑乘实体
-        if (player.getVehicle().getType() != ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE) return;
+        if (!(player.getVehicle() instanceof ControlSeatMountEntity mountEntity)) return;
 
-        BlockPos controlSeatPos = SeatRegistry.SEAT_TO_CONTROLSEAT.get(player.getVehicle().getUUID());
+        BlockPos controlSeatPos = mountEntity.getBoundBlockPos();
         if (controlSeatPos == null || mc.level == null) return;
 
         BlockEntity blockEntity = mc.level.getBlockEntity(controlSeatPos);
@@ -115,7 +113,7 @@ public class HudOverlay {
             //绘制水平和竖直方位条
             var interpolatedFacing = data.getInterpolatedShipFacing(partialTick);
             var interpolatedUp = data.getInterpolatedShipUp(partialTick);
-            double[] angles = ShipAnglePainter.getDirectedAnglesToAxes(VectorConversionsMCKt.toMinecraft(interpolatedFacing));
+            double[] angles = ShipAnglePainter.getDirectedAnglesToAxes(new Vec3(interpolatedFacing.x, interpolatedFacing.y, interpolatedFacing.z));
             // 功能：基于 shipUp + shipFacing 计算当前俯仰角（-90~90），用于左侧俯仰条滚动。
             double pitchDeg = ShipAnglePainter.getPitchDegrees(interpolatedFacing, interpolatedUp);
             ShipAnglePainter.drawAngleLine(gg, interpolatedFacing, centerX, baseY+10, MAIN_COLOR);

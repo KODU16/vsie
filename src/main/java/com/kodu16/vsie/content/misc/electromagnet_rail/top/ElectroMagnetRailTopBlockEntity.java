@@ -3,15 +3,16 @@ package com.kodu16.vsie.content.misc.electromagnet_rail.top;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
-import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.core.animatable.instance.SingletonAnimatableInstanceCache;
-import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
+import software.bernie.geckolib.animation.AnimatableManager;
 
 import java.util.List;
 
@@ -49,15 +50,15 @@ public class ElectroMagnetRailTopBlockEntity extends SmartBlockEntity implements
     }
 
     @Override
-    protected void write(CompoundTag tag, boolean clientPacket) {
-        super.write(tag, clientPacket);
+    protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(tag, registries, clientPacket);
         // 功能：持久化并同步 top 的绑定状态，保证客户端动画与服务端一致。
         tag.putBoolean("BoundToCore", this.boundToCore);
     }
 
     @Override
-    public void read(CompoundTag tag, boolean clientPacket) {
-        super.read(tag, clientPacket);
+    public void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(tag, registries, clientPacket);
         if (tag.contains("BoundToCore")) {
             // 功能：读取同步过来的绑定状态，在客户端驱动骨骼展开/收回动画。
             this.boundToCore = tag.getBoolean("BoundToCore");
@@ -65,23 +66,21 @@ public class ElectroMagnetRailTopBlockEntity extends SmartBlockEntity implements
     }
 
     @Override
-    public CompoundTag getUpdateTag() {
-        CompoundTag tag = super.getUpdateTag();
-        write(tag, true);
-        return tag;
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        return super.getUpdateTag(registries);
     }
 
     @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
+    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt, HolderLookup.Provider registries) {
         CompoundTag tag = pkt.getTag();
         if (tag != null) {
-            handleUpdateTag(tag);
+            handleUpdateTag(tag, registries);
         }
     }
 
     @Override
-    public void handleUpdateTag(CompoundTag tag) {
-        read(tag, true);
+    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
+        read(tag, registries, true);
     }
 
     @Override

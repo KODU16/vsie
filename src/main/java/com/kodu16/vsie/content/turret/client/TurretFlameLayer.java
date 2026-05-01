@@ -14,7 +14,7 @@ import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.cache.object.GeoBone;
 import software.bernie.geckolib.renderer.GeoRenderer;
 import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
-import software.bernie.geckolib.util.RenderUtils;
+import software.bernie.geckolib.util.RenderUtil;
 
 public class TurretFlameLayer extends GeoRenderLayer<AbstractTurretBlockEntity> {
 
@@ -72,9 +72,9 @@ public class TurretFlameLayer extends GeoRenderLayer<AbstractTurretBlockEntity> 
         poseStack.pushPose();
 
         // GeckoLib 提供的标准骨骼变换顺序（非常重要不要打乱）
-        RenderUtils.translateMatrixToBone(poseStack, bone);
-        RenderUtils.rotateMatrixAroundBone(poseStack, bone);
-        RenderUtils.scaleMatrixForBone(poseStack, bone);
+        RenderUtil.translateMatrixToBone(poseStack, bone);
+        RenderUtil.rotateMatrixAroundBone(poseStack, bone);
+        RenderUtil.scaleMatrixForBone(poseStack, bone);
 
         VertexConsumer vc = bufferSource.getBuffer(FLASH_RENDER);
 

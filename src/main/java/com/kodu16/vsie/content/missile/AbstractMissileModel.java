@@ -8,8 +8,8 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
-import software.bernie.geckolib.core.animatable.model.CoreGeoBone;
-import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.cache.object.GeoBone;
+import software.bernie.geckolib.animation.AnimationState;
 import software.bernie.geckolib.model.DefaultedEntityGeoModel;
 
 @SuppressWarnings({"removal"})
@@ -43,7 +43,7 @@ public class AbstractMissileModel extends DefaultedEntityGeoModel<AbstractMissil
 
     @Override
     public void setCustomAnimations(AbstractMissileEntity missile, long instanceId, AnimationState<AbstractMissileEntity> animationState) {
-        CoreGeoBone base = this.getAnimationProcessor().getBone("base");
+        GeoBone base = this.getAnimationProcessor().getBone("base");
         if (base == null) return;
 
         Vec3 axisx_positive = new Vec3(0,0,-1);

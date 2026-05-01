@@ -5,8 +5,8 @@ import com.kodu16.vsie.content.misc.electromagnet_rail.top.ElectroMagnetRailTopB
 import com.kodu16.vsie.registries.vsieBlocks;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import lombok.Getter;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
@@ -23,10 +23,10 @@ import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
-import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.core.animatable.instance.SingletonAnimatableInstanceCache;
-import software.bernie.geckolib.core.animation.AnimatableManager;
-import software.bernie.geckolib.network.SerializableDataTicket;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
+import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.constant.dataticket.SerializableDataTicket;
 
 import java.util.List;
 
@@ -56,15 +56,24 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
 
     // 提供容器菜单读取检测状态。
     // 记录最近一次“终端检测”结果，供容器菜单同步给客户端 GUI。
-    @Getter
     private int terminalStatus = TERMINAL_STATUS_IDLE;
     // 提供容器菜单读取检测终端坐标。
-    @Getter
     private BlockPos terminalPos = BlockPos.ZERO;
     // 提供客户端渲染层读取当前光束推进长度。
     // 光束当前可见长度（单位：方块），每 tick 向终端推进 10 格。
-    @Getter
     private float beamRenderDistance = 0.0f;
+
+    public int getTerminalStatus() {
+        return terminalStatus;
+    }
+
+    public BlockPos getTerminalPos() {
+        return terminalPos;
+    }
+
+    public float getBeamRenderDistance() {
+        return beamRenderDistance;
+    }
 
     public ElectroMagnetRailCoreBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
@@ -254,10 +263,10 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
     }
 
     @Override
-    public void read(CompoundTag tag, boolean clientpacket) {
-        super.read(tag,clientpacket);
+    public void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientpacket) {
+        super.read(tag, registries, clientpacket);
         if (tag.contains("Inventory")) {
-            inventory.deserializeNBT(tag.getCompound("Inventory"));
+            inventory.deserializeNBT(registries, tag.getCompound("Inventory"));
         }
         // 同步最近一次终端检测结果，保证 GUI 重开后仍能展示。
         if (tag.contains("TerminalStatus")) {
@@ -272,9 +281,9 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
     }
 
     @Override
-    protected void write(CompoundTag tag, boolean clientpacket) {
-        super.write(tag,clientpacket);
-        tag.put("Inventory", inventory.serializeNBT());
+    protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientpacket) {
+        super.write(tag, registries, clientpacket);
+        tag.put("Inventory", inventory.serializeNBT(registries));
         // 持久化并同步终端检测状态与坐标。
         tag.putInt("TerminalStatus", this.terminalStatus);
         tag.putLong("TerminalPos", this.terminalPos.asLong());
@@ -282,23 +291,21 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
     }
 
     @Override
-    public CompoundTag getUpdateTag() {
-        CompoundTag tag = super.getUpdateTag();
-        write(tag, true);
-        return tag;
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        return super.getUpdateTag(registries);
     }
 
     @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
+    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt, HolderLookup.Provider registries) {
         CompoundTag tag = pkt.getTag();
         if (tag != null) {
-            handleUpdateTag(tag);
+            handleUpdateTag(tag, registries);
         }
     }
 
     @Override
-    public void handleUpdateTag(CompoundTag tag) {
-        read(tag, true);
+    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
+        read(tag, registries, true);
     }
 
 

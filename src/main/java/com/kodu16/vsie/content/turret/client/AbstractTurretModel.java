@@ -11,8 +11,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import org.joml.Quaternionf;
 import org.joml.Vector3d;
-import software.bernie.geckolib.core.animatable.model.CoreGeoBone;
-import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.cache.object.GeoBone;
+import software.bernie.geckolib.animation.AnimationState;
 import software.bernie.geckolib.model.DefaultedBlockGeoModel;
 
 @SuppressWarnings({"removal"})
@@ -54,8 +54,8 @@ public class AbstractTurretModel extends DefaultedBlockGeoModel<AbstractTurretBl
 
     @Override
     public void setCustomAnimations(AbstractTurretBlockEntity animatable, long instanceId, AnimationState<AbstractTurretBlockEntity> animationState) {
-        CoreGeoBone turret = getAnimationProcessor().getBone("turret");
-        CoreGeoBone cannon = getAnimationProcessor().getBone("cannon");
+        GeoBone turret = getAnimationProcessor().getBone("turret");
+        GeoBone cannon = getAnimationProcessor().getBone("cannon");
         if(turret != null && cannon != null) {
             float xRot = lerp(animatable.prevxrot, getX(animatable));
             float yRot = lerp(animatable.prevyrot, getY(animatable));

@@ -14,14 +14,13 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.joml.Vector3d;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 import static com.kodu16.vsie.content.controlseat.functions.WorldMarkerPainter.mc;
 
 public class ShipAnglePainter {
 
     public static void drawAngleLine(GuiGraphics gg, Vector3d shipFacing, int centerX, int baseY, int color) {
-        double yawDeg = getDirectedAnglesToAxes(VectorConversionsMCKt.toMinecraft(shipFacing))[0];
+        double yawDeg = getDirectedAnglesToAxes(new Vec3(shipFacing.x, shipFacing.y, shipFacing.z))[0];
 
         yawDeg = yawDeg % 360;
         if (yawDeg < 0) yawDeg += 360;

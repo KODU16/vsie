@@ -3,12 +3,15 @@ package com.kodu16.vsie.content.controlseat.block;
 import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.ActiveWeaponHudInfo;
 import com.kodu16.vsie.content.controlseat.Initialize;
+import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
 import com.kodu16.vsie.content.controlseat.functions.ShieldHandler;
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
+import com.kodu16.vsie.content.controlseat.server.ServerShipHandler;
 import com.kodu16.vsie.content.controlseat.client.Input.ClientMouseHandler;
 
 import com.kodu16.vsie.content.controlseat.server.SeatRegistry;
 import com.kodu16.vsie.foundation.ServerShipUtils;
+import com.kodu16.vsie.registries.vsieEntities;
 import com.kodu16.vsie.registries.vsieItems;
 import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
@@ -23,8 +26,10 @@ import com.kodu16.vsie.registries.fuel.ThrusterFuelManager;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
+import dev.ryanhcode.sable.api.block.BlockEntitySubLevelActor;
+import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
+import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
-import lombok.Getter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -38,6 +43,7 @@ import org.slf4j.Logger;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Direction;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.util.Mth;
@@ -49,31 +55,30 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import org.joml.Vector3d;
-import org.joml.Vector3dc;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import software.bernie.geckolib.animation.AnimatableManager;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
+public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity implements BlockEntitySubLevelActor {
     //private final ControlSeatServerData serverData = new ControlSeatServerData();
     public volatile boolean ride = false;
     private boolean hasInitialized = false;
     public boolean previousfirestatus = false;
 
-    // 功能：缓存控制椅当前世界坐标，供屏幕雷达使用。
+    // 鍔熻兘锛氱紦瀛樻帶鍒舵褰撳墠涓栫晫鍧愭爣锛屼緵灞忓箷闆疯揪浣跨敤銆?
     private Vector3d currentworldpos = new Vector3d();
 
 
-    //即使我不想写的这么恶心，为了跨维度我还是得干
-    //有两个hashmap，第二个是为了渲染HUD的时候用来反查controlseat
-    private List<ShipMountingEntity> seats = new ArrayList<>();
+    //鍗充娇鎴戜笉鎯冲啓鐨勮繖涔堟伓蹇冿紝涓轰簡璺ㄧ淮搴︽垜杩樻槸寰楀共
+    //鏈変袱涓猦ashmap锛岀浜屼釜鏄负浜嗘覆鏌揌UD鐨勬椂鍊欑敤鏉ュ弽鏌ontrolseat
+    private List<ControlSeatMountEntity> seats = new ArrayList<>();
+    private final ServerShipHandler serverShipHandler;
 
     public SmartFluidTankBehaviour tank;
 
-    // 功能：为 Shift+右键打开的控制椅专用 GUI 提供 27 格 warp data chip 存储。
-    @Getter
+    // 鍔熻兘锛氫负 Shift+鍙抽敭鎵撳紑鐨勬帶鍒舵涓撶敤 GUI 鎻愪緵 27 鏍?warp data chip 瀛樺偍銆?
     private final ItemStackHandler warpChipInventory = new ItemStackHandler(27) {
         @Override
         protected void onContentsChanged(int slot) {
@@ -82,13 +87,32 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
 
         @Override
         public boolean isItemValid(int slot, ItemStack stack) {
-            // 功能：限制控制椅仓位只接收 warp data chip。
+            // 鍔熻兘锛氶檺鍒舵帶鍒舵浠撲綅鍙帴鏀?warp data chip銆?
             return stack.is(vsieItems.WARP_DATA_CHIP.get());
         }
     };
 
+    public ItemStackHandler getWarpChipInventory() {
+        return warpChipInventory;
+    }
+
     public ControlSeatBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
+        this.serverShipHandler = new ServerShipHandler(controlseatData);
+    }
+
+    @Override
+    public void sable$tick(ServerSubLevel subLevel) {
+        controlseatData.serverShip = subLevel;
+        controlseatData.level = level;
+        serverShipHandler.getandsendshipdata(subLevel, getBlockPos());
+    }
+
+    @Override
+    public void sable$physicsTick(ServerSubLevel subLevel, RigidBodyHandle handle, double timeStep) {
+        controlseatData.serverShip = subLevel;
+        controlseatData.level = level;
+        serverShipHandler.applyForceAndTorque(subLevel, getBlockPos());
     }
 
     public String getcontrolseattype() {
@@ -102,30 +126,30 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
     }
 
 
-    //先接收client更新，叫client向服务端发包
+    //鍏堟帴鏀禼lient鏇存柊锛屽彨client鍚戞湇鍔＄鍙戝寘
     public void clientTick() {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer lp = mc.player;
         BlockPos pos = getBlockPos();
-        // 只有当本地玩家就是这张座椅的乘客时才生效
-        //这是个静态方法，最好提前确定好你在server存好了他上一次的鼠标位置和他上一次操作时间
+        // 鍙湁褰撴湰鍦扮帺瀹跺氨鏄繖寮犲骇妞呯殑涔樺鏃舵墠鐢熸晥
+        //杩欐槸涓潤鎬佹柟娉曪紝鏈€濂芥彁鍓嶇‘瀹氬ソ浣犲湪server瀛樺ソ浜嗕粬涓婁竴娆＄殑榧犳爣浣嶇疆鍜屼粬涓婁竴娆℃搷浣滄椂闂?
         ClientMouseHandler.handle(lp, pos);
     }
 
     @Override
     public void write(CompoundTag tag, boolean clientPacket) {
         super.write(tag, clientPacket);
-        // 功能：持久化控制椅 GUI 中存放的 warp data chip。
-        tag.put("WarpChipInventory", warpChipInventory.serializeNBT());
-        // 功能：把当前选中的跃迁目标一并写入 NBT，保证区块卸载后 control seat 仍记得下一次跃迁坐标。
+        // 鍔熻兘锛氭寔涔呭寲鎺у埗妞?GUI 涓瓨鏀剧殑 warp data chip銆?
+        //tag.put("WarpChipInventory", warpChipInventory.serializeNBT(registries));
+        // 鍔熻兘锛氭妸褰撳墠閫変腑鐨勮穬杩佺洰鏍囦竴骞跺啓鍏?NBT锛屼繚璇佸尯鍧楀嵏杞藉悗 control seat 浠嶈寰椾笅涓€娆¤穬杩佸潗鏍囥€?
         tag.putInt("WarpTargetX", controlseatData.warpTargetPos.getX());
         tag.putInt("WarpTargetY", controlseatData.warpTargetPos.getY());
         tag.putInt("WarpTargetZ", controlseatData.warpTargetPos.getZ());
         tag.putString("WarpTargetDimension", controlseatData.warpTargetDimension);
         tag.putString("WarpTargetName", controlseatData.warpTargetName);
-        // 功能：同步 warp 准备状态到客户端，让按下 P 时能正确走“取消准备”而不是再次开菜单。
+        // 鍔熻兘锛氬悓姝?warp 鍑嗗鐘舵€佸埌瀹㈡埛绔紝璁╂寜涓?P 鏃惰兘姝ｇ‘璧扳€滃彇娑堝噯澶団€濊€屼笉鏄啀娆″紑鑿滃崟銆?
         tag.putBoolean("IsWarpPreparing", controlseatData.isWarpPreparing);
-        // 功能：持久化“视角锁定”开关，保证玩家重进世界且仍在座椅上时可恢复控制态。
+        // 鍔熻兘锛氭寔涔呭寲鈥滆瑙掗攣瀹氣€濆紑鍏筹紝淇濊瘉鐜╁閲嶈繘涓栫晫涓斾粛鍦ㄥ骇妞呬笂鏃跺彲鎭㈠鎺у埗鎬併€?
         tag.putBoolean("IsViewLocked", controlseatData.isviewlocked);
     }
 
@@ -133,10 +157,10 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
     public void read(CompoundTag tag, boolean clientPacket) {
         super.read(tag, clientPacket);
         if (tag.contains("WarpChipInventory")) {
-            // 功能：在区块加载/同步时恢复控制椅 GUI 中保存的 warp data chip。
-            warpChipInventory.deserializeNBT(tag.getCompound("WarpChipInventory"));
+            // 鍔熻兘锛氬湪鍖哄潡鍔犺浇/鍚屾鏃舵仮澶嶆帶鍒舵 GUI 涓繚瀛樼殑 warp data chip銆?
+            warpChipInventory.deserializeNBT(registries, tag.getCompound("WarpChipInventory"));
         }
-        // 功能：在区块加载/同步时恢复控制椅已经选好的跃迁目标。
+        // 鍔熻兘锛氬湪鍖哄潡鍔犺浇/鍚屾鏃舵仮澶嶆帶鍒舵宸茬粡閫夊ソ鐨勮穬杩佺洰鏍囥€?
         controlseatData.warpTargetPos = new BlockPos(tag.getInt("WarpTargetX"), tag.getInt("WarpTargetY"), tag.getInt("WarpTargetZ"));
         controlseatData.warpTargetDimension = tag.getString("WarpTargetDimension");
         controlseatData.warpTargetName = tag.getString("WarpTargetName");
@@ -149,10 +173,10 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         if (level.isClientSide)
             return;
         if (hasInitialized) {
-            // 功能：每 tick 从世界中的真实座椅实体反查当前乘坐玩家，修复重进世界后 ride/player 丢失导致无法控制的问题。
+            // 鍔熻兘锛氭瘡 tick 浠庝笘鐣屼腑鐨勭湡瀹炲骇妞呭疄浣撳弽鏌ュ綋鍓嶄箻鍧愮帺瀹讹紝淇閲嶈繘涓栫晫鍚?ride/player 涓㈠け瀵艰嚧鏃犳硶鎺у埗鐨勯棶棰樸€?
             refreshSeatOccupancyFromWorld();
 
-            // 功能：每 tick 刷新控制椅自身方块坐标，供 warp 自动对准把目标位置转换为控制椅当前的世界朝向基准。
+            // 鍔熻兘锛氭瘡 tick 鍒锋柊鎺у埗妞呰嚜韬柟鍧楀潗鏍囷紝渚?warp 鑷姩瀵瑰噯鎶婄洰鏍囦綅缃浆鎹负鎺у埗妞呭綋鍓嶇殑涓栫晫鏈濆悜鍩哄噯銆?
             controlseatData.controlSeatPos = getBlockPos();
 
             //update
@@ -205,8 +229,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             }
         }
 
-        //护盾
-        if(controlseatData.isshieldon) {//如果护盾开启
+        //鎶ょ浘
+        if(controlseatData.isshieldon) {//濡傛灉鎶ょ浘寮€鍚?
             updateShieldEnergyAvalible();
             int currentcooldown = (int) controlseatData.shieldcooldowntime;
             if(controlseatData.shieldcooldowntime <= 0) {
@@ -215,21 +239,21 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
                     return;
                 }
                 Vec3 center = ServerShipUtils.getStructureCenterWorld(sublevel);
-                AABB searchBox = new AABB(this.getBlockPos()).inflate(controlseatData.shieldradius + 3.0); // 多搜一点，防止高速实体一帧穿过去
-                // 核心：只筛选“没有生命值 + 速度够快 + 不是玩家也不是盔甲架”之类的实体
+                AABB searchBox = new AABB(this.getBlockPos()).inflate(controlseatData.shieldradius + 3.0); // 澶氭悳涓€鐐癸紝闃叉楂橀€熷疄浣撲竴甯х┛杩囧幓
+                // 鏍稿績锛氬彧绛涢€夆€滄病鏈夌敓鍛藉€?+ 閫熷害澶熷揩 + 涓嶆槸鐜╁涔熶笉鏄洈鐢叉灦鈥濅箣绫荤殑瀹炰綋
                 Vec3 finalCenter = center;
                 level.getEntitiesOfClass(Entity.class, searchBox, entity -> {
                     if (entity.isRemoved() || entity instanceof LivingEntity)
                         return false;
 
-                    // 速度阈值，可调（单位：方块/刻）
+                    // 閫熷害闃堝€硷紝鍙皟锛堝崟浣嶏細鏂瑰潡/鍒伙級
                     double speed = entity.getDeltaMovement().length();
-                    if (speed < 0.25) return false; // 太慢的直接忽略（比如漂浮的物品）
+                    if (speed < 0.25) return false; // 澶參鐨勭洿鎺ュ拷鐣ワ紙姣斿婕傛诞鐨勭墿鍝侊級
 
-                    // 计算是否朝护盾飞来
+                    // 璁＄畻鏄惁鏈濇姢鐩鹃鏉?
                     Vec3 toEntity = entity.position().subtract(finalCenter);
                     double dot = entity.getDeltaMovement().normalize().dot(toEntity.normalize());
-                    return dot < -0.3; // 越负说明越正对护盾飞来（-0.3~0.6 之间调节手感）
+                    return dot < -0.3; // 瓒婅礋璇存槑瓒婃瀵规姢鐩鹃鏉ワ紙-0.3~0.6 涔嬮棿璋冭妭鎵嬫劅锛?
                 }).forEach(entity -> {
 
                     Vec3 toEntity = entity.position().subtract(finalCenter);
@@ -238,14 +262,14 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
                     if (distSq > controlseatData.shieldradius * controlseatData.shieldradius || distSq < 0.25) return;
                     if(controlseatData.avalibleshield>0)
                     {
-                        // 拦截
+                        // 鎷︽埅
                         entity.discard();
-                        // 粒子交点
+                        // 绮掑瓙浜ょ偣
                         Vec3 hitDir = toEntity.normalize();
                         Vec3 hitPoint = finalCenter.add(hitDir.scale(controlseatData.shieldradius));
                         ShieldHandler.spawnRippleParticles((ServerLevel) level, hitPoint, finalCenter);
 
-                        // 可选：播放音效
+                        // 鍙€夛細鎾斁闊虫晥
                         level.playSound(null, hitPoint.x, hitPoint.y, hitPoint.z,
                                 SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), SoundSource.BLOCKS,
                                 1.0f, 1.2f + level.random.nextFloat() * 0.4f);
@@ -264,8 +288,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
 
     }
 
-    //0：推进器 1：主武器 2：护盾 3：炮塔 4：电池 5：燃料箱 6：弹药箱，务必不要写错
-    public void updateEnergy() {//avalible：剩余值，非avalible：总值
+    //0锛氭帹杩涘櫒 1锛氫富姝﹀櫒 2锛氭姢鐩?3锛氱偖濉?4锛氱數姹?5锛氱噧鏂欑 6锛氬脊鑽锛屽姟蹇呬笉瑕佸啓閿?
+    public void updateEnergy() {//avalible锛氬墿浣欏€硷紝闈瀉valible锛氭€诲€?
         List<Vec3> toRemove = new ArrayList<>();
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
@@ -284,14 +308,14 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
                 totalenergy += battery.getEnergy().getMaxEnergyStored();
                 totalenergyavalible += battery.getEnergy().getEnergyStored();
             } else {
-                // 先记下来，循环完了再删
+                // 鍏堣涓嬫潵锛屽惊鐜畬浜嗗啀鍒?
                 toRemove.add(pos);
             }
         }, 4);
         controlseatData.totalenergystorage = totalenergy;
         controlseatData.avalibleenergy = totalenergyavalible;
         //LogUtils.getLogger().warn("detected total energy:"+controlseatData.totalenergystorage+"avalible:"+controlseatData.avalibleenergy);
-        // 循环结束后统一删除
+        // 寰幆缁撴潫鍚庣粺涓€鍒犻櫎
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 4);
         }
@@ -299,9 +323,9 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
 
     public void updateThruster() {
         List<Vec3> toRemove = new ArrayList<>();
-        // 功能：每次更新推进器前重置“东南西北上下”六方向最大推力总和，避免沿用上一 tick 缓存。
+        // 鍔熻兘锛氭瘡娆℃洿鏂版帹杩涘櫒鍓嶉噸缃€滀笢鍗楄タ鍖椾笂涓嬧€濆叚鏂瑰悜鏈€澶ф帹鍔涙€诲拰锛岄伩鍏嶆部鐢ㄤ笂涓€ tick 缂撳瓨銆?
         float[] facingMaxThrustSum = new float[6];
-        // 功能：缓存本 tick 内仍在线的推进器列表，统计完成后再统一下发“同朝向总推力”。
+        // 鍔熻兘锛氱紦瀛樻湰 tick 鍐呬粛鍦ㄧ嚎鐨勬帹杩涘櫒鍒楄〃锛岀粺璁″畬鎴愬悗鍐嶇粺涓€涓嬪彂鈥滃悓鏈濆悜鎬绘帹鍔涒€濄€?
         List<AbstractThrusterBlockEntity> activeThrusters = new ArrayList<>();
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
@@ -311,21 +335,21 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
                 Logger LOGGER = LogUtils.getLogger();
                 //LOGGER.warn("writing to thrusters:" +blockPos+ "torque:"+controlseatData.getFinaltorque()+"force:"+controlseatData.getFinalforce());
                 this.calculatedstrength+=thruster.getMaxThrust();
-                // 功能：按推进器方块 FACING 统计该方向的最大推力总和（东南西北上下）。
+                // 鍔熻兘锛氭寜鎺ㄨ繘鍣ㄦ柟鍧?FACING 缁熻璇ユ柟鍚戠殑鏈€澶ф帹鍔涙€诲拰锛堜笢鍗楄タ鍖椾笂涓嬶級銆?
                 Direction thrusterFacing = thruster.getBlockState().getValue(BlockStateProperties.FACING);
                 int facingIndex = getFacingThrustIndex(thrusterFacing);
                 if (facingIndex >= 0) {
                     facingMaxThrustSum[facingIndex] += thruster.getMaxThrust();
                 }
-                // 功能：记录推进器实例，待方向总推力统计完成后再把结果精确回写给对应推进器。
+                // 鍔熻兘锛氳褰曟帹杩涘櫒瀹炰緥锛屽緟鏂瑰悜鎬绘帹鍔涚粺璁″畬鎴愬悗鍐嶆妸缁撴灉绮剧‘鍥炲啓缁欏搴旀帹杩涘櫒銆?
                 activeThrusters.add(thruster);
                 this.fuelspendcurrenttick += thruster.fuelconsumptionperthrottle()*thruster.getFuelThrottle();
             } else {
-                // 先记下来，循环完了再删
+                // 鍏堣涓嬫潵锛屽惊鐜畬浜嗗啀鍒?
                 toRemove.add(pos);
             }
         }, 0);
-        // 功能：把“同朝向推进器总推力”与控制输入一起下发给每个推进器，供其计算力贡献权重。
+        // 鍔熻兘锛氭妸鈥滃悓鏈濆悜鎺ㄨ繘鍣ㄦ€绘帹鍔涒€濅笌鎺у埗杈撳叆涓€璧蜂笅鍙戠粰姣忎釜鎺ㄨ繘鍣紝渚涘叾璁＄畻鍔涜础鐚潈閲嶃€?
         for (AbstractThrusterBlockEntity thruster : activeThrusters) {
             Direction thrusterFacing = thruster.getBlockState().getValue(BlockStateProperties.FACING);
             int facingIndex = getFacingThrustIndex(thrusterFacing);
@@ -333,15 +357,15 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             thruster.setdata(controlseatData.getFinaltorque(), controlseatData.getFinalforce(), sameFacingSum);
         }
         controlseatData.thruster_strength = this.calculatedstrength;
-        // 功能：将“东南西北上下”六方向推力统计结果写入控制椅服务端数据，供后续逻辑读取。
+        // 鍔熻兘锛氬皢鈥滀笢鍗楄タ鍖椾笂涓嬧€濆叚鏂瑰悜鎺ㄥ姏缁熻缁撴灉鍐欏叆鎺у埗妞呮湇鍔＄鏁版嵁锛屼緵鍚庣画閫昏緫璇诲彇銆?
         controlseatData.facingMaxThrustSum = facingMaxThrustSum;
-        // 循环结束后统一删除
+        // 寰幆缁撴潫鍚庣粺涓€鍒犻櫎
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 0);
         }
     }
 
-    // 功能：把 Direction 映射到推力统计数组索引（东0、南1、西2、北3、上4、下5）。
+    // 鍔熻兘锛氭妸 Direction 鏄犲皠鍒版帹鍔涚粺璁℃暟缁勭储寮曪紙涓?銆佸崡1銆佽タ2銆佸寳3銆佷笂4銆佷笅5锛夈€?
     private int getFacingThrustIndex(Direction direction) {
         return switch (direction) {
             case EAST -> 0;
@@ -354,17 +378,16 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
     }
 
     public void updateWeapon() {
-        // 每 tick 都向武器同步一次开火状态与频道，避免因丢包/状态不同步导致“左键按下但武器不发射”。
-        // 仅在状态变化时才同步会出现武器端通道被重置后无法自动恢复的问题。
+        // 姣?tick 閮藉悜姝﹀櫒鍚屾涓€娆″紑鐏姸鎬佷笌棰戦亾锛岄伩鍏嶅洜涓㈠寘/鐘舵€佷笉鍚屾瀵艰嚧鈥滃乏閿寜涓嬩絾姝﹀櫒涓嶅彂灏勨€濄€?
+        // 浠呭湪鐘舵€佸彉鍖栨椂鎵嶅悓姝ヤ細鍑虹幇姝﹀櫒绔€氶亾琚噸缃悗鏃犳硶鑷姩鎭㈠鐨勯棶棰樸€?
         previousfirestatus = controlseatData.isfiring;
-        // 功能：提前计算控制椅当前激活频道编码，后续用于“武器-频道匹配”与同步开火输入。
+        // 鍔熻兘锛氭彁鍓嶈绠楁帶鍒舵褰撳墠婵€娲婚閬撶紪鐮侊紝鍚庣画鐢ㄤ簬鈥滄鍣?棰戦亾鍖归厤鈥濅笌鍚屾寮€鐏緭鍏ャ€?
         int activeSeatChannelEncode = 0;
         if (controlseatData.getChannel1()) activeSeatChannelEncode |= 1;
         if (controlseatData.getChannel2()) activeSeatChannelEncode |= 2;
         if (controlseatData.getChannel3()) activeSeatChannelEncode |= 4;
         if (controlseatData.getChannel4()) activeSeatChannelEncode |= 8;
 
-        // 功能：缓存当前控制椅激活频道对应的武器 HUD 信息（名称+冷却进度），供 HUD 每行展示。
         List<ActiveWeaponHudInfo> activeWeaponHudInfos = new ArrayList<>();
         List<Vec3> toRemove = new ArrayList<>();
         int finalActiveSeatChannelEncode = activeSeatChannelEncode;
@@ -372,40 +395,34 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof AbstractWeaponBlockEntity weapon) {
-                // 功能：武器通过自身频道配置“告知”控制椅是否属于当前激活频道。
+                // 鍔熻兘锛氭鍣ㄩ€氳繃鑷韩棰戦亾閰嶇疆鈥滃憡鐭モ€濇帶鍒舵鏄惁灞炰簬褰撳墠婵€娲婚閬撱€?
                 if (isWeaponInAnyActiveChannel(weapon, finalActiveSeatChannelEncode)) {
-                    // 功能：采集武器名称与冷却进度，供客户端绘制“油门样式”进度条。
+                    // 鍔熻兘锛氶噰闆嗘鍣ㄥ悕绉颁笌鍐峰嵈杩涘害锛屼緵瀹㈡埛绔粯鍒垛€滄补闂ㄦ牱寮忊€濊繘搴︽潯銆?
                     activeWeaponHudInfos.add(new ActiveWeaponHudInfo(weapon.getDisplayName().getString(), weapon.currentTick, weapon.getcooldown()));
                 }
 
-                // 功能：按当前开火状态向武器同步控制椅频道输入。
+                // 鍔熻兘锛氭寜褰撳墠寮€鐏姸鎬佸悜姝﹀櫒鍚屾鎺у埗妞呴閬撹緭鍏ャ€?
                 if (controlseatData.isfiring) {
                     weapon.receivechannel(finalActiveSeatChannelEncode);
                 } else {
                     weapon.receivechannel(0);
                 }
-                if(!controlseatData.enemyshipsData.isEmpty()) {
-                    Ship ship = controlseatData.enemyshipsData.get(controlseatData.lockedenemyindex);
-                    if(ship!=null) {
-                        weapon.receivetarget(ship);
-                    }
-                }
             } else {
-                // 先记下来，循环完了再删
+                // 鍏堣涓嬫潵锛屽惊鐜畬浜嗗啀鍒?
                 toRemove.add(pos);
             }
         }, 1);
 
-        // 功能：更新服务端缓存的激活武器 HUD 数据，供状态包同步到 HUD。
+        // 鍔熻兘锛氭洿鏂版湇鍔＄缂撳瓨鐨勬縺娲绘鍣?HUD 鏁版嵁锛屼緵鐘舵€佸寘鍚屾鍒?HUD銆?
         controlseatData.activeWeaponHudInfos = activeWeaponHudInfos;
 
-        // 循环结束后统一删除
+        // 寰幆缁撴潫鍚庣粺涓€鍒犻櫎
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 1);
         }
     }
 
-    // 功能：判断武器是否配置在控制椅当前激活频道中的任一频道。
+    // 鍔熻兘锛氬垽鏂鍣ㄦ槸鍚﹂厤缃湪鎺у埗妞呭綋鍓嶆縺娲婚閬撲腑鐨勪换涓€棰戦亾銆?
     private boolean isWeaponInAnyActiveChannel(AbstractWeaponBlockEntity weapon, int activeSeatChannelEncode) {
         if (activeSeatChannelEncode == 0) {
             return false;
@@ -427,11 +444,11 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             if (be instanceof ShieldGeneratorBlockEntity shield) {
                 Logger LOGGER = LogUtils.getLogger();
             } else {
-                // 先记下来，循环完了再删
+                // 鍏堣涓嬫潵锛屽惊鐜畬浜嗗啀鍒?
                 toRemove.add(pos);
             }
         }, 2);
-        // 循环结束后统一删除
+        // 寰幆缁撴潫鍚庣粺涓€鍒犻櫎
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 2);
         }
@@ -489,7 +506,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
     }
 
     public void updateTurret() {
-        // 功能：先计算控制椅当前激活频道编码，用于向重型炮塔同步与主武器一致的频道输入。
+        // 鍔熻兘锛氬厛璁＄畻鎺у埗妞呭綋鍓嶆縺娲婚閬撶紪鐮侊紝鐢ㄤ簬鍚戦噸鍨嬬偖濉斿悓姝ヤ笌涓绘鍣ㄤ竴鑷寸殑棰戦亾杈撳叆銆?
         int activeSeatChannelEncode = 0;
         if (controlseatData.getChannel1()) activeSeatChannelEncode |= 1;
         if (controlseatData.getChannel2()) activeSeatChannelEncode |= 2;
@@ -504,33 +521,32 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             if (be instanceof AbstractTurretBlockEntity turret) {
                 this.energyspendpertick += turret.getenergypertick();
                 if (be instanceof AbstractHeavyTurretBlockEntity heavyturret) {
-                    // 功能：控制椅更新重型炮塔时，同步频道输入；仅在开火时下发激活频道。
+                    // 鍔熻兘锛氭帶鍒舵鏇存柊閲嶅瀷鐐鏃讹紝鍚屾棰戦亾杈撳叆锛涗粎鍦ㄥ紑鐏椂涓嬪彂婵€娲婚閬撱€?
                     if (controlseatData.isfiring) {
                         heavyturret.channelFromCtrl(finalActiveSeatChannelEncode);
                     } else {
                         heavyturret.channelFromCtrl(0);
                     }
-                    //自动模式直接更新目标，无视玩家位置
+                    //鑷姩妯″紡鐩存帴鏇存柊鐩爣锛屾棤瑙嗙帺瀹朵綅缃?
                     if (!controlseatData.enemyshipsData.isEmpty() && heavyturret.needupdateenemy()) {
-                        heavyturret.updatespecificenemy((Vector3d) controlseatData.enemyshipsData.get(controlseatData.lockedenemyindex).getTransform().getPositionInWorld());
+                        int targetIndex = Math.floorMod(controlseatData.lockedenemyindex, controlseatData.enemyshipsData.size());
+                        heavyturret.updatespecificenemy(controlseatData.enemyshipsData.get(targetIndex));
                     }
-                    //手动模式更新玩家位置，而不是敌对目标
+                    //鎵嬪姩妯″紡鏇存柊鐜╁浣嶇疆锛岃€屼笉鏄晫瀵圭洰鏍?
                     else{
-                        // 功能：同步玩家视角锁状态，并直接下发客户端计算的手动瞄准目标点给重型炮塔。
+                        // 鍔熻兘锛氬悓姝ョ帺瀹惰瑙掗攣鐘舵€侊紝骞剁洿鎺ヤ笅鍙戝鎴风璁＄畻鐨勬墜鍔ㄧ瀯鍑嗙洰鏍囩偣缁欓噸鍨嬬偖濉斻€?
                         heavyturret.updateplayerstatus(
                                 controlseatData.isviewlocked,
                                 new Vector3d(controlseatData.manualAimTargetX, controlseatData.manualAimTargetY, controlseatData.manualAimTargetZ)
                         );
                     }
-                } else {
-                    turret.updateenemy(controlseatData.enemyshipsData);
                 }
             } else {
-                // 先记下来，循环完了再删
+                // 鍏堣涓嬫潵锛屽惊鐜畬浜嗗啀鍒?
                 toRemove.add(pos);
             }
         }, 3);
-        // 循环结束后统一删除
+        // 寰幆缁撴潫鍚庣粺涓€鍒犻櫎
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 3);
         }
@@ -545,12 +561,12 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             if (be instanceof AbstractFuelTankBlockEntity fueltank) {
                 FluidStack fluid = fueltank.getFluidTank().getFluid();
                 int currenttankremain = fluid.getAmount();
-                if(getFuelProperties(fluid.getRawFluid()) == null) {
+                if(getFuelProperties(fluid.getFluid()) == null) {
                     totalfuel += fueltank.getFluidTank().getCapacity();
                     controlseatData.totalfuelstorage = totalfuel;
                     return;
                 }
-                float consumptionmultiplier = getFuelProperties(fluid.getRawFluid()).consumptionMultiplier;
+                float consumptionmultiplier = getFuelProperties(fluid.getFluid()).consumptionMultiplier;
                 if(currenttankremain>=-this.capacitorfuel*consumptionmultiplier) {
                     fueltank.getFluidTank().drain((int) (-this.capacitorfuel*consumptionmultiplier), IFluidHandler.FluidAction.EXECUTE);
                     this.capacitorfuel = 0;
@@ -562,36 +578,36 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
                 totalfuel += fueltank.getFluidTank().getCapacity();
                 totalfuelavalible += currenttankremain;
             } else {
-                // 先记下来，循环完了再删
+                // 鍏堣涓嬫潵锛屽惊鐜畬浜嗗啀鍒?
                 toRemove.add(pos);
             }
         }, 5);
         controlseatData.totalfuelstorage = totalfuel;
         controlseatData.avaliblefuel = totalfuelavalible;
         //LogUtils.getLogger().warn("detected total energy:"+controlseatData.totalenergystorage+"avalible:"+controlseatData.avalibleenergy);
-        // 循环结束后统一删除
+        // 寰幆缁撴潫鍚庣粺涓€鍒犻櫎
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 5);
         }
     }
 
     public void updateScreen(){
-        // 功能：每 tick 刷新控制椅世界坐标，供雷达投影使用。
+        // 鍔熻兘锛氭瘡 tick 鍒锋柊鎺у埗妞呬笘鐣屽潗鏍囷紝渚涢浄杈炬姇褰变娇鐢ㄣ€?
         refreshWorldPosition();
         List<Vec3> toRemove = new ArrayList<>();
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof AbstractScreenBlockEntity screen) {
-                // 功能：当屏幕尚未绑定玩家时，绑定当前控制椅玩家。
+                // 鍔熻兘锛氬綋灞忓箷灏氭湭缁戝畾鐜╁鏃讹紝缁戝畾褰撳墠鎺у埗妞呯帺瀹躲€?
                 if (!screen.hasRadarPlayer() && controlseatData.getPlayer() != null) {
                     screen.setRadarPlayerUuid(controlseatData.getPlayer().getUUID());
                 }
-                // 功能：持续向屏幕同步控制椅世界坐标，保证雷达中心点实时更新。
+                // 鍔熻兘锛氭寔缁悜灞忓箷鍚屾鎺у埗妞呬笘鐣屽潗鏍囷紝淇濊瘉闆疯揪涓績鐐瑰疄鏃舵洿鏂般€?
                 screen.setRadarControlSeatWorldPos(new Vector3d(currentworldpos));
                 return;
             }
-            // 功能：清理已经失效或被替换的屏幕链接。
+            // 鍔熻兘锛氭竻鐞嗗凡缁忓け鏁堟垨琚浛鎹㈢殑灞忓箷閾炬帴銆?
             toRemove.add(pos);
         }, 7);
         for (Vec3 pos : toRemove) {
@@ -599,17 +615,16 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         }
     }
 
-    // 功能：仿照炮塔逻辑，刷新控制椅世界坐标（不在船上为 blockpos，在船上转世界坐标）。
+    // 鍔熻兘锛氫豢鐓х偖濉旈€昏緫锛屽埛鏂版帶鍒舵涓栫晫鍧愭爣锛堜笉鍦ㄨ埞涓婁负 blockpos锛屽湪鑸逛笂杞笘鐣屽潗鏍囷級銆?
     public void refreshWorldPosition() {
-        boolean onShip = VSGameUtilsKt.isBlockInShipyard(level, this.getBlockPos());
-        if (onShip) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(level, this.getBlockPos());
-            if (ship != null) {
-                controlseatData.serverShip = (ServerShip) ship;
-                Vector3d center = VSGameUtilsKt.toWorldCoordinates(ship, this.getBlockPos().getX(), this.getBlockPos().getY(), this.getBlockPos().getZ());
-                currentworldpos = new Vector3d(center.x, center.y, center.z);
-                return;
+        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, this.getBlockPos());
+        if (subLevel != null) {
+            if (subLevel instanceof dev.ryanhcode.sable.sublevel.ServerSubLevel serverSubLevel) {
+                controlseatData.serverShip = serverSubLevel;
             }
+            Vec3 worldPos = subLevel.logicalPose().transformPosition(Vec3.atLowerCornerOf(this.getBlockPos()));
+            currentworldpos = new Vector3d(worldPos.x, worldPos.y, worldPos.z);
+            return;
         }
         currentworldpos = new Vector3d(this.getBlockPos().getX(), this.getBlockPos().getY(), this.getBlockPos().getZ());
     }
@@ -653,7 +668,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         final Logger LOGGER = LogUtils.getLogger();
         //player.displayClientMessage(Component.literal("server side, executing sit logic"), true);
 
-        if (!force && player.getVehicle() != null && player.getVehicle().getType() == ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE && seats.contains(player.getVehicle())) {
+        if (!force && player.getVehicle() instanceof ControlSeatMountEntity seat && seats.contains(seat)) {
             //player.displayClientMessage(Component.literal("already sitting, returning true"), true);
             return true;
         }
@@ -665,89 +680,75 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
     }
 
 
-    // 在移除座椅时清除控制记录
+    // 鍦ㄧЩ闄ゅ骇妞呮椂娓呴櫎鎺у埗璁板綍
     @Override
     public void onRemove() {
         controlseatData.reset();
         if (level != null && !level.isClientSide()) {
-            for (ShipMountingEntity seat : seats) {
+            for (ControlSeatMountEntity seat : seats) {
                 SeatRegistry.SEAT_TO_CONTROLSEAT.remove(seat.getUUID());
-                seat.kill();
+                seat.discard();
             }
             seats.clear();
         }
-        // 移除玩家的 UUID 记录
+        // 绉婚櫎鐜╁鐨?UUID 璁板綍
         super.setRemoved();
     }
 
 
-    ShipMountingEntity spawnSeat(BlockPos pos, BlockState state, ServerLevel level) {
-        Direction facing = state.getValue(BlockStateProperties.FACING);
-        Vector3dc mounterPos;
-        if (facing == Direction.NORTH) {
-            mounterPos = new Vector3d(pos.getX()+0.5, pos.getY(), pos.getZ());
-        } else if (facing == Direction.SOUTH) {
-            mounterPos = new Vector3d(pos.getX()+0.5, pos.getY(), pos.getZ()+1);
-        } else if (facing == Direction.EAST) {
-            mounterPos = new Vector3d(pos.getX()+1, pos.getY(), pos.getZ()+0.5);
-        } else {
-            mounterPos = new Vector3d(pos.getX(), pos.getY(), pos.getZ()+0.5);
-        }
-
-        ShipMountingEntity entity = ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE.create(level);
+    ControlSeatMountEntity spawnSeat(BlockPos pos, BlockState state, ServerLevel level) {
+        ControlSeatMountEntity entity = vsieEntities.CONTROL_SEAT_MOUNT_ENTITY.get().create(level);
         assert entity != null;
-        entity.setPos(mounterPos.x(), mounterPos.y(), mounterPos.z());
-        Vec3 target = new Vec3(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
-        lookAtEntityPos(entity, target);
-        entity.setPos(mounterPos.x(), mounterPos.y(), mounterPos.z());
+        Vec3 mountPos = ControlSeatMountEntity.getSeatMountPosition(pos, state);
+        float yaw = ControlSeatMountEntity.getSeatYaw(state);
+        entity.setBoundBlockPos(pos);
+        entity.setPos(mountPos);
+        entity.setYRot(yaw);
+        entity.yRotO = yaw;
         entity.setDeltaMovement(0, 0, 0);
-        entity.setController(true);
         level.addFreshEntityWithPassengers(entity);
         SeatRegistry.SEAT_TO_CONTROLSEAT.put(entity.getUUID(), pos);
         return entity;
     }
 
-    // 修改 startRiding 方法，确保每个座椅控制与玩家 UUID 相关联
+    // 淇敼 startRiding 鏂规硶锛岀‘淇濇瘡涓骇妞呮帶鍒朵笌鐜╁ UUID 鐩稿叧鑱?
     public boolean startRiding(boolean force, BlockPos blockPos, BlockState state, ServerLevel level) {
         Player player = controlseatData.getPlayer();
         Initialize.initialize(level,blockPos,state);
-        // 使用玩家的 UUID 来确定哪个玩家在这个座椅上
-        // 清理空的座椅
+        // 浣跨敤鐜╁鐨?UUID 鏉ョ‘瀹氬摢涓帺瀹跺湪杩欎釜搴ф涓?
+        // 娓呯悊绌虹殑搴ф
         for (int i = seats.size() - 1; i >= 0; i--) {
-            ShipMountingEntity seat = seats.get(i);
+            ControlSeatMountEntity seat = seats.get(i);
             if (!seat.isVehicle()) {
-                seat.kill();
+                SeatRegistry.SEAT_TO_CONTROLSEAT.remove(seat.getUUID());
+                seat.discard();
                 seats.remove(i);
 
             } else if (!seat.isAlive()) {
+                SeatRegistry.SEAT_TO_CONTROLSEAT.remove(seat.getUUID());
                 seats.remove(i);
             }
         }
 
-        ShipMountingEntity seat = spawnSeat(blockPos, state, level);
+        ControlSeatMountEntity seat = spawnSeat(blockPos, state, level);
         ride = player.startRiding(seat, force);
 
         if (ride) {
             seats.add(seat);
             // Initialize mouse handler when the player sits down
+        } else {
+            SeatRegistry.SEAT_TO_CONTROLSEAT.remove(seat.getUUID());
+            seat.discard();
         }
         return ride;
     }
 
-    // 功能：根据控制椅方块朝向计算 ShipMountingEntity 应在的挂载坐标，供重连后的座椅实体扫描复用。
+    // 鍔熻兘锛氭牴鎹帶鍒舵鏂瑰潡鏈濆悜璁＄畻 ControlSeatMountEntity 搴斿湪鐨勬寕杞藉潗鏍囷紝渚涢噸杩炲悗鐨勫骇妞呭疄浣撴壂鎻忓鐢ㄣ€?
     private Vec3 getSeatMountPosition(BlockPos pos, BlockState state) {
-        Direction facing = state.getValue(BlockStateProperties.FACING);
-        if (facing == Direction.NORTH) {
-            return new Vec3(pos.getX() + 0.5, pos.getY(), pos.getZ());
-        } else if (facing == Direction.SOUTH) {
-            return new Vec3(pos.getX() + 0.5, pos.getY(), pos.getZ() + 1);
-        } else if (facing == Direction.EAST) {
-            return new Vec3(pos.getX() + 1, pos.getY(), pos.getZ() + 0.5);
-        }
-        return new Vec3(pos.getX(), pos.getY(), pos.getZ() + 0.5);
+        return ControlSeatMountEntity.getSeatMountPosition(pos, state);
     }
 
-    // 功能：在服务端 tick 中重建“控制椅 -> 座椅实体 -> 玩家”关系，保证玩家重进后 HUD 与输入链路自动恢复。
+    // 鍔熻兘锛氬湪鏈嶅姟绔?tick 涓噸寤衡€滄帶鍒舵 -> 搴ф瀹炰綋 -> 鐜╁鈥濆叧绯伙紝淇濊瘉鐜╁閲嶈繘鍚?HUD 涓庤緭鍏ラ摼璺嚜鍔ㄦ仮澶嶃€?
     private void refreshSeatOccupancyFromWorld() {
         if (!(level instanceof ServerLevel serverLevel)) {
             return;
@@ -756,11 +757,14 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
         Vec3 mountPos = getSeatMountPosition(getBlockPos(), state);
         AABB searchBox = new AABB(mountPos, mountPos).inflate(1.25D, 1.25D, 1.25D);
 
-        // 功能：先按“是否还活着”清理旧缓存，防止保存了失效 seat UUID 影响 HUD 反查。
+        // 鍔熻兘锛氬厛鎸夆€滄槸鍚﹁繕娲荤潃鈥濇竻鐞嗘棫缂撳瓨锛岄槻姝繚瀛樹簡澶辨晥 seat UUID 褰卞搷 HUD 鍙嶆煡銆?
         seats.removeIf(seat -> seat == null || !seat.isAlive());
 
         Player seatedPlayer = null;
-        for (ShipMountingEntity seatEntity : serverLevel.getEntitiesOfClass(ShipMountingEntity.class, searchBox, Entity::isAlive)) {
+        for (ControlSeatMountEntity seatEntity : serverLevel.getEntitiesOfClass(ControlSeatMountEntity.class, searchBox, Entity::isAlive)) {
+            if (!seatEntity.getBoundBlockPos().equals(getBlockPos())) {
+                continue;
+            }
             if (!seats.contains(seatEntity)) {
                 seats.add(seatEntity);
             }
@@ -771,26 +775,16 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity {
             }
         }
 
-        // 功能：把世界中的实时乘坐状态回写到 controlseatData，避免重进后被当作“无人控制”而 reset。
+        // 鍔熻兘锛氭妸涓栫晫涓殑瀹炴椂涔樺潗鐘舵€佸洖鍐欏埌 controlseatData锛岄伩鍏嶉噸杩涘悗琚綋浣溾€滄棤浜烘帶鍒垛€濊€?reset銆?
         if (seatedPlayer != null) {
             ride = true;
             controlseatData.setPlayer(seatedPlayer);
         } else {
             ride = false;
             controlseatData.setPlayer(null);
-            // 功能：无人乘坐时默认解锁视角，防止旧玩家留在锁定态影响后续乘坐者体验。
+            // 鍔熻兘锛氭棤浜轰箻鍧愭椂榛樿瑙ｉ攣瑙嗚锛岄槻姝㈡棫鐜╁鐣欏湪閿佸畾鎬佸奖鍝嶅悗缁箻鍧愯€呬綋楠屻€?
             controlseatData.isviewlocked = false;
         }
-    }
-
-    private static double[] getAABBdcCenter(AABBdc aabb) {
-        double width = aabb.maxX() - aabb.minX();
-        double len = aabb.maxZ() - aabb.minZ();
-        double hight = aabb.maxY() - aabb.minY();
-        double centerX = aabb.minX() + width / 2;
-        double centerY = aabb.minY() + hight / 2;
-        double centerZ = aabb.minZ() + len / 2;
-        return new double[]{centerX, centerY, centerZ};
     }
 
     public FluidThrusterProperties getFuelProperties(Fluid fluid) {

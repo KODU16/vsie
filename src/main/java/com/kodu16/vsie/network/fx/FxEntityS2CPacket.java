@@ -4,8 +4,6 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.network.codec.StreamCodec;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.kodu16.vsie.utility.vsieFxHelper;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
@@ -15,9 +13,6 @@ import net.neoforged.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
-
-@Getter
-@AllArgsConstructor
 public class FxEntityS2CPacket implements CustomPacketPayload
 {
     // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
@@ -27,6 +22,22 @@ public class FxEntityS2CPacket implements CustomPacketPayload
     private final ResourceLocation fx;
     private final int entityID;
     private final boolean forceDead;
+
+    public ResourceLocation getFx() {
+        return fx;
+    }
+
+    public int getEntityID() {
+        return entityID;
+    }
+
+    public boolean isForceDead() {
+        return forceDead;
+    }
+
+    public boolean getForceDead() {
+        return forceDead;
+    }
 
     public FxEntityS2CPacket(ResourceLocation fx, int entityID, Boolean forceDead)
     {

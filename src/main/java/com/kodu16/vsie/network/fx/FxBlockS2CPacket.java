@@ -6,8 +6,6 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import com.kodu16.vsie.utility.vsieFxHelper;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.parameter.ExposedParameter;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
@@ -18,9 +16,6 @@ import net.minecraftforge.network.NetworkEvent;
 import org.valkyrienskies.core.impl.shadow.Bl;
 
 import java.util.function.Supplier;
-
-@Getter
-@AllArgsConstructor
 public class FxBlockS2CPacket implements CustomPacketPayload
 {
     // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
@@ -30,6 +25,22 @@ public class FxBlockS2CPacket implements CustomPacketPayload
     private final ResourceLocation fx;
     private final BlockPos blockPos;
     private final boolean forceDead;
+
+    public ResourceLocation getFx() {
+        return fx;
+    }
+
+    public BlockPos getBlockPos() {
+        return blockPos;
+    }
+
+    public boolean isForceDead() {
+        return forceDead;
+    }
+
+    public boolean getForceDead() {
+        return forceDead;
+    }
 
     public FxBlockS2CPacket(ResourceLocation fx, BlockPos pos, Boolean forceDead)
     {

@@ -6,8 +6,8 @@ package com.kodu16.vsie.content.misc.electromagnet_rail.top;
 import com.kodu16.vsie.vsie;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import software.bernie.geckolib.core.animatable.model.CoreGeoBone;
-import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.cache.object.GeoBone;
+import software.bernie.geckolib.animation.AnimationState;
 import software.bernie.geckolib.model.DefaultedBlockGeoModel;
 @SuppressWarnings("removal")
 public class ElectroMagnetRailTopModel extends DefaultedBlockGeoModel<ElectroMagnetRailTopBlockEntity> {
@@ -27,8 +27,8 @@ public class ElectroMagnetRailTopModel extends DefaultedBlockGeoModel<ElectroMag
 
     @Override
     public void setCustomAnimations(ElectroMagnetRailTopBlockEntity animatable, long instanceId, AnimationState<ElectroMagnetRailTopBlockEntity> animationState){
-        CoreGeoBone railleft = getAnimationProcessor().getBone("railleft");
-        CoreGeoBone railright = getAnimationProcessor().getBone("railright");
+        GeoBone railleft = getAnimationProcessor().getBone("railleft");
+        GeoBone railright = getAnimationProcessor().getBone("railright");
         if(railleft != null && railright != null) {
             // 功能：仅在 top 被 core 成功检测并绑定时向两侧展开滑轨，否则平滑回收到中心位置。
             float targetOffsetX = animatable.isBoundToCore() ? 58.0f : 0.0f;

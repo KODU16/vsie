@@ -26,7 +26,7 @@ public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
-        this.renderBackground(guiGraphics);   // 背景（半透明黑）
+        this.renderBackground(guiGraphics, mouseX, mouseY, partialTicks);   // 背景（半透明黑）
         super.render(guiGraphics, mouseX, mouseY, partialTicks);
         this.renderTooltip(guiGraphics, mouseX, mouseY);   // 鼠标悬停提示
     }

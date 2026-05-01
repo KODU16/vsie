@@ -38,7 +38,7 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
     // 1.20.1 必须重写这个新签名的方法
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
-        this.renderBackground(guiGraphics);   // 背景（半透明黑）
+        this.renderBackground(guiGraphics, mouseX, mouseY, partialTicks);   // 背景（半透明黑）
         super.render(guiGraphics, mouseX, mouseY, partialTicks);
         this.renderTooltip(guiGraphics, mouseX, mouseY);   // 鼠标悬停提示
     }

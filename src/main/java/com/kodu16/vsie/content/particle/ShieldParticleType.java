@@ -1,27 +1,23 @@
 package com.kodu16.vsie.content.particle;
 
-import com.mojang.serialization.Codec;
-import net.minecraft.core.particles.ParticleOptions;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.particles.ParticleType;
-import net.minecraft.core.particles.SimpleParticleType;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 
 public class ShieldParticleType extends ParticleType<ShieldParticleOptions> {
 
     public ShieldParticleType(boolean overrideLimiter) {
-        // 必须同时传入 overrideLimiter 和 你的 Deserializer
-        super(overrideLimiter, ShieldParticleOptions.DESERIALIZER);
+        super(overrideLimiter);
     }
 
     @Override
-    public Codec<ShieldParticleOptions> codec() {
+    public MapCodec<ShieldParticleOptions> codec() {
         return ShieldParticleOptions.CODEC;
     }
 
-    // getDeserializer() 已经由 super 调用了 DESERIALIZER，这里可以不重写
-    // 但如果你想保留接口完整，也可以保留
     @Override
-    public ParticleOptions.Deserializer<ShieldParticleOptions> getDeserializer() {
-        return ShieldParticleOptions.DESERIALIZER;
+    public StreamCodec<? super RegistryFriendlyByteBuf, ShieldParticleOptions> streamCodec() {
+        return ShieldParticleOptions.STREAM_CODEC;
     }
 }
-

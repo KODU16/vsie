@@ -6,8 +6,8 @@ import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.vsie;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import software.bernie.geckolib.core.animatable.model.CoreGeoBone;
-import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.cache.object.GeoBone;
+import software.bernie.geckolib.animation.AnimationState;
 import software.bernie.geckolib.model.DefaultedBlockGeoModel;
 
 @SuppressWarnings({"removal"})
@@ -42,7 +42,7 @@ public class AbstractScreenModel extends DefaultedBlockGeoModel<AbstractScreenBl
 
     @Override
     public void setCustomAnimations(AbstractScreenBlockEntity animatable, long instanceId, AnimationState<AbstractScreenBlockEntity> animationState) {
-        CoreGeoBone screen = getAnimationProcessor().getBone("screen");
+        GeoBone screen = getAnimationProcessor().getBone("screen");
         if(screen!=null) {
             screen.setRotX(getspinX(animatable)/(180/ Mth.PI));
             screen.setRotY(getspinY(animatable)/(180/ Mth.PI));

@@ -36,7 +36,7 @@ public class ControlSeatWarpScreen extends AbstractContainerScreen<ControlSeatWa
 
     @Override
     public void render(GuiGraphics gg, int mouseX, int mouseY, float partialTicks) {
-        this.renderBackground(gg);
+        this.renderBackground(gg, mouseX, mouseY, partialTicks);
         super.render(gg, mouseX, mouseY, partialTicks);
         this.renderTooltip(gg, mouseX, mouseY);
     }

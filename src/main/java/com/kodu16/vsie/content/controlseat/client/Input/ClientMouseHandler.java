@@ -2,6 +2,7 @@ package com.kodu16.vsie.content.controlseat.client.Input;
 
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.kodu16.vsie.content.controlseat.client.ControlSeatWarpSelectionScreen;
+import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
 import com.kodu16.vsie.network.controlseat.C2S.ControlSeatWarpCancelC2SPacket;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.registries.vsieKeyMappings;
@@ -18,7 +19,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import org.slf4j.Logger;
-import org.valkyrienskies.mod.common.entity.ShipMountingEntity;
 
 public class ClientMouseHandler {
     // 功能：控制椅手动瞄准模式下，客户端直接计算“玩家视线延伸固定距离”后的目标点并上传给服务端。
@@ -100,7 +100,7 @@ public class ClientMouseHandler {
         KeyMapping jumpKey = vsieKeyMappings.KEY_TOGGLE_LOCK; // alt键绑定为默认切换视角锁
         // 如果玩家不存在或没有控制座椅，则把视角锁关掉，UUID清掉并且跳过
         // 这个必须得看的，客户端玩家可能下船，下船下成残疾人或者下一个人上来UUID没更新你就有的乐了
-        if (player == null || !(player.getVehicle() instanceof ShipMountingEntity)) {
+        if (player == null || !(player.getVehicle() instanceof ControlSeatMountEntity)) {
             data.disableViewLock();
             data.clearUserUUID();
             if (minecraft.screen instanceof ControlSeatWarpSelectionScreen) {

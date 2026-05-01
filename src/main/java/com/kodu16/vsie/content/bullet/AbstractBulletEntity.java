@@ -2,9 +2,8 @@ package com.kodu16.vsie.content.bullet;
 
 import com.kodu16.vsie.utility.FxData;
 import com.kodu16.vsie.utility.vsieFxHelper;
-import com.lowdragmc.photon.client.fx.EntityEffect;
+import com.lowdragmc.photon.client.fx.EntityEffectExecutor;
 import com.lowdragmc.photon.client.fx.FXHelper;
-import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -23,7 +22,6 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.entity.player.Player;
-import software.bernie.example.registry.EntityRegistry;
 
 import java.util.List;
 import java.util.Optional;
@@ -36,8 +34,11 @@ public abstract class AbstractBulletEntity extends Projectile {
     private double damage = 1.0;
     // 功能：获取子弹数据，供 tick 中读取 FX 配置。
     // 功能：存储当前子弹的数据配置，默认携带 particle_cannon_fire 的 awake FX。
-    @Getter
     private BulletData dataBase = BulletData.createParticleCannonDefault();
+
+    public BulletData getDataBase() {
+        return dataBase;
+    }
 
     public AbstractBulletEntity(EntityType<? extends AbstractBulletEntity> type, Level level) {
         super(type, level);
@@ -53,7 +54,7 @@ public abstract class AbstractBulletEntity extends Projectile {
                 vsieFxHelper.extractFxUnit(getDataBase().getFxData(), FxData::getAwakeFx)
                         .map(FxData.FxUnit::getId).map(FXHelper::getFX)
                         .ifPresent(fx -> {
-                            var effect = new EntityEffect(fx, this.level(), this, EntityEffect.AutoRotate.XROT);
+                            var effect = new EntityEffectExecutor(fx, this.level(), this, EntityEffectExecutor.AutoRotate.XROT);
                             effect.setForcedDeath(true);
                             effect.start();
                         });
@@ -164,10 +165,5 @@ public abstract class AbstractBulletEntity extends Projectile {
     // 功能：外部可覆盖子弹数据；传入 null 时回退默认 particle_cannon_fire 配置。
     public void setDataBase(BulletData dataBase) {
         this.dataBase = dataBase == null ? BulletData.createParticleCannonDefault() : dataBase;
-    }
-
-    @Override
-    protected void defineSynchedData() {
-
     }
 }

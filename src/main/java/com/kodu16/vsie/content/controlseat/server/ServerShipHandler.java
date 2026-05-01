@@ -2,6 +2,7 @@ package com.kodu16.vsie.content.controlseat.server;
 
 
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
+import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
 import com.kodu16.vsie.content.warpprojectile.WarpProjecTileEntity;
 import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.foundation.Vec;
@@ -34,11 +35,11 @@ import javax.annotation.Nullable;
 
 
 public class ServerShipHandler {
-    // 功能：当控制椅前向与 warp 目标夹角小于 1 度时，视为已完成自动对准并触发 warp projectile。
+    // 鍔熻兘锛氬綋鎺у埗妞呭墠鍚戜笌 warp 鐩爣澶硅灏忎簬 1 搴︽椂锛岃涓哄凡瀹屾垚鑷姩瀵瑰噯骞惰Е鍙?warp projectile銆?
     private static final double WARP_ALIGNMENT_THRESHOLD_DEGREES = 1.0D;
-    // 功能：warp projectile 固定以 1 格/tick 飞行，对应用户要求的跃迁特效速度。
+    // 鍔熻兘锛歸arp projectile 鍥哄畾浠?1 鏍?tick 椋炶锛屽搴旂敤鎴疯姹傜殑璺冭縼鐗规晥閫熷害銆?
     private static final double WARP_PROJECTILE_SPEED_PER_TICK = 1.0D;
-    // 功能：在 warp projectile 消失后额外多等 1 秒，再调用 teleportship 执行正式跃迁。
+    // 鍔熻兘锛氬湪 warp projectile 娑堝け鍚庨澶栧绛?1 绉掞紝鍐嶈皟鐢?teleportship 鎵ц姝ｅ紡璺冭縼銆?
     private static final int WARP_TELEPORT_EXTRA_DELAY_TICKS = 100;
     private ControlSeatServerData data;
     public static final Logger LOGGER = LogUtils.getLogger();
@@ -54,39 +55,23 @@ public class ServerShipHandler {
     private volatile Vec3 worldXDirection;
     private volatile Vec3 worldYDirection;
     private volatile Vec3 worldZDirection;
-    //这byd很可能就是死活不发包的原因
+    //杩檅yd寰堝彲鑳藉氨鏄娲讳笉鍙戝寘鐨勫師鍥?
     public void getandsendshipdata(ServerSubLevel subLevel,BlockPos pos) {
+        if (data.getDirectionForward() == null || data.getDirectionUp() == null || data.getDirectionRight() == null) {
+            return;
+        }
+
         Vec3 ForwardDirection =  subLevel.logicalPose().transformNormal(Vec3.atLowerCornerOf(data.getDirectionForward()));
         Vec3 UpDirection =  subLevel.logicalPose().transformNormal(Vec3.atLowerCornerOf(data.getDirectionUp()));
         Vec3 RightDirection =  subLevel.logicalPose().transformNormal(Vec3.atLowerCornerOf(data.getDirectionRight()));
         Level level = data.level;
         long now = System.currentTimeMillis();
         if (data.getPlayer() != null) {
-            if (now - lastSendMs > 50) {//快包
+            if (now - lastSendMs > 50) {//蹇寘
                 lastSendMs = now;
-                /*QueryableShipData<Su> qsd = VSGameUtilsKt.getAllShips(level);
-                data.shipsData = ScanNearByShips.scanships(qsd,pos,level);
-                data.enemyshipsData = ScanNearByShips.scanenemyships(qsd,pos,level, data.enemy, data.ally);
-                //信息包
-                String slug = "";
-                if(!data.enemyshipsData.isEmpty()) {
-                    Ship targetenemyship = data.enemyshipsData.get(data.lockedenemyindex);
-                    slug = targetenemyship.getSlug();
-                }
-                ControlSeatS2CPacket packet = new ControlSeatS2CPacket(pos,
-                        ForwardDirection, UpDirection,
-                        data.enemy,data.ally,slug,
-                        data.getThrottle(),
-                        // 功能：快包携带服务端当前视角锁状态，确保重进世界后的客户端能立即恢复锁定与输入行为。
-                        data.isviewlocked);
-                ModNetworking.sendToPlayer(packet, (ServerPlayer) data.getPlayer());
-
-                //扫描全部船只包（扫描敌人包只跑在服务器不用发送）
-                NearbyShipsS2CPacket packetship = new NearbyShipsS2CPacket(data.shipsData);
-                ModNetworking.sendToPlayer(packetship, (ServerPlayer) data.getPlayer());*/
             }
 
-            if(now - lastSendStatusMs > 250) {//状态包（慢包out）
+            if(now - lastSendStatusMs > 250) {//鐘舵€佸寘锛堟參鍖卭ut锛?
                 lastSendStatusMs = now;
                 ControlSeatStatusS2CPacket packetstatus = new ControlSeatStatusS2CPacket(pos,
                         data.avalibleenergy,data.totalenergystorage,
@@ -98,8 +83,8 @@ public class ServerShipHandler {
                 ModNetworking.sendToPlayer(packetstatus, (ServerPlayer) data.getPlayer());
             }
 
-            if(now - lastSendInputMs > 250) {//按键包（慢包out）
-                // 功能：独立输入包发送节流时间，避免与状态包共用计时器导致输入包条件永远不成立。
+            if(now - lastSendInputMs > 250) {//鎸夐敭鍖咃紙鎱㈠寘out锛?
+                // 鍔熻兘锛氱嫭绔嬭緭鍏ュ寘鍙戦€佽妭娴佹椂闂达紝閬垮厤涓庣姸鎬佸寘鍏辩敤璁℃椂鍣ㄥ鑷磋緭鍏ュ寘鏉′欢姘歌繙涓嶆垚绔嬨€?
                 lastSendInputMs = now;
                 ControlSeatInputS2CPacket packet = new ControlSeatInputS2CPacket(pos, data.channelencode);
                 ModNetworking.sendToPlayer(packet, (ServerPlayer) data.getPlayer());
@@ -108,30 +93,39 @@ public class ServerShipHandler {
     }
 
     public void applyForceAndTorque(ServerSubLevel subLevel,BlockPos pos) {
-        // 功能：每 tick 先检查是否到了延迟跃迁触发时间，确保弹体寿命结束后能自动执行 teleportship。
+        // 鍔熻兘锛氭瘡 tick 鍏堟鏌ユ槸鍚﹀埌浜嗗欢杩熻穬杩佽Е鍙戞椂闂达紝纭繚寮逛綋瀵垮懡缁撴潫鍚庤兘鑷姩鎵ц teleportship銆?
         processPendingWarpTeleport(subLevel);
+        if (data.getDirectionForward() == null || data.getDirectionUp() == null || data.getDirectionRight() == null) {
+            return;
+        }
 
         Player player = data.getPlayer();
         boolean controlling = true;
-        // 1. 玩家为空或已经死了，直接啥都不干
+        // 1. 鐜╁涓虹┖鎴栧凡缁忔浜嗭紝鐩存帴鍟ラ兘涓嶅共
         if (player == null || !player.isAlive() || player.isRemoved()) {
             data.reset();
             controlling = false;
         }
-        // 2. 玩家当前乘坐的实体为空，或者不是 VS2 的船挂载实体
+        // 2. 鐜╁褰撳墠涔樺潗鐨勫疄浣撲负绌猴紝鎴栬€呬笉鏄?VS2 鐨勮埞鎸傝浇瀹炰綋
         Entity vehicle = null;
         if (player != null) {
             vehicle = player.getVehicle();
         }
-        if (vehicle == null || vehicle.getType() != ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE) {
+        if (!(vehicle instanceof ControlSeatMountEntity)) {
             data.reset();
             controlling = false;
         }
 
         MassData massData = subLevel.getMassTracker();
+        if (massData == null || massData.isInvalid()) {
+            return;
+        }
         double mass = massData.getMass();
 
         RigidBodyHandle handle = RigidBodyHandle.of(subLevel);
+        if (handle == null || !handle.isValid()) {
+            return;
+        }
         Vector3d omega = handle.getAngularVelocity(new Vector3d());
         Matrix3dc momentOfInertia = massData.getInertiaTensor();
         Vector3d velocity = handle.getLinearVelocity(new Vector3d());
@@ -166,7 +160,7 @@ public class ServerShipHandler {
             }
 
             if (data.isWarpPreparing) {
-                // 功能：一旦自动对准达到阈值，立即在船体位置生成 warp projectile，并退出准备状态防止重复生成。
+                // 鍔熻兘锛氫竴鏃﹁嚜鍔ㄥ鍑嗚揪鍒伴槇鍊硷紝绔嬪嵆鍦ㄨ埞浣撲綅缃敓鎴?warp projectile锛屽苟閫€鍑哄噯澶囩姸鎬侀槻姝㈤噸澶嶇敓鎴愩€?
                 LogUtils.getLogger().warn("preparing warp...");
                 tryLaunchWarpProjectile(subLevel);
             }
@@ -175,7 +169,7 @@ public class ServerShipHandler {
             double forcescale = data.getThrottle() * (data.thruster_strength / mass);
             Vec3 Invariantforce = new Vec3(worldXDirection.x * forcescale, worldXDirection.y * forcescale, worldXDirection.z * forcescale);
 
-            // 计算反向阻尼力矩，与角速度成比例
+            // 璁＄畻鍙嶅悜闃诲凹鍔涚煩锛屼笌瑙掗€熷害鎴愭瘮渚?
             if (Double.isNaN(torque.x()) || Double.isNaN(torque.y()) || Double.isNaN(torque.z())) {
                 return;
             }
@@ -184,11 +178,11 @@ public class ServerShipHandler {
         }
         data.setFinaltorque(finaltorque);
         data.setFinalforce(finalforce);
-        //到这才算施加真正的力
+        //鍒拌繖鎵嶇畻鏂藉姞鐪熸鐨勫姏
         ServerShipUtils.applyWorldForceAndTorqueAtCenterOfMass(subLevel,finalforce,finaltorque);
     }
 
-    // 功能：warp 准备状态下根据控制椅前向与目标方向的夹角生成自动对准扭矩；结果被限制在手动鼠标控制的最大输入范围内。
+    // 鍔熻兘锛歸arp 鍑嗗鐘舵€佷笅鏍规嵁鎺у埗妞呭墠鍚戜笌鐩爣鏂瑰悜鐨勫す瑙掔敓鎴愯嚜鍔ㄥ鍑嗘壄鐭╋紱缁撴灉琚檺鍒跺湪鎵嬪姩榧犳爣鎺у埗鐨勬渶澶ц緭鍏ヨ寖鍥村唴銆?
     private Vec3 calculateWarpPreparationTorque(ServerSubLevel subLevel,BlockPos pos) {
         if (data.warpTargetName == null || data.warpTargetName.isEmpty() || data.warpTargetPos == null || data.warpTargetPos.equals(BlockPos.ZERO)) {
             return new Vec3(0, 0, 0);
@@ -200,7 +194,7 @@ public class ServerShipHandler {
         }
 
         Vec3 currentForward = worldXDirection.normalize();
-        // 功能：自动对准需要生成“从当前朝向转到目标朝向”的右手旋转轴；使用 target x current 会把扭矩方向反过来，导致控制椅围绕目标反方向摆动。
+        // 鍔熻兘锛氳嚜鍔ㄥ鍑嗛渶瑕佺敓鎴愨€滀粠褰撳墠鏈濆悜杞埌鐩爣鏈濆悜鈥濈殑鍙虫墜鏃嬭浆杞达紱浣跨敤 target x current 浼氭妸鎵煩鏂瑰悜鍙嶈繃鏉ワ紝瀵艰嚧鎺у埗妞呭洿缁曠洰鏍囧弽鏂瑰悜鎽嗗姩銆?
         Vec3 rotationAxisWorld = targetDirection.cross(currentForward);
         if (rotationAxisWorld.lengthSqr() < 1.0E-6) {
             return new Vec3(0, 0, 0);
@@ -211,13 +205,13 @@ public class ServerShipHandler {
         rotationAxisWorld.normalize();
         rotationAxisWorld.scale(angleStrength);
         double factor = subLevel.getMassTracker().getMass();
-        // 功能：只使用 yaw/pitch 两个轴进行自动对准，避免 warp 准备阶段给控制椅引入额外滚转。
+        // 鍔熻兘锛氬彧浣跨敤 yaw/pitch 涓や釜杞磋繘琛岃嚜鍔ㄥ鍑嗭紝閬垮厤 warp 鍑嗗闃舵缁欐帶鍒舵寮曞叆棰濆婊氳浆銆?
         double localYawTorque = Mth.clamp(rotationAxisWorld.dot(worldYDirection)*20, -factor, factor);
         double localPitchTorque = Mth.clamp(rotationAxisWorld.dot(worldZDirection)*20, -factor, factor);
         return new Vec3(0, localYawTorque, localPitchTorque);
     }
 
-    // 功能：检查当前船首是否已对准 warp 目标；若夹角小于 1 度，则按船体最大包围盒尺寸生成 warp projectile。
+    // 鍔熻兘锛氭鏌ュ綋鍓嶈埞棣栨槸鍚﹀凡瀵瑰噯 warp 鐩爣锛涜嫢澶硅灏忎簬 1 搴︼紝鍒欐寜鑸逛綋鏈€澶у寘鍥寸洅灏哄鐢熸垚 warp projectile銆?
     private void tryLaunchWarpProjectile(ServerSubLevel subLevel) {
         if (data.hasPendingWarpTeleport) {
             return;
@@ -236,14 +230,14 @@ public class ServerShipHandler {
         if (Math.abs(angleDegrees-180) >= WARP_ALIGNMENT_THRESHOLD_DEGREES) {
             return;
         }
-        LogUtils.getLogger().warn(String.valueOf(Component.literal("准备跃迁")));
+        LogUtils.getLogger().warn(String.valueOf(Component.literal("鍑嗗璺冭縼")));
         MassData massData = subLevel.getMassTracker();
         double mass = massData.getMass();
         double k = Math.pow(mass, (double) 1 /3);
         Level level = data.level;
         Vec3 shipPos = ServerShipUtils.getStructureCenterWorld(subLevel);
         WarpProjecTileEntity warpProjectile = new WarpProjecTileEntity(vsieEntities.WARP_PROJECTILE.get(), level);
-        // 功能：在船只 world pos 处生成特效弹体，并让其以 1 格/tick 朝目标飞行 k tick。
+        // 鍔熻兘锛氬湪鑸瑰彧 world pos 澶勭敓鎴愮壒鏁堝脊浣擄紝骞惰鍏朵互 1 鏍?tick 鏈濈洰鏍囬琛?k tick銆?
         warpProjectile.setPos(shipPos.x(), shipPos.y(), shipPos.z());
         warpProjectile.configureLaunch(
                 new net.minecraft.world.phys.Vec3(launchDirection.x, launchDirection.y, launchDirection.z),
@@ -252,7 +246,7 @@ public class ServerShipHandler {
         LogUtils.getLogger().warn("adding projectile at:"+launchDirection+"pos:"+shipPos+"life:"+k);
         level.addFreshEntity(warpProjectile);
 
-        // 功能：按“弹体寿命 k tick + 1 秒”的规则安排后续传送，目标点取玩家所选坐标中心。
+        // 鍔熻兘锛氭寜鈥滃脊浣撳鍛?k tick + 1 绉掆€濈殑瑙勫垯瀹夋帓鍚庣画浼犻€侊紝鐩爣鐐瑰彇鐜╁鎵€閫夊潗鏍囦腑蹇冦€?
         long executeGameTime = level.getGameTime() + (long) Math.ceil(k) + WARP_TELEPORT_EXTRA_DELAY_TICKS;
         data.schedulePendingWarpTeleport(new Vector3d(
                 data.warpTargetPos.getX() + 0.5D,
@@ -263,7 +257,7 @@ public class ServerShipHandler {
         syncWarpPreparationState();
     }
 
-    // 功能：在服务器 tick 到达预定时间时调用 teleportship，把船只传送到之前锁定的跃迁目标。
+    // 鍔熻兘锛氬湪鏈嶅姟鍣?tick 鍒拌揪棰勫畾鏃堕棿鏃惰皟鐢?teleportship锛屾妸鑸瑰彧浼犻€佸埌涔嬪墠閿佸畾鐨勮穬杩佺洰鏍囥€?
     private void processPendingWarpTeleport(ServerSubLevel subLevel) {
         Level level = data.level;
         if (level == null || level.isClientSide() || !data.hasPendingWarpTeleport) {
@@ -276,7 +270,7 @@ public class ServerShipHandler {
         ServerShipUtils.teleportKeepOrientation(subLevel,data.pendingWarpTeleportPos);
     }
 
-    // 功能：复用控制椅到目标点的归一化方向计算，供自动对准与 warp projectile 发射共用同一方向基准。
+    // 鍔熻兘锛氬鐢ㄦ帶鍒舵鍒扮洰鏍囩偣鐨勫綊涓€鍖栨柟鍚戣绠楋紝渚涜嚜鍔ㄥ鍑嗕笌 warp projectile 鍙戝皠鍏辩敤鍚屼竴鏂瑰悜鍩哄噯銆?
     private Vec3 getNormalizedWarpTargetDirection(BlockPos pos) {
         SubLevel sublevel = ServerShipUtils.getSubLevelAtBlockPos(data.level,pos);
         Vec3 seatWorldPos = sublevel.logicalPose().transformPosition(Vec3.atLowerCornerOf(pos));
@@ -291,7 +285,7 @@ public class ServerShipHandler {
         return targetDirection.normalize();
     }
 
-    // 功能：warp 准备状态结束后立刻把控制椅方块实体同步给客户端，避免客户端仍显示旧的准备状态。
+    // 鍔熻兘锛歸arp 鍑嗗鐘舵€佺粨鏉熷悗绔嬪埢鎶婃帶鍒舵鏂瑰潡瀹炰綋鍚屾缁欏鎴风锛岄伩鍏嶅鎴风浠嶆樉绀烘棫鐨勫噯澶囩姸鎬併€?
     private void syncWarpPreparationState() {
         if (data.level == null || data.controlSeatPos == null) {
             return;
@@ -303,8 +297,8 @@ public class ServerShipHandler {
     }
 
     public static Vec3 calculateWorldTorque(Vector3d localTorque, Vec3 worldDirectionX, Vec3 worldDirectionY, Vec3 worldDirectionZ) {
-        // 旋转矩阵是由控制椅X, Y, Z轴在世界坐标系下的单位向量构成的
-        // 构建旋转矩阵
+        // 鏃嬭浆鐭╅樀鏄敱鎺у埗妞匵, Y, Z杞村湪涓栫晫鍧愭爣绯讳笅鐨勫崟浣嶅悜閲忔瀯鎴愮殑
+        // 鏋勫缓鏃嬭浆鐭╅樀
         double[][] rotationMatrix = new double[3][3];
         rotationMatrix[0][0] = worldDirectionX.x;
         rotationMatrix[0][1] = worldDirectionY.x;
@@ -318,12 +312,12 @@ public class ServerShipHandler {
         rotationMatrix[2][1] = worldDirectionY.z;
         rotationMatrix[2][2] = worldDirectionZ.z;
 
-        // 根据旋转矩阵和局部坐标系的扭矩来计算世界坐标系下的扭矩
+        // 鏍规嵁鏃嬭浆鐭╅樀鍜屽眬閮ㄥ潗鏍囩郴鐨勬壄鐭╂潵璁＄畻涓栫晫鍧愭爣绯讳笅鐨勬壄鐭?
         double a = rotationMatrix[0][0] * localTorque.x + rotationMatrix[0][1] * localTorque.y + rotationMatrix[0][2] * localTorque.z;
         double b = rotationMatrix[1][0] * localTorque.x + rotationMatrix[1][1] * localTorque.y + rotationMatrix[1][2] * localTorque.z;
         double c = rotationMatrix[2][0] * localTorque.x + rotationMatrix[2][1] * localTorque.y + rotationMatrix[2][2] * localTorque.z;
         return new Vec3(a,b,c);
-        // 返回世界坐标系下d(a, b, c);
+        // 杩斿洖涓栫晫鍧愭爣绯讳笅d(a, b, c);
     }
 
 }

@@ -8,8 +8,6 @@ import java.util.UUID;
 
 import com.kodu16.vsie.content.controlseat.ActiveWeaponHudInfo;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 
@@ -17,12 +15,8 @@ import org.joml.Vector3d;
 
 public class ControlSeatClientData {
     //clientdata不是每个方块绑定一个！它是每个玩家绑定一个，当玩家坐上椅子时，会与椅子互通数据
-
-    @Getter
     public volatile long lastKeyPressTime = 0;
     public volatile boolean viewLock = false;
-    @Getter
-    @Setter
     public volatile UUID userUUID = null;
     public volatile double accumulatedmousex=0;
     public volatile double accumulatedmousey=0;
@@ -70,6 +64,18 @@ public class ControlSeatClientData {
     public volatile List<ActiveWeaponHudInfo> activeWeaponHudInfos = new ArrayList<>();
     // 功能：缓存每一行武器冷却进度条的平滑值，避免网络慢包导致进度条卡顿跳帧。
     public volatile List<Float> smoothWeaponCooldownRatios = new ArrayList<>();
+
+    public long getLastKeyPressTime() {
+        return lastKeyPressTime;
+    }
+
+    public UUID getUserUUID() {
+        return userUUID;
+    }
+
+    public void setUserUUID(UUID userUUID) {
+        this.userUUID = userUUID;
+    }
 
     public void setLastMousex(double x) { lastmousex = x; }
     public void setLastMousey(double x) { lastmousey = x; }

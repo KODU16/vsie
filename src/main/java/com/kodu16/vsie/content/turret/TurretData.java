@@ -1,8 +1,6 @@
 package com.kodu16.vsie.content.turret;
 
 import com.kodu16.vsie.utility.FxData;
-import lombok.Getter;
-import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.joml.Matrix3d;
@@ -40,12 +38,12 @@ public final class TurretData {
 
     public volatile Vector3d location;
 
-    @Getter @Setter public volatile double distance;
+    public volatile double distance;
     public volatile ArrayList<Ship> enemyShipsData = new ArrayList<>();
 
-    @Getter @Setter public volatile Matrix3d coordAxis = new Matrix3d();    //我们规定 模型渲染中 不进行旋转的FACING对应此处单位矩阵
-    @Getter @Setter public volatile Vector3d basePivotOffset = new Vector3d();   //枢轴点偏移
-    @Getter @Setter public volatile Vector3d worldPivotOffset = new Vector3d();   //枢轴点偏移
+    public volatile Matrix3d coordAxis = new Matrix3d();    //我们规定 模型渲染中 不进行旋转的FACING对应此处单位矩阵
+    public volatile Vector3d basePivotOffset = new Vector3d();   //枢轴点偏移
+    public volatile Vector3d worldPivotOffset = new Vector3d();   //枢轴点偏移
 
 
     @Nullable public FxData fxData;
@@ -66,4 +64,36 @@ public final class TurretData {
     public boolean isChannel2() { return (getChannelStatus()&CHANNEL_2)!=0; }
     public boolean isChannel3() { return (getChannelStatus()&CHANNEL_3)!=0; }
     public boolean isChannel4() { return (getChannelStatus()&CHANNEL_4)!=0; }
+
+    public double getDistance() {
+        return distance;
+    }
+
+    public void setDistance(double distance) {
+        this.distance = distance;
+    }
+
+    public Matrix3d getCoordAxis() {
+        return coordAxis;
+    }
+
+    public void setCoordAxis(Matrix3d coordAxis) {
+        this.coordAxis = coordAxis;
+    }
+
+    public Vector3d getBasePivotOffset() {
+        return basePivotOffset;
+    }
+
+    public void setBasePivotOffset(Vector3d basePivotOffset) {
+        this.basePivotOffset = basePivotOffset;
+    }
+
+    public Vector3d getWorldPivotOffset() {
+        return worldPivotOffset;
+    }
+
+    public void setWorldPivotOffset(Vector3d worldPivotOffset) {
+        this.worldPivotOffset = worldPivotOffset;
+    }
 }

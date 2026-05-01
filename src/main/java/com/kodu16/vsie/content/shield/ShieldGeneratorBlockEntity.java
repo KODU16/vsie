@@ -5,6 +5,7 @@ import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -26,7 +27,6 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.energy.EnergyStorage;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import org.joml.Vector3f;
-import org.valkyrienskies.core.api.ships.LoadedShip;
 
 import java.util.List;
 
@@ -141,14 +141,14 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
 
     @Override
     protected void write(CompoundTag tag, boolean clientpacket) {
-        super.write(tag,clientpacket);
+        super.write(tag, clientpacket);
         tag.putInt("Energy", getEnergy().getEnergyStored());
         writeVec3(tag, "controlpos", linkedcontrolseatpos);
     }
 
     @Override
     public void read(CompoundTag tag, boolean clientpacket) {
-        super.read(tag,clientpacket);
+        super.read(tag, clientpacket);
         if (tag.contains("Energy")) {
             energyStorage.receiveEnergy(tag.getInt("Energy"), false);
         }
@@ -156,22 +156,20 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
     }
 
     @Override
-    public CompoundTag getUpdateTag() {
-        CompoundTag tag = super.getUpdateTag();
-        write(tag, true);
-        return tag;
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        return super.getUpdateTag(registries);
     }
 
     @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
+    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt, HolderLookup.Provider registries) {
         CompoundTag tag = pkt.getTag();
         if (tag != null) {
-            handleUpdateTag(tag);
+            handleUpdateTag(tag, registries);
         }
     }
 
     @Override
-    public void handleUpdateTag(CompoundTag tag) {
+    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
         read(tag, true);
     }
 

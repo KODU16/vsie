@@ -1,8 +1,6 @@
 package com.kodu16.vsie.content.controlseat.server;
 
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
-import lombok.Getter;
-import lombok.Setter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.Level;
@@ -21,27 +19,14 @@ import com.kodu16.vsie.content.controlseat.ActiveWeaponHudInfo;
 //请勿在客户端使用，或加入任何仅限客户端的值
 public class ControlSeatServerData {
     public volatile List<BlockPos> thrusterpositionslist = new ArrayList<>(); // 用来存储推进器的位置
-    @Getter
     public volatile Vec3 force =  new Vec3(0,0,0);
-    @Getter
-    @Setter
     public volatile Vec3 torque = new Vec3(0,0,0);
-    @Getter
-    @Setter
     public volatile int throttle = 0;
     //似乎自带UUID
-    @Getter
-    @Setter
     public volatile Player player = null;
     //Direction in ship space. Expected to be normalized
-    @Setter
-    @Getter
     private volatile Vec3i directionForward;
-    @Setter
-    @Getter
     private volatile Vec3i directionUp;
-    @Setter
-    @Getter
     private volatile Vec3i directionRight;
 
     public volatile boolean channel1 = true;
@@ -55,7 +40,7 @@ public class ControlSeatServerData {
     public volatile String ally = "";
     public volatile int lockedenemyindex = 0;
     public volatile Map<String, Object> shipsData = new HashMap<>();
-    public volatile ArrayList<Ship> enemyshipsData = new ArrayList<>();
+    public volatile ArrayList<Vector3d> enemyshipsData = new ArrayList<>();
 
     public volatile float thruster_strength = 0;
     // 功能：缓存东南西北上下六个方向（索引顺序：东南西北上下）上，朝向该方向的推进器最大推力总和。
@@ -108,14 +93,88 @@ public class ControlSeatServerData {
 
     public Level level;
     public ServerSubLevel serverShip;
-
-
-    @Getter
-    @Setter
     public volatile Vector3d finaltorque = new Vector3d(0,0,0);
-    @Getter
-    @Setter
     public volatile Vector3d finalforce = new Vector3d(0,0,0);
+
+    public Vec3 getForce() {
+        return force;
+    }
+
+    public void setForce(Vec3 force) {
+        this.force = force;
+    }
+
+    public void setForce(Vector3d force) {
+        this.force = new Vec3(force.x, force.y, force.z);
+    }
+
+    public Vec3 getTorque() {
+        return torque;
+    }
+
+    public void setTorque(Vec3 torque) {
+        this.torque = torque;
+    }
+
+    public void setTorque(Vector3d torque) {
+        this.torque = new Vec3(torque.x, torque.y, torque.z);
+    }
+
+    public int getThrottle() {
+        return throttle;
+    }
+
+    public void setThrottle(int throttle) {
+        this.throttle = throttle;
+    }
+
+    public Player getPlayer() {
+        return player;
+    }
+
+    public void setPlayer(Player player) {
+        this.player = player;
+    }
+
+    public Vec3i getDirectionForward() {
+        return directionForward;
+    }
+
+    public void setDirectionForward(Vec3i directionForward) {
+        this.directionForward = directionForward;
+    }
+
+    public Vec3i getDirectionUp() {
+        return directionUp;
+    }
+
+    public void setDirectionUp(Vec3i directionUp) {
+        this.directionUp = directionUp;
+    }
+
+    public Vec3i getDirectionRight() {
+        return directionRight;
+    }
+
+    public void setDirectionRight(Vec3i directionRight) {
+        this.directionRight = directionRight;
+    }
+
+    public Vector3d getFinaltorque() {
+        return finaltorque;
+    }
+
+    public void setFinaltorque(Vector3d finaltorque) {
+        this.finaltorque = finaltorque;
+    }
+
+    public Vector3d getFinalforce() {
+        return finalforce;
+    }
+
+    public void setFinalforce(Vector3d finalforce) {
+        this.finalforce = finalforce;
+    }
 
     public boolean getChannel1() {return channel1;}
     public boolean getChannel2() {return channel2;}

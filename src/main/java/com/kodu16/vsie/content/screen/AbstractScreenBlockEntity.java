@@ -3,6 +3,7 @@ package com.kodu16.vsie.content.screen;
 import com.kodu16.vsie.content.screen.server.ServerInfoGetter;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -11,10 +12,10 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Vector3d;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
-import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.core.animatable.instance.SingletonAnimatableInstanceCache;
-import software.bernie.geckolib.core.animation.AnimatableManager;
-import software.bernie.geckolib.network.SerializableDataTicket;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
+import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.constant.dataticket.SerializableDataTicket;
 
 import java.util.UUID;
 
@@ -222,10 +223,10 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
     }
 
     @Override
-    public void write(CompoundTag tag, boolean clientpacket) {
-        super.write(tag,clientpacket);
+    public void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientpacket) {
+        super.write(tag, registries, clientpacket);
         // 保存数据到 NBT
-        tag.put("RenderStack", renderStack.save(new CompoundTag()));
+        tag.put("RenderStack", renderStack.saveOptional(registries));
         tag.putString("RenderText", renderText);
         tag.putInt("type", displaytype);
         tag.putInt("spinx",spinx);
@@ -250,10 +251,10 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
     }
 
     @Override
-    public void read(CompoundTag tag, boolean clientpacket) {
-        super.read(tag,clientpacket);
+    public void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientpacket) {
+        super.read(tag, registries, clientpacket);
         if(tag.contains("RenderStack")) {
-            renderStack = ItemStack.of(tag.getCompound("RenderStack"));
+            renderStack = ItemStack.parseOptional(registries, tag.getCompound("RenderStack"));
         }
         if(tag.contains("RenderText")) {
             renderText = tag.getString("RenderText");
@@ -291,23 +292,21 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
     }
 
     @Override
-    public CompoundTag getUpdateTag() {
-        CompoundTag tag = super.getUpdateTag();
-        write(tag, true);
-        return tag;
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        return super.getUpdateTag(registries);
     }
 
     @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
+    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt, HolderLookup.Provider registries) {
         CompoundTag tag = pkt.getTag();
         if (tag != null) {
-            handleUpdateTag(tag);
+            handleUpdateTag(tag, registries);
         }
     }
 
     @Override
-    public void handleUpdateTag(CompoundTag tag) {
-        read(tag, true);
+    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
+        read(tag, registries, true);
     }
 
     @Override

@@ -7,8 +7,8 @@ import com.kodu16.vsie.content.vectorthruster.AbstractVectorThrusterBlockEntity;
 import com.kodu16.vsie.vsie;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import software.bernie.geckolib.core.animatable.model.CoreGeoBone;
-import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.cache.object.GeoBone;
+import software.bernie.geckolib.animation.AnimationState;
 import software.bernie.geckolib.model.DefaultedBlockGeoModel;
 
 import java.util.HashMap;
@@ -50,8 +50,8 @@ public class AbstractVectorThrusterModel extends DefaultedBlockGeoModel<Abstract
 
     @Override
     public void setCustomAnimations(AbstractVectorThrusterBlockEntity animatable, long instanceId, AnimationState<AbstractVectorThrusterBlockEntity> animationState) {
-        CoreGeoBone spinner = getAnimationProcessor().getBone("spinner");
-        CoreGeoBone nozzle = getAnimationProcessor().getBone("nozzle");
+        GeoBone spinner = getAnimationProcessor().getBone("spinner");
+        GeoBone nozzle = getAnimationProcessor().getBone("nozzle");
 
         if (spinner == null || nozzle == null)
         {

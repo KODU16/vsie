@@ -3,7 +3,6 @@ package com.kodu16.vsie.content.turret;
 import com.kodu16.vsie.foundation.Vec;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
-import lombok.Getter;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
@@ -34,12 +33,13 @@ import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
-import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.core.animatable.instance.SingletonAnimatableInstanceCache;
-import software.bernie.geckolib.network.SerializableDataTicket;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
+import software.bernie.geckolib.constant.dataticket.SerializableDataTicket;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.world.level.Level;
-import software.bernie.geckolib.util.RenderUtils;
+import software.bernie.geckolib.util.RenderUtil;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -60,7 +60,12 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     public boolean onShip = false;
 
     public Vector3d targetPos = new Vector3d(0,0,0); //这是被选择的那个目标的位置
-    @Getter public double targetDistance;
+    public double targetDistance;
+
+    public double getTargetDistance() {
+        return targetDistance;
+    }
+
     public @Nullable LivingEntity targetentity;
     private @Nullable Ship selectedtargetShip;
     public List<Vector3d> targetPreVelocity = new ArrayList<Vector3d>();
@@ -80,13 +85,19 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
     // 功能：读取粒子炮 firepoint 坐标，返回副本避免外部意外修改内部状态。
     // 功能：保存客户端上传的 firepoint 坐标，粒子炮开火时直接作为子弹生成点使用。
-    @Getter
     private Vector3d FirePoint = null;
     // 功能：记录“对舰船开火”时沿当前朝向射线检测到的方块坐标，仅保留最近一次结果（无需 NBT 同步）。
-    @Getter
     private BlockPos lastShipShotHitBlockPos = BlockPos.ZERO;
     // 功能：标记“本次对舰船射线是否先命中了自身所在船体”，用于阻止误伤自身舰体的开火。
     private boolean shipShotBlockedBySelfShip = false;
+
+    public Vector3d getFirePoint() {
+        return FirePoint;
+    }
+
+    public BlockPos getLastShipShotHitBlockPos() {
+        return lastShipShotHitBlockPos;
+    }
 
     private static final double SEARCH_RADIUS = 128.0;
 
@@ -583,7 +594,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
     @Override
     public double getTick(Object BlockEntity) {
-        return RenderUtils.getCurrentTick();
+        return RenderUtil.getCurrentTick();
     }
 
     @Override
@@ -614,28 +625,26 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     }
 
     @Override
-    public CompoundTag getUpdateTag() {
-        CompoundTag tag = super.getUpdateTag();
-        write(tag, true);
-        return tag;
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        return super.getUpdateTag(registries);
     }
 
     @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
+    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt, HolderLookup.Provider registries) {
         CompoundTag tag = pkt.getTag();
         if (tag != null) {
-            handleUpdateTag(tag);
+            handleUpdateTag(tag, registries);
         }
     }
 
     @Override
-    public void handleUpdateTag(CompoundTag tag) {
-        read(tag, true);
+    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
+        read(tag, registries, true);
     }
 
     @Override
-    protected void write(CompoundTag tag, boolean clientPacket) {
-        super.write(tag, clientPacket);
+    protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(tag, registries, clientPacket);
         tag.putInt("aimtype", aimtype);
         tag.putInt("configregister",turretData.configRegister);
         tag.putDouble("distance", this.getTargetDistance());
@@ -648,8 +657,8 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     }
 
     @Override
-    protected void read(CompoundTag tag, boolean clientPacket) {
-        super.read(tag, clientPacket);
+    protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(tag, registries, clientPacket);
         // 确保 turretData 不为 null
         if (this.turretData == null) {
             this.turretData = new TurretData();

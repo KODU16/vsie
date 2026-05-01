@@ -70,7 +70,7 @@ public class WorldMarkerPainter {
             Vec3 delta = target.subtract(playerpos);
             int targettype = getPriority(enemy,ally, (String) attr.get("slug"));
 
-            ItemStack item = new ItemStack(vsieItems.TARGET_FRAME);
+            ItemStack item = new ItemStack(vsieItems.TARGET_FRAME.get());
             Component slug = Component.literal((String) attr.get("slug"))
                     .withStyle(ChatFormatting.AQUA);
 
@@ -81,13 +81,13 @@ public class WorldMarkerPainter {
             double distance = Vec.Distance(new Vector3d(playerpos.x,playerpos.y,playerpos.z), new Vector3d(target.x,target.y,target.z));
             if(targettype ==1)
             {
-                item = new ItemStack(vsieItems.TARGET_FRAME_ENEMY);
+                item = new ItemStack(vsieItems.TARGET_FRAME_ENEMY.get());
                 slug = Component.literal((String) attr.get("slug"))
                         .withStyle(ChatFormatting.RED);
             }
             if(targettype ==2)
             {
-                item = new ItemStack(vsieItems.TARGET_FRAME_ALLY);
+                item = new ItemStack(vsieItems.TARGET_FRAME_ALLY.get());
                 slug = Component.literal((String) attr.get("slug"))
                         .withStyle(ChatFormatting.GREEN);
             }
@@ -99,7 +99,7 @@ public class WorldMarkerPainter {
                     .append(dist);
             rendertext(playerpos, target, mc.getEntityRenderDispatcher(), mc.font, pose, buffers, text, FastColor.ARGB32.color(TEXT_ALPHA, 0x00, 0xFF, 0xFF));
             if((attr.get("slug")).equals(lockedenemyslug)) {
-                item = new ItemStack(vsieItems.TARGET_FRAME_ENEMY_LOCKED);
+                item = new ItemStack(vsieItems.TARGET_FRAME_ENEMY_LOCKED.get());
                 rendertargettext(playerpos, target, mc.getEntityRenderDispatcher(), mc.font, pose, buffers, FastColor.ARGB32.color(TEXT_ALPHA, 0x00, 0xFF, 0xFF));
             }
             render(playerpos, target, mc.getEntityRenderDispatcher(), pose, buffers, item);
