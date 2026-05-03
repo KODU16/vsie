@@ -3,10 +3,12 @@ package com.kodu16.vsie.content.turret.block;
 import com.kodu16.vsie.content.bullet.BulletData;
 import com.kodu16.vsie.content.bullet.entity.ParticleBulletEntity;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
+import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.registries.vsieEntities;
 import com.kodu16.vsie.registries.vsieItems;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -20,8 +22,6 @@ import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
-import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animation.AnimatableManager;
 import software.bernie.geckolib.animation.Animation;
@@ -33,7 +33,9 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 import java.util.List;
 
 public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity implements IItemHandlerModifiable {
-    // 功能：粒子炮内部 3x3 弹药仓，仅允许放入 particle_container。
+    private HolderLookup.Provider nbtRegistries;
+
+    // 鍔熻兘锛氱矑瀛愮偖鍐呴儴 3x3 寮硅嵂浠擄紝浠呭厑璁告斁鍏?particle_container銆?
     private final ItemStackHandler containerInventory = new ItemStackHandler(9) {
         @Override
         protected void onContentsChanged(int slot) {
@@ -55,7 +57,8 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity impleme
 
     }
 
-    public Vector3d getShootLocation(Vector3d vec, List<Vector3d> preV, Level lv, Vector3d pos) {
+    @Override
+    public Vec3 getShootLocation(Vec3 vec, List<Vector3d> preV, Level lv, Vec3 pos) {
         return vec;
     }
 
@@ -67,7 +70,7 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity impleme
 
     @Override
     protected Vector3d getTurretPivotInGeoPixels() {
-        // 功能：返回 particle turret 模型中 turret 骨骼的枢轴点，用于计算真实世界炮口基准点。
+        // 鍔熻兘锛氳繑鍥?particle turret 妯″瀷涓?turret 楠ㄩ鐨勬灑杞寸偣锛岀敤浜庤绠楃湡瀹炰笘鐣岀偖鍙ｅ熀鍑嗙偣銆?
         return new Vector3d(0.0, 0.0, 0);
     }
 
@@ -93,29 +96,28 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity impleme
 
     @Override
     protected boolean canShootCurrentTarget() {
-        // 功能：没有可用粒子容器时，炮塔只保持瞄准，不执行开火。
+        // 鍔熻兘锛氭病鏈夊彲鐢ㄧ矑瀛愬鍣ㄦ椂锛岀偖濉斿彧淇濇寔鐬勫噯锛屼笉鎵ц寮€鐏€?
         return hasStoredContainer();
     }
 
     @Override
     public void shootentity() {
         Level level = this.getLevel();
-        // 功能：仅允许服务端执行开火逻辑，避免客户端在索敌/预测分支误触发一次射击动画。
+        // 鍔熻兘锛氫粎鍏佽鏈嶅姟绔墽琛屽紑鐏€昏緫锛岄伩鍏嶅鎴风鍦ㄧ储鏁?棰勬祴鍒嗘敮璇Е鍙戜竴娆″皠鍑诲姩鐢汇€?
         if (level == null || level.isClientSide) {
             return;
         }
-        // 功能：每次真正开火前消耗 1 个粒子容器，若消耗失败则终止本次射击。
+        // 鍔熻兘锛氭瘡娆＄湡姝ｅ紑鐏墠娑堣€?1 涓矑瀛愬鍣紝鑻ユ秷鑰楀け璐ュ垯缁堟鏈灏勫嚮銆?
         if (!consumeOneContainer()) {
             return;
         }
-        boolean onship = VSGameUtilsKt.isBlockInShipyard(level,this.getBlockPos());
-        if(onship && getFirePoint() != null){
+        if(getFirePoint() != null){
             triggerAnim("controller", "shoot");
-            Ship ship = VSGameUtilsKt.getShipManagingPos(level,this.getBlockPos());
             Vec3 center = new Vec3(this.getBlockPos().getX()+getFirePoint().x, this.getBlockPos().getY()+getFirePoint().y+getYAxisOffset(), this.getBlockPos().getZ()+getFirePoint().z);
-            Vec3 firepoint = VSGameUtilsKt.toWorldCoordinates(ship,center);
+            SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, this.getBlockPos());
+            Vec3 firepoint = subLevel == null ? center : subLevel.logicalPose().transformPosition(center);
             ParticleBulletEntity bullet = new ParticleBulletEntity(vsieEntities.PARTICLE_BULLET.get(), level);
-            // 功能：为粒子炮子弹写入标准 data，确保子弹第 1 tick 使用 particle_cannon_fire 触发 awake FX。
+            // 鍔熻兘锛氫负绮掑瓙鐐瓙寮瑰啓鍏ユ爣鍑?data锛岀‘淇濆瓙寮圭 1 tick 浣跨敤 particle_cannon_fire 瑙﹀彂 awake FX銆?
             bullet.setDataBase(BulletData.createParticleCannonDefault());
             bullet.setPos(firepoint);
             bullet.setDeltaMovement(new Vec3(targetPos.x-firepoint.x,targetPos.y-firepoint.y,targetPos.z-firepoint.z).normalize().scale(1.0F));
@@ -139,7 +141,7 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity impleme
         return cache;
     }
 
-    // 功能：判断弹药仓中是否仍有可用粒子容器。
+    // 鍔熻兘锛氬垽鏂脊鑽粨涓槸鍚︿粛鏈夊彲鐢ㄧ矑瀛愬鍣ㄣ€?
     private boolean hasStoredContainer() {
         for (int slot = 0; slot < containerInventory.getSlots(); slot++) {
             if (!containerInventory.getStackInSlot(slot).isEmpty()) {
@@ -149,7 +151,7 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity impleme
         return false;
     }
 
-    // 功能：从弹药仓按槽位顺序消耗 1 个粒子容器，作为一次射击成本。
+    // 鍔熻兘锛氫粠寮硅嵂浠撴寜妲戒綅椤哄簭娑堣€?1 涓矑瀛愬鍣紝浣滀负涓€娆″皠鍑绘垚鏈€?
     private boolean consumeOneContainer() {
         for (int slot = 0; slot < containerInventory.getSlots(); slot++) {
             ItemStack extracted = containerInventory.extractItem(slot, 1, false);
@@ -161,7 +163,7 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity impleme
         return false;
     }
 
-    // 功能：方块被破坏时将粒子容器掉落到世界，避免物品丢失。
+    // 鍔熻兘锛氭柟鍧楄鐮村潖鏃跺皢绮掑瓙瀹瑰櫒鎺夎惤鍒颁笘鐣岋紝閬垮厤鐗╁搧涓㈠け銆?
     public void dropStoredContainers(Level level, BlockPos pos) {
         for (int slot = 0; slot < containerInventory.getSlots(); slot++) {
             ItemStack stack = containerInventory.getStackInSlot(slot);
@@ -172,10 +174,24 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity impleme
         }
     }
 
+    private HolderLookup.Provider currentNbtRegistries() {
+        return nbtRegistries != null ? nbtRegistries : this.level.registryAccess();
+    }
+
+    private void withNbtRegistries(HolderLookup.Provider registries, Runnable action) {
+        HolderLookup.Provider previous = this.nbtRegistries;
+        this.nbtRegistries = registries;
+        try {
+            action.run();
+        } finally {
+            this.nbtRegistries = previous;
+        }
+    }
+
     @Override
     protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.write(tag, registries, clientPacket);
-        // 功能：保存粒子炮 3x3 弹药仓数据，保证重进世界后不丢仓内物品。
+        // 鍔熻兘锛氫繚瀛樼矑瀛愮偖 3x3 寮硅嵂浠撴暟鎹紝淇濊瘉閲嶈繘涓栫晫鍚庝笉涓粨鍐呯墿鍝併€?
         tag.put("ParticleContainerInventory", containerInventory.serializeNBT(registries));
     }
 
@@ -183,12 +199,17 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity impleme
     protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.read(tag, registries, clientPacket);
         if (tag.contains("ParticleContainerInventory")) {
-            // 功能：读取粒子炮 3x3 弹药仓数据，用于服务端逻辑与 GUI 同步。
+            // 鍔熻兘锛氳鍙栫矑瀛愮偖 3x3 寮硅嵂浠撴暟鎹紝鐢ㄤ簬鏈嶅姟绔€昏緫涓?GUI 鍚屾銆?
             containerInventory.deserializeNBT(registries, tag.getCompound("ParticleContainerInventory"));
         }
     }
 
-    // 功能：提供给 NeoForge 1.21.1 capability 注册器的物品处理器实例。
+    // 鍔熻兘锛氭彁渚涚粰 NeoForge 1.21.1 capability 娉ㄥ唽鍣ㄧ殑鐗╁搧澶勭悊鍣ㄥ疄渚嬨€?
+    @Override
+    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
+        withNbtRegistries(registries, () -> read(tag, registries, true));
+    }
+
     public IItemHandlerModifiable getItemHandler() {
         return this;
     }

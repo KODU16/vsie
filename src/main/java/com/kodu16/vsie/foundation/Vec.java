@@ -25,7 +25,7 @@ public class Vec {
         return new Vector3d(a.x,a.y,a.z);
     }
 
-    public static double Distance(Vector3d a, Vector3d b) {
+    public static double Distance(Vec3 a, Vec3 b) {
         return Math.sqrt(Math.pow(a.x-b.x,2) + Math.pow(a.y-b.y,2) + Math.pow(a.z-b.z,2));
     }
 

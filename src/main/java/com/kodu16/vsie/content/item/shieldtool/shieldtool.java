@@ -3,6 +3,7 @@ package com.kodu16.vsie.content.item.shieldtool;
 import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
+import com.kodu16.vsie.utility.ItemStackNbt;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -37,11 +38,10 @@ public class shieldtool extends Item {
 
     /** 可选：给物品栏 tooltip 显示用 */
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable Level level, java.util.List<Component> tooltip, net.minecraft.world.item.TooltipFlag flag) {
-        super.appendHoverText(stack, level, tooltip, flag);
-        super.appendHoverText(stack, level, tooltip, flag);
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, java.util.List<Component> tooltip, net.minecraft.world.item.TooltipFlag flag) {
+        super.appendHoverText(stack, context, tooltip, flag);
 
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = ItemStackNbt.get(stack);
         if (tag == null) return;
 
         int max    = tag.getInt(KEY_MAX_SHIELD);
@@ -113,35 +113,17 @@ public class shieldtool extends Item {
 
         ControlSeatServerData data = controlSeat.getControlSeatData();
 
-        CompoundTag tag = stack.getOrCreateTag();
-        tag.putInt(KEY_DISTANCE_MAX, (int) data.shieldmax);
-        tag.putInt(KEY_DISTANCE_MIN, (int) data.shieldmin);
-        tag.putInt(KEY_MAX_SHIELD, (int) data.totalshield);
-        tag.putInt(KEY_RADIUS,    (int) data.shieldradius);
-        tag.putInt(KEY_COST,      (int) data.shieldcostperprojectile);
-        tag.putInt(KEY_REGEN,     (int) data.shieldregeneratepertick);
-        tag.putInt(KEY_COOLDOWN,  (int) data.shieldmaxcooldowntime);
-
-        stack.setTag(tag);
+        ItemStackNbt.update(stack, tag -> {
+            tag.putInt(KEY_DISTANCE_MAX, (int) data.shieldmax);
+            tag.putInt(KEY_DISTANCE_MIN, (int) data.shieldmin);
+            tag.putInt(KEY_MAX_SHIELD, (int) data.totalshield);
+            tag.putInt(KEY_RADIUS,    (int) data.shieldradius);
+            tag.putInt(KEY_COST,      (int) data.shieldcostperprojectile);
+            tag.putInt(KEY_REGEN,     (int) data.shieldregeneratepertick);
+            tag.putInt(KEY_COOLDOWN,  (int) data.shieldmaxcooldowntime);
+        });
 
         return InteractionResult.CONSUME;
-    }
-
-    @Override
-    public @Nullable CompoundTag getShareTag(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
-        if (tag == null) return null;
-
-        CompoundTag share = new CompoundTag();
-        if (tag.contains(KEY_DISTANCE_MAX)) share.putInt(KEY_DISTANCE_MAX, tag.getInt(KEY_DISTANCE_MAX));
-        if (tag.contains(KEY_DISTANCE_MIN)) share.putInt(KEY_DISTANCE_MIN, tag.getInt(KEY_DISTANCE_MIN));
-        if (tag.contains(KEY_MAX_SHIELD)) share.putInt(KEY_MAX_SHIELD, tag.getInt(KEY_MAX_SHIELD));
-        if (tag.contains(KEY_RADIUS))    share.putInt(KEY_RADIUS, tag.getInt(KEY_RADIUS));
-        if (tag.contains(KEY_COST))      share.putInt(KEY_COST, tag.getInt(KEY_COST));
-        if (tag.contains(KEY_REGEN))     share.putInt(KEY_REGEN, tag.getInt(KEY_REGEN));
-        if (tag.contains(KEY_COOLDOWN))  share.putInt(KEY_COOLDOWN, tag.getInt(KEY_COOLDOWN));
-
-        return share.isEmpty() ? null : share;
     }
 
 }

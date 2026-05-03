@@ -1,10 +1,10 @@
 package com.kodu16.vsie.content.turret;
 
 import com.kodu16.vsie.utility.FxData;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.joml.Matrix3d;
-import org.valkyrienskies.core.api.ships.Ship;
 
 import java.util.ArrayList;
 
@@ -39,7 +39,7 @@ public final class TurretData {
     public volatile Vector3d location;
 
     public volatile double distance;
-    public volatile ArrayList<Ship> enemyShipsData = new ArrayList<>();
+    public volatile ArrayList<SubLevel> enemyShipsData = new ArrayList<>();
 
     public volatile Matrix3d coordAxis = new Matrix3d();    //我们规定 模型渲染中 不进行旋转的FACING对应此处单位矩阵
     public volatile Vector3d basePivotOffset = new Vector3d();   //枢轴点偏移

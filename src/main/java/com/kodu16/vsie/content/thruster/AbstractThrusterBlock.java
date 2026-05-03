@@ -3,13 +3,9 @@ package com.kodu16.vsie.content.thruster;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.kodu16.vsie.registries.vsieShapes;
-import net.minecraft.world.level.BlockGetter;
+import com.kodu16.vsie.foundation.ServerShipUtils;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.world.level.block.RenderShape;
-import org.valkyrienskies.core.api.ships.LoadedShip;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
-
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -29,8 +25,6 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
-import net.minecraft.world.phys.shapes.CollisionContext;
-import net.minecraft.world.phys.shapes.VoxelShape;
 
 @SuppressWarnings("deprecation")
 public abstract class AbstractThrusterBlock extends DirectionalBlock implements EntityBlock {
@@ -82,11 +76,10 @@ public abstract class AbstractThrusterBlock extends DirectionalBlock implements 
 
         BlockEntity blockEntity = level.getBlockEntity(pos);
         if (blockEntity instanceof AbstractThrusterBlockEntity thrusterBlockEntity) {
-            LoadedShip Ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos);
-            if (Ship != null) {
-                // Initialize thruster data for ValkyRien Skies
+            SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, pos);
+            if (subLevel != null) {
                 ThrusterData data = thrusterBlockEntity.getData();
-                data.setDirectionY(VectorConversionsMCKt.toJOMLD(state.getValue(FACING).getNormal()));
+                data.setDirectionY(Initialize.toVector3d(state.getValue(FACING)));
             }
         }
     }

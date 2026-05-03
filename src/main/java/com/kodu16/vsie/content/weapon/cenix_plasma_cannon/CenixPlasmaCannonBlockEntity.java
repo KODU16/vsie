@@ -1,19 +1,19 @@
 package com.kodu16.vsie.content.weapon.cenix_plasma_cannon;
 
 import com.kodu16.vsie.content.bullet.entity.CenixPlasmaBulletEntity;
-import com.kodu16.vsie.content.bullet.entity.ParticleBulletEntity;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
+import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.registries.vsieEntities;
+import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
+import dev.ryanhcode.sable.sublevel.ServerSubLevel;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
-import org.joml.Vector3dc;
-import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 import static com.kodu16.vsie.content.weapon.AbstractWeaponBlock.FACING;
 
@@ -34,14 +34,33 @@ public class CenixPlasmaCannonBlockEntity extends AbstractWeaponBlockEntity {
 
     @Override
     public void fire() {
-        Ship ship = VSGameUtilsKt.getShipObjectManagingPos(level, getBlockPos());
-        Vector3d currentfacing = new Vector3d(0,1,0);
-        ship.getTransform().getShipToWorld().transformDirection(VectorConversionsMCKt.toJOMLD(this.getBlockState().getValue(FACING).getNormal()),currentfacing);
+        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, getBlockPos());
+        if (!(subLevel instanceof ServerSubLevel serverSubLevel)) {
+            return;
+        }
+
+        Direction weaponFacing = this.getBlockState().getValue(FACING);
+        Vector3d currentFacing = subLevel.logicalPose()
+                .transformNormal(directionToVector(weaponFacing), new Vector3d())
+                .normalize();
         CenixPlasmaBulletEntity bullet = new CenixPlasmaBulletEntity(vsieEntities.CENIX_PLASMA_BULLET.get(), level);
         bullet.setPos(new Vec3(this.weaponpos.x,this.weaponpos.y,this.weaponpos.z));
-        Vector3dc shipspeed = ship.getVelocity();
-        bullet.setDeltaMovement(new Vec3(currentfacing.x*4+shipspeed.x(),currentfacing.y*4+shipspeed.y(),currentfacing.z*4+shipspeed.z()));
+        Vector3d shipSpeed = getLinearVelocity(serverSubLevel);
+        bullet.setDeltaMovement(new Vec3(currentFacing.x * 4 + shipSpeed.x(), currentFacing.y * 4 + shipSpeed.y(), currentFacing.z * 4 + shipSpeed.z()));
         level.addFreshEntity(bullet);
+    }
+
+    private static Vector3d directionToVector(Direction direction) {
+        return new Vector3d(direction.getStepX(), direction.getStepY(), direction.getStepZ());
+    }
+
+    private static Vector3d getLinearVelocity(ServerSubLevel subLevel) {
+        RigidBodyHandle handle = RigidBodyHandle.of(subLevel);
+        if (handle == null || !handle.isValid()) {
+            return new Vector3d();
+        }
+
+        return handle.getLinearVelocity(new Vector3d());
     }
 
     @Override

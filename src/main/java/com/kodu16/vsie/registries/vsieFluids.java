@@ -13,7 +13,8 @@ import com.tterrag.registrate.util.nullness.NonNullBiConsumer;
 
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.fml.DistExecutor;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.fluids.FluidType;
 import net.neoforged.neoforge.fluids.BaseFlowingFluid;
 
@@ -25,10 +26,7 @@ public class vsieFluids {
         return (ctx, prov) -> {};
     }
 
-    private static final Supplier<FluidTypeFactory> DTFUEL_TYPE_FACTORY = DistExecutor.unsafeRunForDist(
-            () -> vsieFluidsClient::getDtfuelTypeFactory,
-            () -> vsieFluids::createGenericFactory
-    );
+    private static final Supplier<FluidTypeFactory> DTFUEL_TYPE_FACTORY = createDtfuelTypeFactory();
 
     // 功能：NeoForge 1.21.1 将 ForgeFlowingFluid 重命名为 BaseFlowingFluid，这里同步更新流体注册泛型和 Source 构造器。
     public static final FluidEntry<BaseFlowingFluid.Flowing> DTFUEL = REGISTRATE.fluid("dtfuel",
@@ -49,11 +47,18 @@ public class vsieFluids {
 
     //Helpers
 
-    private static Supplier<RenderType> getSidedRenderType() {
-        return DistExecutor.unsafeRunForDist(
-                () -> vsieFluidsClient::getDtfuelRenderType,
-                () -> () -> null
-        );
+    private static Supplier<Supplier<RenderType>> getSidedRenderType() {
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            return vsieFluidsClient::getDtfuelRenderType;
+        }
+        return () -> () -> null;
+    }
+
+    private static Supplier<FluidTypeFactory> createDtfuelTypeFactory() {
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            return vsieFluidsClient.getDtfuelTypeFactory();
+        }
+        return createGenericFactory();
     }
 
     private static Supplier<FluidTypeFactory> createGenericFactory() {

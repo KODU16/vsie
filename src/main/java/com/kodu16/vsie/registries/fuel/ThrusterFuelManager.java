@@ -18,6 +18,8 @@ import com.google.gson.JsonElement;
 import com.mojang.logging.LogUtils;
 import com.mojang.serialization.JsonOps;
 
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -26,9 +28,8 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.server.ServerLifecycleHooks;
+import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 
 public class ThrusterFuelManager extends SimpleJsonResourceReloadListener {
@@ -37,7 +38,8 @@ public class ThrusterFuelManager extends SimpleJsonResourceReloadListener {
     public static final String DIRECTORY = "thruster_fuels";
 
     private static Map<Fluid, FluidThrusterProperties> fuelPropertiesMap = new HashMap<>();
-    public static final TagKey<Fluid> FORGE_FUEL_TAG = TagKey.create(ForgeRegistries.FLUIDS.getRegistryKey(), ResourceLocation.fromNamespaceAndPath("forge", "fuel"));
+    public static final TagKey<Fluid> COMMON_FUEL_TAG = TagKey.create(Registries.FLUID, ResourceLocation.fromNamespaceAndPath("c", "fuels"));
+    public static final TagKey<Fluid> LEGACY_FUEL_TAG = TagKey.create(Registries.FLUID, ResourceLocation.fromNamespaceAndPath("forge", "fuel"));
 
     public static Map<Fluid, FluidThrusterProperties> getFuelPropertiesMap() { return fuelPropertiesMap; }
 
@@ -53,7 +55,7 @@ public class ThrusterFuelManager extends SimpleJsonResourceReloadListener {
         if (props != null) {
             return props;
         }
-        if (fluid.is(FORGE_FUEL_TAG)) return FluidThrusterProperties.DEFAULT;
+        if (fluid.is(COMMON_FUEL_TAG) || fluid.is(LEGACY_FUEL_TAG)) return FluidThrusterProperties.DEFAULT;
         return null;
     }
 
@@ -73,10 +75,7 @@ public class ThrusterFuelManager extends SimpleJsonResourceReloadListener {
     public static void updateClient(Map<ResourceLocation, FluidThrusterProperties> fuelMap) {
         Map<Fluid, FluidThrusterProperties> newClientMap = new HashMap<>();
         fuelMap.forEach((rl, props) -> {
-            Fluid fluid = ForgeRegistries.FLUIDS.getValue(rl);
-            if (fluid != null) {
-                newClientMap.put(fluid, props);
-            }
+            BuiltInRegistries.FLUID.getOptional(rl).ifPresent(fluid -> newClientMap.put(fluid, props));
         });
         fuelPropertiesMap = newClientMap;
     }

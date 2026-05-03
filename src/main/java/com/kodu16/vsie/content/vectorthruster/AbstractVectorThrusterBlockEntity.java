@@ -2,29 +2,27 @@ package com.kodu16.vsie.content.vectorthruster;
 
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlockEntity;
 import com.kodu16.vsie.content.thruster.Initialize;
+import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import dev.ryanhcode.sable.sublevel.ServerSubLevel;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.NeoForge;
 import org.joml.Vector3d;
-import org.joml.Vector3dc;
 import org.joml.Matrix3d;
 import org.slf4j.Logger;
-import org.valkyrienskies.core.api.ships.ServerShip;
-import org.valkyrienskies.core.api.ships.properties.ShipTransform;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
@@ -32,8 +30,6 @@ import software.bernie.geckolib.animation.AnimatableManager;
 import software.bernie.geckolib.constant.dataticket.SerializableDataTicket;
 
 import java.util.List;
-
-import static com.kodu16.vsie.foundation.Vec.toVector3d;
 
 public abstract class AbstractVectorThrusterBlockEntity extends AbstractThrusterBlockEntity implements GeoBlockEntity {
 
@@ -68,61 +64,64 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
 
         if (hasInitialized) {
             BlockPos pos = this.getBlockPos();
-            boolean onShip = VSGameUtilsKt.isBlockInShipyard(level, pos);
-            ServerShip ship = VSGameUtilsKt.getShipManagingPos((ServerLevel) level, getBlockPos());
+            SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level,this.getBlockPos());
 
-            if (onShip && ship != null) {
-                final ShipTransform transform = ship.getTransform();
+            if (subLevel != null) {
+                if (!(subLevel instanceof ServerSubLevel serverSubLevel)) {
+                    LOGGER.warn("vector thruster sublevel is not server side");
+                    return;
+                }
 
-                // 船的重心（世界坐标）和推进器的位置（世界坐标），计算出力臂（单位化的）
-                Vector3dc shipCenterOfMass = transform.getPositionInWorld();
-                Vector3d thrusterWorldPos = toVector3d(VSGameUtilsKt.toWorldCoordinates(level, pos));
-                Vector3d leverArmWorld = thrusterWorldPos.sub(shipCenterOfMass.x(), shipCenterOfMass.y(), shipCenterOfMass.z());
-                leverArmWorld.normalize();
+                // 鑸圭殑閲嶅績锛堜笘鐣屽潗鏍囷級鍜屾帹杩涘櫒鐨勪綅缃紙涓栫晫鍧愭爣锛夛紝璁＄畻鍑哄姏鑷傦紙鍗曚綅鍖栫殑锛?
+                Vec3 shipCenterOfMass = ServerShipUtils.getCenterOfMassWorld(serverSubLevel);
+                if (shipCenterOfMass == null) {
+                    return;
+                }
 
-                //获取基座朝向并计算基座轴的世界朝向（单位化的）
-                BlockState state = this.getBlockState();
+                Vec3 thrusterWorldPos = subLevel.logicalPose().transformPosition(new Vec3(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D));
+                Vec3 leverArmWorld = thrusterWorldPos.subtract(shipCenterOfMass.x(), shipCenterOfMass.y(), shipCenterOfMass.z());
+                if (leverArmWorld.lengthSqr() > 1.0E-6D) {
+                    leverArmWorld = leverArmWorld.normalize();
+                }
 
-                Vector3d blockdirection = VectorConversionsMCKt.toJOMLD(state.getValue(FACING).getNormal());
-                Vector3d worldfacing = new Vector3d();
+                //鑾峰彇鍩哄骇鏈濆悜骞惰绠楀熀搴ц酱鐨勪笘鐣屾湞鍚戯紙鍗曚綅鍖栫殑锛?                BlockState state = this.getBlockState();
 
-                transform.getShipToWorld().transformDirection(blockdirection, worldfacing);
+                Vector3d blockdirection = Initialize.toVector3d(this.getBlockState().getValue(FACING));
+                Vector3d worldfacing = subLevel.logicalPose().transformNormal(blockdirection);
                 worldfacing.normalize();
 
-                // ==================== 玩家输入 ====================
+                // ==================== 鐜╁杈撳叆 ====================
                 Vector3d desiredForce = thrusterData.getInputforce() != null ? thrusterData.getInputforce() : new Vector3d();
                 Vector3d desiredTorque = thrusterData.getInputtorque() != null ? thrusterData.getInputtorque() : new Vector3d();
 
                 boolean hasInput = desiredForce.lengthSquared() > 1e-6 || desiredTorque.lengthSquared() > 1e-6;
 
                 double throttle = 0.0;
-                // 功能：每个矢量推进器每 tick 都独立计算自己的目标欧拉角，默认保持中位（不偏转）
+                // 鍔熻兘锛氭瘡涓煝閲忔帹杩涘櫒姣?tick 閮界嫭绔嬭绠楄嚜宸辩殑鐩爣娆ф媺瑙掞紝榛樿淇濇寔涓綅锛堜笉鍋忚浆锛?
                 double[] eulerAngle={0,0};
                 if (hasInput) {
-                    Vector3d worldXDirection = new Vector3d();
-                    Vector3d worldYDirection = new Vector3d();
-                    Vector3d worldZDirection = new Vector3d();
-                    Vector3d torqueforce = desiredTorque.cross(leverArmWorld);
+                    Vector3d worldXDirection;
+                    Vector3d worldYDirection;
+                    Vector3d worldZDirection;
+                    Vector3d leverArm = new Vector3d(leverArmWorld.x, leverArmWorld.y, leverArmWorld.z);
+                    Vector3d torqueforce = new Vector3d(desiredTorque).cross(leverArm);
                     Vector3d targetthrust = torqueforce.add(desiredForce);
-                    targetthrust.normalize();
-
-                    transform.getShipToWorld().transformDirection(thrusterData.getDirectionY(), worldYDirection);
-                    worldYDirection.normalize();
-                    transform.getShipToWorld().transformDirection(thrusterData.getDirectionX(), worldXDirection);
-                    worldXDirection.normalize();
-                    transform.getShipToWorld().transformDirection(thrusterData.getDirectionZ(), worldZDirection);
-                    worldZDirection.normalize();
-
-                    // 功能：有输入时按目标推力方向计算喷口偏转
-                    eulerAngle = forceTransform(targetthrust,transform,thrusterData.getCoordAxis());
+                    if (targetthrust.lengthSquared() > 1.0E-6D) {
+                        targetthrust.normalize();
+                    }
+                    worldYDirection = subLevel.logicalPose().transformNormal(thrusterData.getDirectionY(), new Vector3d()).normalize();
+                    worldXDirection = subLevel.logicalPose().transformNormal(thrusterData.getDirectionX(), new Vector3d()).normalize();
+                    worldZDirection = subLevel.logicalPose().transformNormal(thrusterData.getDirectionZ(), new Vector3d()).normalize();
+                    // 鍔熻兘锛氭湁杈撳叆鏃舵寜鐩爣鎺ㄥ姏鏂瑰悜璁＄畻鍠峰彛鍋忚浆
+                    eulerAngle = forceTransform(targetthrust,subLevel,thrusterData.getCoordAxis());
 
                     setChanged();
-                    // 日志调试
-                    //LOGGER.info("VectorThruster {}  worldY={}, worldX={}, worldZ={}, desiredVec={}, spin={}°, pitch={}°",
+                    // 鏃ュ織璋冭瘯
+                    //LOGGER.info("VectorThruster {}  worldY={}, worldX={}, worldZ={}, desiredVec={}, spin={}掳, pitch={}掳",
                     //        getBlockPos(), worldYDirection, worldXDirection, worldZDirection, targetthrust, spinrad, pitchrad);
                 }
 
-                // 功能：无输入时保持默认中位，避免未绑定推进器出现异常偏转
+                // 鍔熻兘锛氭棤杈撳叆鏃朵繚鎸侀粯璁や腑浣嶏紝閬垮厤鏈粦瀹氭帹杩涘櫒鍑虹幇寮傚父鍋忚浆
                 if(!hasInput){
                     eulerAngle = new double[]{0,0};
                     //eulerAngle = forceTransform(new Vector3d(1,1,1),transform,thrusterData.getCoordAxis());
@@ -130,7 +129,7 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
 
                 this.spinrad = eulerAngle[0];   //yaw
                 this.pitchrad = eulerAngle[1];  //pitch
-                // 更新数据
+                // 鏇存柊鏁版嵁
                 thrusterData.setThrottle((float) throttle);
                 setAnimData(VECTOR_THRUSTER_YAW, spinrad);
                 setAnimData(VECTOR_THRUSTER_PITCH, pitchrad);
@@ -144,7 +143,7 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
             BlockState state = level.getBlockState(pos);
             Initialize.initialize(level, pos, state);
 
-            // 功能：迁移到 NeoForge 1.21.1 后，改为向 NeoForge GAME 事件总线注册矢量推进器监听器。
+            // 鍔熻兘锛氳縼绉诲埌 NeoForge 1.21.1 鍚庯紝鏀逛负鍚?NeoForge GAME 浜嬩欢鎬荤嚎娉ㄥ唽鐭㈤噺鎺ㄨ繘鍣ㄧ洃鍚櫒銆?
             NeoForge.EVENT_BUS.register(this);
             hasInitialized = true;
 
@@ -200,7 +199,7 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
 
     public double getSpinrad() {return this.spinrad;}
 
-    // 功能：返回喷口俯仰角（弧度）供渲染读取
+    // 鍔熻兘锛氳繑鍥炲柗鍙ｄ刊浠拌锛堝姬搴︼級渚涙覆鏌撹鍙?
     public double getPitchrad() {return this.pitchrad;}
 
     @Override
@@ -210,17 +209,17 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
     }
 
 
-    // 输入你想要的加力方向 所在船的transform 以及模型自身的CoordAxis
-    // 吐出模型应该转的方向
+    // 杈撳叆浣犳兂瑕佺殑鍔犲姏鏂瑰悜 鎵€鍦ㄨ埞鐨則ransform 浠ュ強妯″瀷鑷韩鐨凜oordAxis
+    // 鍚愬嚭妯″瀷搴旇杞殑鏂瑰悜
     public double[] forceTransform(
             Vector3d forceInWorld,
-            ShipTransform transform,
+            SubLevel subLevel,
             Matrix3d modelCoordAxis
     ){
-        Vector3d forceInShip=transform.getWorldToShip().transformDirection(forceInWorld);
+        Vector3d forceInShip=subLevel.logicalPose().transformNormalInverse(forceInWorld);
         Vector3d forceInModel=modelCoordAxis.transform(forceInShip);
 
-        // 诡异的坐标变换 根据模型来的
+        // 璇″紓鐨勫潗鏍囧彉鎹?鏍规嵁妯″瀷鏉ョ殑
         double yaw = Math.atan2(
                 forceInModel.x,
                 forceInModel.z

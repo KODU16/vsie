@@ -12,8 +12,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
 import org.slf4j.Logger;
 
@@ -25,7 +23,7 @@ import java.util.function.Supplier;
 public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
     // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
     public static final CustomPacketPayload.Type<ControlSeatStatusS2CPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "controlseat_s2c_controlseatstatuss2cpacket"));
-    public static final StreamCodec<FriendlyByteBuf, ControlSeatStatusS2CPacket> STREAM_CODEC = CustomPacketPayload.codec((buf, pkt) -> pkt.write(buf), ControlSeatStatusS2CPacket::decode);
+    public static final StreamCodec<FriendlyByteBuf, ControlSeatStatusS2CPacket> STREAM_CODEC = CustomPacketPayload.codec(ControlSeatStatusS2CPacket::write, ControlSeatStatusS2CPacket::decode);
 
     //船只整体的各项状态，不需要快包那么快更新，但是也不能很慢
     private final BlockPos pos;
@@ -115,9 +113,9 @@ public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
 
     public void handle(Supplier<NetworkEvent.Context> ctx) {
         Logger LOGGER = LogUtils.getLogger();
-        ctx.get().enqueueWork(() ->
+        ctx.get().enqueueWork(() -> {
                 // 确保只在物理客户端执行以下代码
-                DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
+
                     // 获取当前客户端的玩家
                     Minecraft mc = Minecraft.getInstance();
                     Player player = mc.player;
@@ -140,7 +138,7 @@ public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
                     clientData.isantigravityon = antigravityon;
                     // 功能：同步客户端 HUD 需要展示的激活武器数据（名称+冷却进度）。
                     clientData.activeWeaponHudInfos = new ArrayList<>(activeWeaponHudInfos);
-                }));
+                });
         ctx.get().setPacketHandled(true);
     }
 

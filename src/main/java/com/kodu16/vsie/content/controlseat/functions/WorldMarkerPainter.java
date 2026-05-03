@@ -78,7 +78,7 @@ public class WorldMarkerPainter {
             if (delta.lengthSqr() > 4096 * 4096) continue; // 约 64 格外
 
             //String name = ... // 你的名字逻辑
-            double distance = Vec.Distance(new Vector3d(playerpos.x,playerpos.y,playerpos.z), new Vector3d(target.x,target.y,target.z));
+            double distance = Vec.Distance(new Vec3(playerpos.x,playerpos.y,playerpos.z), new Vec3(target.x,target.y,target.z));
             if(targettype ==1)
             {
                 item = new ItemStack(vsieItems.TARGET_FRAME_ENEMY.get());

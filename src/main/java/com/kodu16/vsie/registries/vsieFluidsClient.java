@@ -23,6 +23,7 @@ import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtension
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.FluidType;
 
+@SuppressWarnings("removal")
 public class vsieFluidsClient {
 
     public static Supplier<FluidTypeFactory> getDtfuelTypeFactory() {

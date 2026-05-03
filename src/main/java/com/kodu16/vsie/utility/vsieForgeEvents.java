@@ -8,10 +8,6 @@ import com.kodu16.vsie.network.fuel.SyncThrusterFuelsPacket;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.registries.fuel.ThrusterFuelManager;
 import com.kodu16.vsie.vsie;
-import org.valkyrienskies.core.api.ships.LoadedServerShip;
-import org.valkyrienskies.core.api.ships.ServerShip;
-import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 
 import net.minecraft.core.BlockPos;

@@ -16,6 +16,7 @@ import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.Level;
 
 import software.bernie.geckolib.cache.object.GeoBone;
@@ -65,7 +66,7 @@ public class AbstractScreenRenderLayer extends GeoRenderLayer<AbstractScreenBloc
         //poseStack.mulPose(Axis.YP.rotationDegrees(180.0f));  // 对于其他面，使用 Axis.YP 等旋转
         poseStack.translate(0, 0, -0.05f);  // 调整为目标面，例如 NORTH: translate(0.5, 0.5, 1.0)
         poseStack.scale(0.99f,0.99f,0.99f);
-        itemRenderer.renderStatic(new ItemStack(vsieItems.SCREEN_BG), ItemDisplayContext.FIXED,
+        itemRenderer.renderStatic(new ItemStack((ItemLike) vsieItems.SCREEN_BG), ItemDisplayContext.FIXED,
                 LightTexture.FULL_BRIGHT,
                 OverlayTexture.NO_OVERLAY, poseStack, bufferSource,
                 level, 0);

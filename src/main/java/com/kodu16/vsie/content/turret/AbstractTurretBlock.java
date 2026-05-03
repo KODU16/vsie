@@ -118,19 +118,6 @@ public abstract class AbstractTurretBlock extends DirectionalBlock implements En
 
         Block block = level.getBlockState(pos).getBlock();
         Logger LOGGER = LogUtils.getLogger();
-        LOGGER.warn(String.valueOf(Component.literal("rendershape:"+block.getRenderShape(state))));
-        /*if (blockEntity instanceof AbstractThrusterBlockEntity thrusterBlockEntity) {
-            if (ship != null) {
-                // Initialize thruster data for ValkyRien Skies
-                ThrusterData data = thrusterBlockEntity.getThrusterData();
-                data.setDirection(VectorConversionsMCKt.toJOMLD(state.getValue(FACING).getNormal()));
-                data.setThrust(0);
-                ThrusterForceApplier applier = new ThrusterForceApplier(data);
-                ship.addApplier(pos, applier);
-            }
-            // Trigger an initial check for redstone power and obstruction
-            doRedstoneCheck(level, state, pos);
-        }*/
     }
 
     @Override

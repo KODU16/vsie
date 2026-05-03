@@ -1,6 +1,6 @@
 package com.kodu16.vsie.content.weapon;
 
-import org.valkyrienskies.core.api.ships.Ship;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 
 // 功能：武器状态数据容器，已与 Mekanism 升级接口解耦。
 public class WeaponData {
@@ -10,7 +10,7 @@ public class WeaponData {
     public volatile boolean channel4 = false;
     public volatile int receivingchannel = 0000;
     public volatile boolean isfiring = false;
-    public Ship targetship = null;
+    public SubLevel targetship = null;
 
     public boolean getChannel1(){return channel1;}
     public boolean getChannel2(){return channel2;}

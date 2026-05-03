@@ -66,19 +66,20 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
     public volatile boolean ride = false;
     private boolean hasInitialized = false;
     public boolean previousfirestatus = false;
+    private HolderLookup.Provider nbtRegistries;
 
-    // 鍔熻兘锛氱紦瀛樻帶鍒舵褰撳墠涓栫晫鍧愭爣锛屼緵灞忓箷闆疯揪浣跨敤銆?
+    // 閸旂喕鍏橀敍姘辩处鐎涙ɑ甯堕崚鑸殿槳瑜版挸澧犳稉鏍櫕閸ф劖鐖ｉ敍灞肩返鐏炲繐绠烽梿鐤彧娴ｈ法鏁ら妴?
     private Vector3d currentworldpos = new Vector3d();
 
 
-    //鍗充娇鎴戜笉鎯冲啓鐨勮繖涔堟伓蹇冿紝涓轰簡璺ㄧ淮搴︽垜杩樻槸寰楀共
-    //鏈変袱涓猦ashmap锛岀浜屼釜鏄负浜嗘覆鏌揌UD鐨勬椂鍊欑敤鏉ュ弽鏌ontrolseat
+    //閸楀厖濞囬幋鎴滅瑝閹啿鍟撻惃鍕箹娑斿牊浼撹箛鍐跨礉娑撹桨绨＄捄銊ф樊鎼达附鍨滄潻妯绘Ц瀵版鍏?
+    //閺堝琚辨稉鐚shmap閿涘瞼顑囨禍灞奸嚋閺勵垯璐熸禍鍡樿閺屾弻UD閻ㄥ嫭妞傞崐娆戞暏閺夈儱寮介弻顧﹐ntrolseat
     private List<ControlSeatMountEntity> seats = new ArrayList<>();
     private final ServerShipHandler serverShipHandler;
 
     public SmartFluidTankBehaviour tank;
 
-    // 鍔熻兘锛氫负 Shift+鍙抽敭鎵撳紑鐨勬帶鍒舵涓撶敤 GUI 鎻愪緵 27 鏍?warp data chip 瀛樺偍銆?
+    // 閸旂喕鍏橀敍姘礋 Shift+閸欐娊鏁幍鎾崇磻閻ㄥ嫭甯堕崚鑸殿槳娑撴挾鏁?GUI 閹绘劒绶?27 閺?warp data chip 鐎涙ê鍋嶉妴?
     private final ItemStackHandler warpChipInventory = new ItemStackHandler(27) {
         @Override
         protected void onContentsChanged(int slot) {
@@ -87,7 +88,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
         @Override
         public boolean isItemValid(int slot, ItemStack stack) {
-            // 鍔熻兘锛氶檺鍒舵帶鍒舵浠撲綅鍙帴鏀?warp data chip銆?
+            // 閸旂喕鍏橀敍姘舵閸掕埖甯堕崚鑸殿槳娴犳挷缍呴崣顏呭复閺€?warp data chip閵?
             return stack.is(vsieItems.WARP_DATA_CHIP.get());
         }
     };
@@ -126,41 +127,55 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
     }
 
 
-    //鍏堟帴鏀禼lient鏇存柊锛屽彨client鍚戞湇鍔＄鍙戝寘
+    //閸忓牊甯撮弨绂糽ient閺囧瓨鏌婇敍灞藉建client閸氭垶婀囬崝锛勵伂閸欐垵瀵?
     public void clientTick() {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer lp = mc.player;
         BlockPos pos = getBlockPos();
-        // 鍙湁褰撴湰鍦扮帺瀹跺氨鏄繖寮犲骇妞呯殑涔樺鏃舵墠鐢熸晥
-        //杩欐槸涓潤鎬佹柟娉曪紝鏈€濂芥彁鍓嶇‘瀹氬ソ浣犲湪server瀛樺ソ浜嗕粬涓婁竴娆＄殑榧犳爣浣嶇疆鍜屼粬涓婁竴娆℃搷浣滄椂闂?
+        // 閸欘亝婀佽ぐ鎾存拱閸︽壆甯虹€硅泛姘ㄩ弰顖濈箹瀵姴楠囧鍛畱娑旀ê顓归弮鑸靛閻㈢喐鏅?
+        //鏉╂瑦妲告稉顏堟饯閹焦鏌熷▔鏇礉閺堚偓婵傝姤褰侀崜宥団€樼€规艾銈芥担鐘叉躬server鐎涙ê銈芥禍鍡曠铂娑撳﹣绔村▎锛勬畱姒х姵鐖ｆ担宥囩枂閸滃奔绮稉濠佺濞嗏剝鎼锋担婊勬闂?
         ClientMouseHandler.handle(lp, pos);
     }
 
+    private HolderLookup.Provider currentNbtRegistries() {
+        return nbtRegistries != null ? nbtRegistries : this.level.registryAccess();
+    }
+
+    private void withNbtRegistries(HolderLookup.Provider registries, Runnable action) {
+        HolderLookup.Provider previous = this.nbtRegistries;
+        this.nbtRegistries = registries;
+        try {
+            action.run();
+        } finally {
+            this.nbtRegistries = previous;
+        }
+    }
+
     @Override
-    public void write(CompoundTag tag, boolean clientPacket) {
-        super.write(tag, clientPacket);
-        // 鍔熻兘锛氭寔涔呭寲鎺у埗妞?GUI 涓瓨鏀剧殑 warp data chip銆?
-        //tag.put("WarpChipInventory", warpChipInventory.serializeNBT(registries));
-        // 鍔熻兘锛氭妸褰撳墠閫変腑鐨勮穬杩佺洰鏍囦竴骞跺啓鍏?NBT锛屼繚璇佸尯鍧楀嵏杞藉悗 control seat 浠嶈寰椾笅涓€娆¤穬杩佸潗鏍囥€?
+    public void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(tag, registries, clientPacket);
+        // 閸旂喕鍏橀敍姘瘮娑斿懎瀵查幒褍鍩楀?GUI 娑擃厼鐡ㄩ弨鍓ф畱 warp data chip閵?
+        tag.put("WarpChipInventory", warpChipInventory.serializeNBT(registries));
+        // 閸旂喕鍏橀敍姘Ω瑜版挸澧犻柅澶夎厬閻ㄥ嫯绌潻浣烘窗閺嶅洣绔撮獮璺哄晸閸?NBT閿涘奔绻氱拠浣稿隘閸ф宓忔潪钘夋倵 control seat 娴犲秷顔囧妞剧瑓娑撯偓濞喡ょ┈鏉╀礁娼楅弽鍥モ偓?
         tag.putInt("WarpTargetX", controlseatData.warpTargetPos.getX());
         tag.putInt("WarpTargetY", controlseatData.warpTargetPos.getY());
         tag.putInt("WarpTargetZ", controlseatData.warpTargetPos.getZ());
         tag.putString("WarpTargetDimension", controlseatData.warpTargetDimension);
         tag.putString("WarpTargetName", controlseatData.warpTargetName);
-        // 鍔熻兘锛氬悓姝?warp 鍑嗗鐘舵€佸埌瀹㈡埛绔紝璁╂寜涓?P 鏃惰兘姝ｇ‘璧扳€滃彇娑堝噯澶団€濊€屼笉鏄啀娆″紑鑿滃崟銆?
+        // 閸旂喕鍏橀敍姘倱濮?warp 閸戝棗顦悩鑸碘偓浣稿煂鐎广垺鍩涚粩顖ょ礉鐠佲晜瀵滄稉?P 閺冩儼鍏樺锝団€樼挧鎵斥偓婊冨絿濞戝牆鍣径鍥ｂ偓婵娾偓灞肩瑝閺勵垰鍟€濞嗏€崇磻閼挎粌宕熼妴?
         tag.putBoolean("IsWarpPreparing", controlseatData.isWarpPreparing);
-        // 鍔熻兘锛氭寔涔呭寲鈥滆瑙掗攣瀹氣€濆紑鍏筹紝淇濊瘉鐜╁閲嶈繘涓栫晫涓斾粛鍦ㄥ骇妞呬笂鏃跺彲鎭㈠鎺у埗鎬併€?
+        // 閸旂喕鍏橀敍姘瘮娑斿懎瀵查垾婊嗩潒鐟欐帡鏀ｇ€规埃鈧繂绱戦崗绛圭礉娣囨繆鐦夐悳鈺侇啀闁插秷绻樻稉鏍櫕娑撴柧绮涢崷銊ラ獓濡炲懍绗傞弮璺哄讲閹垹顦查幒褍鍩楅幀浣碘偓?
         tag.putBoolean("IsViewLocked", controlseatData.isviewlocked);
     }
 
     @Override
-    public void read(CompoundTag tag, boolean clientPacket) {
-        super.read(tag, clientPacket);
+    public void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(tag, registries, clientPacket);
         if (tag.contains("WarpChipInventory")) {
-            // 鍔熻兘锛氬湪鍖哄潡鍔犺浇/鍚屾鏃舵仮澶嶆帶鍒舵 GUI 涓繚瀛樼殑 warp data chip銆?
+            // 閸旂喕鍏橀敍姘躬閸栧搫娼￠崝鐘烘祰/閸氬本顒為弮鑸典划婢跺秵甯堕崚鑸殿槳 GUI 娑擃厺绻氱€涙娈?warp data chip閵?
             warpChipInventory.deserializeNBT(registries, tag.getCompound("WarpChipInventory"));
         }
-        // 鍔熻兘锛氬湪鍖哄潡鍔犺浇/鍚屾鏃舵仮澶嶆帶鍒舵宸茬粡閫夊ソ鐨勮穬杩佺洰鏍囥€?
+        // 閸旂喕鍏橀敍姘躬閸栧搫娼￠崝鐘烘祰/閸氬本顒為弮鑸典划婢跺秵甯堕崚鑸殿槳瀹歌尙绮￠柅澶娿偨閻ㄥ嫯绌潻浣烘窗閺嶅洢鈧?
         controlseatData.warpTargetPos = new BlockPos(tag.getInt("WarpTargetX"), tag.getInt("WarpTargetY"), tag.getInt("WarpTargetZ"));
         controlseatData.warpTargetDimension = tag.getString("WarpTargetDimension");
         controlseatData.warpTargetName = tag.getString("WarpTargetName");
@@ -168,15 +183,20 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         controlseatData.isviewlocked = tag.getBoolean("IsViewLocked");
     }
 
+    @Override
+    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
+        withNbtRegistries(registries, () -> read(tag, registries, true));
+    }
+
     public void tick() {
         Logger LOGGER = LogUtils.getLogger();
         if (level.isClientSide)
             return;
         if (hasInitialized) {
-            // 鍔熻兘锛氭瘡 tick 浠庝笘鐣屼腑鐨勭湡瀹炲骇妞呭疄浣撳弽鏌ュ綋鍓嶄箻鍧愮帺瀹讹紝淇閲嶈繘涓栫晫鍚?ride/player 涓㈠け瀵艰嚧鏃犳硶鎺у埗鐨勯棶棰樸€?
+            // 閸旂喕鍏橀敍姘槨 tick 娴犲簼绗橀悾灞艰厬閻ㄥ嫮婀＄€圭偛楠囧鍛杽娴ｆ挸寮介弻銉ョ秼閸撳秳绠婚崸鎰负鐎硅绱濇穱顔碱槻闁插秷绻樻稉鏍櫕閸?ride/player 娑撱垹銇戠€佃壈鍤ч弮鐘崇《閹貉冨煑閻ㄥ嫰妫舵０妯糕偓?
             refreshSeatOccupancyFromWorld();
 
-            // 鍔熻兘锛氭瘡 tick 鍒锋柊鎺у埗妞呰嚜韬柟鍧楀潗鏍囷紝渚?warp 鑷姩瀵瑰噯鎶婄洰鏍囦綅缃浆鎹负鎺у埗妞呭綋鍓嶇殑涓栫晫鏈濆悜鍩哄噯銆?
+            // 閸旂喕鍏橀敍姘槨 tick 閸掗攱鏌婇幒褍鍩楀鍛板殰闊偅鏌熼崸妤€娼楅弽鍥风礉娓?warp 閼奉亜濮╃€电懓鍣幎濠勬窗閺嶅洣缍呯純顔挎祮閹诡澀璐熼幒褍鍩楀鍛秼閸撳秶娈戞稉鏍櫕閺堟繂鎮滈崺鍝勫櫙閵?
             controlseatData.controlSeatPos = getBlockPos();
 
             //update
@@ -229,8 +249,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             }
         }
 
-        //鎶ょ浘
-        if(controlseatData.isshieldon) {//濡傛灉鎶ょ浘寮€鍚?
+        //閹躲倗娴?
+        if(controlseatData.isshieldon) {//婵″倹鐏夐幎銈囨禈瀵偓閸?
             updateShieldEnergyAvalible();
             int currentcooldown = (int) controlseatData.shieldcooldowntime;
             if(controlseatData.shieldcooldowntime <= 0) {
@@ -239,21 +259,21 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                     return;
                 }
                 Vec3 center = ServerShipUtils.getStructureCenterWorld(sublevel);
-                AABB searchBox = new AABB(this.getBlockPos()).inflate(controlseatData.shieldradius + 3.0); // 澶氭悳涓€鐐癸紝闃叉楂橀€熷疄浣撲竴甯х┛杩囧幓
-                // 鏍稿績锛氬彧绛涢€夆€滄病鏈夌敓鍛藉€?+ 閫熷害澶熷揩 + 涓嶆槸鐜╁涔熶笉鏄洈鐢叉灦鈥濅箣绫荤殑瀹炰綋
+                AABB searchBox = new AABB(this.getBlockPos()).inflate(controlseatData.shieldradius + 3.0); // 婢舵碍鎮虫稉鈧悙鐧哥礉闂冨弶顒涙姗€鈧喎鐤勬担鎾茬鐢呪敍鏉╁洤骞?
+                // 閺嶇绺鹃敍姘涧缁涙盯鈧鈧粍鐥呴張澶屾晸閸涜棄鈧?+ 闁喎瀹虫径鐔锋彥 + 娑撳秵妲搁悳鈺侇啀娑旂喍绗夐弰顖滄磮閻㈠弶鐏﹂垾婵呯缁崵娈戠€圭偘缍?
                 Vec3 finalCenter = center;
                 level.getEntitiesOfClass(Entity.class, searchBox, entity -> {
                     if (entity.isRemoved() || entity instanceof LivingEntity)
                         return false;
 
-                    // 閫熷害闃堝€硷紝鍙皟锛堝崟浣嶏細鏂瑰潡/鍒伙級
+                    // 闁喎瀹抽梼鍫濃偓纭风礉閸欘垵鐨熼敍鍫濆礋娴ｅ稄绱伴弬鐟版健/閸掍紮绱?
                     double speed = entity.getDeltaMovement().length();
-                    if (speed < 0.25) return false; // 澶參鐨勭洿鎺ュ拷鐣ワ紙姣斿婕傛诞鐨勭墿鍝侊級
+                    if (speed < 0.25) return false; // 婢额亝鍙冮惃鍕纯閹恒儱鎷烽悾銉礄濮ｆ柨顩у鍌涜癁閻ㄥ嫮澧块崫渚婄礆
 
-                    // 璁＄畻鏄惁鏈濇姢鐩鹃鏉?
+                    // 鐠侊紕鐣婚弰顖氭儊閺堟繃濮㈤惄楣冾棧閺?
                     Vec3 toEntity = entity.position().subtract(finalCenter);
                     double dot = entity.getDeltaMovement().normalize().dot(toEntity.normalize());
-                    return dot < -0.3; // 瓒婅礋璇存槑瓒婃瀵规姢鐩鹃鏉ワ紙-0.3~0.6 涔嬮棿璋冭妭鎵嬫劅锛?
+                    return dot < -0.3; // 鐡掑﹨绀嬬拠瀛樻鐡掑﹥顒滅€佃濮㈤惄楣冾棧閺夈儻绱?0.3~0.6 娑斿妫跨拫鍐Ν閹靛鍔呴敍?
                 }).forEach(entity -> {
 
                     Vec3 toEntity = entity.position().subtract(finalCenter);
@@ -262,14 +282,14 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                     if (distSq > controlseatData.shieldradius * controlseatData.shieldradius || distSq < 0.25) return;
                     if(controlseatData.avalibleshield>0)
                     {
-                        // 鎷︽埅
+                        // 閹凤附鍩?
                         entity.discard();
-                        // 绮掑瓙浜ょ偣
+                        // 缁帒鐡欐禍銈囧仯
                         Vec3 hitDir = toEntity.normalize();
                         Vec3 hitPoint = finalCenter.add(hitDir.scale(controlseatData.shieldradius));
                         ShieldHandler.spawnRippleParticles((ServerLevel) level, hitPoint, finalCenter);
 
-                        // 鍙€夛細鎾斁闊虫晥
+                        // 閸欘垶鈧绱伴幘顓熸杹闂婅櫕鏅?
                         level.playSound(null, hitPoint.x, hitPoint.y, hitPoint.z,
                                 SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), SoundSource.BLOCKS,
                                 1.0f, 1.2f + level.random.nextFloat() * 0.4f);
@@ -288,8 +308,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
     }
 
-    //0锛氭帹杩涘櫒 1锛氫富姝﹀櫒 2锛氭姢鐩?3锛氱偖濉?4锛氱數姹?5锛氱噧鏂欑 6锛氬脊鑽锛屽姟蹇呬笉瑕佸啓閿?
-    public void updateEnergy() {//avalible锛氬墿浣欏€硷紝闈瀉valible锛氭€诲€?
+    //0閿涙碍甯规潻娑樻珤 1閿涙矮瀵屽锕€娅?2閿涙碍濮㈤惄?3閿涙氨鍋栨繅?4閿涙氨鏁稿Ч?5閿涙氨鍣ч弬娆戭唸 6閿涙艾鑴婇懡顖滎唸閿涘苯濮熻箛鍛瑝鐟曚礁鍟撻柨?
+    public void updateEnergy() {//avalible閿涙艾澧挎担娆忊偓纭风礉闂堢€塿alible閿涙碍鈧鈧?
         List<Vec3> toRemove = new ArrayList<>();
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
@@ -308,14 +328,14 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                 totalenergy += battery.getEnergy().getMaxEnergyStored();
                 totalenergyavalible += battery.getEnergy().getEnergyStored();
             } else {
-                // 鍏堣涓嬫潵锛屽惊鐜畬浜嗗啀鍒?
+                // 閸忓牐顔囨稉瀣降閿涘苯鎯婇悳顖氱暚娴滃棗鍟€閸?
                 toRemove.add(pos);
             }
         }, 4);
         controlseatData.totalenergystorage = totalenergy;
         controlseatData.avalibleenergy = totalenergyavalible;
         //LogUtils.getLogger().warn("detected total energy:"+controlseatData.totalenergystorage+"avalible:"+controlseatData.avalibleenergy);
-        // 寰幆缁撴潫鍚庣粺涓€鍒犻櫎
+        // 瀵邦亞骞嗙紒鎾存将閸氬海绮烘稉鈧崚鐘绘珟
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 4);
         }
@@ -323,9 +343,9 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
     public void updateThruster() {
         List<Vec3> toRemove = new ArrayList<>();
-        // 鍔熻兘锛氭瘡娆℃洿鏂版帹杩涘櫒鍓嶉噸缃€滀笢鍗楄タ鍖椾笂涓嬧€濆叚鏂瑰悜鏈€澶ф帹鍔涙€诲拰锛岄伩鍏嶆部鐢ㄤ笂涓€ tick 缂撳瓨銆?
+        // 閸旂喕鍏橀敍姘槨濞嗏剝娲块弬鐗堝腹鏉╂稑娅掗崜宥夊櫢缂冾喒鈧粈绗㈤崡妤勩偪閸栨ぞ绗傛稉瀣р偓婵嗗彋閺傜懓鎮滈張鈧径褎甯归崝娑欌偓璇叉嫲閿涘矂浼╅崗宥嗛儴閻劋绗傛稉鈧?tick 缂傛挸鐡ㄩ妴?
         float[] facingMaxThrustSum = new float[6];
-        // 鍔熻兘锛氱紦瀛樻湰 tick 鍐呬粛鍦ㄧ嚎鐨勬帹杩涘櫒鍒楄〃锛岀粺璁″畬鎴愬悗鍐嶇粺涓€涓嬪彂鈥滃悓鏈濆悜鎬绘帹鍔涒€濄€?
+        // 閸旂喕鍏橀敍姘辩处鐎涙ɑ婀?tick 閸愬懍绮涢崷銊у殠閻ㄥ嫭甯规潻娑樻珤閸掓銆冮敍宀€绮虹拋鈥崇暚閹存劕鎮楅崘宥囩埠娑撯偓娑撳褰傞垾婊冩倱閺堟繂鎮滈幀缁樺腹閸旀稈鈧縿鈧?
         List<AbstractThrusterBlockEntity> activeThrusters = new ArrayList<>();
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
@@ -335,21 +355,21 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                 Logger LOGGER = LogUtils.getLogger();
                 //LOGGER.warn("writing to thrusters:" +blockPos+ "torque:"+controlseatData.getFinaltorque()+"force:"+controlseatData.getFinalforce());
                 this.calculatedstrength+=thruster.getMaxThrust();
-                // 鍔熻兘锛氭寜鎺ㄨ繘鍣ㄦ柟鍧?FACING 缁熻璇ユ柟鍚戠殑鏈€澶ф帹鍔涙€诲拰锛堜笢鍗楄タ鍖椾笂涓嬶級銆?
+                // 閸旂喕鍏橀敍姘瘻閹恒劏绻橀崳銊︽煙閸?FACING 缂佺喕顓哥拠銉︽煙閸氭垹娈戦張鈧径褎甯归崝娑欌偓璇叉嫲閿涘牅绗㈤崡妤勩偪閸栨ぞ绗傛稉瀣剁礆閵?
                 Direction thrusterFacing = thruster.getBlockState().getValue(BlockStateProperties.FACING);
                 int facingIndex = getFacingThrustIndex(thrusterFacing);
                 if (facingIndex >= 0) {
                     facingMaxThrustSum[facingIndex] += thruster.getMaxThrust();
                 }
-                // 鍔熻兘锛氳褰曟帹杩涘櫒瀹炰緥锛屽緟鏂瑰悜鎬绘帹鍔涚粺璁″畬鎴愬悗鍐嶆妸缁撴灉绮剧‘鍥炲啓缁欏搴旀帹杩涘櫒銆?
+                // 閸旂喕鍏橀敍姘愁唶瑜版洘甯规潻娑樻珤鐎圭偘绶ラ敍灞界窡閺傜懓鎮滈幀缁樺腹閸旀稓绮虹拋鈥崇暚閹存劕鎮楅崘宥嗗Ω缂佹挻鐏夌划鍓р€橀崶鐐插晸缂佹瑥顕惔鏃€甯规潻娑樻珤閵?
                 activeThrusters.add(thruster);
                 this.fuelspendcurrenttick += thruster.fuelconsumptionperthrottle()*thruster.getFuelThrottle();
             } else {
-                // 鍏堣涓嬫潵锛屽惊鐜畬浜嗗啀鍒?
+                // 閸忓牐顔囨稉瀣降閿涘苯鎯婇悳顖氱暚娴滃棗鍟€閸?
                 toRemove.add(pos);
             }
         }, 0);
-        // 鍔熻兘锛氭妸鈥滃悓鏈濆悜鎺ㄨ繘鍣ㄦ€绘帹鍔涒€濅笌鎺у埗杈撳叆涓€璧蜂笅鍙戠粰姣忎釜鎺ㄨ繘鍣紝渚涘叾璁＄畻鍔涜础鐚潈閲嶃€?
+        // 閸旂喕鍏橀敍姘Ω閳ユ粌鎮撻張婵嗘倻閹恒劏绻橀崳銊︹偓缁樺腹閸旀稈鈧繀绗岄幒褍鍩楁潏鎾冲弳娑撯偓鐠ц渹绗呴崣鎴犵舶濮ｅ繋閲滈幒銊ㄧ箻閸ｎ煉绱濇笟娑樺従鐠侊紕鐣婚崝娑滅閻氼喗娼堥柌宥冣偓?
         for (AbstractThrusterBlockEntity thruster : activeThrusters) {
             Direction thrusterFacing = thruster.getBlockState().getValue(BlockStateProperties.FACING);
             int facingIndex = getFacingThrustIndex(thrusterFacing);
@@ -357,15 +377,15 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             thruster.setdata(controlseatData.getFinaltorque(), controlseatData.getFinalforce(), sameFacingSum);
         }
         controlseatData.thruster_strength = this.calculatedstrength;
-        // 鍔熻兘锛氬皢鈥滀笢鍗楄タ鍖椾笂涓嬧€濆叚鏂瑰悜鎺ㄥ姏缁熻缁撴灉鍐欏叆鎺у埗妞呮湇鍔＄鏁版嵁锛屼緵鍚庣画閫昏緫璇诲彇銆?
+        // 閸旂喕鍏橀敍姘殺閳ユ粈绗㈤崡妤勩偪閸栨ぞ绗傛稉瀣р偓婵嗗彋閺傜懓鎮滈幒銊ュ缂佺喕顓哥紒鎾寸亯閸愭瑥鍙嗛幒褍鍩楀鍛箛閸旓紕顏弫鐗堝祦閿涘奔绶甸崥搴ｇ敾闁槒绶拠璇插絿閵?
         controlseatData.facingMaxThrustSum = facingMaxThrustSum;
-        // 寰幆缁撴潫鍚庣粺涓€鍒犻櫎
+        // 瀵邦亞骞嗙紒鎾存将閸氬海绮烘稉鈧崚鐘绘珟
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 0);
         }
     }
 
-    // 鍔熻兘锛氭妸 Direction 鏄犲皠鍒版帹鍔涚粺璁℃暟缁勭储寮曪紙涓?銆佸崡1銆佽タ2銆佸寳3銆佷笂4銆佷笅5锛夈€?
+    // 閸旂喕鍏橀敍姘Ω Direction 閺勭姴鐨犻崚鐗堝腹閸旀稓绮虹拋鈩冩殶缂佸嫮鍌ㄥ鏇礄娑?閵嗕礁宕?閵嗕浇銈?閵嗕礁瀵?閵嗕椒绗?閵嗕椒绗?閿涘鈧?
     private int getFacingThrustIndex(Direction direction) {
         return switch (direction) {
             case EAST -> 0;
@@ -378,10 +398,10 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
     }
 
     public void updateWeapon() {
-        // 姣?tick 閮藉悜姝﹀櫒鍚屾涓€娆″紑鐏姸鎬佷笌棰戦亾锛岄伩鍏嶅洜涓㈠寘/鐘舵€佷笉鍚屾瀵艰嚧鈥滃乏閿寜涓嬩絾姝﹀櫒涓嶅彂灏勨€濄€?
-        // 浠呭湪鐘舵€佸彉鍖栨椂鎵嶅悓姝ヤ細鍑虹幇姝﹀櫒绔€氶亾琚噸缃悗鏃犳硶鑷姩鎭㈠鐨勯棶棰樸€?
+        // 濮?tick 闁棄鎮滃锕€娅掗崥灞绢劄娑撯偓濞嗏€崇磻閻忣偆濮搁幀浣风瑢妫版垿浜鹃敍宀勪缉閸忓秴娲滄稉銏犲瘶/閻樿埖鈧椒绗夐崥灞绢劄鐎佃壈鍤ч垾婊冧箯闁款喗瀵滄稉瀣╃稻濮濓箑娅掓稉宥呭絺鐏忓嫧鈧縿鈧?
+        // 娴犲懎婀悩鑸碘偓浣稿綁閸栨牗妞傞幍宥呮倱濮濄儰绱伴崙铏瑰箛濮濓箑娅掔粩顖炩偓姘朵壕鐞氼偊鍣哥純顔兼倵閺冪姵纭堕懛顏勫З閹垹顦查惃鍕６妫版ǜ鈧?
         previousfirestatus = controlseatData.isfiring;
-        // 鍔熻兘锛氭彁鍓嶈绠楁帶鍒舵褰撳墠婵€娲婚閬撶紪鐮侊紝鍚庣画鐢ㄤ簬鈥滄鍣?棰戦亾鍖归厤鈥濅笌鍚屾寮€鐏緭鍏ャ€?
+        // 閸旂喕鍏橀敍姘絹閸撳秷顓哥粻妤佸付閸掕埖顦ぐ鎾冲濠碘偓濞插顣堕柆鎾剁椽閻緤绱濋崥搴ｇ敾閻劋绨垾婊勵劅閸?妫版垿浜鹃崠褰掑帳閳ユ繀绗岄崥灞绢劄瀵偓閻忣偉绶崗銉ｂ偓?
         int activeSeatChannelEncode = 0;
         if (controlseatData.getChannel1()) activeSeatChannelEncode |= 1;
         if (controlseatData.getChannel2()) activeSeatChannelEncode |= 2;
@@ -395,34 +415,34 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof AbstractWeaponBlockEntity weapon) {
-                // 鍔熻兘锛氭鍣ㄩ€氳繃鑷韩棰戦亾閰嶇疆鈥滃憡鐭モ€濇帶鍒舵鏄惁灞炰簬褰撳墠婵€娲婚閬撱€?
+                // 閸旂喕鍏橀敍姘劅閸ｃ劑鈧俺绻冮懛顏囬煩妫版垿浜鹃柊宥囩枂閳ユ粌鎲￠惌銉⑩偓婵囧付閸掕埖顦弰顖氭儊鐏炵偘绨ぐ鎾冲濠碘偓濞插顣堕柆鎾扁偓?
                 if (isWeaponInAnyActiveChannel(weapon, finalActiveSeatChannelEncode)) {
-                    // 鍔熻兘锛氶噰闆嗘鍣ㄥ悕绉颁笌鍐峰嵈杩涘害锛屼緵瀹㈡埛绔粯鍒垛€滄补闂ㄦ牱寮忊€濊繘搴︽潯銆?
+                    // 閸旂喕鍏橀敍姘跺櫚闂嗗棙顒熼崳銊ユ倳缁夐绗岄崘宄板祱鏉╂稑瀹抽敍灞肩返鐎广垺鍩涚粩顖滅帛閸掑灈鈧粍琛ラ梻銊︾壉瀵繆鈧繆绻樻惔锔芥蒋閵?
                     activeWeaponHudInfos.add(new ActiveWeaponHudInfo(weapon.getDisplayName().getString(), weapon.currentTick, weapon.getcooldown()));
                 }
 
-                // 鍔熻兘锛氭寜褰撳墠寮€鐏姸鎬佸悜姝﹀櫒鍚屾鎺у埗妞呴閬撹緭鍏ャ€?
+                // 閸旂喕鍏橀敍姘瘻瑜版挸澧犲鈧悘顐ゅЦ閹礁鎮滃锕€娅掗崥灞绢劄閹貉冨煑濡炲懘顣堕柆鎾圭翻閸忋儯鈧?
                 if (controlseatData.isfiring) {
                     weapon.receivechannel(finalActiveSeatChannelEncode);
                 } else {
                     weapon.receivechannel(0);
                 }
             } else {
-                // 鍏堣涓嬫潵锛屽惊鐜畬浜嗗啀鍒?
+                // 閸忓牐顔囨稉瀣降閿涘苯鎯婇悳顖氱暚娴滃棗鍟€閸?
                 toRemove.add(pos);
             }
         }, 1);
 
-        // 鍔熻兘锛氭洿鏂版湇鍔＄缂撳瓨鐨勬縺娲绘鍣?HUD 鏁版嵁锛屼緵鐘舵€佸寘鍚屾鍒?HUD銆?
+        // 閸旂喕鍏橀敍姘纯閺傜増婀囬崝锛勵伂缂傛挸鐡ㄩ惃鍕负濞茬粯顒熼崳?HUD 閺佺増宓侀敍灞肩返閻樿埖鈧礁瀵橀崥灞绢劄閸?HUD閵?
         controlseatData.activeWeaponHudInfos = activeWeaponHudInfos;
 
-        // 寰幆缁撴潫鍚庣粺涓€鍒犻櫎
+        // 瀵邦亞骞嗙紒鎾存将閸氬海绮烘稉鈧崚鐘绘珟
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 1);
         }
     }
 
-    // 鍔熻兘锛氬垽鏂鍣ㄦ槸鍚﹂厤缃湪鎺у埗妞呭綋鍓嶆縺娲婚閬撲腑鐨勪换涓€棰戦亾銆?
+    // 閸旂喕鍏橀敍姘灲閺傤厽顒熼崳銊︽Ц閸氾箓鍘ょ純顔兼躬閹貉冨煑濡炲懎缍嬮崜宥嗙负濞插顣堕柆鎾茶厬閻ㄥ嫪鎹㈡稉鈧０鎴︿壕閵?
     private boolean isWeaponInAnyActiveChannel(AbstractWeaponBlockEntity weapon, int activeSeatChannelEncode) {
         if (activeSeatChannelEncode == 0) {
             return false;
@@ -444,11 +464,11 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             if (be instanceof ShieldGeneratorBlockEntity shield) {
                 Logger LOGGER = LogUtils.getLogger();
             } else {
-                // 鍏堣涓嬫潵锛屽惊鐜畬浜嗗啀鍒?
+                // 閸忓牐顔囨稉瀣降閿涘苯鎯婇悳顖氱暚娴滃棗鍟€閸?
                 toRemove.add(pos);
             }
         }, 2);
-        // 寰幆缁撴潫鍚庣粺涓€鍒犻櫎
+        // 瀵邦亞骞嗙紒鎾存将閸氬海绮烘稉鈧崚鐘绘珟
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 2);
         }
@@ -506,7 +526,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
     }
 
     public void updateTurret() {
-        // 鍔熻兘锛氬厛璁＄畻鎺у埗妞呭綋鍓嶆縺娲婚閬撶紪鐮侊紝鐢ㄤ簬鍚戦噸鍨嬬偖濉斿悓姝ヤ笌涓绘鍣ㄤ竴鑷寸殑棰戦亾杈撳叆銆?
+        // 閸旂喕鍏橀敍姘帥鐠侊紕鐣婚幒褍鍩楀鍛秼閸撳秵绺哄ú濠氼暥闁挾绱惍渚婄礉閻劋绨崥鎴﹀櫢閸ㄥ鍋栨繅鏂挎倱濮濄儰绗屾稉缁橆劅閸ｃ劋绔撮懛瀵告畱妫版垿浜炬潏鎾冲弳閵?
         int activeSeatChannelEncode = 0;
         if (controlseatData.getChannel1()) activeSeatChannelEncode |= 1;
         if (controlseatData.getChannel2()) activeSeatChannelEncode |= 2;
@@ -521,32 +541,32 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             if (be instanceof AbstractTurretBlockEntity turret) {
                 this.energyspendpertick += turret.getenergypertick();
                 if (be instanceof AbstractHeavyTurretBlockEntity heavyturret) {
-                    // 鍔熻兘锛氭帶鍒舵鏇存柊閲嶅瀷鐐鏃讹紝鍚屾棰戦亾杈撳叆锛涗粎鍦ㄥ紑鐏椂涓嬪彂婵€娲婚閬撱€?
+                    // 閸旂喕鍏橀敍姘付閸掕埖顦弴瀛樻煀闁插秴鐎烽悙顔碱敊閺冭绱濋崥灞绢劄妫版垿浜炬潏鎾冲弳閿涙稐绮庨崷銊ョ磻閻忣偅妞傛稉瀣絺濠碘偓濞插顣堕柆鎾扁偓?
                     if (controlseatData.isfiring) {
                         heavyturret.channelFromCtrl(finalActiveSeatChannelEncode);
                     } else {
                         heavyturret.channelFromCtrl(0);
                     }
-                    //鑷姩妯″紡鐩存帴鏇存柊鐩爣锛屾棤瑙嗙帺瀹朵綅缃?
+                    //閼奉亜濮╁Ο鈥崇础閻╁瓨甯撮弴瀛樻煀閻╊喗鐖ｉ敍灞炬￥鐟欏棛甯虹€规湹缍呯純?
                     if (!controlseatData.enemyshipsData.isEmpty() && heavyturret.needupdateenemy()) {
                         int targetIndex = Math.floorMod(controlseatData.lockedenemyindex, controlseatData.enemyshipsData.size());
                         heavyturret.updatespecificenemy(controlseatData.enemyshipsData.get(targetIndex));
                     }
-                    //鎵嬪姩妯″紡鏇存柊鐜╁浣嶇疆锛岃€屼笉鏄晫瀵圭洰鏍?
+                    //閹靛濮╁Ο鈥崇础閺囧瓨鏌婇悳鈺侇啀娴ｅ秶鐤嗛敍宀冣偓灞肩瑝閺勵垱鏅€靛湱娲伴弽?
                     else{
-                        // 鍔熻兘锛氬悓姝ョ帺瀹惰瑙掗攣鐘舵€侊紝骞剁洿鎺ヤ笅鍙戝鎴风璁＄畻鐨勬墜鍔ㄧ瀯鍑嗙洰鏍囩偣缁欓噸鍨嬬偖濉斻€?
+                        // 閸旂喕鍏橀敍姘倱濮濄儳甯虹€规儼顫嬬憴鎺楁敚閻樿埖鈧緤绱濋獮鍓佹纯閹恒儰绗呴崣鎴濐吂閹撮顏拋锛勭暬閻ㄥ嫭澧滈崝銊х€崙鍡欐窗閺嶅洨鍋ｇ紒娆撳櫢閸ㄥ鍋栨繅鏂烩偓?
                         heavyturret.updateplayerstatus(
                                 controlseatData.isviewlocked,
-                                new Vector3d(controlseatData.manualAimTargetX, controlseatData.manualAimTargetY, controlseatData.manualAimTargetZ)
+                                new Vec3(controlseatData.manualAimTargetX, controlseatData.manualAimTargetY, controlseatData.manualAimTargetZ)
                         );
                     }
                 }
             } else {
-                // 鍏堣涓嬫潵锛屽惊鐜畬浜嗗啀鍒?
+                // 閸忓牐顔囨稉瀣降閿涘苯鎯婇悳顖氱暚娴滃棗鍟€閸?
                 toRemove.add(pos);
             }
         }, 3);
-        // 寰幆缁撴潫鍚庣粺涓€鍒犻櫎
+        // 瀵邦亞骞嗙紒鎾存将閸氬海绮烘稉鈧崚鐘绘珟
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 3);
         }
@@ -578,36 +598,36 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                 totalfuel += fueltank.getFluidTank().getCapacity();
                 totalfuelavalible += currenttankremain;
             } else {
-                // 鍏堣涓嬫潵锛屽惊鐜畬浜嗗啀鍒?
+                // 閸忓牐顔囨稉瀣降閿涘苯鎯婇悳顖氱暚娴滃棗鍟€閸?
                 toRemove.add(pos);
             }
         }, 5);
         controlseatData.totalfuelstorage = totalfuel;
         controlseatData.avaliblefuel = totalfuelavalible;
         //LogUtils.getLogger().warn("detected total energy:"+controlseatData.totalenergystorage+"avalible:"+controlseatData.avalibleenergy);
-        // 寰幆缁撴潫鍚庣粺涓€鍒犻櫎
+        // 瀵邦亞骞嗙紒鎾存将閸氬海绮烘稉鈧崚鐘绘珟
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 5);
         }
     }
 
     public void updateScreen(){
-        // 鍔熻兘锛氭瘡 tick 鍒锋柊鎺у埗妞呬笘鐣屽潗鏍囷紝渚涢浄杈炬姇褰变娇鐢ㄣ€?
+        // 閸旂喕鍏橀敍姘槨 tick 閸掗攱鏌婇幒褍鍩楀鍛瑯閻ｅ苯娼楅弽鍥风礉娓氭盯娴勬潏鐐瑜板彉濞囬悽銊ｂ偓?
         refreshWorldPosition();
         List<Vec3> toRemove = new ArrayList<>();
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof AbstractScreenBlockEntity screen) {
-                // 鍔熻兘锛氬綋灞忓箷灏氭湭缁戝畾鐜╁鏃讹紝缁戝畾褰撳墠鎺у埗妞呯帺瀹躲€?
+                // 閸旂喕鍏橀敍姘秼鐏炲繐绠风亸姘弓缂佹垵鐣鹃悳鈺侇啀閺冭绱濈紒鎴濈暰瑜版挸澧犻幒褍鍩楀鍛负鐎硅翰鈧?
                 if (!screen.hasRadarPlayer() && controlseatData.getPlayer() != null) {
                     screen.setRadarPlayerUuid(controlseatData.getPlayer().getUUID());
                 }
-                // 鍔熻兘锛氭寔缁悜灞忓箷鍚屾鎺у埗妞呬笘鐣屽潗鏍囷紝淇濊瘉闆疯揪涓績鐐瑰疄鏃舵洿鏂般€?
+                // 閸旂喕鍏橀敍姘瘮缂侇厼鎮滅仦蹇撶閸氬本顒為幒褍鍩楀鍛瑯閻ｅ苯娼楅弽鍥风礉娣囨繆鐦夐梿鐤彧娑擃厼绺鹃悙鐟扮杽閺冭埖娲块弬鑸偓?
                 screen.setRadarControlSeatWorldPos(new Vector3d(currentworldpos));
                 return;
             }
-            // 鍔熻兘锛氭竻鐞嗗凡缁忓け鏁堟垨琚浛鎹㈢殑灞忓箷閾炬帴銆?
+            // 閸旂喕鍏橀敍姘閻炲棗鍑＄紒蹇撱亼閺佸牊鍨ㄧ悮顐ｆ禌閹广垻娈戠仦蹇撶闁剧偓甯撮妴?
             toRemove.add(pos);
         }, 7);
         for (Vec3 pos : toRemove) {
@@ -615,7 +635,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         }
     }
 
-    // 鍔熻兘锛氫豢鐓х偖濉旈€昏緫锛屽埛鏂版帶鍒舵涓栫晫鍧愭爣锛堜笉鍦ㄨ埞涓婁负 blockpos锛屽湪鑸逛笂杞笘鐣屽潗鏍囷級銆?
+    // 閸旂喕鍏橀敍姘雹閻撗呭仏婵夋棃鈧槒绶敍灞藉煕閺傜増甯堕崚鑸殿槳娑撴牜鏅崸鎰垼閿涘牅绗夐崷銊ㄥ煘娑撳﹣璐?blockpos閿涘苯婀懜閫涚瑐鏉烆兛绗橀悾灞芥綏閺嶅浄绱氶妴?
     public void refreshWorldPosition() {
         SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, this.getBlockPos());
         if (subLevel != null) {
@@ -680,7 +700,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
     }
 
 
-    // 鍦ㄧЩ闄ゅ骇妞呮椂娓呴櫎鎺у埗璁板綍
+    // 閸︺劎些闂勩倕楠囧鍛濞撳懘娅庨幒褍鍩楃拋鏉跨秿
     @Override
     public void onRemove() {
         controlseatData.reset();
@@ -691,7 +711,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             }
             seats.clear();
         }
-        // 绉婚櫎鐜╁鐨?UUID 璁板綍
+        // 缁夊娅庨悳鈺侇啀閻?UUID 鐠佹澘缍?
         super.setRemoved();
     }
 
@@ -711,12 +731,12 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         return entity;
     }
 
-    // 淇敼 startRiding 鏂规硶锛岀‘淇濇瘡涓骇妞呮帶鍒朵笌鐜╁ UUID 鐩稿叧鑱?
+    // 娣囶喗鏁?startRiding 閺傝纭堕敍宀€鈥樻穱婵囩槨娑擃亜楠囧鍛付閸掓湹绗岄悳鈺侇啀 UUID 閻╃鍙ч懕?
     public boolean startRiding(boolean force, BlockPos blockPos, BlockState state, ServerLevel level) {
         Player player = controlseatData.getPlayer();
         Initialize.initialize(level,blockPos,state);
-        // 浣跨敤鐜╁鐨?UUID 鏉ョ‘瀹氬摢涓帺瀹跺湪杩欎釜搴ф涓?
-        // 娓呯悊绌虹殑搴ф
+        // 娴ｈ法鏁ら悳鈺侇啀閻?UUID 閺夈儳鈥樼€规艾鎽㈡稉顏嗗负鐎硅泛婀潻娆庨嚋鎼囱勵槳娑?
+        // 濞撳懐鎮婄粚铏规畱鎼囱勵槳
         for (int i = seats.size() - 1; i >= 0; i--) {
             ControlSeatMountEntity seat = seats.get(i);
             if (!seat.isVehicle()) {
@@ -743,12 +763,12 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         return ride;
     }
 
-    // 鍔熻兘锛氭牴鎹帶鍒舵鏂瑰潡鏈濆悜璁＄畻 ControlSeatMountEntity 搴斿湪鐨勬寕杞藉潗鏍囷紝渚涢噸杩炲悗鐨勫骇妞呭疄浣撴壂鎻忓鐢ㄣ€?
+    // 閸旂喕鍏橀敍姘壌閹诡喗甯堕崚鑸殿槳閺傜懓娼￠張婵嗘倻鐠侊紕鐣?ControlSeatMountEntity 鎼存柨婀惃鍕瘯鏉炶棄娼楅弽鍥风礉娓氭盯鍣告潻鐐叉倵閻ㄥ嫬楠囧鍛杽娴ｆ挻澹傞幓蹇擃槻閻劊鈧?
     private Vec3 getSeatMountPosition(BlockPos pos, BlockState state) {
         return ControlSeatMountEntity.getSeatMountPosition(pos, state);
     }
 
-    // 鍔熻兘锛氬湪鏈嶅姟绔?tick 涓噸寤衡€滄帶鍒舵 -> 搴ф瀹炰綋 -> 鐜╁鈥濆叧绯伙紝淇濊瘉鐜╁閲嶈繘鍚?HUD 涓庤緭鍏ラ摼璺嚜鍔ㄦ仮澶嶃€?
+    // 閸旂喕鍏橀敍姘躬閺堝秴濮熺粩?tick 娑擃參鍣稿琛♀偓婊勫付閸掕埖顦?-> 鎼囱勵槳鐎圭偘缍?-> 閻溾晛顔嶉垾婵嗗彠缁紮绱濇穱婵婄槈閻溾晛顔嶉柌宥堢箻閸?HUD 娑撳氦绶崗銉╂懠鐠侯垵鍤滈崝銊︿划婢跺秲鈧?
     private void refreshSeatOccupancyFromWorld() {
         if (!(level instanceof ServerLevel serverLevel)) {
             return;
@@ -757,7 +777,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         Vec3 mountPos = getSeatMountPosition(getBlockPos(), state);
         AABB searchBox = new AABB(mountPos, mountPos).inflate(1.25D, 1.25D, 1.25D);
 
-        // 鍔熻兘锛氬厛鎸夆€滄槸鍚﹁繕娲荤潃鈥濇竻鐞嗘棫缂撳瓨锛岄槻姝繚瀛樹簡澶辨晥 seat UUID 褰卞搷 HUD 鍙嶆煡銆?
+        // 閸旂喕鍏橀敍姘帥閹稿鈧粍妲搁崥锕佺箷濞茶崵娼冮垾婵囩閻炲棙妫紓鎾崇摠閿涘矂妲诲顫箽鐎涙ü绨℃径杈ㄦ櫏 seat UUID 瑜板崬鎼?HUD 閸欏秵鐓￠妴?
         seats.removeIf(seat -> seat == null || !seat.isAlive());
 
         Player seatedPlayer = null;
@@ -775,14 +795,14 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             }
         }
 
-        // 鍔熻兘锛氭妸涓栫晫涓殑瀹炴椂涔樺潗鐘舵€佸洖鍐欏埌 controlseatData锛岄伩鍏嶉噸杩涘悗琚綋浣溾€滄棤浜烘帶鍒垛€濊€?reset銆?
+        // 閸旂喕鍏橀敍姘Ω娑撴牜鏅稉顓犳畱鐎圭偞妞傛稊妯烘綏閻樿埖鈧礁娲栭崘娆忓煂 controlseatData閿涘矂浼╅崗宥夊櫢鏉╂稑鎮楃悮顐㈢秼娴ｆ壕鈧粍妫ゆ禍鐑樺付閸掑灈鈧繆鈧?reset閵?
         if (seatedPlayer != null) {
             ride = true;
             controlseatData.setPlayer(seatedPlayer);
         } else {
             ride = false;
             controlseatData.setPlayer(null);
-            // 鍔熻兘锛氭棤浜轰箻鍧愭椂榛樿瑙ｉ攣瑙嗚锛岄槻姝㈡棫鐜╁鐣欏湪閿佸畾鎬佸奖鍝嶅悗缁箻鍧愯€呬綋楠屻€?
+            // 閸旂喕鍏橀敍姘￥娴滆桨绠婚崸鎰姒涙顓荤憴锝夋敚鐟欏棜顫楅敍宀勬Щ濮濄垺妫悳鈺侇啀閻ｆ瑥婀柨浣哥暰閹礁濂栭崫宥呮倵缂侇厺绠婚崸鎰偓鍛秼妤犲被鈧?
             controlseatData.isviewlocked = false;
         }
     }

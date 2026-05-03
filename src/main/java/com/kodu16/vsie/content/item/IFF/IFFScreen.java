@@ -4,6 +4,7 @@ package com.kodu16.vsie.content.item.IFF;
 
 import com.kodu16.vsie.network.IFF.IFFC2SPacket;
 import com.kodu16.vsie.registries.ModNetworking;
+import com.kodu16.vsie.utility.ItemStackNbt;
 import com.kodu16.vsie.vsie;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -31,11 +32,6 @@ public class IFFScreen extends AbstractContainerScreen<IFFContainerMenu> {
     protected void init() {
         super.init();
         ItemStack stack = this.menu.itemStack;  // 推荐使用 menu 提供的物品
-        if (stack.hasTag()) {
-            var tag = stack.getTag();
-            if (tag.contains("TextA")) this.editBoxA.setValue(tag.getString("TextA"));
-            if (tag.contains("TextB")) this.editBoxB.setValue(tag.getString("TextB"));
-        }
         this.leftPos = this.width / 2 - this.imageWidth / 2;
         this.topPos = this.height / 2 - this.imageHeight / 2;
         //LogUtils.getLogger().warn("initing iff screen");
@@ -55,6 +51,12 @@ public class IFFScreen extends AbstractContainerScreen<IFFContainerMenu> {
                 Component.literal("Ally"));
         this.editBoxB.setMaxLength(64);
         this.addRenderableWidget(this.editBoxB);
+
+        var tag = ItemStackNbt.get(stack);
+        if (tag != null) {
+            if (tag.contains("enemy")) this.editBoxA.setValue(tag.getString("enemy"));
+            if (tag.contains("ally")) this.editBoxB.setValue(tag.getString("ally"));
+        }
 
         // 保存按钮（推荐加上，体验更好）
         int btnX = this.leftPos + 32;

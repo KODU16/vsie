@@ -3,8 +3,10 @@ package com.kodu16.vsie.content.turret.ciws;
 import com.kodu16.vsie.content.turret.AbstractTurretBlock;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.turret.TurretData;
+import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -16,13 +18,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
-import org.joml.Vector3dc;
-import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.core.api.ships.properties.ShipTransform;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 import java.util.List;
 
@@ -57,27 +55,31 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
             return;
         }
         // 功能：统一刷新炮塔世界坐标，减少 tick 主流程分支复杂度。
-        refreshWorldPosition();
-        tryInvalidateTarget();
-        // 功能：统一处理目标搜索，若无有效目标则让炮塔回归默认角度。
-        acquireTargetByAimType();
-        if (hasValidTarget()) {
-            // 功能：维护速度采样窗口，为弹道预测提供最近移动趋势。
-            appendTargetVelocitySample();
-            // 功能：统一更新当前目标点，避免实体/舰船重复分支代码。
-            updateCurrentTargetPos();
+        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level,pos);
+        if(subLevel!=null) {
+            currentworldpos = subLevel.logicalPose().transformPosition(Vec3.atLowerCornerOf(pos));
+            tryInvalidateTarget();
+            // 功能：统一处理目标搜索，若无有效目标则让炮塔回归默认角度。
+            acquireTargetByAimType();
+            if (hasValidTarget()) {
+                // 功能：维护速度采样窗口，为弹道预测提供最近移动趋势。
+                appendTargetVelocitySample();
+                // 功能：统一更新当前目标点，避免实体/舰船重复分支代码。
+                updateCurrentTargetPos();
 
-            targetPos = getShootLocation(targetPos, targetPreVelocity, level, currentworldpos);
-            updateTargetRot();
-            this.xRot0 = closestReachableX(xRot0, getMaxSpinSpeed(), targetxrot);
-            this.yRot0 = closestReachableY(yRot0, getMaxSpinSpeed(), targetyrot);
-            if (xOK && yOK) {
-                fireWhenLocked();
+                targetPos = getShootLocation(targetPos, targetPreVelocity, level, currentworldpos);
+                updateTargetRot();
+                this.xRot0 = closestReachableX(xRot0, getMaxSpinSpeed(), targetxrot);
+                this.yRot0 = closestReachableY(yRot0, getMaxSpinSpeed(), targetyrot);
+                if (xOK && yOK) {
+                    fireWhenLocked();
+                }
+            } else {
+                // 功能：当周围没有有效敌人时，平滑回到用户设置的默认俯仰/偏航角。
+                returnToDefaultRotation();
             }
-        } else {
-            // 功能：当周围没有有效敌人时，平滑回到用户设置的默认俯仰/偏航角。
-            returnToDefaultRotation();
         }
+
         //LogUtils.getLogger().warn("targetx:"+targetxrot+"y:"+targetyrot+"currentx:"+xRot0+"y:"+yRot0+"OK?"+xOK+yOK);
         this.setAnimData(XROT, xRot0);
         this.setAnimData(YROT, yRot0);
@@ -119,13 +121,13 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
 
         //速度判断
         Vec3 center = new Vec3(0,0,0);
-        boolean onship = VSGameUtilsKt.isBlockInShipyard(level,this.getBlockPos());
-        if(onship) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(level, this.getBlockPos());
-            Vector3dc center3d = ship.getTransform().getPositionInWorld();
-            center = new Vec3(center3d.x(),center3d.y(),center3d.z());
-        }
-        else {
+        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, this.getBlockPos());
+        if (subLevel != null) {
+            Vec3 structureCenter = ServerShipUtils.getStructureCenterWorld(subLevel);
+            if (structureCenter != null) {
+                center = structureCenter;
+            }
+        } else {
             center = new Vec3(this.currentworldpos.x, this.currentworldpos.y, this.currentworldpos.z);
         }
         if(isflyingtowards(e,center)){return false;}
@@ -147,14 +149,14 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
         Vec3 turretpos = new Vec3(currentworldpos.x, currentworldpos.y, currentworldpos.z);
         Vec3 targetPos = new Vec3(Math.round(pos.x()*10)/10.0, Math.round(pos.y()*10)/10.0, Math.round(pos.z()*10)/10.0);
         Vec3 lookVec = turretpos.vectorTo(targetPos).normalize().scale(0.75F);
-        ClipContext ctx = new ClipContext(turretpos.add(lookVec), targetPos, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, null);
+        ClipContext ctx = new ClipContext(turretpos.add(lookVec), targetPos, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, CollisionContext.empty());
         return level.clip(ctx).getType().equals(HitResult.Type.MISS);
     }
 
     private void updateTargetRot() {
         Direction facing = this.getBlockState().getValue(AbstractTurretBlock.FACING);
         // 1. 获取炮塔当前的朝向（方块的facing）
-        Vec3 localUp  = VectorConversionsMCKt.toMinecraft(VectorConversionsMCKt.toJOMLD(facing.getOpposite().getNormal()));;
+        Vec3 localUp  = Vec3.atLowerCornerOf(facing.getOpposite().getNormal());
         // 2. 获取炮塔本地坐标系的 "前" 和 "上" 向量（世界坐标）
         Vec3 localForward = switch (facing) {
             case NORTH -> new Vec3(0, 1, 0);
@@ -169,16 +171,11 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
             case UP -> new Vec3(-1,0,0);
         };
 
-        boolean onship = VSGameUtilsKt.isBlockInShipyard(level,this.getBlockPos());
-        if(onship) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(level, this.getBlockPos());
-            final ShipTransform transform = ship.getTransform();
-            transform.getShipToWorld().transformDirection(new Vector3d(localForward.x,localForward.y,localForward.z), worldXDirection);
-            worldXDirection.normalize();
-            transform.getShipToWorld().transformDirection(new Vector3d(localUp.x,localUp.y,localUp.z), worldYDirection);
-            worldYDirection.normalize();
-            transform.getShipToWorld().transformDirection(new Vector3d(localRight.x,localRight.y,localRight.z), worldZDirection);
-            worldZDirection.normalize();
+        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, this.getBlockPos());
+        if(subLevel != null) {
+            worldXDirection = subLevel.logicalPose().transformNormal(new Vector3d(localForward.x, localForward.y, localForward.z)).normalize();
+            worldYDirection = subLevel.logicalPose().transformNormal(new Vector3d(localUp.x, localUp.y, localUp.z)).normalize();
+            worldZDirection = subLevel.logicalPose().transformNormal(new Vector3d(localRight.x, localRight.y, localRight.z)).normalize();
         }
         else {
             worldXDirection = new Vector3d(localForward.x,localForward.y,localForward.z);
@@ -197,9 +194,9 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
         if (toTargetWorld.lengthSqr() < 1e-6) return; // 目标在正中心，放弃计算
 
         // 5. 把世界向量转换到炮塔本地坐标系（用基向量做点积）
-        double localX = toTargetWorld.dot(VectorConversionsMCKt.toMinecraft(worldZDirection));     // 本地右
-        double localY = toTargetWorld.dot(VectorConversionsMCKt.toMinecraft(worldYDirection));        // 本地向上
-        double localZ = toTargetWorld.dot(VectorConversionsMCKt.toMinecraft(worldXDirection));   // 本地向前
+        double localX = toTargetWorld.dot(new Vec3(worldZDirection.x, worldZDirection.y, worldZDirection.z));     // 本地右
+        double localY = toTargetWorld.dot(new Vec3(worldYDirection.x, worldYDirection.y, worldYDirection.z));        // 本地向上
+        double localZ = toTargetWorld.dot(new Vec3(worldXDirection.x, worldXDirection.y, worldXDirection.z));   // 本地向前
 
         // 6. 现在就在本地坐标系了，计算角度（经典写法）
         // yaw   : 左右角度，atan2(x, z)
@@ -283,7 +280,7 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
 
         targetprojectile = bestCandidate;
         // 关键：这里一定要同步更新 targetPos！！
-        this.targetPos = new Vector3d(
+        this.targetPos = new Vec3(
                 targetprojectile.getX(),
                 targetprojectile.getY(),
                 targetprojectile.getZ()
@@ -299,7 +296,7 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
 
     private void updateCurrentTargetPos() {
         if (aimtype == 1 && isValidTargetEntity(targetentity)) {
-            targetPos = new Vector3d(
+            targetPos = new Vec3(
                     targetentity.getX(),
                     targetentity.getY() + targetentity.getEyeHeight(),
                     targetentity.getZ()
@@ -307,7 +304,7 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
         }
         if (aimtype == 2 && isValidTargetProjectile(targetprojectile)) {
             LogUtils.getLogger().warn("find target projectile:"+targetprojectile.getDisplayName()+"isremoved:"+targetprojectile.isRemoved()+"speed:"+targetprojectile.getDeltaMovement().lengthSqr());
-            targetPos = new Vector3d(
+            targetPos = new Vec3(
                     targetprojectile.getX(),
                     targetprojectile.getY(),
                     targetprojectile.getZ()

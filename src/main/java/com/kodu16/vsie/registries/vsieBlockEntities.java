@@ -12,10 +12,12 @@ import com.kodu16.vsie.content.screen.client.AbstractScreenGeoRenderer;
 import com.kodu16.vsie.content.screen.block.BasicScreenBlockEntity;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
 import com.kodu16.vsie.content.storage.ammobox.AmmoBoxBlockEntity;
+import com.kodu16.vsie.content.storage.energybattery.AbstractEnergyBatteryBlockEntity;
 import com.kodu16.vsie.content.storage.energybattery.AbstractEnergyBatteryGeoRenderer;
 import com.kodu16.vsie.content.storage.energybattery.block.LargeEnergyBatteryBlockEntity;
 import com.kodu16.vsie.content.storage.energybattery.block.MediumEnergyBatteryBlockEntity;
 import com.kodu16.vsie.content.storage.energybattery.block.SmallEnergyBatteryBlockEntity;
+import com.kodu16.vsie.content.storage.fueltank.AbstractFuelTankBlockEntity;
 import com.kodu16.vsie.content.storage.fueltank.AbstractFuelTankGeoRenderer;
 import com.kodu16.vsie.content.storage.fueltank.block.LargeFuelTankBlockEntity;
 import com.kodu16.vsie.content.storage.fueltank.block.MediumFuelTankBlockEntity;
@@ -42,10 +44,43 @@ import com.kodu16.vsie.vsie;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.tterrag.registrate.util.entry.BlockEntityEntry;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.neoforged.neoforge.capabilities.BlockCapability;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.capabilities.ICapabilityProvider;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
 
 public class vsieBlockEntities {
     public static final CreateRegistrate REGISTRATE = vsie.registrate();
     public static void register() {} //Loads this class
+    private static final List<Consumer<RegisterCapabilitiesEvent>> CAPABILITY_REGISTRATIONS = new ArrayList<>();
+
+    public static void registerCapabilities(RegisterCapabilitiesEvent event) {
+        CAPABILITY_REGISTRATIONS.forEach(registration -> registration.accept(event));
+    }
+
+    private static <BE extends BlockEntity, T, C> BlockEntityEntry<BE> withCapability(
+            BlockEntityEntry<BE> entry,
+            BlockCapability<T, C> capability,
+            ICapabilityProvider<? super BE, C, T> provider
+    ) {
+        CAPABILITY_REGISTRATIONS.add(event -> event.registerBlockEntity(capability, entry.get(), provider));
+        return entry;
+    }
+
+    private static IFluidHandler getFuelHandler(AbstractFuelTankBlockEntity blockEntity) {
+        return blockEntity.getFluidHandler();
+    }
+
+    private static IEnergyStorage getEnergyHandler(AbstractEnergyBatteryBlockEntity blockEntity) {
+        return blockEntity.getEnergyCapability();
+    }
 
     public static final BlockEntityEntry<BasicThrusterBlockEntity> BASIC_THRUSTER_BLOCK_ENTITY =
             REGISTRATE.blockEntity("basic_thruster_block_entity", BasicThrusterBlockEntity::new)
@@ -64,9 +99,11 @@ public class vsieBlockEntities {
                     .renderer(() -> AbstractTurretGeoRenderer::new)
                     .register();
     public static final BlockEntityEntry<ShieldGeneratorBlockEntity> SHIELD_GENERATOR_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("shield_generator_block_entity", ShieldGeneratorBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("shield_generator_block_entity", ShieldGeneratorBlockEntity::new)
                     .validBlocks(vsieBlocks.SHIELD_GENERATOR_BLOCK)
-                    .register();
+                    .register(),
+                    Capabilities.EnergyStorage.BLOCK,
+                    (blockEntity, side) -> blockEntity.getEnergyCapability());
     public static final BlockEntityEntry<BasicVectorThrusterBlockEntity> BASIC_VECTOR_THRUSTER_BLOCK_ENTITY =
             REGISTRATE.blockEntity("basic_vector_thruster_block_entity", BasicVectorThrusterBlockEntity::new)
                     .validBlocks(vsieBlocks.BASIC_VECTOR_THRUSTER_BLOCK)
@@ -113,10 +150,12 @@ public class vsieBlockEntities {
                     .renderer(() -> AbstractThrusterGeoRenderer::new)
                     .register();
     public static final BlockEntityEntry<ParticleTurretBlockEntity> PARTICLE_TURRET_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("particle_turret_block_entity", ParticleTurretBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("particle_turret_block_entity", ParticleTurretBlockEntity::new)
                     .validBlocks(vsieBlocks.PARTICLE_TURRET_BLOCK)
                     .renderer(() -> AbstractTurretGeoRenderer::new)
-                    .register();
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
     public static final BlockEntityEntry<HeavyElectroMagnetTurretBlockEntity> HEAVY_ELECTROMAGNET_TURRET_BLOCK_ENTITY =
             REGISTRATE.blockEntity("heavy_electromagnet_turret_block_entity", HeavyElectroMagnetTurretBlockEntity::new)
                     .validBlocks(vsieBlocks.HEAVY_ELECTROMAGNET_TURRET_BLOCK)
@@ -130,51 +169,67 @@ public class vsieBlockEntities {
 
 
     public static final BlockEntityEntry<SmallEnergyBatteryBlockEntity> SMALL_ENERGY_BATTERY_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("small_energy_battery_block_entity", SmallEnergyBatteryBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("small_energy_battery_block_entity", SmallEnergyBatteryBlockEntity::new)
                     .validBlocks(vsieBlocks.SMALL_ENERGY_BATTERY_BLOCK)
                     .renderer(() -> AbstractEnergyBatteryGeoRenderer::new)
-                    .register();
+                    .register(),
+                    Capabilities.EnergyStorage.BLOCK,
+                    (blockEntity, side) -> getEnergyHandler(blockEntity));
     public static final BlockEntityEntry<MediumEnergyBatteryBlockEntity> MEDIUM_ENERGY_BATTERY_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("medium_energy_battery_block_entity", MediumEnergyBatteryBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("medium_energy_battery_block_entity", MediumEnergyBatteryBlockEntity::new)
                     .validBlocks(vsieBlocks.MEDIUM_ENERGY_BATTERY_BLOCK)
                     .renderer(() -> AbstractEnergyBatteryGeoRenderer::new)
-                    .register();
+                    .register(),
+                    Capabilities.EnergyStorage.BLOCK,
+                    (blockEntity, side) -> getEnergyHandler(blockEntity));
     public static final BlockEntityEntry<LargeEnergyBatteryBlockEntity> LARGE_ENERGY_BATTERY_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("large_energy_battery_block_entity", LargeEnergyBatteryBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("large_energy_battery_block_entity", LargeEnergyBatteryBlockEntity::new)
                     .validBlocks(vsieBlocks.LARGE_ENERGY_BATTERY_BLOCK)
                     .renderer(() -> AbstractEnergyBatteryGeoRenderer::new)
-                    .register();
+                    .register(),
+                    Capabilities.EnergyStorage.BLOCK,
+                    (blockEntity, side) -> getEnergyHandler(blockEntity));
     public static final BlockEntityEntry<SmallFuelTankBlockEntity> SMALL_FUELTANK_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("small_fueltank_block_entity", SmallFuelTankBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("small_fueltank_block_entity", SmallFuelTankBlockEntity::new)
                     .validBlocks(vsieBlocks.SMALL_FUELTANK_BLOCK)
                     .renderer(() -> AbstractFuelTankGeoRenderer::new)
-                    .register();
+                    .register(),
+                    Capabilities.FluidHandler.BLOCK,
+                    (blockEntity, side) -> getFuelHandler(blockEntity));
     public static final BlockEntityEntry<MediumFuelTankBlockEntity> MEDIUM_FUELTANK_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("medium_fueltank_block_entity", MediumFuelTankBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("medium_fueltank_block_entity", MediumFuelTankBlockEntity::new)
                     .validBlocks(vsieBlocks.MEDIUM_FUELTANK_BLOCK)
                     .renderer(() -> AbstractFuelTankGeoRenderer::new)
-                    .register();
+                    .register(),
+                    Capabilities.FluidHandler.BLOCK,
+                    (blockEntity, side) -> getFuelHandler(blockEntity));
     public static final BlockEntityEntry<LargeFuelTankBlockEntity> LARGE_FUELTANK_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("large_fueltank_block_entity", LargeFuelTankBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("large_fueltank_block_entity", LargeFuelTankBlockEntity::new)
                     .validBlocks(vsieBlocks.LARGE_FUELTANK_BLOCK)
                     .renderer(() -> AbstractFuelTankGeoRenderer::new)
-                    .register();
+                    .register(),
+                    Capabilities.FluidHandler.BLOCK,
+                    (blockEntity, side) -> getFuelHandler(blockEntity));
     public static final BlockEntityEntry<BasicScreenBlockEntity> BASIC_SCREEN_BLOCK_ENTITY =
             REGISTRATE.blockEntity("basic_screen_block_entity", BasicScreenBlockEntity::new)
                     .validBlocks(vsieBlocks.BASIC_SCREEN_BLOCK)
                     .renderer(() -> AbstractScreenGeoRenderer::new)
                     .register();
     public static final BlockEntityEntry<AmmoBoxBlockEntity> AMMO_BOX_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("ammo_box_block_entity", AmmoBoxBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("ammo_box_block_entity", AmmoBoxBlockEntity::new)
                     .validBlocks(vsieBlocks.AMMO_BOX_BLOCK)
-                    .register();
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
 
 
     public static final BlockEntityEntry<ElectroMagnetRailCoreBlockEntity> ELECTRO_MAGNET_RAIL_CORE_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("electro_magnet_rail_core_block_entity", ElectroMagnetRailCoreBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("electro_magnet_rail_core_block_entity", ElectroMagnetRailCoreBlockEntity::new)
                     .validBlocks(vsieBlocks.ELECTRO_MAGNET_RAIL_CORE_BLOCK)
                     .renderer(() -> ElectroMagnetRailCoreGeoRenderer::new)
-                    .register();
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
     public static final BlockEntityEntry<ElectroMagnetRailTopBlockEntity> ELECTRO_MAGNET_RAIL_TOP_BLOCK_ENTITY =
             REGISTRATE.blockEntity("electro_magnet_rail_top_block_entity", ElectroMagnetRailTopBlockEntity::new)
                     .validBlocks(vsieBlocks.ELECTRO_MAGNET_RAIL_TOP_BLOCK)

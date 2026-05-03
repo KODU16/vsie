@@ -3,8 +3,11 @@ package com.kodu16.vsie.content.weapon.missile_launcher;
 import com.kodu16.vsie.content.missile.entity.BasicMissileEntity;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
 import com.kodu16.vsie.content.weapon.WeaponData;
+import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.registries.vsieEntities;
 import com.mojang.logging.LogUtils;
+import dev.ryanhcode.sable.sublevel.ServerSubLevel;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
@@ -14,13 +17,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3d;
-import org.joml.primitives.AABBdc;
-import org.slf4j.Logger;
-import org.valkyrienskies.core.api.ships.LoadedShip;
-import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 public abstract class AbstractMissileLauncherBlockEntity extends AbstractWeaponBlockEntity {
 
@@ -39,15 +35,6 @@ public abstract class AbstractMissileLauncherBlockEntity extends AbstractWeaponB
 
     @Override
     public abstract String getweapontype();
-
-    public Vec3 getworldpos() {
-        Level level = this.getLevel();
-        boolean onship = VSGameUtilsKt.isBlockInShipyard(level, this.getBlockPos());
-        if(onship) {
-            return VSGameUtilsKt.toWorldCoordinates(level, this.getBlockPos());
-        }
-        return new Vec3(this.getBlockPos().getX(), this.getBlockPos().getY(), this.getBlockPos().getZ());
-    }
 
     @Override
     public void tick() {
@@ -87,16 +74,16 @@ public abstract class AbstractMissileLauncherBlockEntity extends AbstractWeaponB
             case UP -> new Vec3i(-1,0,0); //朝上，模型正X为西
             case DOWN -> new Vec3i(1,0,0); //朝下，模型正X为东
         };
-        Vector3d offsetship = new Vector3d();
-        Vec3 spawnpos = this.getworldpos();
-        Ship ship = VSGameUtilsKt.getShipObjectManagingPos(level, getBlockPos());
-        offsetship = ship.getTransform().getShipToWorld().transformDirection(VectorConversionsMCKt.toJOMLD(offset));
+        Vec3 offsetship = new Vec3(0,0,0);
+        Vec3 spawnpos = this.getWeaponPos();
+        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level,this.getBlockPos());
+        offsetship = subLevel.logicalPose().transformNormal(Vec3.atLowerCornerOf(offset));
         offsetship.normalize();
         spawnpos.add(new Vec3(offsetship.x(),offsetship.y(),offsetship.z()));
         BasicMissileEntity missile = new BasicMissileEntity(
                 vsieEntities.BASIC_MISSILE.get(), level
         );
-        Ship target = getData().targetship;
+        SubLevel target = getData().targetship;
         missile.setTarget(target);
         missile.setPos(spawnpos);
         LogUtils.getLogger().warn("firing missile at:"+getData().targetship);
@@ -109,14 +96,4 @@ public abstract class AbstractMissileLauncherBlockEntity extends AbstractWeaponB
     }
 
     public abstract String getmissilelaunchertype();
-
-    private static double[] getAABBdcCenter(AABBdc aabb) {
-        double width = aabb.maxX() - aabb.minX();
-        double len = aabb.maxZ() - aabb.minZ();
-        double hight = aabb.maxY() - aabb.minY();
-        double centerX = aabb.minX() + width / 2;
-        double centerY = aabb.minY() + hight / 2;
-        double centerZ = aabb.minZ() + len / 2;
-        return new double[]{centerX, centerY, centerZ};
-    }
 }

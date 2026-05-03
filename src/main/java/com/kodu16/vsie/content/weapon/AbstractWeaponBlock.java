@@ -2,7 +2,10 @@ package com.kodu16.vsie.content.weapon;
 
 
 import com.kodu16.vsie.content.weapon.server.WeaponContainerMenu;
+import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.mojang.logging.LogUtils;
+import dev.ryanhcode.sable.sublevel.ServerSubLevel;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -16,9 +19,6 @@ import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
-import org.valkyrienskies.core.api.ships.LoadedShip;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 
 import net.minecraft.core.BlockPos;
@@ -90,7 +90,7 @@ public abstract class AbstractWeaponBlock extends DirectionalBlock implements En
 
         BlockEntity blockEntity = level.getBlockEntity(pos);
         if (blockEntity instanceof AbstractWeaponBlockEntity weaponBlockEntity) {
-            LoadedShip Ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos);
+            SubLevel Ship = ServerShipUtils.getSubLevelAtBlockPos(level,pos);
             if (Ship != null) {
             }
         }

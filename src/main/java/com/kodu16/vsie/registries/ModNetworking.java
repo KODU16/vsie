@@ -16,6 +16,8 @@ import com.kodu16.vsie.network.fx.FxEntityS2CPacket;
 import com.kodu16.vsie.network.rail.ElectroMagnetRailCoreDetectC2SPacket;
 import com.kodu16.vsie.network.screen.ScreenC2SPacket;
 import com.kodu16.vsie.network.screen.ScreentypeC2SPacket;
+import com.kodu16.vsie.network.thruster.ThrusterS2CPacket;
+import com.kodu16.vsie.network.thruster.VectorThrusterS2CPacket;
 import com.kodu16.vsie.network.turret.HeavyTurretC2SPacket;
 import com.kodu16.vsie.network.turret.TurretC2SPacket;
 import com.kodu16.vsie.network.turret.TurretDefaultSpinC2SPacket;
@@ -63,6 +65,8 @@ public final class ModNetworking {
         registrar.playToClient(NearbyShipsS2CPacket.TYPE, NearbyShipsS2CPacket.STREAM_CODEC, NearbyShipsS2CPacket::handle);
         registrar.playToClient(FxBlockS2CPacket.TYPE, FxBlockS2CPacket.STREAM_CODEC, FxBlockS2CPacket::handle);
         registrar.playToClient(FxEntityS2CPacket.TYPE, FxEntityS2CPacket.STREAM_CODEC, FxEntityS2CPacket::handle);
+        registrar.playToClient(ThrusterS2CPacket.TYPE, ThrusterS2CPacket.STREAM_CODEC, ThrusterS2CPacket::handle);
+        registrar.playToClient(VectorThrusterS2CPacket.TYPE, VectorThrusterS2CPacket.STREAM_CODEC, VectorThrusterS2CPacket::handle);
         registrar.playToClient(SyncThrusterFuelsPacket.TYPE, SyncThrusterFuelsPacket.STREAM_CODEC, SyncThrusterFuelsPacket::handle);
     }
 

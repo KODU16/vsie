@@ -2,7 +2,7 @@ package com.kodu16.vsie.content.warpprojectile;
 
 // NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
 
-import com.lowdragmc.photon.client.fx.EntityEffect;
+import com.lowdragmc.photon.client.fx.EntityEffectExecutor;
 import com.lowdragmc.photon.client.fx.FXHelper;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -34,12 +34,6 @@ public class WarpProjecTileEntity extends Projectile {
     // 功能：统一管理跃迁弹射物的消失特效资源，实体销毁时播放 warp_projectile_vanish.fx。
     private static final ResourceLocation WARP_PROJECTILE_VANISH_FX = ResourceLocation.fromNamespaceAndPath("vsie", "warp_projectile_vanish");
 
-    @Override
-    protected void defineSynchedData() {
-        // 功能：为最大飞行距离提供默认值，避免未配置时出现 0 距离立刻消失。
-        this.entityData.define(MAX_LIFE, 64.0F);
-    }
-
     public WarpProjecTileEntity(EntityType<? extends Projectile> type, Level level) {
         super(type, level);
         this.noPhysics = true;           // 保持高速、无重力
@@ -53,6 +47,11 @@ public class WarpProjecTileEntity extends Projectile {
     }
 
     @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+
+    }
+
+    @Override
     public void tick() {
         super.tick();
 
@@ -60,7 +59,7 @@ public class WarpProjecTileEntity extends Projectile {
         if (this.level().isClientSide()) {
             var fx = FXHelper.getFX(WARP_PROJECTILE_FX);
             if (fx != null) {
-                var effect = new EntityEffect(fx, this.level(), this, EntityEffect.AutoRotate.FORWARD);
+                var effect = new EntityEffectExecutor(fx, this.level(), this, EntityEffectExecutor.AutoRotate.FORWARD);
                 effect.setForcedDeath(true);
                 effect.start();
             }
@@ -113,7 +112,7 @@ public class WarpProjecTileEntity extends Projectile {
     private void playVanishFx() {
         var fx = FXHelper.getFX(WARP_PROJECTILE_VANISH_FX);
         if (fx != null) {
-            var effect = new EntityEffect(fx, this.level(), this, EntityEffect.AutoRotate.NONE);
+            var effect = new EntityEffectExecutor(fx, this.level(), this, EntityEffectExecutor.AutoRotate.NONE);
             effect.setForcedDeath(false);
             effect.start();
 

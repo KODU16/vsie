@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.missile;
 
 import com.mojang.logging.LogUtils;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -10,7 +11,6 @@ import net.minecraft.world.entity.projectile.AbstractHurtingProjectile;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3dc;
-import org.valkyrienskies.core.api.ships.Ship;
 import software.bernie.geckolib.animatable.GeoEntity;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
@@ -21,7 +21,7 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
     private static final EntityDataAccessor<Float> DATA_SPEED = SynchedEntityData.defineId(AbstractMissileEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Integer> DATA_AGE = SynchedEntityData.defineId(AbstractMissileEntity.class, EntityDataSerializers.INT);
     private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
-    private Ship target;
+    private SubLevel target;
     private float speed = 1.5f;
     private static final int MAX_LIFETIME_TICKS = 20 * 10;
 
@@ -42,12 +42,7 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
         this.setNoGravity(true);
     }
 
-    @Override
-    protected void defineSynchedData() {
-        this.entityData.define(DATA_AGE, 0);
-    }
-
-    public void setTarget(Ship ship) {
+    public void setTarget(SubLevel ship) {
         this.target = ship;
     }
 
@@ -85,7 +80,7 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
                 this.move(MoverType.SELF, this.getDeltaMovement());
             }
         } else {
-            Vector3dc targetpos = target.getTransform().getPosition();
+            Vector3dc targetpos = target.logicalPose().position();
 
             // 计算理想方向（指向目标）
             Vec3 idealDirection = new Vec3(

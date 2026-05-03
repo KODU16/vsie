@@ -40,7 +40,7 @@ public class ControlSeatServerData {
     public volatile String ally = "";
     public volatile int lockedenemyindex = 0;
     public volatile Map<String, Object> shipsData = new HashMap<>();
-    public volatile ArrayList<Vector3d> enemyshipsData = new ArrayList<>();
+    public volatile ArrayList<Vec3> enemyshipsData = new ArrayList<>();
 
     public volatile float thruster_strength = 0;
     // 功能：缓存东南西北上下六个方向（索引顺序：东南西北上下）上，朝向该方向的推进器最大推力总和。

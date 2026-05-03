@@ -1,5 +1,6 @@
 package com.kodu16.vsie.network.IFF;
 
+import com.kodu16.vsie.utility.ItemStackNbt;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
@@ -9,7 +10,6 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraftforge.network.NetworkEvent;
 import org.slf4j.Logger;
 
@@ -74,11 +74,12 @@ public class IFFC2SPacket implements CustomPacketPayload {
             //     stack = player.containerMenu.getSlot(0).getItem();
             // }
 
-            CompoundTag tag = stack.getOrCreateTag();
+            ItemStackNbt.update(stack, tag -> {
 
             // 存入 NBT（你可以改成你喜欢的 key 名）
             tag.putString("enemy", msg.enemy);
             tag.putString("ally", msg.ally);
+            });
 
             // 可选：告诉客户端物品有变化（同步 NBT）
             player.getInventory().setChanged();

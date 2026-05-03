@@ -4,7 +4,11 @@ import com.kodu16.vsie.content.bullet.entity.CenixPlasmaBulletEntity;
 import com.kodu16.vsie.content.misc.electromagnet_rail.core.ElectroMagnetRailCoreBlock;
 import com.kodu16.vsie.content.misc.electromagnet_rail.core.ElectroMagnetRailCoreBlockEntity;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
+import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.registries.vsieEntities;
+import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
+import dev.ryanhcode.sable.sublevel.ServerSubLevel;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -13,10 +17,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
-import org.joml.Vector3dc;
-import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 import static com.kodu16.vsie.content.weapon.AbstractWeaponBlock.FACING;
 
@@ -37,26 +37,21 @@ public class ElectroMagnetRailCannonBlockEntity extends AbstractWeaponBlockEntit
 
     @Override
     public void fire() {
-        Ship ship = VSGameUtilsKt.getShipObjectManagingPos(level, getBlockPos());
-        if (ship == null) {
+        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, getBlockPos());
+        if (!(subLevel instanceof ServerSubLevel serverSubLevel)) {
             return;
         }
 
         Direction weaponFacing = this.getBlockState().getValue(FACING);
-        // 功能：读取“武器背后紧邻一格”的同朝向 core，计算导轨倍率 k。
         int railMultiplier = resolveRailMultiplier(weaponFacing);
-
-        Vector3d currentFacing = new Vector3d(0, 1, 0);
-        ship.getTransform().getShipToWorld().transformDirection(
-                VectorConversionsMCKt.toJOMLD(weaponFacing.getNormal()),
-                currentFacing
-        );
+        Vector3d currentFacing = subLevel.logicalPose()
+                .transformNormal(directionToVector(weaponFacing), new Vector3d())
+                .normalize();
 
         CenixPlasmaBulletEntity bullet = new CenixPlasmaBulletEntity(vsieEntities.CENIX_PLASMA_BULLET.get(), level);
         bullet.setPos(new Vec3(this.weaponpos.x, this.weaponpos.y, this.weaponpos.z));
 
-        Vector3dc shipSpeed = ship.getVelocity();
-        // 功能：弹丸基础速度沿用 CenixPlasmaCannon（4），并乘以导轨倍率 k。
+        Vector3d shipSpeed = getLinearVelocity(serverSubLevel);
         double speed = 4.0 * railMultiplier;
         bullet.setDeltaMovement(new Vec3(
                 currentFacing.x * speed + shipSpeed.x(),
@@ -66,7 +61,19 @@ public class ElectroMagnetRailCannonBlockEntity extends AbstractWeaponBlockEntit
         level.addFreshEntity(bullet);
     }
 
-    // 功能：计算威力 k；当未匹配到合法 core 或 core 结构无效时返回 0。
+    private static Vector3d directionToVector(Direction direction) {
+        return new Vector3d(direction.getStepX(), direction.getStepY(), direction.getStepZ());
+    }
+
+    private static Vector3d getLinearVelocity(ServerSubLevel subLevel) {
+        RigidBodyHandle handle = RigidBodyHandle.of(subLevel);
+        if (handle == null || !handle.isValid()) {
+            return new Vector3d();
+        }
+
+        return handle.getLinearVelocity(new Vector3d());
+    }
+
     private int resolveRailMultiplier(Direction weaponFacing) {
         BlockPos corePos = this.getBlockPos().relative(weaponFacing.getOpposite());
         BlockEntity blockEntity = this.level.getBlockEntity(corePos);

@@ -8,6 +8,7 @@ import com.kodu16.vsie.content.controlseat.functions.ShipAnglePainter;
 import com.kodu16.vsie.registries.vsieItems;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.BlockPos;
@@ -57,7 +58,7 @@ public class HudOverlay {
             // 功能：NeoForge 1.21.1 改为 GuiLayer 事件，需在这里读取 GUI 绘制上下文。
             int sw = mc.getWindow().getGuiScaledWidth();
             int sh = mc.getWindow().getGuiScaledHeight();
-            float partialTick = event.getPartialTick();
+            DeltaTracker partialTick = event.getPartialTick();
 
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();

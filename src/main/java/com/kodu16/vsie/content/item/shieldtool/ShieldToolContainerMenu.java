@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.item.shieldtool;
 
 import com.kodu16.vsie.registries.ModMenuTypes;
+import com.kodu16.vsie.utility.ItemStackNbt;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -28,7 +29,7 @@ public class ShieldToolContainerMenu extends AbstractContainerMenu {
         this.shieldToolStack = shieldToolStack;
 
         // 在构造时就读取（服务端和客户端都会执行这一步）
-        CompoundTag tag = shieldToolStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(shieldToolStack);
         if (tag != null && tag.contains(shieldtool.KEY_MAX_SHIELD)) {
             this.maxShield        = tag.getInt(shieldtool.KEY_MAX_SHIELD);
             this.radius           = tag.getInt(shieldtool.KEY_RADIUS);

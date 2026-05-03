@@ -10,6 +10,7 @@ import com.kodu16.vsie.content.storage.fueltank.AbstractFuelTankBlockEntity;
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlockEntity;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
+import com.kodu16.vsie.utility.ItemStackNbt;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -51,7 +52,7 @@ public class linker extends Item {
         InteractionHand hand = context.getHand();
         BlockPos clickedPos = context.getClickedPos();
         ItemStack stack = context.getItemInHand();
-        CompoundTag nbt = stack.getOrCreateTag();
+        CompoundTag nbt = ItemStackNbt.getOrCreate(stack);
 
         // 如果没控制椅，绑定控制椅
         if (!nbt.contains("ControlSeatPos")) {
@@ -59,6 +60,7 @@ public class linker extends Item {
             BlockEntity blockEntity = level.getBlockEntity(convertToBlockPos(new Vector3d(clickedPos.getX(), clickedPos.getY(), clickedPos.getZ())));
             if (blockEntity instanceof AbstractControlSeatBlockEntity controlseat) {
                 nbt.putIntArray("ControlSeatPos", pos);
+                ItemStackNbt.set(stack, nbt);
                 player.displayClientMessage(Component.literal("§a绑定器已绑定至控制椅: " + clickedPos), true);
                 //controllerMap.putIfAbsent(clickedPos, new HashMap<>());
                 return InteractionResult.PASS;
@@ -84,6 +86,7 @@ public class linker extends Item {
             else {
                 player.displayClientMessage(Component.literal("绑定的控制椅已经被移除"), true);
                 nbt.remove("ControlSeatPos");
+                ItemStackNbt.set(stack, nbt);
             }
             return InteractionResult.CONSUME;
         }
@@ -97,6 +100,7 @@ public class linker extends Item {
             else {
                 player.displayClientMessage(Component.literal("绑定的控制椅已经被移除"), true);
                 nbt.remove("ControlSeatPos");
+                ItemStackNbt.set(stack, nbt);
             }
             return InteractionResult.PASS;
         }
@@ -111,6 +115,7 @@ public class linker extends Item {
             else {
                 player.displayClientMessage(Component.literal("绑定的控制椅已经被移除"), true);
                 nbt.remove("ControlSeatPos");
+                ItemStackNbt.set(stack, nbt);
             }
             return InteractionResult.PASS;
         }
@@ -124,6 +129,7 @@ public class linker extends Item {
             else {
                 player.displayClientMessage(Component.literal("绑定的控制椅已经被移除"), true);
                 nbt.remove("ControlSeatPos");
+                ItemStackNbt.set(stack, nbt);
             }
             return InteractionResult.PASS;
         }
@@ -137,6 +143,7 @@ public class linker extends Item {
             else {
                 player.displayClientMessage(Component.literal("绑定的控制椅已经被移除"), true);
                 nbt.remove("ControlSeatPos");
+                ItemStackNbt.set(stack, nbt);
             }
             return InteractionResult.PASS;
         }
@@ -150,6 +157,7 @@ public class linker extends Item {
             else {
                 player.displayClientMessage(Component.literal("绑定的控制椅已经被移除"), true);
                 nbt.remove("ControlSeatPos");
+                ItemStackNbt.set(stack, nbt);
             }
             return InteractionResult.PASS;
         }
@@ -163,6 +171,7 @@ public class linker extends Item {
             else {
                 player.displayClientMessage(Component.literal("绑定的控制椅已经被移除"), true);
                 nbt.remove("ControlSeatPos");
+                ItemStackNbt.set(stack, nbt);
             }
             return InteractionResult.PASS;
         }
@@ -174,15 +183,16 @@ public class linker extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
-        if (stack.hasTag() && stack.getTag().contains("controllerPos")) {
-            int[] arr = stack.getTag().getIntArray("controllerPos");
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+        CompoundTag tag = ItemStackNbt.get(stack);
+        if (tag != null && tag.contains("ControlSeatPos")) {
+            int[] arr = tag.getIntArray("ControlSeatPos");
             BlockPos pos = new BlockPos(arr[0], arr[1], arr[2]);
             tooltip.add(Component.literal("§e控制椅位置: " + pos));
         } else {
             tooltip.add(Component.literal("§7右键控制椅绑定控制椅，再右键外设绑定\n外设必须被绑定才可被控制椅操纵\n在跨越维度或重新进入游戏时，绑定关系不会失效\n一个外设仅能被一个控制椅绑定，后续绑定不会生效\n控制椅发现外设被移除时，将自动与外设位置解除绑定"));
         }
-        super.appendHoverText(stack, level, tooltip, flag);
+        super.appendHoverText(stack, context, tooltip, flag);
     }
 
     public static BlockPos convertToBlockPos(Vector3dc vector) {

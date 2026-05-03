@@ -7,6 +7,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import software.bernie.geckolib.animation.AnimatableManager;
 
@@ -20,7 +21,7 @@ public class HeavyElectroMagnetTurretBlockEntity extends AbstractHeavyTurretBloc
     }
 
     @Override
-    public Vector3d getShootLocation(Vector3d vec, List<Vector3d> preV, Level lv, Vector3d pos) {
+    public Vec3 getShootLocation(Vec3 vec, List<Vector3d> preV, Level lv, Vec3 pos) {
         return null;
     }
 

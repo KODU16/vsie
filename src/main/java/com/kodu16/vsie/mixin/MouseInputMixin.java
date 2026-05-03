@@ -22,7 +22,7 @@ public class MouseInputMixin {
     //我猜我就在这直接改client的鼠标输入了
     //我一开始还以为读不到Clientdata，实在是太傻了
     private static final Logger LOGGER = LogUtils.getLogger();
-    @Inject(method = "onMove", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "onMove(JDD)V", at = @At("HEAD"), cancellable = true, remap = false)
 
     private void onMouseMove(long window, double xpos, double ypos, CallbackInfo ci) {
         LocalPlayer player = Minecraft.getInstance().player;
@@ -49,7 +49,7 @@ public class MouseInputMixin {
         }
     }
 
-    @Inject(method = "onPress", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "onPress(JIII)V", at = @At("HEAD"), cancellable = true, remap = false)
     private void onMouseButton(long window, int button, int action, int mods, CallbackInfo ci) {
         LocalPlayer player = Minecraft.getInstance().player;
         if (player == null) return;
@@ -75,7 +75,7 @@ public class MouseInputMixin {
     }
 
 
-    @Inject(method = "onScroll", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "onScroll(JDD)V", at = @At("HEAD"), cancellable = true, remap = false)
     private void onMouseScroll(long window, double xoffset, double yoffset, CallbackInfo ci) {
         LocalPlayer player = Minecraft.getInstance().player;
         ControlSeatClientData data = null;

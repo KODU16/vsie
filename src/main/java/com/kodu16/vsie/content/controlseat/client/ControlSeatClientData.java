@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import com.kodu16.vsie.content.controlseat.ActiveWeaponHudInfo;
 
+import net.minecraft.client.DeltaTracker;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 
@@ -106,12 +107,20 @@ public class ControlSeatClientData {
         shipUp = new Vector3d(newUp);
     }
 
-    public Vector3d getInterpolatedShipFacing(float partialTick) {
-        return new Vector3d(prevShipfacing).lerp(shipfacing, clamp01(partialTick));
+    public Vector3d getInterpolatedShipFacing(DeltaTracker partialTick) {
+        return new Vector3d(prevShipfacing).lerp(shipfacing, partialTickValue(partialTick));
     }
 
-    public Vector3d getInterpolatedShipUp(float partialTick) {
-        return new Vector3d(prevShipUp).lerp(shipUp, clamp01(partialTick));
+    public Vector3d getInterpolatedShipUp(DeltaTracker partialTick) {
+        return new Vector3d(prevShipUp).lerp(shipUp, partialTickValue(partialTick));
+    }
+
+    private static float partialTickValue(DeltaTracker partialTick) {
+        if (partialTick == null) {
+            return 0f;
+        }
+
+        return clamp01(partialTick.getGameTimeDeltaPartialTick(false));
     }
 
     private static float clamp01(float value) {

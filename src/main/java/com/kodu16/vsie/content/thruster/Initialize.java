@@ -10,11 +10,15 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import org.joml.Matrix3d;
+import org.joml.Vector3d;
 
 import org.slf4j.Logger;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 public class Initialize {
+    public static Vector3d toVector3d(Direction direction) {
+        return new Vector3d(direction.getStepX(), direction.getStepY(), direction.getStepZ());
+    }
+
     public static void initialize(Level level, BlockPos pos, BlockState state) {
         if (level.isClientSide()) return;
 
@@ -33,7 +37,7 @@ public class Initialize {
             //以下仅用于矢量推进器
             //对于矢量推进器：direction本身是Y轴，模型红块的一边是X轴，蓝块是Z轴
             //MC是右手系
-            data.setDirectionY(VectorConversionsMCKt.toJOMLD(state.getValue(FACING).getOpposite().getNormal()));
+            data.setDirectionY(toVector3d(state.getValue(FACING).getOpposite()));
 
             LOGGER.warn(String.valueOf(Component.literal("thruster facing(Y):"+FACING)));
             Direction facing = state.getValue(FACING); // 获取当前方块的朝向

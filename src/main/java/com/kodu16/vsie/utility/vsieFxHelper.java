@@ -2,16 +2,16 @@ package com.kodu16.vsie.utility;
 
 import com.kodu16.vsie.network.fx.FxBlockS2CPacket;
 import com.kodu16.vsie.network.fx.FxEntityS2CPacket;
-import com.lowdragmc.photon.client.fx.BlockEffect;
-import com.lowdragmc.photon.client.fx.EntityEffect;
+import com.lowdragmc.photon.client.fx.EntityEffectExecutor;
+import com.lowdragmc.photon.client.fx.BlockEffectExecutor;
 import com.lowdragmc.photon.client.fx.FX;
 import com.lowdragmc.photon.client.fx.FXHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
@@ -37,7 +37,7 @@ public final class vsieFxHelper
                 FX fx = FXHelper.getFX(triggerPacket.getFx());
                 if(fx != null)
                 {
-                    var effect = new EntityEffect(fx, level,entity, EntityEffect.AutoRotate.NONE);
+                    var effect = new EntityEffectExecutor(fx, level,entity, EntityEffectExecutor.AutoRotate.NONE);
                     effect.setForcedDeath(triggerPacket.isForceDead());
                     effect.start();
                 }
@@ -55,7 +55,7 @@ public final class vsieFxHelper
             FX fx = FXHelper.getFX(triggerPacket.getFx());
             if(fx != null)
             {
-                var effect = new BlockEffect(fx,level,pos);
+                var effect = new BlockEffectExecutor(fx,level,pos);
                 effect.setForcedDeath(triggerPacket.isForceDead());
                 effect.start();
             }

@@ -157,7 +157,7 @@ dependencies {
     implementation("dev.ryanhcode.sable:sable-neoforge-${minecraft_version}:${sable_version}")
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
-    implementation fileTree(dir: 'lib', includes: ['*.jar'])
+    implementation fileTree(dir: 'lib', includes: ['*.jar'], excludes: ['create-*.jar'])
     // 功能：NeoForge 1.21.1 的核心加载器依赖。
     implementation "net.neoforged:neoforge:${neo_version}"
     // 功能：通过注解处理器启用 Mixin 编译期处理（含 refmap 生成），替代旧 MixinGradle 插件流程。

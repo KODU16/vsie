@@ -28,19 +28,22 @@ import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceC
 import software.bernie.geckolib.animation.AnimatableManager;
 import software.bernie.geckolib.constant.dataticket.SerializableDataTicket;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implements MenuProvider, IItemHandlerModifiable, GeoBlockEntity {
-    // 扫描结果状态码：用于同步到 GUI 并显示检测文案。
+    private HolderLookup.Provider nbtRegistries;
+
+    // 鎵弿缁撴灉鐘舵€佺爜锛氱敤浜庡悓姝ュ埌 GUI 骞舵樉绀烘娴嬫枃妗堛€?
     public static final int TERMINAL_STATUS_IDLE = 0;
     public static final int TERMINAL_STATUS_FOUND = 1;
     public static final int TERMINAL_STATUS_FACING_ERROR = 2;
     public static final int TERMINAL_STATUS_NOT_FOUND = 3;
     public static final int TERMINAL_STATUS_BLOCKED = 4;
     public static SerializableDataTicket<Boolean> IS_WORKING;
-    // 功能：缓存上一帧左右滑轨的 X 偏移，用于客户端渲染时做平滑插值。
+    // 鍔熻兘锛氱紦瀛樹笂涓€甯у乏鍙虫粦杞ㄧ殑 X 鍋忕Щ锛岀敤浜庡鎴风娓叉煋鏃跺仛骞虫粦鎻掑€笺€?
     public float prevRailOffsetX = 0.0f;
-    // 核心仓仅有 4 个槽位，且只允许放入 electromagnet_rail 方块物品。
+    // 鏍稿績浠撲粎鏈?4 涓Ы浣嶏紝涓斿彧鍏佽鏀惧叆 electromagnet_rail 鏂瑰潡鐗╁搧銆?
     public final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
     private final ItemStackHandler inventory = new ItemStackHandler(4) {
         @Override
@@ -54,13 +57,13 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
         }
     };
 
-    // 提供容器菜单读取检测状态。
-    // 记录最近一次“终端检测”结果，供容器菜单同步给客户端 GUI。
+    // 鎻愪緵瀹瑰櫒鑿滃崟璇诲彇妫€娴嬬姸鎬併€?
+    // 璁板綍鏈€杩戜竴娆♀€滅粓绔娴嬧€濈粨鏋滐紝渚涘鍣ㄨ彍鍗曞悓姝ョ粰瀹㈡埛绔?GUI銆?
     private int terminalStatus = TERMINAL_STATUS_IDLE;
-    // 提供容器菜单读取检测终端坐标。
+    // 鎻愪緵瀹瑰櫒鑿滃崟璇诲彇妫€娴嬬粓绔潗鏍囥€?
     private BlockPos terminalPos = BlockPos.ZERO;
-    // 提供客户端渲染层读取当前光束推进长度。
-    // 光束当前可见长度（单位：方块），每 tick 向终端推进 10 格。
+    // 鎻愪緵瀹㈡埛绔覆鏌撳眰璇诲彇褰撳墠鍏夋潫鎺ㄨ繘闀垮害銆?
+    // 鍏夋潫褰撳墠鍙闀垮害锛堝崟浣嶏細鏂瑰潡锛夛紝姣?tick 鍚戠粓绔帹杩?10 鏍笺€?
     private float beamRenderDistance = 0.0f;
 
     public int getTerminalStatus() {
@@ -85,7 +88,7 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
     }
 
     public void tick(){
-        // 功能：每 tick 校验已绑定终端是否仍然有效，无效则立即解绑并停止光束渲染。
+        // 鍔熻兘锛氭瘡 tick 鏍￠獙宸茬粦瀹氱粓绔槸鍚︿粛鐒舵湁鏁堬紝鏃犳晥鍒欑珛鍗宠В缁戝苟鍋滄鍏夋潫娓叉煋銆?
         if (this.level == null || this.terminalStatus != TERMINAL_STATUS_FOUND || this.terminalPos.equals(BlockPos.ZERO)) {
             return;
         }
@@ -100,12 +103,12 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
         }
         setAnimData(IS_WORKING,true);
 
-        // 功能：光束前沿按固定速度逐 tick 推进，直到延伸至 top。
+        // 鍔熻兘锛氬厜鏉熷墠娌挎寜鍥哄畾閫熷害閫?tick 鎺ㄨ繘锛岀洿鍒板欢浼歌嚦 top銆?
         float maxDistance = (float) Math.sqrt(this.worldPosition.distSqr(this.terminalPos));
         this.beamRenderDistance = Math.min(maxDistance, this.beamRenderDistance + 2.0f);
     }
 
-    // 提供给 GUI 与红石比较器读取：统计仓内 rail 总数。
+    // 鎻愪緵缁?GUI 涓庣孩鐭虫瘮杈冨櫒璇诲彇锛氱粺璁′粨鍐?rail 鎬绘暟銆?
     public int getStoredRailCount() {
         int total = 0;
         for (int i = 0; i < inventory.getSlots(); i++) {
@@ -114,7 +117,7 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
         return total;
     }
 
-    // 执行终端检测：沿核心朝向在 rail 数量范围内从近到远查找可到达的 top。
+    // 鎵ц缁堢妫€娴嬶細娌挎牳蹇冩湞鍚戝湪 rail 鏁伴噺鑼冨洿鍐呬粠杩戝埌杩滄煡鎵惧彲鍒拌揪鐨?top銆?
     public void detectTerminal() {
         if (this.level == null || this.level.isClientSide) {
             return;
@@ -126,7 +129,7 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
         BlockPos previousTerminalPos = this.terminalPos;
         this.terminalStatus = TERMINAL_STATUS_NOT_FOUND;
         this.terminalPos = BlockPos.ZERO;
-        // 功能：每次重新扫描都先重置光束推进长度，避免沿用旧绑定的渲染进度。
+        // 鍔熻兘锛氭瘡娆￠噸鏂版壂鎻忛兘鍏堥噸缃厜鏉熸帹杩涢暱搴︼紝閬垮厤娌跨敤鏃х粦瀹氱殑娓叉煋杩涘害銆?
         this.beamRenderDistance = 0.0f;
 
         for (int step = 1; step <= maxDistance; step++) {
@@ -136,18 +139,18 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
             if (checkState.is(vsieBlocks.ELECTRO_MAGNET_RAIL_TOP_BLOCK.get())) {
                 Direction topFacing = checkState.getValue(ElectroMagnetRailTopBlock.FACING);
                 if (topFacing == facing) {
-                    // 找到合法终端：记录坐标用于 GUI 展示。
+                    // 鎵惧埌鍚堟硶缁堢锛氳褰曞潗鏍囩敤浜?GUI 灞曠ず銆?
                     this.terminalStatus = TERMINAL_STATUS_FOUND;
                     this.terminalPos = checkPos;
-                    // 功能：同步 top 的绑定状态，让 top 在被当前 core 绑定时展开左右骨骼。
+                    // 鍔熻兘锛氬悓姝?top 鐨勭粦瀹氱姸鎬侊紝璁?top 鍦ㄨ褰撳墠 core 缁戝畾鏃跺睍寮€宸﹀彸楠ㄩ銆?
                     if (!previousTerminalPos.equals(checkPos)) {
                         updateTopBindingState(previousTerminalPos, false);
                     }
                     updateTopBindingState(checkPos, true);
-                    // 功能：重新绑定时重置光束长度，保证从 core 逐步延伸到 top。
+                    // 鍔熻兘锛氶噸鏂扮粦瀹氭椂閲嶇疆鍏夋潫闀垮害锛屼繚璇佷粠 core 閫愭寤朵几鍒?top銆?
                     this.beamRenderDistance = 0.0f;
                 } else {
-                    // 找到终端但朝向错误。
+                    // 鎵惧埌缁堢浣嗘湞鍚戦敊璇€?
                     updateTopBindingState(previousTerminalPos, false);
                     this.terminalStatus = TERMINAL_STATUS_FACING_ERROR;
                     this.terminalPos = checkPos;
@@ -159,7 +162,7 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
             }
 
             if (!checkState.isAir() && !checkState.is(vsieBlocks.ELECTRO_MAGNET_RAIL_BLOCK.get())) {
-                // 核心与终端之间出现非 rail 的障碍方块，判定为阻挡。
+                // 鏍稿績涓庣粓绔箣闂村嚭鐜伴潪 rail 鐨勯殰纰嶆柟鍧楋紝鍒ゅ畾涓洪樆鎸°€?
                 updateTopBindingState(previousTerminalPos, false);
                 this.terminalStatus = TERMINAL_STATUS_BLOCKED;
                 this.terminalPos = checkPos;
@@ -170,20 +173,20 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
             }
         }
 
-        // 范围内未找到终端。
+        // 鑼冨洿鍐呮湭鎵惧埌缁堢銆?
         updateTopBindingState(previousTerminalPos, false);
         this.setChanged();
         this.sendData();
     }
 
 
-    // 功能：在 core 被破坏或强制解绑时，主动通知当前绑定 top 收回左右骨骼。
+    // 鍔熻兘锛氬湪 core 琚牬鍧忔垨寮哄埗瑙ｇ粦鏃讹紝涓诲姩閫氱煡褰撳墠缁戝畾 top 鏀跺洖宸﹀彸楠ㄩ銆?
     public void releaseBoundTop() {
         updateTopBindingState(this.terminalPos, false);
         clearTerminalBinding();
     }
 
-    // 功能：把 core 的绑定结果同步给指定 top，驱动 top 左右骨骼展开或收回。
+    // 鍔熻兘锛氭妸 core 鐨勭粦瀹氱粨鏋滃悓姝ョ粰鎸囧畾 top锛岄┍鍔?top 宸﹀彸楠ㄩ灞曞紑鎴栨敹鍥炪€?
     private void updateTopBindingState(BlockPos topPos, boolean bound) {
         if (this.level == null || topPos == null || topPos.equals(BlockPos.ZERO)) {
             return;
@@ -193,12 +196,12 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
         }
     }
 
-    // 提供渲染层快速判断“可渲染的绑定状态”。
+    // 鎻愪緵娓叉煋灞傚揩閫熷垽鏂€滃彲娓叉煋鐨勭粦瀹氱姸鎬佲€濄€?
     public boolean hasValidTerminalBinding() {
         return this.terminalStatus == TERMINAL_STATUS_FOUND && !this.terminalPos.equals(BlockPos.ZERO) && isTerminalBindingStillValid();
     }
 
-    // 功能：校验记录的 top 是否仍是同向 top，且 core 到 top 之间无障碍。
+    // 鍔熻兘锛氭牎楠岃褰曠殑 top 鏄惁浠嶆槸鍚屽悜 top锛屼笖 core 鍒?top 涔嬮棿鏃犻殰纰嶃€?
     private boolean isTerminalBindingStillValid() {
         if (this.level == null || this.terminalPos.equals(BlockPos.ZERO)) {
             return false;
@@ -231,7 +234,7 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
         return true;
     }
 
-    // 功能：根据朝向计算终端在前方的轴向距离，若方向错误返回 -1。
+    // 鍔熻兘锛氭牴鎹湞鍚戣绠楃粓绔湪鍓嶆柟鐨勮酱鍚戣窛绂伙紝鑻ユ柟鍚戦敊璇繑鍥?-1銆?
     private int getTerminalDistanceAlongFacing(Direction facing, BlockPos targetPos) {
         int dx = targetPos.getX() - this.worldPosition.getX();
         int dy = targetPos.getY() - this.worldPosition.getY();
@@ -244,7 +247,7 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
         };
     }
 
-    // 功能：清空绑定状态，回到“未绑定”并关闭光束渲染。
+    // 鍔熻兘锛氭竻绌虹粦瀹氱姸鎬侊紝鍥炲埌鈥滄湭缁戝畾鈥濆苟鍏抽棴鍏夋潫娓叉煋銆?
     private void clearTerminalBinding() {
         this.terminalStatus = TERMINAL_STATUS_IDLE;
         this.terminalPos = BlockPos.ZERO;
@@ -262,13 +265,27 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
         return new ElectroMagnetRailCoreContainerMenu(containerId, playerInventory, this);
     }
 
+    private HolderLookup.Provider currentNbtRegistries() {
+        return nbtRegistries != null ? nbtRegistries : this.level.registryAccess();
+    }
+
+    private void withNbtRegistries(HolderLookup.Provider registries, Runnable action) {
+        HolderLookup.Provider previous = this.nbtRegistries;
+        this.nbtRegistries = registries;
+        try {
+            action.run();
+        } finally {
+            this.nbtRegistries = previous;
+        }
+    }
+
     @Override
     public void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientpacket) {
         super.read(tag, registries, clientpacket);
         if (tag.contains("Inventory")) {
             inventory.deserializeNBT(registries, tag.getCompound("Inventory"));
         }
-        // 同步最近一次终端检测结果，保证 GUI 重开后仍能展示。
+        // 鍚屾鏈€杩戜竴娆＄粓绔娴嬬粨鏋滐紝淇濊瘉 GUI 閲嶅紑鍚庝粛鑳藉睍绀恒€?
         if (tag.contains("TerminalStatus")) {
             this.terminalStatus = tag.getInt("TerminalStatus");
         }
@@ -284,7 +301,7 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
     protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientpacket) {
         super.write(tag, registries, clientpacket);
         tag.put("Inventory", inventory.serializeNBT(registries));
-        // 持久化并同步终端检测状态与坐标。
+        // 鎸佷箙鍖栧苟鍚屾缁堢妫€娴嬬姸鎬佷笌鍧愭爣銆?
         tag.putInt("TerminalStatus", this.terminalStatus);
         tag.putLong("TerminalPos", this.terminalPos.asLong());
         tag.putFloat("BeamRenderDistance", this.beamRenderDistance);
@@ -305,16 +322,16 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
 
     @Override
     public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
-        read(tag, registries, true);
+        withNbtRegistries(registries, () -> read(tag, registries, true));
     }
 
 
-    // 功能：提供给 NeoForge 1.21.1 capability 注册器的物品处理器实例。
+    // 鍔熻兘锛氭彁渚涚粰 NeoForge 1.21.1 capability 娉ㄥ唽鍣ㄧ殑鐗╁搧澶勭悊鍣ㄥ疄渚嬨€?
     public IItemHandlerModifiable getItemHandler() {
         return this;
     }
 
-    // IItemHandlerModifiable 接口转发到内部 ItemStackHandler。
+    // IItemHandlerModifiable 鎺ュ彛杞彂鍒板唴閮?ItemStackHandler銆?
     @Override
     public int getSlots() {
         return inventory.getSlots();

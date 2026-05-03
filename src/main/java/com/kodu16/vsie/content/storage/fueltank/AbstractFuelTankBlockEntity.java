@@ -21,6 +21,7 @@ import software.bernie.geckolib.animation.AnimatableManager;
 import java.util.List;
 
 public abstract class AbstractFuelTankBlockEntity extends SmartBlockEntity implements GeoBlockEntity {
+    private HolderLookup.Provider nbtRegistries;
 
     public AbstractFuelTankBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
@@ -28,22 +29,22 @@ public abstract class AbstractFuelTankBlockEntity extends SmartBlockEntity imple
 
     @Override
     public void addBehaviours(List<BlockEntityBehaviour> list) {
-        // 如果后续要加 Create 的流体接口等行为，可以在这里添加
+        // 濡傛灉鍚庣画瑕佸姞 Create 鐨勬祦浣撴帴鍙ｇ瓑琛屼负锛屽彲浠ュ湪杩欓噷娣诲姞
     }
 
-    // 容量建议使用 getCapacity() 来设置，而不是写死
+    // 瀹归噺寤鸿浣跨敤 getCapacity() 鏉ヨ缃紝鑰屼笉鏄啓姝?
 
     public abstract int getCapacity();
 
     private final FluidTank fluidTank = new FluidTank(getCapacity()) {
         @Override
         protected void onContentsChanged() {
-            setChanged();           // 重要：内容变更时标记脏数据
+            setChanged();           // 閲嶈锛氬唴瀹瑰彉鏇存椂鏍囪鑴忔暟鎹?
         }
 
         @Override
         public boolean isFluidValid(FluidStack stack) {
-            return true;            // 可按需改为只接受特定流体
+            return true;            // 鍙寜闇€鏀逛负鍙帴鍙楃壒瀹氭祦浣?
         }
     };
 
@@ -53,7 +54,7 @@ public abstract class AbstractFuelTankBlockEntity extends SmartBlockEntity imple
     public abstract String getFuelTanktype();
 
     public void tick() {
-        // 如果有每 tick 逻辑可以写在这里
+        // 濡傛灉鏈夋瘡 tick 閫昏緫鍙互鍐欏湪杩欓噷
     }
 
     public void setLinkedcontrolseatpos(BlockPos pos) {
@@ -65,25 +66,39 @@ public abstract class AbstractFuelTankBlockEntity extends SmartBlockEntity imple
         return fluidTank;
     }
 
-    // 功能：提供给 NeoForge 1.21.1 capability 注册器的流体处理器实例。
+    // 鍔熻兘锛氭彁渚涚粰 NeoForge 1.21.1 capability 娉ㄥ唽鍣ㄧ殑娴佷綋澶勭悊鍣ㄥ疄渚嬨€?
     public IFluidHandler getFluidHandler() {
         return fluidTank;
     }
 
-    // ───────────────────────────────────────────────
-    //             最关键的 NBT 读写部分
-    // ───────────────────────────────────────────────
+    // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+    //             鏈€鍏抽敭鐨?NBT 璇诲啓閮ㄥ垎
+    // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+
+    private HolderLookup.Provider currentNbtRegistries() {
+        return nbtRegistries != null ? nbtRegistries : this.level.registryAccess();
+    }
+
+    private void withNbtRegistries(HolderLookup.Provider registries, Runnable action) {
+        HolderLookup.Provider previous = this.nbtRegistries;
+        this.nbtRegistries = registries;
+        try {
+            action.run();
+        } finally {
+            this.nbtRegistries = previous;
+        }
+    }
 
     @Override
     protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.write(tag, registries, clientPacket);
 
-        // 保存流体数据（最推荐的方式）
+        // 淇濆瓨娴佷綋鏁版嵁锛堟渶鎺ㄨ崘鐨勬柟寮忥級
         CompoundTag fluidTag = new CompoundTag();
         fluidTank.writeToNBT(registries, fluidTag);
         tag.put("Tank", fluidTag);
 
-        // 保存控制座椅位置
+        // 淇濆瓨鎺у埗搴ф浣嶇疆
         writeVec3(tag, "controlpos", linkedcontrolseatpos);
     }
 
@@ -91,19 +106,19 @@ public abstract class AbstractFuelTankBlockEntity extends SmartBlockEntity imple
     public void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.read(tag, registries, clientPacket);
 
-        // 读取流体数据
+        // 璇诲彇娴佷綋鏁版嵁
         if (tag.contains("Tank", Tag.TAG_COMPOUND)) {
             CompoundTag fluidTag = tag.getCompound("Tank");
             fluidTank.readFromNBT(registries, fluidTag);
         }
 
-        // 读取控制座椅位置
+        // 璇诲彇鎺у埗搴ф浣嶇疆
         readVec3(tag, "controlpos");
     }
 
-    // ───────────────────────────────────────────────
-    //          同步相关方法（通常保持这样即可）
-    // ───────────────────────────────────────────────
+    // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+    //          鍚屾鐩稿叧鏂规硶锛堥€氬父淇濇寔杩欐牱鍗冲彲锛?
+    // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
     @Override
     public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
@@ -120,7 +135,7 @@ public abstract class AbstractFuelTankBlockEntity extends SmartBlockEntity imple
 
     @Override
     public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
-        read(tag, registries, true);
+        withNbtRegistries(registries, () -> read(tag, registries, true));
     }
 
     private void writeVec3(CompoundTag nbt, String key, BlockPos position) {
@@ -132,7 +147,7 @@ public abstract class AbstractFuelTankBlockEntity extends SmartBlockEntity imple
     }
 
     private void readVec3(CompoundTag nbt, String key) {
-        if (nbt.contains(key, Tag.TAG_COMPOUND)) {   // 改成 TAG_COMPOUND 更准确
+        if (nbt.contains(key, Tag.TAG_COMPOUND)) {   // 鏀规垚 TAG_COMPOUND 鏇村噯纭?
             CompoundTag vecTag = nbt.getCompound(key);
             int x = vecTag.getInt("x");
             int y = vecTag.getInt("y");
@@ -141,7 +156,7 @@ public abstract class AbstractFuelTankBlockEntity extends SmartBlockEntity imple
         }
     }
 
-    // GeckoLib 相关
+    // GeckoLib 鐩稿叧
     @Override
     public AnimatableInstanceCache getAnimatableInstanceCache() {
         return cache;
@@ -149,6 +164,6 @@ public abstract class AbstractFuelTankBlockEntity extends SmartBlockEntity imple
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        // 如果有动画 controller 在此注册
+        // 濡傛灉鏈夊姩鐢?controller 鍦ㄦ娉ㄥ唽
     }
 }

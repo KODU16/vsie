@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.item.IFF;
 
 import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
+import com.kodu16.vsie.utility.ItemStackNbt;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -34,12 +35,14 @@ public class iff extends Item {
 
     /** 获取敌方队伍名，没设置返回空字符串（永不返回 null） */
     public static String getEnemy(ItemStack stack) {
-        return stack.getOrCreateTag().getString(KEY_ENEMY);
+        CompoundTag tag = ItemStackNbt.get(stack);
+        return tag == null ? "" : tag.getString(KEY_ENEMY);
     }
 
     /** 获取友方队伍名，没设置返回空字符串（永不返回 null） */
     public static String getAlly(ItemStack stack) {
-        return stack.getOrCreateTag().getString(KEY_ALLY);
+        CompoundTag tag = ItemStackNbt.get(stack);
+        return tag == null ? "" : tag.getString(KEY_ALLY);
     }
 
     /** 判断是否有设置过敌方队伍（非空字符串） */
@@ -54,8 +57,8 @@ public class iff extends Item {
 
     /** 可选：给物品栏 tooltip 显示用 */
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable Level level, java.util.List<net.minecraft.network.chat.Component> tooltip, net.minecraft.world.item.TooltipFlag flag) {
-        super.appendHoverText(stack, level, tooltip, flag);
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, java.util.List<net.minecraft.network.chat.Component> tooltip, net.minecraft.world.item.TooltipFlag flag) {
+        super.appendHoverText(stack, context, tooltip, flag);
 
         String enemy = getEnemy(stack);
         String ally   = getAlly(stack);
@@ -114,16 +117,16 @@ public class iff extends Item {
         BlockEntity be = level.getBlockEntity(pos);
 
         if (be instanceof AbstractControlSeatBlockEntity controlSeat) {
-            CompoundTag tag = stack.getOrCreateTag();
+            CompoundTag tag = ItemStackNbt.get(stack);
 
             boolean hasChange = false;
 
-            if (tag.contains(KEY_ENEMY)) {
+            if (tag != null && tag.contains(KEY_ENEMY)) {
                 String enemy = tag.getString(KEY_ENEMY);
                 controlSeat.setEnemy(enemy);
                 hasChange = true;
             }
-            if (tag.contains(KEY_ALLY)) {
+            if (tag != null && tag.contains(KEY_ALLY)) {
                 String ally = tag.getString(KEY_ALLY);
                 controlSeat.setAlly(ally);
                 hasChange = true;

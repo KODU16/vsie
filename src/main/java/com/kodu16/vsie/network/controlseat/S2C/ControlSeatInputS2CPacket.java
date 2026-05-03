@@ -12,8 +12,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
 import org.slf4j.Logger;
 
@@ -24,7 +22,7 @@ import java.util.function.Supplier;
 public class ControlSeatInputS2CPacket implements CustomPacketPayload {
     // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
     public static final CustomPacketPayload.Type<ControlSeatInputS2CPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "controlseat_s2c_controlseatinputs2cpacket"));
-    public static final StreamCodec<FriendlyByteBuf, ControlSeatInputS2CPacket> STREAM_CODEC = CustomPacketPayload.codec((buf, pkt) -> pkt.write(buf), ControlSeatInputS2CPacket::decode);
+    public static final StreamCodec<FriendlyByteBuf, ControlSeatInputS2CPacket> STREAM_CODEC = CustomPacketPayload.codec(ControlSeatInputS2CPacket::write, ControlSeatInputS2CPacket::decode);
 
     private final BlockPos pos;
     private final int channelencode;
@@ -57,9 +55,9 @@ public class ControlSeatInputS2CPacket implements CustomPacketPayload {
     public void handle(Supplier<NetworkEvent.Context> ctx) {
         Logger LOGGER = LogUtils.getLogger();
         //LOGGER.warn(String.valueOf(Component.literal("S2C packet created")));
-        ctx.get().enqueueWork(() ->
+        ctx.get().enqueueWork(() -> {
                 // 确保只在物理客户端执行以下代码
-                DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
+
             // 获取当前客户端的玩家
             Minecraft mc = Minecraft.getInstance();
             Player player = mc.player;
@@ -108,7 +106,7 @@ public class ControlSeatInputS2CPacket implements CustomPacketPayload {
             }
 
             // 这里可以进一步根据需要应用旋转到某个实体或者更新视角
-        }));
+        });
         ctx.get().setPacketHandled(true);
     }
 

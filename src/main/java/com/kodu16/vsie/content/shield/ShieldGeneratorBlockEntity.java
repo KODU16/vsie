@@ -45,31 +45,31 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
     double RADIUS = 3;
     public int maxreceiverate = 100;
     public EnergyStorage energyStorage = new EnergyStorage(
-            100000,    // 最大容量 (capacity)
-            maxreceiverate,      // 最大接收速率 (max receive)   可以设 Integer.MAX_VALUE 如果想无限制
-            Integer.MAX_VALUE,      // 最大输出速率 (max extract)
-            0         // 初始能量
+            100000,    // 鏈€澶у閲?(capacity)
+            maxreceiverate,      // 鏈€澶ф帴鏀堕€熺巼 (max receive)   鍙互璁?Integer.MAX_VALUE 濡傛灉鎯虫棤闄愬埗
+            Integer.MAX_VALUE,      // 鏈€澶ц緭鍑洪€熺巼 (max extract)
+            0         // 鍒濆鑳介噺
     );
 
     public void tick(Level level, BlockPos pos, BlockState state, ShieldGeneratorBlockEntity be) {
         if (level.isClientSide || level.getGameTime() % 2 != 0) return;
 
         Vec3 center = Vec3.atCenterOf(pos);
-        AABB searchBox = new AABB(this.getBlockPos()).inflate(RADIUS + 6.0); // 多搜一点，防止高速实体一帧穿过去
+        AABB searchBox = new AABB(this.getBlockPos()).inflate(RADIUS + 6.0); // 澶氭悳涓€鐐癸紝闃叉楂橀€熷疄浣撲竴甯х┛杩囧幓
 
-        // 核心：只筛选“没有生命值 + 速度够快 + 不是玩家也不是盔甲架”之类的实体
+        // 鏍稿績锛氬彧绛涢€夆€滄病鏈夌敓鍛藉€?+ 閫熷害澶熷揩 + 涓嶆槸鐜╁涔熶笉鏄洈鐢叉灦鈥濅箣绫荤殑瀹炰綋
         level.getEntitiesOfClass(Entity.class, searchBox, entity -> {
             if (entity.isRemoved() || entity instanceof LivingEntity)
                 return false;
 
-            // 速度阈值，可调（单位：方块/刻）
+            // 閫熷害闃堝€硷紝鍙皟锛堝崟浣嶏細鏂瑰潡/鍒伙級
             double speed = entity.getDeltaMovement().length();
-            if (speed < 0.25) return false; // 太慢的直接忽略（比如漂浮的物品）
+            if (speed < 0.25) return false; // 澶參鐨勭洿鎺ュ拷鐣ワ紙姣斿婕傛诞鐨勭墿鍝侊級
 
-            // 计算是否朝护盾飞来
+            // 璁＄畻鏄惁鏈濇姢鐩鹃鏉?
             Vec3 toEntity = entity.position().subtract(center);
             double dot = entity.getDeltaMovement().normalize().dot(toEntity.normalize());
-            return dot < -0.3; // 越负说明越正对护盾飞来（-0.3~0.6 之间调节手感）
+            return dot < -0.3; // 瓒婅礋璇存槑瓒婃瀵规姢鐩鹃鏉ワ紙-0.3~0.6 涔嬮棿璋冭妭鎵嬫劅锛?
         }).forEach(entity -> {
 
             Vec3 toEntity = entity.position().subtract(center);
@@ -79,14 +79,14 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
 
             if(getEnergy().getEnergyStored()>20000)
             {
-                // 拦截！
-                entity.discard(); // 直接删除，兼容 99% 的模组实体
-                // 粒子交点
+                // 鎷︽埅锛?
+                entity.discard(); // 鐩存帴鍒犻櫎锛屽吋瀹?99% 鐨勬ā缁勫疄浣?
+                // 绮掑瓙浜ょ偣
                 Vec3 hitDir = toEntity.normalize();
                 Vec3 hitPoint = center.add(hitDir.scale(RADIUS));
                 spawnRippleParticles((ServerLevel) level, hitPoint, hitDir);
 
-                // 可选：播放音效
+                // 鍙€夛細鎾斁闊虫晥
                 level.playSound(null, hitPoint.x, hitPoint.y, hitPoint.z,
                         SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), SoundSource.BLOCKS,
                         1.0f, 1.2f + level.random.nextFloat() * 0.4f);
@@ -100,11 +100,11 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
         int particlesPerRing = 16;
         double speed = 0.02;
 
-        // 构造一个与 hitDir 垂直的局部坐标系 (u, v)
+        // 鏋勯€犱竴涓笌 hitDir 鍨傜洿鐨勫眬閮ㄥ潗鏍囩郴 (u, v)
         Vec3 w = hitDir.normalize();
         Vec3 arbitrary = Math.abs(w.y) < 0.9 ? new Vec3(0, 1, 0) : new Vec3(1, 0, 0);
-        Vec3 u = w.cross(arbitrary).normalize();   // 第一个正交向量
-        Vec3 v = w.cross(u).normalize();           // 第二个正交向量（也垂直于 w）
+        Vec3 u = w.cross(arbitrary).normalize();   // 绗竴涓浜ゅ悜閲?
+        Vec3 v = w.cross(u).normalize();           // 绗簩涓浜ゅ悜閲忥紙涔熷瀭鐩翠簬 w锛?
 
         for (int ring = 0; ring < numRings; ring++) {
             double ringRadius = 0.2 + ring * 0.4;
@@ -113,20 +113,20 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
                 Vec3 localOffset = u.scale(Math.cos(angle) * ringRadius)
                         .add(v.scale(Math.sin(angle) * ringRadius));
 
-                // 计算粒子位置
+                // 璁＄畻绮掑瓙浣嶇疆
                 Vec3 pos = hitPoint.add(localOffset);
 
-                // 计算漂浮速度
-                Vec3 outwardMovement = hitDir.scale(0.05); // 向外漂浮的速度
+                // 璁＄畻婕傛诞閫熷害
+                Vec3 outwardMovement = hitDir.scale(0.05); // 鍚戝婕傛诞鐨勯€熷害
 
-                // 使用 DustParticleOptions（浅蓝色）
-                Vector3f dustColor = new Vector3f(1.0f, 0.8f, 1.0f);  // 浅蓝色 RGB
-                DustParticleOptions dustParticle = new DustParticleOptions(dustColor, 1.0f); // 浅蓝色
+                // 浣跨敤 DustParticleOptions锛堟祬钃濊壊锛?
+                Vector3f dustColor = new Vector3f(1.0f, 0.8f, 1.0f);  // 娴呰摑鑹?RGB
+                DustParticleOptions dustParticle = new DustParticleOptions(dustColor, 1.0f); // 娴呰摑鑹?
                 level.sendParticles(dustParticle,
                         pos.x, pos.y, pos.z,
                         1, outwardMovement.x, outwardMovement.y, outwardMovement.z, speed);
 
-                // 使用 Glow 发光粒子
+                // 浣跨敤 Glow 鍙戝厜绮掑瓙
                 level.sendParticles(ParticleTypes.GLOW,
                         pos.x, pos.y, pos.z,
                         1, outwardMovement.x, outwardMovement.y, outwardMovement.z, speed);
@@ -134,21 +134,21 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
         }
     }
 
-    // 功能：提供给 NeoForge 1.21.1 capability 注册器的 FE 储能接口实例。
+    // 鍔熻兘锛氭彁渚涚粰 NeoForge 1.21.1 capability 娉ㄥ唽鍣ㄧ殑 FE 鍌ㄨ兘鎺ュ彛瀹炰緥銆?
     public IEnergyStorage getEnergyCapability() {
         return energyStorage;
     }
 
     @Override
-    protected void write(CompoundTag tag, boolean clientpacket) {
-        super.write(tag, clientpacket);
+    protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientpacket) {
+        super.write(tag, registries, clientpacket);
         tag.putInt("Energy", getEnergy().getEnergyStored());
         writeVec3(tag, "controlpos", linkedcontrolseatpos);
     }
 
     @Override
-    public void read(CompoundTag tag, boolean clientpacket) {
-        super.read(tag, clientpacket);
+    public void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientpacket) {
+        super.read(tag, registries, clientpacket);
         if (tag.contains("Energy")) {
             energyStorage.receiveEnergy(tag.getInt("Energy"), false);
         }
@@ -170,15 +170,15 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
 
     @Override
     public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
-        read(tag, true);
+        read(tag, registries, true);
     }
 
-    // 方便外部直接调用（例如 tick、GUI、Waila 等）
+    // 鏂逛究澶栭儴鐩存帴璋冪敤锛堜緥濡?tick銆丟UI銆乄aila 绛夛級
     public EnergyStorage getEnergyStorage() {
         return energyStorage;
     }
 
-    // 或直接返回 IEnergyStorage 接口
+    // 鎴栫洿鎺ヨ繑鍥?IEnergyStorage 鎺ュ彛
     public IEnergyStorage getEnergy() {
         return energyStorage;
     }
@@ -192,7 +192,7 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
     }
 
     private void readVec3(CompoundTag nbt, String key) {
-        // 功能：按 CompoundTag 结构读取控制座标，避免因类型不匹配导致联动位置丢失。
+        // 鍔熻兘锛氭寜 CompoundTag 缁撴瀯璇诲彇鎺у埗搴ф爣锛岄伩鍏嶅洜绫诲瀷涓嶅尮閰嶅鑷磋仈鍔ㄤ綅缃涪澶便€?
         if (!nbt.contains(key, Tag.TAG_COMPOUND)) return;
         CompoundTag vecTag = nbt.getCompound(key);
         int x = vecTag.getInt("x");

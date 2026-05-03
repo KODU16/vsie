@@ -38,18 +38,18 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
 
     //energy
     public int energyspendpertick = 10;
-    public int capacitorenergy = 0;//控制椅记录的当tick需要消耗的电量，如果抽不够电量则停机
+    public int capacitorenergy = 0;//鎺у埗妞呰褰曠殑褰搕ick闇€瑕佹秷鑰楃殑鐢甸噺锛屽鏋滄娊涓嶅鐢甸噺鍒欏仠鏈?
     public int totalenergy = 100;
-    public int totalenergyavalible = 0;//缓存的能量
+    public int totalenergyavalible = 0;//缂撳瓨鐨勮兘閲?
 
     //fuel
     public int fuelspendcurrenttick = 0;
-    public int capacitorfuel = 0;//控制椅记录的当tick需要消耗的油，如果抽不够油则引擎停机（不停电）
+    public int capacitorfuel = 0;//鎺у埗妞呰褰曠殑褰搕ick闇€瑕佹秷鑰楃殑娌癸紝濡傛灉鎶戒笉澶熸补鍒欏紩鎿庡仠鏈猴紙涓嶅仠鐢碉級
     public int totalfuel = 100;
     public int totalfuelavalible = 0;
 
     //shield
-    public double avalibleshield = 0;//缓存的护盾能量
+    public double avalibleshield = 0;//缂撳瓨鐨勬姢鐩捐兘閲?
 
     //Links(nbt:true)
     private final List<Vec3> linkedThrusters = new ArrayList<>();
@@ -60,8 +60,8 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
     public final List<Vec3> linkedFuelTanks = new ArrayList<>();
     public final List<Vec3> linkedAmmoboxes = new ArrayList<>();
     public final List<Vec3> linkedScreens = new ArrayList<>();
-    //控制椅连的电池，弹药库，燃料库
-    //不加了，再加有点多了
+    //鎺у埗妞呰繛鐨勭數姹狅紝寮硅嵂搴擄紝鐕冩枡搴?
+    //涓嶅姞浜嗭紝鍐嶅姞鏈夌偣澶氫簡
 
 
 
@@ -76,14 +76,14 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         return controlseatData;
     }
 
-    // 在移除座椅时清除控制记录
+    // 鍦ㄧЩ闄ゅ骇妞呮椂娓呴櫎鎺у埗璁板綍
     public abstract void onRemove();
 
     public abstract String getcontrolseattype();
 
     @Override
-    public void write(CompoundTag nbt, boolean clientPacket) {
-        super.write(nbt, clientPacket);
+    public void write(CompoundTag nbt, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(nbt, registries, clientPacket);
         nbt.putString("enemy", controlseatData.enemy);
         nbt.putString("ally", controlseatData.ally);
 
@@ -98,8 +98,8 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
     }
 
     @Override
-    public void read(CompoundTag nbt, boolean clientPacket) {
-        super.read(nbt, clientPacket);
+    public void read(CompoundTag nbt, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(nbt, registries, clientPacket);
         if(this.controlseatData == null) {
             this.controlseatData = new ControlSeatServerData();
         }
@@ -140,7 +140,7 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
 
     @Override
     public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
-        read(tag, true);
+        read(tag, registries, true);
     }
 
     public void setEnemy(String str) {controlseatData.enemy = str;}
@@ -153,17 +153,17 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         controlseatData.ally = str;
     }
 
-    public void addLinkedPeripheral(Vec3 pos, int type) { //0：推进器 1：主武器 2：护盾 3：炮塔 4：电池 5：燃料箱 6：弹药箱；7：屏幕，务必不要写错
+    public void addLinkedPeripheral(Vec3 pos, int type) { //0锛氭帹杩涘櫒 1锛氫富姝﹀櫒 2锛氭姢鐩?3锛氱偖濉?4锛氱數姹?5锛氱噧鏂欑 6锛氬脊鑽锛?锛氬睆骞曪紝鍔″繀涓嶈鍐欓敊
         Logger LOGGER = LogUtils.getLogger();
         if (type == 0 && !linkedThrusters.contains(pos)) {
             linkedThrusters.add(pos);
             LOGGER.warn("adding thruster to controlseat: " + pos);
-            setChanged(); // 标记方块实体脏了，强制保存
+            setChanged(); // 鏍囪鏂瑰潡瀹炰綋鑴忎簡锛屽己鍒朵繚瀛?
         }
         else if (type == 1 && !linkedWeapons.contains(pos)) {
             linkedWeapons.add(pos);
             LOGGER.warn("adding weapon to controlseat: " + pos);
-            setChanged(); // 标记方块实体脏了，强制保存
+            setChanged(); // 鏍囪鏂瑰潡瀹炰綋鑴忎簡锛屽己鍒朵繚瀛?
         }
         else if(type == 2 && !linkedShields.contains(pos)) {
             linkedShields.add(pos);
@@ -198,31 +198,31 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
     public void removeLinkedPeripheral(Vec3 pos, int type) {
         if (type==0 && linkedThrusters.contains(pos)) {
             linkedThrusters.remove(pos);
-            setChanged(); // 标记方块实体脏了，强制保存
+            setChanged(); // 鏍囪鏂瑰潡瀹炰綋鑴忎簡锛屽己鍒朵繚瀛?
         }
         else if (type==1 && linkedWeapons.contains(pos)) {
             linkedWeapons.remove(pos);
-            setChanged(); // 标记方块实体脏了，强制保存
+            setChanged(); // 鏍囪鏂瑰潡瀹炰綋鑴忎簡锛屽己鍒朵繚瀛?
         }
         else if (type==2 && linkedShields.contains(pos)) {
             linkedShields.remove(pos);
-            setChanged(); // 标记方块实体脏了，强制保存
+            setChanged(); // 鏍囪鏂瑰潡瀹炰綋鑴忎簡锛屽己鍒朵繚瀛?
         }
         else if (type==3 && linkedTurrets.contains(pos)) {
             linkedTurrets.remove(pos);
-            setChanged(); // 标记方块实体脏了，强制保存
+            setChanged(); // 鏍囪鏂瑰潡瀹炰綋鑴忎簡锛屽己鍒朵繚瀛?
         }
         else if (type==4 && linkedBatteries.contains(pos)) {
             linkedBatteries.remove(pos);
-            setChanged(); // 标记方块实体脏了，强制保存
+            setChanged(); // 鏍囪鏂瑰潡瀹炰綋鑴忎簡锛屽己鍒朵繚瀛?
         }
 
         else if (type==5 && linkedFuelTanks.contains(pos)) {
             linkedFuelTanks.remove(pos);
-            setChanged(); // 标记方块实体脏了，强制保存
+            setChanged(); // 鏍囪鏂瑰潡瀹炰綋鑴忎簡锛屽己鍒朵繚瀛?
         }
         else if (type==7 && linkedScreens.contains(pos)) {
-            // 功能：支持移除无效的屏幕绑定，避免控制椅保留脏链接。
+            // 鍔熻兘锛氭敮鎸佺Щ闄ゆ棤鏁堢殑灞忓箷缁戝畾锛岄伩鍏嶆帶鍒舵淇濈暀鑴忛摼鎺ャ€?
             linkedScreens.remove(pos);
             setChanged();
         }
@@ -248,7 +248,7 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
             linkedFuelTanks.forEach(action);
         }
         if(type==7) {
-            // 功能：提供屏幕外设遍历能力，用于每 tick 向屏幕同步雷达数据。
+            // 鍔熻兘锛氭彁渚涘睆骞曞璁鹃亶鍘嗚兘鍔涳紝鐢ㄤ簬姣?tick 鍚戝睆骞曞悓姝ラ浄杈炬暟鎹€?
             linkedScreens.forEach(action);
         }
     }
@@ -264,16 +264,16 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
     }
 
     public static String processSlug(String a, String b) {
-        // 匹配格式：开头是 [任意内容] + 后面任意字符
+        // 鍖归厤鏍煎紡锛氬紑澶存槸 [浠绘剰鍐呭] + 鍚庨潰浠绘剰瀛楃
         if (a != null && a.matches("^\\[.*?\\].*")) {
-            // 找到第一个 ] 的位置
+            // 鎵惧埌绗竴涓?] 鐨勪綅缃?
             int endIndex = a.indexOf(']');
             if (endIndex != -1) {
                 String suffix = a.substring(endIndex + 1);
                 return "[" + b + "]" + suffix;
             }
         }
-        // 不符合 [xxx]yyy 格式，或者 a 是 null
+        // 涓嶇鍚?[xxx]yyy 鏍煎紡锛屾垨鑰?a 鏄?null
         return "[" + b + "]" + a;
     }
 

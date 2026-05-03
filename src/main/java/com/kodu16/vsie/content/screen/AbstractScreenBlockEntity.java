@@ -22,7 +22,8 @@ import java.util.UUID;
 public abstract class AbstractScreenBlockEntity extends SmartBlockEntity implements GeoBlockEntity {
     private ItemStack renderStack = ItemStack.EMPTY;
     private String renderText = "Hello";
-    public int displaytype = 0;//0:雷达 1:服务器信息
+    private HolderLookup.Provider nbtRegistries;
+    public int displaytype = 0;//0:闆疯揪 1:鏈嶅姟鍣ㄤ俊鎭?
     public static SerializableDataTicket<Integer> SCREEN_SPIN_X;
     public static SerializableDataTicket<Integer> SCREEN_SPIN_Y;
     public static SerializableDataTicket<Integer> SCREEN_OFFSET_X;
@@ -40,30 +41,30 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
     public int tps = 0;
     public int phystps = 0;
 
-    // 功能：为 serverinfo 保存最近 20 次采样记录（每项都存归一化比例，便于客户端统一绘图）。
+    // 鍔熻兘锛氫负 serverinfo 淇濆瓨鏈€杩?20 娆￠噰鏍疯褰曪紙姣忛」閮藉瓨褰掍竴鍖栨瘮渚嬶紝渚夸簬瀹㈡埛绔粺涓€缁樺浘锛夈€?
     private static final int SERVERINFO_HISTORY_LIMIT = 20;
-    // 功能：控制采样频率，每 100 tick 记录一次。
+    // 鍔熻兘锛氭帶鍒堕噰鏍烽鐜囷紝姣?100 tick 璁板綍涓€娆°€?
     private static final int SERVERINFO_SAMPLE_INTERVAL = 100;
-    // 功能：记录已存储的样本数量（最大 20，仅客户端本地维护）。
+    // 鍔熻兘锛氳褰曞凡瀛樺偍鐨勬牱鏈暟閲忥紙鏈€澶?20锛屼粎瀹㈡埛绔湰鍦扮淮鎶わ級銆?
     private int serverInfoHistorySize = 0;
-    // 功能：服务端采样计数器（用于 100 tick 触发一次“最新样本”同步）。
+    // 鍔熻兘锛氭湇鍔＄閲囨牱璁℃暟鍣紙鐢ㄤ簬 100 tick 瑙﹀彂涓€娆♀€滄渶鏂版牱鏈€濆悓姝ワ級銆?
     private int serverInfoSampleTickCounter = 0;
-    // 功能：服务端最新样本序号；每产生一个新样本就 +1，并通过 NBT 同步到客户端。
+    // 鍔熻兘锛氭湇鍔＄鏈€鏂版牱鏈簭鍙凤紱姣忎骇鐢熶竴涓柊鏍锋湰灏?+1锛屽苟閫氳繃 NBT 鍚屾鍒板鎴风銆?
     private int serverInfoSampleSequence = 0;
-    // 功能：客户端已消费的最新样本序号；用于确保“每次同步只入队一次历史”。
+    // 鍔熻兘锛氬鎴风宸叉秷璐圭殑鏈€鏂版牱鏈簭鍙凤紱鐢ㄤ簬纭繚鈥滄瘡娆″悓姝ュ彧鍏ラ槦涓€娆″巻鍙测€濄€?
     private int clientConsumedSampleSequence = -1;
-    // 功能：TPS 历史（归一化到 0~1，最大值按 20 计算）。
+    // 鍔熻兘锛歍PS 鍘嗗彶锛堝綊涓€鍖栧埌 0~1锛屾渶澶у€兼寜 20 璁＄畻锛夈€?
     private final float[] tpsHistory = new float[SERVERINFO_HISTORY_LIMIT];
-    // 功能：PhysTPS 历史（归一化到 0~1，最大值按 60 计算）。
+    // 鍔熻兘锛歅hysTPS 鍘嗗彶锛堝綊涓€鍖栧埌 0~1锛屾渶澶у€兼寜 60 璁＄畻锛夈€?
     private final float[] physTpsHistory = new float[SERVERINFO_HISTORY_LIMIT];
-    // 功能：服务器内存占用率历史（0~1）。
+    // 鍔熻兘锛氭湇鍔″櫒鍐呭瓨鍗犵敤鐜囧巻鍙诧紙0~1锛夈€?
     private final float[] serverMemoryHistory = new float[SERVERINFO_HISTORY_LIMIT];
-    // 功能：客户端内存占用率历史（0~1）。
+    // 鍔熻兘锛氬鎴风鍐呭瓨鍗犵敤鐜囧巻鍙诧紙0~1锛夈€?
     private final float[] clientMemoryHistory = new float[SERVERINFO_HISTORY_LIMIT];
 
-    // 功能：雷达屏幕绑定的控制椅玩家 UUID，用于客户端反查对应玩家的 ClientData。
+    // 鍔熻兘锛氶浄杈惧睆骞曠粦瀹氱殑鎺у埗妞呯帺瀹?UUID锛岀敤浜庡鎴风鍙嶆煡瀵瑰簲鐜╁鐨?ClientData銆?
     private UUID radarPlayerUuid;
-    // 功能：缓存控制椅世界坐标，供客户端将周围船只投影到屏幕雷达上。
+    // 鍔熻兘锛氱紦瀛樻帶鍒舵涓栫晫鍧愭爣锛屼緵瀹㈡埛绔皢鍛ㄥ洿鑸瑰彧鎶曞奖鍒板睆骞曢浄杈句笂銆?
     private Vector3d radarControlSeatWorldPos = new Vector3d();
 
 
@@ -82,28 +83,28 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
         this.displaytype = type;
     }
 
-    // 功能：读取当前雷达绑定玩家 UUID。
+    // 鍔熻兘锛氳鍙栧綋鍓嶉浄杈剧粦瀹氱帺瀹?UUID銆?
     public UUID getRadarPlayerUuid() {
         return radarPlayerUuid;
     }
 
-    // 功能：写入当前雷达绑定玩家 UUID，并触发方块实体同步。
+    // 鍔熻兘锛氬啓鍏ュ綋鍓嶉浄杈剧粦瀹氱帺瀹?UUID锛屽苟瑙﹀彂鏂瑰潡瀹炰綋鍚屾銆?
     public void setRadarPlayerUuid(UUID radarPlayerUuid) {
         this.radarPlayerUuid = radarPlayerUuid;
         setChanged();
     }
 
-    // 功能：检查雷达是否已经绑定玩家。
+    // 鍔熻兘锛氭鏌ラ浄杈炬槸鍚﹀凡缁忕粦瀹氱帺瀹躲€?
     public boolean hasRadarPlayer() {
         return radarPlayerUuid != null;
     }
 
-    // 功能：读取控制椅的世界坐标缓存。
+    // 鍔熻兘锛氳鍙栨帶鍒舵鐨勪笘鐣屽潗鏍囩紦瀛樸€?
     public Vector3d getRadarControlSeatWorldPos() {
         return new Vector3d(radarControlSeatWorldPos);
     }
 
-    // 功能：更新控制椅世界坐标缓存，并触发方块实体同步。
+    // 鍔熻兘锛氭洿鏂版帶鍒舵涓栫晫鍧愭爣缂撳瓨锛屽苟瑙﹀彂鏂瑰潡瀹炰綋鍚屾銆?
     public void setRadarControlSeatWorldPos(Vector3d worldPos) {
         this.radarControlSeatWorldPos = new Vector3d(worldPos);
         setChanged();
@@ -117,7 +118,7 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
                 long[] JVMc = ServerInfoGetter.getJVM();
                 this.clientJVMpercentage = (float) JVMc[0] /JVMc[1];
 
-                // 功能：客户端检测到服务端“新样本序号”后，将最新样本推入本地 20 条历史并删除最旧数据。
+                // 鍔熻兘锛氬鎴风妫€娴嬪埌鏈嶅姟绔€滄柊鏍锋湰搴忓彿鈥濆悗锛屽皢鏈€鏂版牱鏈帹鍏ユ湰鍦?20 鏉″巻鍙插苟鍒犻櫎鏈€鏃ф暟鎹€?
                 if (this.clientConsumedSampleSequence != this.serverInfoSampleSequence) {
                     this.clientConsumedSampleSequence = this.serverInfoSampleSequence;
                     pushServerInfoHistory(
@@ -135,7 +136,7 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
 
                 this.tps = (int) ServerInfoGetter.getServerTPS(this.level);
 
-                // 功能：服务端每 100 tick 仅同步“一个最新样本”，避免每次都传整段历史 NBT。
+                // 鍔熻兘锛氭湇鍔＄姣?100 tick 浠呭悓姝モ€滀竴涓渶鏂版牱鏈€濓紝閬垮厤姣忔閮戒紶鏁存鍘嗗彶 NBT銆?
                 this.serverInfoSampleTickCounter++;
                 if (this.serverInfoSampleTickCounter >= SERVERINFO_SAMPLE_INTERVAL) {
                     this.serverInfoSampleTickCounter = 0;
@@ -146,7 +147,7 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
         }
     }
 
-    // 功能：向历史数组追加一条记录；满 20 条后左移一格，始终保留最新 20 条。
+    // 鍔熻兘锛氬悜鍘嗗彶鏁扮粍杩藉姞涓€鏉¤褰曪紱婊?20 鏉″悗宸︾Щ涓€鏍硷紝濮嬬粓淇濈暀鏈€鏂?20 鏉°€?
     private void pushServerInfoHistory(float tpsRatio, float physTpsRatio, float serverMemoryRatio, float clientMemoryRatio) {
         if (serverInfoHistorySize < SERVERINFO_HISTORY_LIMIT) {
             int idx = serverInfoHistorySize++;
@@ -169,38 +170,38 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
         clientMemoryHistory[last] = clientMemoryRatio;
     }
 
-    // 功能：对外提供历史数据长度，供渲染层按有效样本数量绘制。
+    // 鍔熻兘锛氬澶栨彁渚涘巻鍙叉暟鎹暱搴︼紝渚涙覆鏌撳眰鎸夋湁鏁堟牱鏈暟閲忕粯鍒躲€?
     public int getServerInfoHistorySize() {
         return serverInfoHistorySize;
     }
 
-    // 功能：对外提供 TPS 历史比例数组。
+    // 鍔熻兘锛氬澶栨彁渚?TPS 鍘嗗彶姣斾緥鏁扮粍銆?
     public float[] getTpsHistory() {
         return tpsHistory;
     }
 
-    // 功能：对外提供 PhysTPS 历史比例数组。
+    // 鍔熻兘锛氬澶栨彁渚?PhysTPS 鍘嗗彶姣斾緥鏁扮粍銆?
     public float[] getPhysTpsHistory() {
         return physTpsHistory;
     }
 
-    // 功能：对外提供服务器内存历史比例数组。
+    // 鍔熻兘锛氬澶栨彁渚涙湇鍔″櫒鍐呭瓨鍘嗗彶姣斾緥鏁扮粍銆?
     public float[] getServerMemoryHistory() {
         return serverMemoryHistory;
     }
 
-    // 功能：对外提供客户端内存历史比例数组。
+    // 鍔熻兘锛氬澶栨彁渚涘鎴风鍐呭瓨鍘嗗彶姣斾緥鏁扮粍銆?
     public float[] getClientMemoryHistory() {
         return clientMemoryHistory;
     }
 
-    // 功能：将浮点值限制在 0~1，避免采样异常导致绘制越界。
+    // 鍔熻兘锛氬皢娴偣鍊奸檺鍒跺湪 0~1锛岄伩鍏嶉噰鏍峰紓甯稿鑷寸粯鍒惰秺鐣屻€?
     private static float clamp01(float value) {
         if (value < 0f) return 0f;
         return Math.min(value, 1f);
     }
 
-    // 更新数据时同步到客户端
+    // 鏇存柊鏁版嵁鏃跺悓姝ュ埌瀹㈡埛绔?
     @Override
     public void setChanged() {
         super.setChanged();
@@ -222,10 +223,24 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
         this.offsetz = offsetz;
     }
 
+    private HolderLookup.Provider currentNbtRegistries() {
+        return nbtRegistries != null ? nbtRegistries : this.level.registryAccess();
+    }
+
+    private void withNbtRegistries(HolderLookup.Provider registries, Runnable action) {
+        HolderLookup.Provider previous = this.nbtRegistries;
+        this.nbtRegistries = registries;
+        try {
+            action.run();
+        } finally {
+            this.nbtRegistries = previous;
+        }
+    }
+
     @Override
     public void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientpacket) {
         super.write(tag, registries, clientpacket);
-        // 保存数据到 NBT
+        // 淇濆瓨鏁版嵁鍒?NBT
         tag.put("RenderStack", renderStack.saveOptional(registries));
         tag.putString("RenderText", renderText);
         tag.putInt("type", displaytype);
@@ -238,13 +253,13 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
         tag.putFloat("serverjvm",serverJVMpercentage);
         tag.putInt("tps",tps);
         tag.putInt("phystps",phystps);
-        // 功能：仅同步最新样本序号，让客户端基于该序号在本地维护 20 条历史滑窗。
+        // 鍔熻兘锛氫粎鍚屾鏈€鏂版牱鏈簭鍙凤紝璁╁鎴风鍩轰簬璇ュ簭鍙峰湪鏈湴缁存姢 20 鏉″巻鍙叉粦绐椼€?
         tag.putInt("serverInfoSampleSequence", serverInfoSampleSequence);
-        // 功能：持久化雷达绑定玩家信息。
+        // 鍔熻兘锛氭寔涔呭寲闆疯揪缁戝畾鐜╁淇℃伅銆?
         if (radarPlayerUuid != null) {
             tag.putUUID("RadarPlayerUuid", radarPlayerUuid);
         }
-        // 功能：持久化雷达用的控制椅世界坐标。
+        // 鍔熻兘锛氭寔涔呭寲闆疯揪鐢ㄧ殑鎺у埗妞呬笘鐣屽潗鏍囥€?
         tag.putDouble("RadarSeatWorldX", radarControlSeatWorldPos.x);
         tag.putDouble("RadarSeatWorldY", radarControlSeatWorldPos.y);
         tag.putDouble("RadarSeatWorldZ", radarControlSeatWorldPos.z);
@@ -262,7 +277,7 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
         if(tag.contains("type")) {
             displaytype = tag.getInt("type");
         }
-        if(tag.contains("spinx") && tag.contains("spiny") && tag.contains("offsetx") && tag.contains("offfsety") && tag.contains("offsetz")) {
+        if(tag.contains("spinx") && tag.contains("spiny") && tag.contains("offsetx") && tag.contains("offsety") && tag.contains("offsetz")) {
             this.spinx = tag.getInt("spinx");
             this.spiny = tag.getInt("spiny");
             this.offsetx = tag.getInt("offsetx");
@@ -272,18 +287,18 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
         }
 
         if(tag.contains("serverjvm")) {this.serverJVMpercentage = tag.getFloat("serverjvm");}
-        // 功能：从同步数据恢复 TPS，供 screentype=1 的文字层显示。
+        // 鍔熻兘锛氫粠鍚屾鏁版嵁鎭㈠ TPS锛屼緵 screentype=1 鐨勬枃瀛楀眰鏄剧ず銆?
         if(tag.contains("tps")) {this.tps = tag.getInt("tps");}
-        // 功能：从同步数据恢复 PhysTPS，供 screentype=1 的文字层显示。
+        // 鍔熻兘锛氫粠鍚屾鏁版嵁鎭㈠ PhysTPS锛屼緵 screentype=1 鐨勬枃瀛楀眰鏄剧ず銆?
         if(tag.contains("phystps")) {this.phystps = tag.getInt("phystps");}
-        // 功能：接收服务端最新样本序号；客户端会在 tick 中将其转成本地历史点。
+        // 鍔熻兘锛氭帴鏀舵湇鍔＄鏈€鏂版牱鏈簭鍙凤紱瀹㈡埛绔細鍦?tick 涓皢鍏惰浆鎴愭湰鍦板巻鍙茬偣銆?
         if (tag.contains("serverInfoSampleSequence")) {
             this.serverInfoSampleSequence = tag.getInt("serverInfoSampleSequence");
         }
 
-        // 功能：读取雷达绑定玩家 UUID。
+        // 鍔熻兘锛氳鍙栭浄杈剧粦瀹氱帺瀹?UUID銆?
         radarPlayerUuid = tag.hasUUID("RadarPlayerUuid") ? tag.getUUID("RadarPlayerUuid") : null;
-        // 功能：读取雷达用控制椅世界坐标。
+        // 鍔熻兘锛氳鍙栭浄杈剧敤鎺у埗妞呬笘鐣屽潗鏍囥€?
         radarControlSeatWorldPos = new Vector3d(
                 tag.getDouble("RadarSeatWorldX"),
                 tag.getDouble("RadarSeatWorldY"),
@@ -306,7 +321,7 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
 
     @Override
     public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
-        read(tag, registries, true);
+        withNbtRegistries(registries, () -> read(tag, registries, true));
     }
 
     @Override

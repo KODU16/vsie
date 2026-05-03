@@ -21,15 +21,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 import org.joml.Vector3d;
 import org.joml.Vector4f;
 import org.slf4j.Logger;
-import org.valkyrienskies.core.api.ships.LoadedShip;
-import org.valkyrienskies.core.api.ships.properties.ShipTransform;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import software.bernie.geckolib.animation.AnimatableManager;
 
 import javax.annotation.Nonnull;
@@ -40,15 +34,16 @@ public class MediumLaserTurretBlockEntity extends AbstractTurretBlockEntity {
         super(typeIn, pos, state);
     }
 
+
     @Override
     public void addBehaviours(List<BlockEntityBehaviour> list) {
 
     }
 
     private float raycastDistance = 0.0f;//注意，这就是最重要的核心的raycast距离
-    @OnlyIn(Dist.CLIENT)
 
-    public Vector3d getShootLocation(Vector3d vec, List<Vector3d> preV, Level lv, Vector3d pos) {
+    @Override
+    public Vec3 getShootLocation(Vec3 vec, List<Vector3d> preV, Level lv, Vec3 pos) {
         return vec;
     }
 

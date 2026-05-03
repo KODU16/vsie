@@ -5,10 +5,10 @@ import java.util.Optional;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraftforge.registries.ForgeRegistries;
 
 public record ThrusterFuelDefinition (
         ResourceLocation fluidId,
@@ -26,7 +26,6 @@ public record ThrusterFuelDefinition (
 
 
     public Fluid getFluid() {
-        Fluid fluid = ForgeRegistries.FLUIDS.getValue(this.fluidId);
-        return fluid == null ? Fluids.EMPTY : fluid;
+        return BuiltInRegistries.FLUID.getOptional(this.fluidId).orElse(Fluids.EMPTY);
     }
 }

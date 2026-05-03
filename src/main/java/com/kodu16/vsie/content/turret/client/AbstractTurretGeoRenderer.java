@@ -31,17 +31,6 @@ public class AbstractTurretGeoRenderer extends GeoBlockRenderer<AbstractTurretBl
         // 注册 Layer！这是关键，不会触发任何 override
         this.addRenderLayer(new TurretLaserLayer(this));
     }
-    @Override
-    public void preRender(PoseStack poseStack, AbstractTurretBlockEntity animatable, BakedGeoModel model, MultiBufferSource bufferSource, VertexConsumer buffer, boolean isReRender, float partialTick, int packedLight, int packedOverlay, float red, float green, float blue,
-                          float alpha) {
-        super.preRender(poseStack,animatable,model,bufferSource,buffer,isReRender,partialTick,packedLight,packedOverlay,red,green,blue,alpha);
-        Optional<GeoBone> bone = model.getBone("cannonend");
-        if(bone.isPresent()){
-            GeoBone cannonend = bone.get();
-            Vector3d cannonpos = cannonend.getLocalPosition();
-            ModNetworking.sendToServer(new TurretFirePointC2SPacket(animatable.getBlockPos(), cannonpos));
-        }
-    }
 
     @Override
     protected void rotateBlock(Direction facing, PoseStack poseStack) {

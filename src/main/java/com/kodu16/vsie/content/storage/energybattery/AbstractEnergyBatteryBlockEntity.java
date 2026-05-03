@@ -42,10 +42,10 @@ public abstract class AbstractEnergyBatteryBlockEntity extends SmartBlockEntity 
     public abstract String getEnergyBatterytype();
 
     private final EnergyStorage energyStorage = new EnergyStorage(
-            getcapacity(),    // 最大容量 (capacity)
-            Integer.MAX_VALUE,      // 最大接收速率 (max receive)   可以设 Integer.MAX_VALUE 如果想无限制
-            Integer.MAX_VALUE,      // 最大输出速率 (max extract)
-            0         // 初始能量
+            getcapacity(),    // 鏈€澶у閲?(capacity)
+            Integer.MAX_VALUE,      // 鏈€澶ф帴鏀堕€熺巼 (max receive)   鍙互璁?Integer.MAX_VALUE 濡傛灉鎯虫棤闄愬埗
+            Integer.MAX_VALUE,      // 鏈€澶ц緭鍑洪€熺巼 (max extract)
+            0         // 鍒濆鑳介噺
     );
 
     public void tick() {
@@ -56,21 +56,21 @@ public abstract class AbstractEnergyBatteryBlockEntity extends SmartBlockEntity 
         this.linkedcontrolseatpos = pos;
     }
 
-    // 功能：提供给 NeoForge 1.21.1 capability 注册器的 FE 储能接口实例。
+    // 鍔熻兘锛氭彁渚涚粰 NeoForge 1.21.1 capability 娉ㄥ唽鍣ㄧ殑 FE 鍌ㄨ兘鎺ュ彛瀹炰緥銆?
     public IEnergyStorage getEnergyCapability() {
         return energyStorage;
     }
 
     @Override
-    protected void write(CompoundTag tag, boolean clientpacket) {
-        super.write(tag, clientpacket);
+    protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientpacket) {
+        super.write(tag, registries, clientpacket);
         tag.putInt("Energy", getEnergy().getEnergyStored());
         writeVec3(tag, "controlpos", linkedcontrolseatpos);
     }
 
     @Override
-    public void read(CompoundTag tag, boolean clientpacket) {
-        super.read(tag, clientpacket);
+    public void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientpacket) {
+        super.read(tag, registries, clientpacket);
         if (tag.contains("Energy")) {
             energyStorage.receiveEnergy(tag.getInt("Energy"), false);
         }
@@ -92,15 +92,15 @@ public abstract class AbstractEnergyBatteryBlockEntity extends SmartBlockEntity 
 
     @Override
     public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
-        read(tag, true);
+        read(tag, registries, true);
     }
 
-    // 方便外部直接调用（例如 tick、GUI、Waila 等）
+    // 鏂逛究澶栭儴鐩存帴璋冪敤锛堜緥濡?tick銆丟UI銆乄aila 绛夛級
     public EnergyStorage getEnergyStorage() {
         return energyStorage;
     }
 
-    // 或直接返回 IEnergyStorage 接口
+    // 鎴栫洿鎺ヨ繑鍥?IEnergyStorage 鎺ュ彛
     public IEnergyStorage getEnergy() {
         return energyStorage;
     }
@@ -114,7 +114,7 @@ public abstract class AbstractEnergyBatteryBlockEntity extends SmartBlockEntity 
     }
 
     private void readVec3(CompoundTag nbt, String key) {
-        if (nbt.contains(key, Tag.TAG_COMPOUND)) {   // 改成 TAG_COMPOUND 更准确
+        if (nbt.contains(key, Tag.TAG_COMPOUND)) {   // 鏀规垚 TAG_COMPOUND 鏇村噯纭?
             CompoundTag vecTag = nbt.getCompound(key);
             int x = vecTag.getInt("x");
             int y = vecTag.getInt("y");

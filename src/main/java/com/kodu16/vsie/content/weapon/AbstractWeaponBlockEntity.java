@@ -1,10 +1,12 @@
 package com.kodu16.vsie.content.weapon;
 
 import com.kodu16.vsie.content.weapon.server.WeaponContainerMenu;
+import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Direction;
@@ -24,14 +26,11 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.slf4j.Logger;
-import org.valkyrienskies.core.api.ships.LoadedShip;
-import org.valkyrienskies.core.api.ships.ServerShip;
-import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
@@ -46,9 +45,9 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
 
     //variables
     private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
-    public WeaponData weaponData;//注意这个data不存固有属性比如射速射程，只存频道之类的
-    public boolean hasInitialized;//防止莫名其妙的重置导致变砖
-    private float raycastDistance = 513.0f;//武器的raycast和推进器不太一样，武器是射线检测目标的距离，如果是射弹武器也检测，但不会利用
+    public WeaponData weaponData;//娉ㄦ剰杩欎釜data涓嶅瓨鍥烘湁灞炴€ф瘮濡傚皠閫熷皠绋嬶紝鍙瓨棰戦亾涔嬬被鐨?
+    public boolean hasInitialized;//闃叉鑾悕鍏跺鐨勯噸缃鑷村彉鐮?
+    private float raycastDistance = 513.0f;//姝﹀櫒鐨剅aycast鍜屾帹杩涘櫒涓嶅お涓€鏍凤紝姝﹀櫒鏄皠绾挎娴嬬洰鏍囩殑璺濈锛屽鏋滄槸灏勫脊姝﹀櫒涔熸娴嬶紝浣嗕笉浼氬埄鐢?
     public Vec3 targetpos = new Vec3(0,0,0);
     public Vec3 weaponpos;
     public int currentTick = -1;
@@ -63,8 +62,8 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
     }
 
 
-    public abstract float getmaxrange(); //获取最大射程
-    public abstract int getcooldown(); //每两次射击间最小间隔的tick数
+    public abstract float getmaxrange(); //鑾峰彇鏈€澶у皠绋?
+    public abstract int getcooldown(); //姣忎袱娆″皠鍑婚棿鏈€灏忛棿闅旂殑tick鏁?
 
     public String getweapontype() {
         return null;
@@ -100,9 +99,9 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
             currentTick = 0;
             getData().isfiring = true;
             BlockPos pos = this.getBlockPos();
-            boolean onShip = VSGameUtilsKt.isBlockInShipyard(level, pos);
-            if (onShip) {
-                weaponpos = VSGameUtilsKt.toWorldCoordinates(level, pos);
+            SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level,pos);;
+            if (subLevel!=null) {
+                weaponpos = subLevel.logicalPose().transformPosition(new Vec3(pos.getX(),pos.getY(),pos.getZ()));
                 fire();
             }
         }
@@ -121,13 +120,13 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         getData().receivingchannel = encode;
     }
 
-    public void receivetarget(Ship ship) {
-        getData().targetship = ship;
+    public void receivetarget(SubLevel subLevel) {
+        getData().targetship = subLevel;
     }
 
     public void modifychannel(int type) {
         if (level == null || level.isClientSide) {
-            return; // 客户端完全不许改！
+            return; // 瀹㈡埛绔畬鍏ㄤ笉璁告敼锛?
         }
         WeaponData data = getData();
         if(type==1){
@@ -203,23 +202,23 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         Vec3 worldFrom = raycastPositions.getFirst();
         Vec3 worldTo = raycastPositions.getSecond();
 
-        // 默认使用最大射程：当射线没有命中任何方块时，激光会显示为武器的最大长度。
+        // 榛樿浣跨敤鏈€澶у皠绋嬶細褰撳皠绾挎病鏈夊懡涓换浣曟柟鍧楁椂锛屾縺鍏変細鏄剧ず涓烘鍣ㄧ殑鏈€澶ч暱搴︺€?
         this.raycastDistance = effectiveMaxDistance;
-        // 默认目标点设置为最大射程末端，便于保持客户端/服务端状态一致。
+        // 榛樿鐩爣鐐硅缃负鏈€澶у皠绋嬫湯绔紝渚夸簬淇濇寔瀹㈡埛绔?鏈嶅姟绔姸鎬佷竴鑷淬€?
         this.targetpos = worldTo;
 
         // Perform raycast using world coordinates
         ClipContext.Fluid clipFluid = ClipContext.Fluid.ANY;
-        ClipContext context = new ClipContext(worldFrom, worldTo, ClipContext.Block.COLLIDER, clipFluid, null);
+        ClipContext context = new ClipContext(worldFrom, worldTo, ClipContext.Block.COLLIDER, clipFluid, CollisionContext.empty());
         BlockHitResult hit = level.clip(context);
 
         if (hit.getType() == HitResult.Type.BLOCK) {
             Vec3 hitPos = hit.getLocation();
 
-            // 命中方块时，激光长度严格使用“武器位置 -> 命中位置”的实际距离。
+            // 鍛戒腑鏂瑰潡鏃讹紝婵€鍏夐暱搴︿弗鏍间娇鐢ㄢ€滄鍣ㄤ綅缃?-> 鍛戒腑浣嶇疆鈥濈殑瀹為檯璺濈銆?
             float distance = (float)worldFrom.distanceTo(hitPos);
             this.raycastDistance = Math.min(distance, effectiveMaxDistance);
-            // 命中后将目标点改为真实命中点，用于后续爆炸等逻辑。
+            // 鍛戒腑鍚庡皢鐩爣鐐规敼涓虹湡瀹炲懡涓偣锛岀敤浜庡悗缁垎鐐哥瓑閫昏緫銆?
             this.targetpos = hitPos;
             LogUtils.getLogger().warn("raycast pose from clip:"+this.targetpos);
         }
@@ -235,24 +234,15 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         Vec3 localFromCenter = Vec3.atLowerCornerWithOffset(worldPosition, 0.5, 0.5, 0.5);
         Vec3 localDisplacement = localDirectionVector.scale(maxRaycastDistance);
 
-        Vec3 worldFrom;
+        Vec3 worldFrom = new Vec3(0,0,0);
         Vec3 worldDisplacement;
 
-        boolean onShip = VSGameUtilsKt.isBlockInShipyard(level, localBlockPos);
-
-        if (onShip) {
-            LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, localBlockPos);
-            if (ship != null) {
-                worldFrom = VSGameUtilsKt.toWorldCoordinates(ship, localFromCenter);
-
-                Quaterniondc shipRotation = ship.getTransform().getShipToWorldRotation();
-                Vector3d rotatedDisplacementJOML = new Vector3d();
-                shipRotation.transform(localDisplacement.x, localDisplacement.y, localDisplacement.z, rotatedDisplacementJOML);
-                worldDisplacement = new Vec3(rotatedDisplacementJOML.x, rotatedDisplacementJOML.y, rotatedDisplacementJOML.z);
-            } else {
-                worldFrom = localFromCenter;
-                worldDisplacement = localDisplacement;
-            }
+        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level,this.getBlockPos());;
+        if (subLevel!=null) {
+            Quaterniondc shipRotation = subLevel.logicalPose().orientation();
+            Vector3d rotatedDisplacementJOML = new Vector3d();
+            shipRotation.transform(localDisplacement.x, localDisplacement.y, localDisplacement.z, rotatedDisplacementJOML);
+            worldDisplacement = new Vec3(rotatedDisplacementJOML.x, rotatedDisplacementJOML.y, rotatedDisplacementJOML.z);
         } else {
             worldFrom = localFromCenter;
             worldDisplacement = localDisplacement;
@@ -264,8 +254,8 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
 
     public Vec3 getWeaponPos() {
         BlockPos pos = this.getBlockPos();
-        LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos);
-        if(ship!=null) {return VSGameUtilsKt.toWorldCoordinates(level, pos);}
+        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level,pos);;
+        if(subLevel!=null) {return subLevel.logicalPose().transformPosition(new Vec3(pos.getX(), pos.getY(), pos.getZ()));}
         else {return new Vec3(pos.getX(),pos.getY(), pos.getZ());}
     }
 
@@ -335,7 +325,7 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         if (this.weaponData == null) {
             this.weaponData = new WeaponData();
         }
-        // 功能：适配 1.21.1 NeoForge 的 NBT 类型检查常量，使用 Tag.TAG_FLOAT 读取浮点射线距离。
+        // 鍔熻兘锛氶€傞厤 1.21.1 NeoForge 鐨?NBT 绫诲瀷妫€鏌ュ父閲忥紝浣跨敤 Tag.TAG_FLOAT 璇诲彇娴偣灏勭嚎璺濈銆?
         if (tag.contains("raycastDistance", Tag.TAG_FLOAT)) {this.raycastDistance = tag.getFloat("raycastDistance");}
         if(tag.contains("target_x") && tag.contains("target_y") && tag.contains("target_z")) {this.targetpos = new Vec3(tag.getDouble("target_x"), tag.getDouble("target_y"), tag.getDouble("target_z"));}
         if (tag.contains("channel1")) {weaponData.setChannel1(tag.getBoolean("channel1"));}
