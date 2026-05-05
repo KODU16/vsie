@@ -27,8 +27,8 @@ public final class ServerShipUtils {
      */
     public static void applyWorldForceAndTorqueAtCenterOfMass(
             ServerSubLevel subLevel,
-            Vector3dc worldForce,
-            Vector3dc worldTorque
+            Vector3dc worldImpulse,
+            Vector3dc worldTorqueImpulse
     ) {
         MassData massData = subLevel.getMassTracker();
 
@@ -39,8 +39,8 @@ public final class ServerShipUtils {
         // world frame -> sublevel local frame
         // 这里只做 orientation inverse，不建议用 transformNormalInverse，
         // 因为 transformNormalInverse 会受 scale 影响，可能改变力的大小。
-        Vector3d localForce = new Vector3d(worldForce);
-        Vector3d localTorque = new Vector3d(worldTorque);
+        Vector3d localForce = new Vector3d(worldImpulse);
+        Vector3d localTorque = new Vector3d(worldTorqueImpulse);
 
         subLevel.logicalPose().orientation().transformInverse(localForce);
         subLevel.logicalPose().orientation().transformInverse(localTorque);

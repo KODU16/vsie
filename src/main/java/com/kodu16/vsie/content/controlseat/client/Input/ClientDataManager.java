@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+@SuppressWarnings("removal")
 public class ClientDataManager {
     // 我必须搞个初始化
     // 存储每个玩家的 ClientData

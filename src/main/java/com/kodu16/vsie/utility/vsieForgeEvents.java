@@ -22,6 +22,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 
 // 功能：在 NeoForge 1.21.1 的 GAME 总线上处理资源重载与玩家登录同步事件。
+@SuppressWarnings("removal")
 @EventBusSubscriber(modid = vsie.ID, bus = EventBusSubscriber.Bus.GAME)
 public class vsieForgeEvents {
 

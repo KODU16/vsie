@@ -18,7 +18,6 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.common.NeoForge;
 import org.joml.*;
 import org.slf4j.Logger;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
@@ -183,7 +182,6 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
             BlockState state = level.getBlockState(pos);
             Initialize.initialize(level, pos, state);
             // 鍔熻兘锛氳縼绉诲埌 NeoForge 1.21.1 鍚庯紝鏀逛负鍚?NeoForge GAME 浜嬩欢鎬荤嚎娉ㄥ唽褰撳墠鎺ㄨ繘鍣ㄧ洃鍚櫒銆?
-            NeoForge.EVENT_BUS.register(this);
             hasInitialized = true;
             LOGGER.warn(String.valueOf(Component.literal("thruster Initialize complete:"+pos)));
         }

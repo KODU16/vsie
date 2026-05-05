@@ -7,15 +7,15 @@ import com.kodu16.vsie.content.warpprojectile.WarpProjecTileEntity;
 import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.foundation.Vec;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatInputS2CPacket;
+import com.kodu16.vsie.network.controlseat.S2C.ControlSeatS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatStatusS2CPacket;
-import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
 import dev.ryanhcode.sable.api.physics.mass.MassData;
+import dev.ryanhcode.sable.physics.config.dimension_physics.DimensionPhysicsData;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix3dc;
-import org.joml.Quaterniondc;
 import com.kodu16.vsie.registries.vsieEntities;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
@@ -35,6 +35,14 @@ import javax.annotation.Nullable;
 
 
 public class ServerShipHandler {
+    private static final double FLIGHT_ASSIST_LINEAR_DAMPING = 4.0D;
+    private static final double FLIGHT_ASSIST_ANGULAR_DAMPING = 8.0D;
+    private static final double ANTI_GRAVITY_VERTICAL_DAMPING = 12.0D;
+    private static final double CONTROL_FORCE_SCALE = 3.0D;
+    private static final double CONTROL_TORQUE_SCALE = 2.0D;
+    private static final double CONTROL_INPUT_RESPONSE = 14.0D;
+    private static final double THROTTLE_INPUT_RESPONSE = 8.0D;
+    private static final double AXIS_EPSILON = 1.0E-8D;
     // 鍔熻兘锛氬綋鎺у埗妞呭墠鍚戜笌 warp 鐩爣澶硅灏忎簬 1 搴︽椂锛岃涓哄凡瀹屾垚鑷姩瀵瑰噯骞惰Е鍙?warp projectile銆?
     private static final double WARP_ALIGNMENT_THRESHOLD_DEGREES = 1.0D;
     // 鍔熻兘锛歸arp projectile 鍥哄畾浠?1 鏍?tick 椋炶锛屽搴旂敤鎴疯姹傜殑璺冭縼鐗规晥閫熷害銆?
@@ -47,6 +55,14 @@ public class ServerShipHandler {
     public ServerShipHandler(ControlSeatServerData data){
         this.data = data;
     }
+
+    public void resetControlInput() {
+        smoothedControlTorque.set(0.0D, 0.0D, 0.0D);
+        smoothedThrottle = 0.0D;
+        data.setFinaltorque(new Vector3d());
+        data.setFinalforce(new Vector3d());
+    }
+
     private long lastSendMs = 0;
     private long lastSendStatusMs = 0;
     private long lastSendInputMs = 0;
@@ -55,6 +71,8 @@ public class ServerShipHandler {
     private volatile Vec3 worldXDirection;
     private volatile Vec3 worldYDirection;
     private volatile Vec3 worldZDirection;
+    private final Vector3d smoothedControlTorque = new Vector3d();
+    private double smoothedThrottle = 0.0D;
     //杩檅yd寰堝彲鑳藉氨鏄娲讳笉鍙戝寘鐨勫師鍥?
     public void getandsendshipdata(ServerSubLevel subLevel,BlockPos pos) {
         if (data.getDirectionForward() == null || data.getDirectionUp() == null || data.getDirectionRight() == null) {
@@ -69,6 +87,17 @@ public class ServerShipHandler {
         if (data.getPlayer() != null) {
             if (now - lastSendMs > 50) {//蹇寘
                 lastSendMs = now;
+                ControlSeatS2CPacket packet = new ControlSeatS2CPacket(
+                        pos,
+                        Vec.toVector3d(ForwardDirection),
+                        Vec.toVector3d(UpDirection),
+                        data.enemy,
+                        data.ally,
+                        "",
+                        data.getThrottle(),
+                        data.isviewlocked
+                );
+                ModNetworking.sendToPlayer(packet, (ServerPlayer) data.getPlayer());
             }
 
             if(now - lastSendStatusMs > 250) {//鐘舵€佸寘锛堟參鍖卭ut锛?
@@ -92,10 +121,11 @@ public class ServerShipHandler {
         }
     }
 
-    public void applyForceAndTorque(ServerSubLevel subLevel,BlockPos pos) {
+    public void applyForceAndTorque(ServerSubLevel subLevel, BlockPos pos, double timeStep) {
         // 鍔熻兘锛氭瘡 tick 鍏堟鏌ユ槸鍚﹀埌浜嗗欢杩熻穬杩佽Е鍙戞椂闂达紝纭繚寮逛綋瀵垮懡缁撴潫鍚庤兘鑷姩鎵ц teleportship銆?
         processPendingWarpTeleport(subLevel);
         if (data.getDirectionForward() == null || data.getDirectionUp() == null || data.getDirectionRight() == null) {
+            resetControlInput();
             return;
         }
 
@@ -104,6 +134,7 @@ public class ServerShipHandler {
         // 1. 鐜╁涓虹┖鎴栧凡缁忔浜嗭紝鐩存帴鍟ラ兘涓嶅共
         if (player == null || !player.isAlive() || player.isRemoved()) {
             data.reset();
+            resetControlInput();
             controlling = false;
         }
         // 2. 鐜╁褰撳墠涔樺潗鐨勫疄浣撲负绌猴紝鎴栬€呬笉鏄?VS2 鐨勮埞鎸傝浇瀹炰綋
@@ -113,6 +144,7 @@ public class ServerShipHandler {
         }
         if (!(vehicle instanceof ControlSeatMountEntity)) {
             data.reset();
+            resetControlInput();
             controlling = false;
         }
 
@@ -130,9 +162,9 @@ public class ServerShipHandler {
         Matrix3dc momentOfInertia = massData.getInertiaTensor();
         Vector3d velocity = handle.getLinearVelocity(new Vector3d());
 
-        Vector3d invomega = omega.negate(new Vector3d()).mul(10);
+        Vector3d invomega = omega.negate(new Vector3d()).mul(FLIGHT_ASSIST_ANGULAR_DAMPING * timeStep);
         Vector3d invtorque = momentOfInertia.transform(invomega);
-        Vector3dc invforce = velocity.negate(new Vector3d()).mul(mass);
+        Vector3dc invforce = velocity.negate(new Vector3d()).mul(mass * FLIGHT_ASSIST_LINEAR_DAMPING * timeStep);
 
         Vector3d finaltorque = new Vector3d(0,0,0);
         Vector3d finalforce  = new Vector3d(0,0,0);
@@ -142,22 +174,38 @@ public class ServerShipHandler {
             finalforce.add(invforce);
         }
         if (data.isantigravityon) {
-            finalforce.add(0, mass * 10, 0);
+            Vector3d gravity = DimensionPhysicsData.getGravity(
+                    subLevel.getLevel(),
+                    subLevel.logicalPose().position(),
+                    new Vector3d()
+            );
+            double gravityLength = gravity.length();
+            if (gravityLength > 1.0E-6D) {
+                Vector3d gravityDirection = gravity.normalize(new Vector3d());
+                finalforce.fma(-mass * timeStep, gravity);
+
+                double verticalVelocity = velocity.dot(gravityDirection);
+                double damping = Math.min(1.0D, ANTI_GRAVITY_VERTICAL_DAMPING * timeStep);
+                finalforce.fma(-mass * verticalVelocity * damping, gravityDirection);
+            }
         }
+
+        double torqueAlpha = smoothingAlpha(CONTROL_INPUT_RESPONSE, timeStep);
+        double throttleAlpha = smoothingAlpha(THROTTLE_INPUT_RESPONSE, timeStep);
 
         if(controlling) {
             Vec3 force = data.getForce();
             Vec3 torque = data.getTorque();
-            worldXDirection =  subLevel.logicalPose().transformNormal(Vec3.atLowerCornerOf(data.getDirectionForward())).normalize();
-            worldYDirection =  subLevel.logicalPose().transformNormal(Vec3.atLowerCornerOf(data.getDirectionUp())).normalize();
-            worldZDirection =  subLevel.logicalPose().transformNormal(Vec3.atLowerCornerOf(data.getDirectionRight())).normalize();
+            if (!updateWorldControlAxes(subLevel)) {
+                resetControlInput();
+                return;
+            }
 
             Vec3 steeringTorque = data.isWarpPreparing ? calculateWarpPreparationTorque(subLevel,pos) : torque;
-            double torquescale = data.thruster_strength*5 / (Math.sqrt(mass));
-            Vector3d controltorque = new Vector3d(steeringTorque.x*torquescale, steeringTorque.y*torquescale, steeringTorque.z*torquescale);
-            if(controltorque.length()<0.1) {
-                controltorque.mul(0);
-            }
+            smoothVector(smoothedControlTorque, steeringTorque.x, steeringTorque.y, steeringTorque.z, torqueAlpha);
+            smoothedThrottle += ((data.getThrottle() / 100.0D) - smoothedThrottle) * throttleAlpha;
+            double torquescale = data.thruster_strength * CONTROL_TORQUE_SCALE * timeStep /Math.sqrt(mass*50);
+            Vector3d controltorque = new Vector3d(smoothedControlTorque).mul(torquescale);
 
             if (data.isWarpPreparing) {
                 // 鍔熻兘锛氫竴鏃﹁嚜鍔ㄥ鍑嗚揪鍒伴槇鍊硷紝绔嬪嵆鍦ㄨ埞浣撲綅缃敓鎴?warp projectile锛屽苟閫€鍑哄噯澶囩姸鎬侀槻姝㈤噸澶嶇敓鎴愩€?
@@ -166,7 +214,7 @@ public class ServerShipHandler {
             }
 
             Vec3 Invarianttorque = calculateWorldTorque(controltorque, worldXDirection, worldYDirection, worldZDirection);
-            double forcescale = data.getThrottle() * (data.thruster_strength / mass);
+            double forcescale = smoothedThrottle * data.thruster_strength * CONTROL_FORCE_SCALE * timeStep;
             Vec3 Invariantforce = new Vec3(worldXDirection.x * forcescale, worldXDirection.y * forcescale, worldXDirection.z * forcescale);
 
             // 璁＄畻鍙嶅悜闃诲凹鍔涚煩锛屼笌瑙掗€熷害鎴愭瘮渚?
@@ -175,6 +223,9 @@ public class ServerShipHandler {
             }
             finaltorque.add(Vec.toVector3d(Invarianttorque));
             finalforce.add(Vec.toVector3d(Invariantforce));
+            //LogUtils.getLogger().warn("finaltorque:"+finaltorque+"inverttorque:"+invtorque+"origin:"+Invarianttorque);
+        } else {
+            resetControlInput();
         }
         data.setFinaltorque(finaltorque);
         data.setFinalforce(finalforce);
@@ -183,6 +234,32 @@ public class ServerShipHandler {
     }
 
     // 鍔熻兘锛歸arp 鍑嗗鐘舵€佷笅鏍规嵁鎺у埗妞呭墠鍚戜笌鐩爣鏂瑰悜鐨勫す瑙掔敓鎴愯嚜鍔ㄥ鍑嗘壄鐭╋紱缁撴灉琚檺鍒跺湪鎵嬪姩榧犳爣鎺у埗鐨勬渶澶ц緭鍏ヨ寖鍥村唴銆?
+    private static double smoothingAlpha(double response, double timeStep) {
+        return Mth.clamp(1.0D - Math.exp(-response * timeStep), 0.0D, 1.0D);
+    }
+
+    private static void smoothVector(Vector3d current, double targetX, double targetY, double targetZ, double alpha) {
+        current.x += (targetX - current.x) * alpha;
+        current.y += (targetY - current.y) * alpha;
+        current.z += (targetZ - current.z) * alpha;
+    }
+
+    private boolean updateWorldControlAxes(ServerSubLevel subLevel) {
+        Vec3 forward = subLevel.logicalPose().transformNormal(Vec3.atLowerCornerOf(data.getDirectionForward())).normalize();
+        Vec3 upSeed = subLevel.logicalPose().transformNormal(Vec3.atLowerCornerOf(data.getDirectionUp())).normalize();
+        Vec3 right = forward.cross(upSeed);
+        if (forward.lengthSqr() < AXIS_EPSILON || upSeed.lengthSqr() < AXIS_EPSILON || right.lengthSqr() < AXIS_EPSILON) {
+            return false;
+        }
+
+        right = right.normalize();
+        Vec3 up = right.cross(forward).normalize();
+        worldXDirection = forward;
+        worldYDirection = up;
+        worldZDirection = right;
+        return true;
+    }
+
     private Vec3 calculateWarpPreparationTorque(ServerSubLevel subLevel,BlockPos pos) {
         if (data.warpTargetName == null || data.warpTargetName.isEmpty() || data.warpTargetPos == null || data.warpTargetPos.equals(BlockPos.ZERO)) {
             return new Vec3(0, 0, 0);

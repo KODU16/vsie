@@ -36,6 +36,12 @@ public class MouseInputMixin {
             }
             // 功能：仅在没有跃迁选单时拦截鼠标移动；打开选单后允许光标正常悬停按钮。
             ci.cancel();
+            if (!data.isMouseAnchorSet()) {
+                data.setLastMousex(xpos);
+                data.setLastMousey(ypos);
+                data.setMouseAnchorSet(true);
+                return;
+            }
             data.setAccumulatedx(Mth.clamp(data.getAccumulatedMousex() + xpos - data.getLastMousex(),-2560,2560));
             data.setAccumulatedy(Mth.clamp(data.getAccumulatedMousey() + ypos - data.getLastMousey(),-1440,1440));
             data.setLastMousex(xpos);
@@ -46,6 +52,7 @@ public class MouseInputMixin {
             data.setAccumulatedy(0);
             data.setLastMousex(0);
             data.setLastMousey(0);
+            data.setMouseAnchorSet(false);
         }
     }
 

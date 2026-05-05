@@ -113,7 +113,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
     public void sable$physicsTick(ServerSubLevel subLevel, RigidBodyHandle handle, double timeStep) {
         controlseatData.serverShip = subLevel;
         controlseatData.level = level;
-        serverShipHandler.applyForceAndTorque(subLevel, getBlockPos());
+        serverShipHandler.applyForceAndTorque(subLevel, getBlockPos(), timeStep);
     }
 
     public String getcontrolseattype() {
@@ -202,6 +202,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             //update
             if (!ride) {
                 controlseatData.reset();
+                serverShipHandler.resetControlInput();
                 controlseatData.setPlayer(null);
             }
             this.calculatedstrength = 0;
@@ -259,6 +260,9 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                     return;
                 }
                 Vec3 center = ServerShipUtils.getStructureCenterWorld(sublevel);
+                if (center == null || linkedShields.isEmpty() || controlseatData.shieldradius <= 0.0D) {
+                    return;
+                }
                 AABB searchBox = new AABB(this.getBlockPos()).inflate(controlseatData.shieldradius + 3.0); // 婢舵碍鎮虫稉鈧悙鐧哥礉闂冨弶顒涙姗€鈧喎鐤勬担鎾茬鐢呪敍鏉╁洤骞?
                 // 閺嶇绺鹃敍姘涧缁涙盯鈧鈧粍鐥呴張澶屾晸閸涜棄鈧?+ 闁喎瀹虫径鐔锋彥 + 娑撳秵妲搁悳鈺侇啀娑旂喍绗夐弰顖滄磮閻㈠弶鐏﹂垾婵呯缁崵娈戠€圭偘缍?
                 Vec3 finalCenter = center;
@@ -472,9 +476,17 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 2);
         }
+        if (linkedShields.isEmpty()) {
+            resetShieldStats();
+            return;
+        }
         double[] minmax = ShieldHandler.getMinMaxDistance(linkedShields);
         double max = minmax[0];
         double min = minmax[1];
+        if (max <= 0.0D || min <= 0.0D) {
+            resetShieldStats();
+            return;
+        }
         controlseatData.shieldmax = max;
         controlseatData.shieldmin = min;
         controlseatData.shieldradius = 0.75*max;
@@ -484,7 +496,25 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         controlseatData.shieldmaxcooldowntime = (max/min)*100;
     }
 
+    private void resetShieldStats() {
+        avalibleshield = 0;
+        controlseatData.avalibleshield = 0;
+        controlseatData.totalshield = 0;
+        controlseatData.shieldradius = 0;
+        controlseatData.shieldcostperprojectile = 0;
+        controlseatData.shieldregeneratepertick = 0;
+        controlseatData.shieldmaxcooldowntime = 0;
+        controlseatData.shieldcooldowntime = 0;
+        controlseatData.shieldmin = 0;
+        controlseatData.shieldmax = 0;
+    }
+
     public void updateShieldEnergyAvalible() {
+        if (linkedShields.isEmpty()) {
+            avalibleshield = 0;
+            controlseatData.avalibleshield = 0;
+            return;
+        }
         avalibleshield = 0;
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
@@ -500,6 +530,9 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
     }
 
     public void SubtractShieldEnergy(int energy) {
+        if (energy <= 0 || linkedShields.isEmpty()) {
+            return;
+        }
         int eachsubtract = energy/linkedShields.size();
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
@@ -513,6 +546,9 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
     }
 
     public void RegenerateShieldEnergy(int energy) {
+        if (energy <= 0 || linkedShields.isEmpty()) {
+            return;
+        }
         int eachregenerate = energy/linkedShields.size();
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
@@ -679,6 +715,12 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
     public ControlSeatServerData getServerData() { return controlseatData; }
 
+    public void clearControlInput() {
+        controlseatData.reset();
+        serverShipHandler.resetControlInput();
+        setChanged();
+    }
+
     //public ControlSeatClientData getClientData() { return ControlSeatClientData; }
 
     public boolean sit(Player player, boolean force) {
@@ -802,6 +844,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         } else {
             ride = false;
             controlseatData.setPlayer(null);
+            serverShipHandler.resetControlInput();
             // 閸旂喕鍏橀敍姘￥娴滆桨绠婚崸鎰姒涙顓荤憴锝夋敚鐟欏棜顫楅敍宀勬Щ濮濄垺妫悳鈺侇啀閻ｆ瑥婀柨浣哥暰閹礁濂栭崫宥呮倵缂侇厺绠婚崸鎰偓鍛秼妤犲被鈧?
             controlseatData.isviewlocked = false;
         }

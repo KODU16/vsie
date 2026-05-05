@@ -20,7 +20,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
-
+@SuppressWarnings("removal")
 @EventBusSubscriber(modid = vsie.ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class vsieClientModRegistryEvents {
 

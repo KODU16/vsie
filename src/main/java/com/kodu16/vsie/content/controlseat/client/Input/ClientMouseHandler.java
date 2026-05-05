@@ -3,6 +3,7 @@ package com.kodu16.vsie.content.controlseat.client.Input;
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.kodu16.vsie.content.controlseat.client.ControlSeatWarpSelectionScreen;
 import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
+import com.kodu16.vsie.network.controlseat.C2S.ControlSeatInputC2SPacket;
 import com.kodu16.vsie.network.controlseat.C2S.ControlSeatWarpCancelC2SPacket;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.registries.vsieKeyMappings;
@@ -23,6 +24,8 @@ import org.slf4j.Logger;
 public class ClientMouseHandler {
     // 功能：控制椅手动瞄准模式下，客户端直接计算“玩家视线延伸固定距离”后的目标点并上传给服务端。
     private static final double MANUAL_AIM_DISTANCE = 1024.0D;
+    private static final double CONTROL_MOUSE_X_RANGE = 2560.0D;
+    private static final double CONTROL_MOUSE_Y_RANGE = 1440.0D;
 
     // 在这干活不必考虑你做的是哪个player，你做的就是entity告诉你的客户端的player，这整个程序是跑在客户端的
     //handle负责挨个检测一遍，然后给服务端发包
@@ -32,8 +35,20 @@ public class ClientMouseHandler {
         //最好统一使用minecraft实例和客户端数据，虽然我估计底下的搞到的都是同一个
         if(player!=null) {
             ControlSeatClientData data = ClientDataManager.getClientData(player);
-            if (player.getUUID() == data.getUserUUID() && data.getUserUUID()!=null) {
-                Minecraft minecraft = Minecraft.getInstance();
+            Minecraft minecraft = Minecraft.getInstance();
+            if (!(player.getVehicle() instanceof ControlSeatMountEntity seat)) {
+                data.disableViewLock();
+                data.reset();
+                data.clearUserUUID();
+                if (minecraft.screen instanceof ControlSeatWarpSelectionScreen) {
+                    minecraft.setScreen(null);
+                }
+                return;
+            }
+            if (!seat.getBoundBlockPos().equals(pos)) {
+                return;
+            }
+            data.setUserUUID(player.getUUID());
                 handleMouseLock(player, data, minecraft, pos);
                 handleWarpSelection(data, minecraft, pos);
                 double dx = data.getAccumulatedMousex();
@@ -43,16 +58,17 @@ public class ClientMouseHandler {
                 if (data.isViewLocked()) {
                     // 功能：视角锁定时仍保留姿态控制输入，同时把玩家视线延伸目标点传给重型炮塔链路。
                     Vec3 aimTargetPos = calculateManualAimTargetPos(player);
-                    ClientSeatInputSender.tickSend(pos, data.getUserUUID(), dx, dy, 0, data.mouseLpress, data.viewLock, aimTargetPos);
+                    double controlX = normalizeControlInput(dx, CONTROL_MOUSE_X_RANGE);
+                    double controlY = normalizeControlInput(dy, CONTROL_MOUSE_Y_RANGE);
+                    ClientSeatInputSender.tickSend(pos, player.getUUID(), controlX, controlY, 0, data.mouseLpress, data.viewLock, aimTargetPos);
                     //LOGGER.warn(String.valueOf(Component.literal("sending mousepress:"+data.mouseLpress)));
                 }
                 else {
                     // 功能：非视角锁定时仅上传目标点给重型炮塔手动模式，控制椅本体姿态输入归零。
                     Vec3 aimTargetPos = calculateManualAimTargetPos(player);
-                    ClientSeatInputSender.tickSend(pos, data.getUserUUID(), 0, 0, 0, false, data.viewLock, aimTargetPos);
+                    ClientSeatInputSender.tickSend(pos, player.getUUID(), 0, 0, 0, false, data.viewLock, aimTargetPos);
                     data.reset();
                 }
-            }
         }
     }
 
@@ -61,6 +77,10 @@ public class ClientMouseHandler {
         Vec3 eyePos = player.getEyePosition();
         Vec3 lookVec = player.getLookAngle().normalize();
         return eyePos.add(lookVec.scale(MANUAL_AIM_DISTANCE));
+    }
+
+    private static double normalizeControlInput(double value, double range) {
+        return Math.max(-1.0D, Math.min(1.0D, value / range));
     }
 
 
@@ -116,6 +136,7 @@ public class ClientMouseHandler {
             //按下左alt时锁定视角
             //很麻烦，视角的锁定角度必须根据控制椅的方块朝向规定四种情况，所以必须回返一个控制椅朝向
             data.toggleViewLock();
+            data.reset();
             if (data.isViewLocked()) {
                 player.displayClientMessage(Component.literal("locking view to direction"), true);
                 Level level = minecraft.level;
@@ -139,6 +160,15 @@ public class ClientMouseHandler {
             } else {
                 player.displayClientMessage(Component.literal("unlocking view"), true);
             }
+            Vec3 aimTargetPos = calculateManualAimTargetPos(player);
+            ModNetworking.sendToServer(new ControlSeatInputC2SPacket(
+                    pos,
+                    0,
+                    data.viewLock,
+                    aimTargetPos.x,
+                    aimTargetPos.y,
+                    aimTargetPos.z
+            ));
             data.updatelastKeyPressTime();
         }
     }

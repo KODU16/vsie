@@ -19,7 +19,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.common.NeoForge;
 import org.joml.Vector3d;
 import org.joml.Matrix3d;
 import org.slf4j.Logger;
@@ -144,7 +143,6 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
             Initialize.initialize(level, pos, state);
 
             // 鍔熻兘锛氳縼绉诲埌 NeoForge 1.21.1 鍚庯紝鏀逛负鍚?NeoForge GAME 浜嬩欢鎬荤嚎娉ㄥ唽鐭㈤噺鎺ㄨ繘鍣ㄧ洃鍚櫒銆?
-            NeoForge.EVENT_BUS.register(this);
             hasInitialized = true;
 
             LOGGER.warn(String.valueOf(Component.literal("vector thruster Initialize complete:" + pos)));

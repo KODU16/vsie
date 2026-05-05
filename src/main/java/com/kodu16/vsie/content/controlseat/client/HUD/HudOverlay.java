@@ -24,6 +24,7 @@ import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 
+@SuppressWarnings("removal")
 // 功能：在 NeoForge 1.21.1 的 GAME 总线上订阅 HUD 渲染事件。
 @EventBusSubscriber(value = Dist.CLIENT, bus = EventBusSubscriber.Bus.GAME)
 public class HudOverlay {

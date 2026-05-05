@@ -6,6 +6,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
+import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
@@ -24,6 +25,7 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
     // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
     public static final CustomPacketPayload.Type<ControlSeatC2SPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "controlseat_c2s_controlseatc2spacket"));
     public static final StreamCodec<FriendlyByteBuf, ControlSeatC2SPacket> STREAM_CODEC = CustomPacketPayload.codec(ControlSeatC2SPacket::encode, ControlSeatC2SPacket::decode);
+    private static final float CONTROL_DEADZONE = 0.025F;
 
     public static final Logger LOGGER = LogUtils.getLogger();
     public final BlockPos pos;
@@ -32,14 +34,16 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
     public final float roll;
     public final int keys;   // bitmask
     public final boolean mouseLpress;
+    public final boolean isViewLocked;
 
-    public ControlSeatC2SPacket(BlockPos pos, float mousex, float mousey, float roll, int keys, boolean mouseLpress) {
+    public ControlSeatC2SPacket(BlockPos pos, float mousex, float mousey, float roll, int keys, boolean mouseLpress, boolean isViewLocked) {
         this.pos = pos;
         this.mousex = mousex;
         this.mousey = mousey;
         this.roll = roll;
         this.keys = keys;
         this.mouseLpress = mouseLpress;
+        this.isViewLocked = isViewLocked;
     }
 
     public static void encode(ControlSeatC2SPacket pkt, FriendlyByteBuf buf) {
@@ -49,6 +53,7 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
         buf.writeFloat(pkt.roll);
         buf.writeVarInt(pkt.keys);
         buf.writeBoolean(pkt.mouseLpress);
+        buf.writeBoolean(pkt.isViewLocked);
     }
 
     public static ControlSeatC2SPacket decode(FriendlyByteBuf buf) {
@@ -58,7 +63,8 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
         float roll = buf.readFloat();
         int keys = buf.readVarInt();
         boolean mouseLpress = buf.readBoolean();
-        return new ControlSeatC2SPacket(pos, mousex, mousey, roll, keys, mouseLpress);
+        boolean isViewLocked = buf.readBoolean();
+        return new ControlSeatC2SPacket(pos, mousex, mousey, roll, keys, mouseLpress, isViewLocked);
     }
 
     // 功能：NeoForge 1.21.1 处理器入口，复用旧版 Supplier<NetworkEvent.Context> 逻辑。
@@ -85,18 +91,31 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
                 sender.sendSystemMessage(Component.literal("Invalid control seat at " + pos));
                 return;
             }
+            if (!(sender.getVehicle() instanceof ControlSeatMountEntity mount) || !mount.getBoundBlockPos().equals(pos)) {
+                net.minecraft.world.entity.player.Player currentPlayer = controlSeat.getServerData().getPlayer();
+                if (currentPlayer == null || currentPlayer.getUUID().equals(sender.getUUID())) {
+                    controlSeat.clearControlInput();
+                }
+                return;
+            }
             boolean isThrottlePressed = (keys & ControlSeatC2SPacket.Keys.THROTTLE) != 0;
             boolean isBrakePressed = (keys & ControlSeatC2SPacket.Keys.BRAKE) != 0;
+            boolean isRollLeftPressed = (keys & ControlSeatC2SPacket.Keys.ROLLL) != 0;
+            boolean isRollRightPressed = (keys & ControlSeatC2SPacket.Keys.ROLLR) != 0;
             //boolean isPeripheralPressed = (keys & ControlSeatInputC2SPacket.Keys.SCAN_PERIPHERAL) != 0;
             int finalthrottledelta = isThrottlePressed ? 1 : (isBrakePressed ? -1 : 0);
+            float yawInput = sanitizeControlAxis(mousex);
+            float pitchInput = sanitizeControlAxis(mousey);
+            float rollInput = clampControlAxis((isRollRightPressed ? 1.0F : 0.0F) - (isRollLeftPressed ? 1.0F : 0.0F) + sanitizeControlAxis(roll));
             //LOGGER.warn(String.valueOf(Component.literal("delta throttle:"+finalthrottledelta)));
 
-            if (Float.isNaN(pkt.mousex) || Float.isNaN(pkt.mousey) || Float.isNaN(pkt.roll)){
+            if (!Float.isFinite(pkt.mousex) || !Float.isFinite(pkt.mousey) || !Float.isFinite(pkt.roll)){
                 sender.sendSystemMessage(Component.literal("Invalid torque input! check packet"));
                 return;
             }
             else {
                 ControlSeatServerData serverData = controlSeat.getServerData(); // Ensure this method exists
+                serverData.isviewlocked = pkt.isViewLocked;
                 if (serverData.isWarpPreparing) {
                     // 功能：warp 准备状态期间屏蔽玩家鼠标/键盘产生的姿态与推力输入，改由自动对准逻辑接管。
                     serverData.setTorque(new Vector3d(0, 0, 0));
@@ -104,7 +123,7 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
                 } else {
                     int finalthrottle = Math.max(-100, Math.min(serverData.getThrottle()+finalthrottledelta, 100));
                     //LOGGER.warn(String.valueOf(Component.literal("final throttle:"+finalthrottle)));
-                    serverData.setTorque(new Vector3d(0, -mousex, mousey));
+                    serverData.setTorque(new Vector3d(rollInput, -yawInput, -pitchInput));
                     serverData.setThrottle(finalthrottle);
                 }
 
@@ -126,6 +145,18 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
 
 
     /** 按键 bitmask 的位定义（客户端/服务端共享同一份定义以避免错位） */
+    private static float sanitizeControlAxis(float value) {
+        if (!Float.isFinite(value)) {
+            return 0.0F;
+        }
+        float clamped = clampControlAxis(value);
+        return Math.abs(clamped) < CONTROL_DEADZONE ? 0.0F : clamped;
+    }
+
+    private static float clampControlAxis(float value) {
+        return Math.max(-1.0F, Math.min(1.0F, value));
+    }
+
     public static final class Keys {
         public static final int THROTTLE = 1 << 0;
         public static final int BRAKE    = 1 << 1;

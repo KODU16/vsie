@@ -24,7 +24,7 @@ public class ClientSeatInputSender {
                                 boolean isviewlock, Vec3 manualAimTargetPos) {
         Minecraft mc = Minecraft.getInstance();
         //合法性校验，省的玩家A动了读玩家B
-        if (mc.player == null || mc.player.getUUID() != uuid) return;
+        if (mc.player == null || uuid == null || !mc.player.getUUID().equals(uuid)) return;
 
         // 限速：快包（也就是持续状态检测）33ms一次，慢包（也就是按键切换检测）200ms一次
         long now = System.currentTimeMillis();
@@ -34,15 +34,15 @@ public class ClientSeatInputSender {
             if (vsieKeyMappings.KEY_THROTTLE.isDown()) keys |= ControlSeatC2SPacket.Keys.THROTTLE;
             if (vsieKeyMappings.KEY_BRAKE.isDown()) keys |= ControlSeatC2SPacket.Keys.BRAKE;
             //if (vsieKeyMappings.KEY_SCAN.isDown()) keys |= ControlSeatInputC2SPacket.Keys.SCAN_PERIPHERAL;
-            if (mc.options.keyLeft.isDown()) keys |= ControlSeatC2SPacket.Keys.ROLLL;
-            if (mc.options.keyRight.isDown()) keys |= ControlSeatC2SPacket.Keys.ROLLR;
+            if (vsieKeyMappings.KEY_ROLL_L.isDown()) keys |= ControlSeatC2SPacket.Keys.ROLLL;
+            if (vsieKeyMappings.KEY_ROLL_R.isDown()) keys |= ControlSeatC2SPacket.Keys.ROLLR;
             if (mc.options.keyJump.isDown()) keys |= ControlSeatC2SPacket.Keys.SPACE;
             if (mc.options.keyShift.isDown()) keys |= ControlSeatC2SPacket.Keys.SHIFT;
             if (mc.options.keySprint.isDown()) keys |= ControlSeatC2SPacket.Keys.CTRL;
             if (mc.mouseHandler.isLeftPressed()) keys |= ControlSeatC2SPacket.Keys.MOUSEL;
             if (mc.mouseHandler.isRightPressed()) keys |= ControlSeatC2SPacket.Keys.MOUSER;
             ModNetworking.sendToServer(
-                    new ControlSeatC2SPacket(pos, (float) mousex, (float) mousey, (float) roll, keys, mouseLpress)
+                    new ControlSeatC2SPacket(pos, (float) mousex, (float) mousey, (float) roll, keys, mouseLpress, isviewlock)
             );
         }
         if (now - lastSendInputMs > 200) {

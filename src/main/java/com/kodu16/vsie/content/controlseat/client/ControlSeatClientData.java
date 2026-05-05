@@ -23,6 +23,7 @@ public class ControlSeatClientData {
     public volatile double accumulatedmousey=0;
     public volatile double lastmousex=0;
     public volatile double lastmousey=0;
+    public volatile boolean mouseAnchorSet = false;
     public volatile int throttle;
     public volatile Quaterniond shiprot = new Quaterniond();
     public volatile Vector3d shipfacing = new Vector3d(0,0,0);
@@ -82,6 +83,8 @@ public class ControlSeatClientData {
     public void setLastMousey(double x) { lastmousey = x; }
     public double getLastMousex() { return lastmousex; }
     public double getLastMousey() { return lastmousey; }
+    public void setMouseAnchorSet(boolean value) { mouseAnchorSet = value; }
+    public boolean isMouseAnchorSet() { return mouseAnchorSet; }
     public void setAccumulatedx(double x) {accumulatedmousex=x;}
     public void setAccumulatedy(double x) {accumulatedmousey=x;}
     public double getAccumulatedMousex() {return accumulatedmousex;}
@@ -132,6 +135,8 @@ public class ControlSeatClientData {
         accumulatedmousey=0;
         lastmousex=0;
         lastmousey=0;
+        mouseAnchorSet=false;
+        mouseLpress=false;
     }
 
 }

@@ -13,6 +13,7 @@ import org.lwjgl.glfw.GLFW;
 import net.neoforged.fml.common.EventBusSubscriber;
 
 // 功能：通过 NeoForge 1.21.1 的 MOD 总线自动订阅键位注册事件。
+@SuppressWarnings("removal")
 @EventBusSubscriber(modid = "vsie", bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class vsieKeyMappings {
     // 定义所有的键位

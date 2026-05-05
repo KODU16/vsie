@@ -114,7 +114,6 @@ public class ControlSeatS2CPacket implements CustomPacketPayload {
             clientData.lockedenemyslug = lockedenemyslug;
             clientData.throttle = throttle;
             // 功能：把服务端视角锁定状态回写到客户端，解决重进后客户端锁定态丢失导致输入被清空的问题。
-            clientData.viewLock = isViewLocked;
             //LOGGER.warn(String.valueOf(Component.literal("S2C data:enemy:"+clientData.enemy+"ally:"+clientData.ally)));
             // 这里可以进一步根据需要应用旋转到某个实体或者更新视角
         });

@@ -12,6 +12,8 @@ import com.kodu16.vsie.registries.vsieEntities;
 import com.kodu16.vsie.registries.vsieFluids;
 import com.kodu16.vsie.registries.vsieItems;
 import com.simibubi.create.foundation.data.CreateRegistrate;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.CreativeModeTab;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
@@ -21,7 +23,8 @@ import software.bernie.geckolib.GeckoLib;
 @SuppressWarnings({"removal"})
 public class vsie {
     public static final String ID = "vsie";
-    public static final CreateRegistrate REGISTRATE = CreateRegistrate.create(ID);
+    public static final CreateRegistrate REGISTRATE = CreateRegistrate.create(ID)
+            .defaultCreativeTab((ResourceKey<CreativeModeTab>) null);
     public static CreateRegistrate registrate() { return REGISTRATE; }
 
     public static boolean debug = false;
