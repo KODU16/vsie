@@ -4,12 +4,12 @@ import com.kodu16.vsie.content.bullet.entity.CenixPlasmaBulletEntity;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
 import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.registries.vsieEntities;
-import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
-import dev.ryanhcode.sable.sublevel.ServerSubLevel;
+import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -34,33 +34,35 @@ public class CenixPlasmaCannonBlockEntity extends AbstractWeaponBlockEntity {
 
     @Override
     public void fire() {
-        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, getBlockPos());
-        if (!(subLevel instanceof ServerSubLevel serverSubLevel)) {
+        Level level = getLevel();
+        if (level == null || level.isClientSide()) {
             return;
         }
 
-        Direction weaponFacing = this.getBlockState().getValue(FACING);
-        Vector3d currentFacing = subLevel.logicalPose()
-                .transformNormal(directionToVector(weaponFacing), new Vector3d())
-                .normalize();
+        Direction weaponFacing = getBlockState().getValue(FACING);
+        Vector3d direction = directionToVector(weaponFacing);
+        Vec3 spawnPos = Vec3.atCenterOf(getBlockPos());
+        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, getBlockPos());
+        if (subLevel != null) {
+            // Function: convert the cannon facing and muzzle position from sublevel space to world space.
+            direction = subLevel.logicalPose()
+                    .transformNormal(direction, new Vector3d())
+                    .normalize();
+            spawnPos = subLevel.logicalPose().transformPosition(Vec3.atCenterOf(getBlockPos()));
+        } else {
+            direction.normalize();
+        }
+
+        Vec3 velocity = new Vec3(direction.x, direction.y, direction.z).normalize().scale(CenixPlasmaBulletEntity.SPEED);
         CenixPlasmaBulletEntity bullet = new CenixPlasmaBulletEntity(vsieEntities.CENIX_PLASMA_BULLET.get(), level);
-        bullet.setPos(new Vec3(this.weaponpos.x,this.weaponpos.y,this.weaponpos.z));
-        Vector3d shipSpeed = getLinearVelocity(serverSubLevel);
-        bullet.setDeltaMovement(new Vec3(currentFacing.x * 4 + shipSpeed.x(), currentFacing.y * 4 + shipSpeed.y(), currentFacing.z * 4 + shipSpeed.z()));
+        bullet.setPos(spawnPos.add(velocity.normalize().scale(1.2D)));
+        bullet.setDeltaMovement(velocity);
         level.addFreshEntity(bullet);
+        //LogUtils.getLogger().warn("adding cenix bullet to:"+spawnPos);
     }
 
     private static Vector3d directionToVector(Direction direction) {
         return new Vector3d(direction.getStepX(), direction.getStepY(), direction.getStepZ());
-    }
-
-    private static Vector3d getLinearVelocity(ServerSubLevel subLevel) {
-        RigidBodyHandle handle = RigidBodyHandle.of(subLevel);
-        if (handle == null || !handle.isValid()) {
-            return new Vector3d();
-        }
-
-        return handle.getLinearVelocity(new Vector3d());
     }
 
     @Override

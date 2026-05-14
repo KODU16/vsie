@@ -74,10 +74,15 @@ public class MediumLaserTurretBlockEntity extends AbstractTurretBlockEntity {
     }
 
     public void shootentity() {
+        Level level = this.getLevel();
+        if (level == null || level.isClientSide() || targetentity == null || !targetentity.isAlive() || targetentity.isRemoved()) {
+            return;
+        }
+
         double distance = Vec.Distance(this.targetPos, currentworldpos);
         double projectionLength = distance;
         turretData.setDistance(projectionLength);
-        performRaycast(this.getLevel());
+        performRaycast(level);
         targetentity.hurt(level.damageSources().onFire(), 15.0F);
     }
 

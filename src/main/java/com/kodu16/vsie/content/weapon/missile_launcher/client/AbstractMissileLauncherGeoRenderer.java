@@ -1,14 +1,13 @@
 package com.kodu16.vsie.content.weapon.missile_launcher.client;
 
-import com.kodu16.vsie.content.missile.AbstractMissileGeoRenderer;
+import com.kodu16.vsie.foundation.AlwaysRenderGeoBlockRenderer;
 import com.kodu16.vsie.content.weapon.missile_launcher.AbstractMissileLauncherBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
-import software.bernie.geckolib.renderer.GeoBlockRenderer;
 
-public class AbstractMissileLauncherGeoRenderer extends GeoBlockRenderer<AbstractMissileLauncherBlockEntity> {
+public class AbstractMissileLauncherGeoRenderer extends AlwaysRenderGeoBlockRenderer<AbstractMissileLauncherBlockEntity> {
 
     public AbstractMissileLauncherGeoRenderer(BlockEntityRendererProvider.Context context) {
         super(new AbstractMissileLauncherModel());

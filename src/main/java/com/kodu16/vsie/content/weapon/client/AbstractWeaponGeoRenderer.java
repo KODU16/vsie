@@ -1,17 +1,14 @@
 package com.kodu16.vsie.content.weapon.client;
 
+import com.kodu16.vsie.foundation.AlwaysRenderGeoBlockRenderer;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
-import com.kodu16.vsie.vsie;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
-import net.minecraft.core.Vec3i;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
-import software.bernie.geckolib.renderer.GeoBlockRenderer;
 
-public class AbstractWeaponGeoRenderer extends GeoBlockRenderer<AbstractWeaponBlockEntity> {
+public class AbstractWeaponGeoRenderer extends AlwaysRenderGeoBlockRenderer<AbstractWeaponBlockEntity> {
     public AbstractWeaponGeoRenderer(BlockEntityRendererProvider.Context context) {
         super(new AbstractWeaponModel());
         this.addRenderLayer(new WeaponLaserLayer(this));
@@ -32,8 +29,10 @@ public class AbstractWeaponGeoRenderer extends GeoBlockRenderer<AbstractWeaponBl
                 poseStack.mulPose(Axis.YP.rotationDegrees(270));
             }
             case UP -> {
+                poseStack.mulPose(Axis.XP.rotationDegrees(90));
             }
             case DOWN -> {
+                poseStack.mulPose(Axis.XP.rotationDegrees(-90));
             }
         }
     }
@@ -46,6 +45,6 @@ public class AbstractWeaponGeoRenderer extends GeoBlockRenderer<AbstractWeaponBl
     @Override
     public boolean shouldRender(AbstractWeaponBlockEntity be, Vec3 cameraPos) {
         // 自己写距离判断，比如 256 格以内都渲染
-        return be.getBlockPos().distSqr(new Vec3i((int) cameraPos.x, (int) cameraPos.y, (int) cameraPos.z)) < 2048 * 2048;
+        return true;
     }
 }

@@ -36,6 +36,9 @@ public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
     public int shieldtotal;
     public boolean flightassiston;
     public boolean antigravityon;
+    public boolean warpPreparing;
+    public boolean pendingWarpTeleport;
+    public String warpTargetName;
     // 功能：承载服务端筛选后的激活武器 HUD 数据（名称+冷却进度），用于客户端渲染。
     public List<ActiveWeaponHudInfo> activeWeaponHudInfos;
 
@@ -45,6 +48,7 @@ public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
                                       int fuelavalible,int fueltotal,
                                       boolean shieldon, int shieldavalible, int shieldtotal,
                                       boolean flightassiston, boolean antigravityon,
+                                      boolean warpPreparing, boolean pendingWarpTeleport, String warpTargetName,
                                       List<ActiveWeaponHudInfo> activeWeaponHudInfos) {
         this.pos = pos;
         this.energyavalible = energyavalible;
@@ -56,6 +60,9 @@ public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
         this.shieldtotal = shieldtotal;
         this.flightassiston = flightassiston;
         this.antigravityon = antigravityon;
+        this.warpPreparing = warpPreparing;
+        this.pendingWarpTeleport = pendingWarpTeleport;
+        this.warpTargetName = warpTargetName == null ? "" : warpTargetName;
         // 功能：防御性拷贝 HUD 数据列表，避免网络层外部引用污染包体数据。
         this.activeWeaponHudInfos = new ArrayList<>(activeWeaponHudInfos);
     }
@@ -72,12 +79,16 @@ public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
         buf.writeInt(shieldtotal);
         buf.writeBoolean(flightassiston);
         buf.writeBoolean(antigravityon);
+        buf.writeBoolean(warpPreparing);
+        buf.writeBoolean(pendingWarpTeleport);
+        buf.writeUtf(warpTargetName);
         // 功能：序列化激活武器 HUD 数据（名称+当前冷却+最大冷却），供客户端绘制。
         buf.writeInt(activeWeaponHudInfos.size());
         for (ActiveWeaponHudInfo info : activeWeaponHudInfos) {
             buf.writeUtf(info.displayName);
             buf.writeInt(info.currentTick);
             buf.writeInt(info.maxCooldown);
+            buf.writeBoolean(info.remainingCooldown);
         }
     }
 
@@ -93,6 +104,9 @@ public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
         int shieldtotal = buf.readInt();
         boolean flightassiston = buf.readBoolean();
         boolean antigravityon = buf.readBoolean();
+        boolean warpPreparing = buf.readBoolean();
+        boolean pendingWarpTeleport = buf.readBoolean();
+        String warpTargetName = buf.readUtf();
         // 功能：反序列化激活武器 HUD 数据（名称+当前冷却+最大冷却）。
         int weaponInfoSize = buf.readInt();
         List<ActiveWeaponHudInfo> activeWeaponHudInfos = new ArrayList<>();
@@ -100,9 +114,10 @@ public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
             String displayName = buf.readUtf();
             int currentTick = buf.readInt();
             int maxCooldown = buf.readInt();
-            activeWeaponHudInfos.add(new ActiveWeaponHudInfo(displayName, currentTick, maxCooldown));
+            boolean remainingCooldown = buf.readBoolean();
+            activeWeaponHudInfos.add(new ActiveWeaponHudInfo(displayName, currentTick, maxCooldown, remainingCooldown));
         }
-        return new ControlSeatStatusS2CPacket(pos, energyavalible, energytotal, fuelavalible, fueltotal, shieldon, shieldavalible, shieldtotal, flightassiston, antigravityon, activeWeaponHudInfos);
+        return new ControlSeatStatusS2CPacket(pos, energyavalible, energytotal, fuelavalible, fueltotal, shieldon, shieldavalible, shieldtotal, flightassiston, antigravityon, warpPreparing, pendingWarpTeleport, warpTargetName, activeWeaponHudInfos);
     }
 
     // 处理客户端接收到的数据包
@@ -136,6 +151,9 @@ public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
 
                     clientData.isflightassiston = flightassiston;
                     clientData.isantigravityon = antigravityon;
+                    clientData.isWarpPreparing = warpPreparing;
+                    clientData.hasPendingWarpTeleport = pendingWarpTeleport;
+                    clientData.warpTargetName = warpTargetName;
                     // 功能：同步客户端 HUD 需要展示的激活武器数据（名称+冷却进度）。
                     clientData.activeWeaponHudInfos = new ArrayList<>(activeWeaponHudInfos);
                 });

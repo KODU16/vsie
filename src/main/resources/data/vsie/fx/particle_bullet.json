@@ -1,7 +1,7 @@
 {
   "fx": {
     "awake": {
-      "id": "vsie:particle_cannon_fire"
+      "id": "vsie:particle_bullet"
     }
   }
 }

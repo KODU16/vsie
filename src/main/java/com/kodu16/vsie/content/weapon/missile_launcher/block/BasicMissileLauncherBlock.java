@@ -45,4 +45,16 @@ public class BasicMissileLauncherBlock extends AbstractMissileLauncherBlock {
         }
         return null;
     }
+
+    @Override
+    public void onRemove(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos, @Nonnull BlockState newState, boolean isMoving) {
+        // Function: drop missiles stored in the internal launcher buffer when the block is removed.
+        if (!state.is(newState.getBlock())) {
+            BlockEntity blockEntity = level.getBlockEntity(pos);
+            if (blockEntity instanceof BasicMissileLauncherBlockEntity launcher) {
+                launcher.dropStoredMissiles(level, pos);
+            }
+        }
+        super.onRemove(state, level, pos, newState, isMoving);
+    }
 }

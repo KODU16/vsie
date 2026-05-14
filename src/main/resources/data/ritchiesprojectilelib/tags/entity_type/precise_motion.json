@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "vsie:basic_missile",
+    "vsie:particle_bullet",
+    "vsie:plasma_bullet",
+    "vsie:heavy_electromagnetic_bullet",
+    "vsie:warp_projectile"
+  ]
+}

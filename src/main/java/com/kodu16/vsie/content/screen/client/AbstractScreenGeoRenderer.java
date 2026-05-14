@@ -1,13 +1,13 @@
 package com.kodu16.vsie.content.screen.client;
 
+import com.kodu16.vsie.foundation.AlwaysRenderGeoBlockRenderer;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
-import software.bernie.geckolib.renderer.GeoBlockRenderer;
 
-public class AbstractScreenGeoRenderer extends GeoBlockRenderer<AbstractScreenBlockEntity> {
+public class AbstractScreenGeoRenderer extends AlwaysRenderGeoBlockRenderer<AbstractScreenBlockEntity> {
     public AbstractScreenGeoRenderer(BlockEntityRendererProvider.Context context) {
         super(new AbstractScreenModel());
         this.addRenderLayer(new AbstractScreenRenderLayer(this));

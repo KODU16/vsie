@@ -9,31 +9,48 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.SlotItemHandler;
 
-// MyContainerMenu.java
 public class TurretContainerMenu extends AbstractContainerMenu {
-    //服务端容器，和客户端那边的screen对接
-    //暂时不支持塞升级芯片，将来需要的话就加入物品栏容器
+    public static final int INTERNAL_SLOT_COUNT = 9;
+    public static final int INTERNAL_SLOT_X = 59;
+    public static final int INTERNAL_SLOT_Y = 17;
+    public static final int PLAYER_INV_X = 8;
+    public static final int PLAYER_INV_Y = 128;
+    public static final int HOTBAR_Y = PLAYER_INV_Y + 58;
+
     private final AbstractTurretBlockEntity blockEntity;
+    private final boolean hasInventorySlots;
 
     public TurretContainerMenu(int id, Inventory playerInv, AbstractTurretBlockEntity be) {
         super(ModMenuTypes.TURRET_MENU.get(), id);
         this.blockEntity = be;
+        this.hasInventorySlots = be instanceof ParticleTurretBlockEntity;
 
         if (be instanceof ParticleTurretBlockEntity particleTurretBlockEntity) {
-            // 功能：为粒子炮添加 3x3 弹药槽，仅接受 particle_container。
-            int slotStartX = 59;
-            int slotStartY = 17;
+            // Function: Particle Turret keeps a 3x3 ammo buffer before the player inventory slots.
             for (int row = 0; row < 3; row++) {
                 for (int col = 0; col < 3; col++) {
                     int slotIndex = col + row * 3;
-                    this.addSlot(new SlotItemHandler(particleTurretBlockEntity, slotIndex, slotStartX + col * 18, slotStartY + row * 18));
+                    this.addSlot(new SlotItemHandler(particleTurretBlockEntity, slotIndex,
+                            INTERNAL_SLOT_X + col * 18,
+                            INTERNAL_SLOT_Y + row * 18));
                 }
             }
+            addPlayerInventory(playerInv);
         }
     }
 
-    // 标准添加玩家背包代码
-    //private void addPlayerInventory(Inventory playerInv) { ... }
+    private void addPlayerInventory(Inventory playerInv) {
+        // Function: expose the normal player inventory so containers can be shift-click loaded.
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 9; col++) {
+                int index = col + row * 9 + 9;
+                this.addSlot(new Slot(playerInv, index, PLAYER_INV_X + col * 18, PLAYER_INV_Y + row * 18));
+            }
+        }
+        for (int col = 0; col < 9; col++) {
+            this.addSlot(new Slot(playerInv, col, PLAYER_INV_X + col * 18, HOTBAR_Y));
+        }
+    }
 
     @Override
     public boolean stillValid(Player player) {
@@ -44,15 +61,35 @@ public class TurretContainerMenu extends AbstractContainerMenu {
         return blockEntity;
     }
 
+    public boolean hasInventorySlots() {
+        return hasInventorySlots;
+    }
+
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
+        if (!hasInventorySlots || index < 0 || index >= this.slots.size()) {
+            return ItemStack.EMPTY;
+        }
+
         ItemStack original = ItemStack.EMPTY;
         Slot slot = this.slots.get(index);
         if (slot != null && slot.hasItem()) {
             ItemStack stack = slot.getItem();
             original = stack.copy();
-            // 功能：当前容器仅包含粒子炮 3x3 弹药槽，不包含玩家背包槽，故禁用 shift 快速转移。
-            return ItemStack.EMPTY;
+
+            if (index < INTERNAL_SLOT_COUNT) {
+                if (!this.moveItemStackTo(stack, INTERNAL_SLOT_COUNT, this.slots.size(), true)) {
+                    return ItemStack.EMPTY;
+                }
+            } else if (!this.moveItemStackTo(stack, 0, INTERNAL_SLOT_COUNT, false)) {
+                return ItemStack.EMPTY;
+            }
+
+            if (stack.isEmpty()) {
+                slot.set(ItemStack.EMPTY);
+            } else {
+                slot.setChanged();
+            }
         }
         return original;
     }

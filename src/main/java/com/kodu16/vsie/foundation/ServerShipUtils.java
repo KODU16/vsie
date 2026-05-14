@@ -88,14 +88,38 @@ public final class ServerShipUtils {
         return JOMLConversion.toMojang(structureCenterWorld);
     }
 
-    public static void teleportKeepOrientation(
+    public static double getStructureMaxDimension(SubLevel subLevel) {
+        BoundingBox3ic bounds = subLevel.getPlot().getBoundingBox();
+        if (bounds == null || bounds.volume() <= 0) {
+            return 0.0D;
+        }
+
+        // Function: plot bounds are block-inclusive, so add one block when measuring each side length.
+        double sizeX = bounds.maxX() - bounds.minX() + 1.0D;
+        double sizeY = bounds.maxY() - bounds.minY() + 1.0D;
+        double sizeZ = bounds.maxZ() - bounds.minZ() + 1.0D;
+        return Math.max(sizeX, Math.max(sizeY, sizeZ));
+    }
+
+    public static Vec3 getBlockCenterWorld(Level level, BlockPos pos) {
+        // Function: convert the center of a block position into world space, avoiding corner-based 0.5 block offsets.
+        return getBlockCenterWorld(getSubLevelAtBlockPos(level, pos), pos);
+    }
+
+    public static Vec3 getBlockCenterWorld(@Nullable SubLevel subLevel, BlockPos pos) {
+        // Function: Sable logical poses expect sublevel-space positions, so use the block center as the local point.
+        Vec3 localCenter = Vec3.atCenterOf(pos);
+        return subLevel == null ? localCenter : subLevel.logicalPose().transformPosition(localCenter);
+    }
+
+    public static boolean teleportKeepOrientation(
             ServerSubLevel subLevel,
             Vector3dc targetWorldPos
     ) {
         RigidBodyHandle handle = RigidBodyHandle.of(subLevel);
 
         if (handle == null || !handle.isValid()) {
-            return;
+            return false;
         }
 
         // 复制当前方向，避免后续 mutation 影响
@@ -103,10 +127,12 @@ public final class ServerShipUtils {
                 subLevel.logicalPose().orientation()
         );
 
+        // Function: Sable teleport takes the sublevel's world pose position; keep orientation unchanged.
         handle.teleport(
                 new Vector3d(targetWorldPos),
                 currentOrientation
         );
+        return true;
     }
 
     public static @Nullable SubLevel getSubLevelAtBlockPos(Level level, BlockPos pos) {

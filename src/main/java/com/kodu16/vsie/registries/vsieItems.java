@@ -18,6 +18,7 @@ import com.kodu16.vsie.vsie;
 import com.kodu16.vsie.content.item.testItem.testItem;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.tterrag.registrate.util.entry.ItemEntry;
+import net.minecraft.world.item.Item;
 
 public class vsieItems {
     public static final CreateRegistrate REGISTRATE = vsie.registrate();
@@ -36,6 +37,8 @@ public class vsieItems {
     public static final ItemEntry<screen_bg> SCREEN_BG = REGISTRATE.item("screen_bg", screen_bg::new).register();
     // 功能：注册粒子炮弹药容器物品，供 Particle Turret 的专用 3x3 仓位与自动化输入使用。
     public static final ItemEntry<ParticleContainerItem> PARTICLE_CONTAINER = REGISTRATE.item("particle_container", ParticleContainerItem::new).register();
+    // Function: basic missile ammo item consumed by the Basic Missile Launcher.
+    public static final ItemEntry<Item> BASIC_MISSILE_ITEM = REGISTRATE.item("basic_missile", Item::new).register();
     public static final ItemEntry<iff> IFF = REGISTRATE.item("iff", iff::new).register();
     public static final ItemEntry<shieldtool> SHIELD_TOOL = REGISTRATE.item("shield_tool", shieldtool::new).register();
     public static final ItemEntry<warp_data_chip> WARP_DATA_CHIP = REGISTRATE.item("warp_data_chip", warp_data_chip::new).register();

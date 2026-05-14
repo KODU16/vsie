@@ -61,6 +61,9 @@ public class ControlSeatClientData {
 
     public volatile boolean isflightassiston = false;
     public volatile boolean isantigravityon = false;
+    public volatile boolean isWarpPreparing = false;
+    public volatile boolean hasPendingWarpTeleport = false;
+    public volatile String warpTargetName = "";
 
     // 功能：保存服务端下发的“当前激活频道可响应武器”HUD 数据（名称+冷却），供 HUD 每行绘制。
     public volatile List<ActiveWeaponHudInfo> activeWeaponHudInfos = new ArrayList<>();

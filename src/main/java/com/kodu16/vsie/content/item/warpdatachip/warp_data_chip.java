@@ -26,6 +26,7 @@ public class warp_data_chip extends Item {
     private static final String KEY_POS_Y = "PosY";
     private static final String KEY_POS_Z = "PosZ";
     private static final String KEY_DIMENSION = "Dimension";
+    private static final String KEY_LEGACY_DIMENSION = "dimension";
 
     public warp_data_chip(Properties pProperties) {
         super(pProperties);
@@ -51,7 +52,10 @@ public class warp_data_chip extends Item {
         }
 
         CompoundTag warpDataTag = tag.getCompound(KEY_WARP_DATA);
-        String dimensionId = warpDataTag.getString(KEY_DIMENSION);
+        // 功能：优先读取当前字段，同时兼容早期小写字段，避免旧芯片因为键名差异失效。
+        String dimensionId = warpDataTag.contains(KEY_DIMENSION, Tag.TAG_STRING)
+                ? warpDataTag.getString(KEY_DIMENSION)
+                : warpDataTag.getString(KEY_LEGACY_DIMENSION);
         if (dimensionId.isBlank()) {
             return null;
         }
@@ -81,7 +85,7 @@ public class warp_data_chip extends Item {
                 tag.put(KEY_WARP_DATA, warpDataTag);
             });
 
-            player.displayClientMessage(Component.literal("\u5df2\u8bb0\u5f55\u5f53\u524d\u4f4d\u7f6e: " + currentPos + " @ " + dimensionId).withStyle(ChatFormatting.AQUA), true);
+            player.displayClientMessage(Component.literal("已记录当前位置: " + currentPos + " @ " + dimensionId).withStyle(ChatFormatting.AQUA), true);
         }
 
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
@@ -93,11 +97,11 @@ public class warp_data_chip extends Item {
 
         StoredWarpData storedWarpData = readStoredWarpData(stack);
         if (storedWarpData == null) {
-            tooltip.add(Component.literal("\u53f3\u952e\u8bb0\u5f55\u5f53\u524d\u4f4d\u7f6e\u4e0e\u7ef4\u5ea6").withStyle(ChatFormatting.GRAY));
+            tooltip.add(Component.literal("右键记录当前位置与维度").withStyle(ChatFormatting.GRAY));
             return;
         }
 
-        tooltip.add(Component.literal("\u8bb0\u5f55\u5750\u6807: " + storedWarpData.pos()).withStyle(ChatFormatting.AQUA));
-        tooltip.add(Component.literal("\u8bb0\u5f55\u7ef4\u5ea6: " + storedWarpData.dimensionId()).withStyle(ChatFormatting.AQUA));
+        tooltip.add(Component.literal("记录坐标: " + storedWarpData.pos()).withStyle(ChatFormatting.AQUA));
+        tooltip.add(Component.literal("记录维度: " + storedWarpData.dimensionId()).withStyle(ChatFormatting.AQUA));
     }
 }

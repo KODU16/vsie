@@ -3,8 +3,11 @@ package com.kodu16.vsie.content.bullet;
 import com.kodu16.vsie.utility.FxData;
 import com.kodu16.vsie.utility.vsieFxHelper;
 import com.lowdragmc.photon.client.fx.EntityEffectExecutor;
+import com.lowdragmc.photon.client.fx.FX;
 import com.lowdragmc.photon.client.fx.FXHelper;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -30,11 +33,13 @@ import static net.minecraft.world.item.enchantment.EnchantmentHelper.getEnchantm
 
 public abstract class AbstractBulletEntity extends Projectile {
 
+    private static final int DEFAULT_MAX_LIFETIME_TICKS = 5 * 20;
+    private static final float LIFETIME_EXPIRE_EXPLOSION_POWER = 2.0F;
+
     private int lifeTime = 0;
-    private double damage = 1.0;
-    // 功能：获取子弹数据，供 tick 中读取 FX 配置。
-    // 功能：存储当前子弹的数据配置，默认携带 particle_cannon_fire 的 awake FX。
-    private BulletData dataBase = BulletData.createParticleCannonDefault();
+    private boolean lifecycleFxStarted = false;
+    // BulletData supplies the FX resource used by the lifecycle executor.
+    private BulletData dataBase = BulletData.createParticleBulletDefault();
 
     public BulletData getDataBase() {
         return dataBase;
@@ -48,25 +53,20 @@ public abstract class AbstractBulletEntity extends Projectile {
 
     @Override
     public void tick() {
+        // Advance vanilla entity counters so tickCount-based FX windows follow the real entity lifetime.
+        super.tick();
 
-        if (this.tickCount >= startemitticks() && this.tickCount <= stopemitticks()) {
+        if (!lifecycleFxStarted && this.tickCount >= startemitticks() && this.tickCount <= stopemitticks()) {
             if (this.level().isClientSide()) {
                 vsieFxHelper.extractFxUnit(getDataBase().getFxData(), FxData::getAwakeFx)
                         .map(FxData.FxUnit::getId).map(FXHelper::getFX)
-                        .ifPresent(fx -> {
-                            var effect = new EntityEffectExecutor(fx, this.level(), this, EntityEffectExecutor.AutoRotate.XROT);
-                            effect.setForcedDeath(true);
-                            effect.start();
-                        });
+                        .ifPresent(this::startLifecycleFx);
+                lifecycleFxStarted = true;
             }
         }
 
-        Vec3 movement = this.getDeltaMovement();
-        // ===== 5 tick 后速度 ×10 =====
-        if (this.tickCount == accelrateticks()) {
-            this.setDeltaMovement(movement.scale(30));
-            movement = this.getDeltaMovement();
-        }
+        Vec3 movement = applyConstantSpeed();
+        updateRotationFromMovement(movement);
         Vec3 start = this.position();
         Vec3 end = start.add(movement);
 
@@ -87,7 +87,7 @@ public abstract class AbstractBulletEntity extends Projectile {
 
             List<Entity> entities = this.level().getEntities(
                     this,
-                    this.getBoundingBox().expandTowards(movement).inflate(1.5)
+                    this.getBoundingBox().expandTowards(movement)
             );
 
             Entity closest = null;
@@ -134,16 +134,63 @@ public abstract class AbstractBulletEntity extends Projectile {
 
         lifeTime++;
 
-        if (lifeTime > 60) {
-            this.discard();
+        if (lifeTime >= getMaxLifeTime()) {
+            explodeAndDiscardAfterLifetime();
         }
     }
 
-    public abstract int accelrateticks();//开始加速的tick数
+    protected int getMaxLifeTime() {
+        // Function: bullets self-destruct after 20 seconds so missed shots cannot accumulate forever.
+        return DEFAULT_MAX_LIFETIME_TICKS;
+    }
+
+    protected void explodeAndDiscardAfterLifetime() {
+        if (this.level() instanceof ServerLevel serverLevel) {
+            // Function: timeout explosions are visual/knockback cleanup only and do not destroy terrain.
+            serverLevel.explode(this, this.getX(), this.getY(), this.getZ(),
+                    LIFETIME_EXPIRE_EXPLOSION_POWER, false, Level.ExplosionInteraction.NONE);
+        }
+        this.discard();
+    }
+
+    // Keep the entity's authoritative rotation aligned with its velocity for hitbox debug and attached FX.
+    protected void updateRotationFromMovement(Vec3 movement) {
+        if (movement.lengthSqr() < 1.0E-6D) {
+            return;
+        }
+
+        float yaw = (float) Math.atan2(movement.x, movement.z) * Mth.RAD_TO_DEG;
+        float pitch = (float) Math.atan2(movement.y, Math.sqrt(movement.x * movement.x + movement.z * movement.z)) * Mth.RAD_TO_DEG;
+        this.setYRot(yaw);
+        this.setXRot(pitch);
+        this.yRotO = yaw;
+        this.xRotO = pitch;
+    }
+
+    // Function: subclasses own bullet speed; the base class only enforces constant velocity along current direction.
+    public abstract double getSpeed();
+
+    private Vec3 applyConstantSpeed() {
+        Vec3 movement = this.getDeltaMovement();
+        if (movement.lengthSqr() < 1.0E-6D) {
+            return movement;
+        }
+
+        Vec3 constantMovement = movement.normalize().scale(getSpeed());
+        this.setDeltaMovement(constantMovement);
+        return constantMovement;
+    }
 
     public abstract int startemitticks();//开始发出粒子的tick数
 
     public abstract int stopemitticks();//停止发出粒子的tick数
+
+    protected void startLifecycleFx(FX fx) {
+        var effect = new EntityEffectExecutor(fx, this.level(), this, EntityEffectExecutor.AutoRotate.XROT);
+        // Function: lifecycle bullet FX must stay attached to the entity instead of being force-killed on start.
+        effect.setForcedDeath(false);
+        effect.start();
+    }
 
     @Override
     protected void onHitBlock(BlockHitResult pResult) {
@@ -162,8 +209,9 @@ public abstract class AbstractBulletEntity extends Projectile {
     }
 
 
-    // 功能：外部可覆盖子弹数据；传入 null 时回退默认 particle_cannon_fire 配置。
+    // Allow subclasses to override FX data while keeping a particle-bullet fallback.
     public void setDataBase(BulletData dataBase) {
-        this.dataBase = dataBase == null ? BulletData.createParticleCannonDefault() : dataBase;
+        this.dataBase = dataBase == null ? BulletData.createParticleBulletDefault() : dataBase;
+        this.lifecycleFxStarted = false;
     }
 }

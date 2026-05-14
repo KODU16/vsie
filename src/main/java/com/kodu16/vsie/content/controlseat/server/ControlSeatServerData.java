@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.controlseat.server;
 
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.Level;
@@ -39,6 +40,10 @@ public class ControlSeatServerData {
     public volatile String enemy = "";
     public volatile String ally = "";
     public volatile int lockedenemyindex = 0;
+    // 功能：缓存当前编号选中的敌方 sublevel 名称，供 S2C/HUD 用同一个目标显示 TGT。
+    public volatile String lockedenemyslug = "";
+    // Function: runtime cache for the currently locked enemy sublevel used by linked weapons.
+    public volatile SubLevel lockedEnemySubLevel = null;
     public volatile Map<String, Object> shipsData = new HashMap<>();
     public volatile ArrayList<Vec3> enemyshipsData = new ArrayList<>();
 

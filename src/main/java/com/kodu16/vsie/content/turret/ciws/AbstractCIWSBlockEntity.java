@@ -12,7 +12,9 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -21,6 +23,8 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.List;
 
@@ -29,7 +33,10 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
     private static final double PROJECTILE_SCAN_CELL_SIZE = 64.0D;
     // 功能：每tick最多扫描的网格块数，限制单tick开销，避免大半径时卡顿。
     private static final int PROJECTILE_SCAN_CELL_BUDGET_PER_TICK = 8;
-    private static final double SEARCH_RADIUS = 128.0;
+    private static final double SEARCH_RADIUS = 200.0D;
+    private static final double MIN_PROJECTILE_SPEED_SQR = 0.01D;
+    private static final int RETURN_TO_DEFAULT_DELAY_TICKS = 100;
+    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
     protected AbstractCIWSBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
         // 初始化 turretData
@@ -37,10 +44,28 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
     }
 
     private @Nullable Entity targetprojectile = null;
+    private int noTargetTicks = 0;
     // 功能：记录分块扫描游标，做到“多tick渐进扫描”而不是一次性全范围扫描。
     private int projectileScanCursor = 0;
     // 功能：记录上一次扫描中心，炮塔位移较大时重置游标，避免漏扫近处网格。
     private Vec3 projectileScanLastCenter = Vec3.ZERO;
+
+    protected @Nullable Entity getTargetProjectile() {
+        return targetprojectile;
+    }
+
+    protected boolean isTargetProjectileValidForFire() {
+        return isValidTargetProjectile(targetprojectile);
+    }
+
+    protected void clearTargetProjectile() {
+        // Function: let CIWS subclasses finish an interception and force the next tick to search again.
+        targetprojectile = null;
+        targetDistance = 0;
+        targetPreVelocity.clear();
+        setAnimData(TURRET_HAS_TARGET, false);
+        setChanged();
+    }
 
 
     @Override
@@ -50,18 +75,22 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
 
     @Override
     public void tick() {
-        if(idleTicks > 1) {
-            idleTicks = idleTicks-1;
+        // Function: keep CIWS rotation server-authoritative so client prediction cannot fight synced turret angles.
+        Level level = this.getLevel();
+        if (level == null || level.isClientSide()) {
             return;
         }
+        this.level = level;
         // 功能：统一刷新炮塔世界坐标，减少 tick 主流程分支复杂度。
         SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level,pos);
         if(subLevel!=null) {
-            currentworldpos = subLevel.logicalPose().transformPosition(Vec3.atLowerCornerOf(pos));
+            currentworldpos = ServerShipUtils.getBlockCenterWorld(subLevel, pos);
             tryInvalidateTarget();
+            tickFireCooldown(hasValidTarget());
             // 功能：统一处理目标搜索，若无有效目标则让炮塔回归默认角度。
             acquireTargetByAimType();
             if (hasValidTarget()) {
+                noTargetTicks = 0;
                 // 功能：维护速度采样窗口，为弹道预测提供最近移动趋势。
                 appendTargetVelocitySample();
                 // 功能：统一更新当前目标点，避免实体/舰船重复分支代码。
@@ -71,11 +100,14 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
                 updateTargetRot();
                 this.xRot0 = closestReachableX(xRot0, getMaxSpinSpeed(), targetxrot);
                 this.yRot0 = closestReachableY(yRot0, getMaxSpinSpeed(), targetyrot);
-                if (xOK && yOK) {
+                if (canFireAtCurrentAim()) {
                     fireWhenLocked();
                 }
             } else {
-                // 功能：当周围没有有效敌人时，平滑回到用户设置的默认俯仰/偏航角。
+                // Function: delay default rotation so short target loss does not snap the CIWS back and forth.
+                if (++noTargetTicks < RETURN_TO_DEFAULT_DELAY_TICKS) {
+                    return;
+                }
                 returnToDefaultRotation();
             }
         }
@@ -92,8 +124,6 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
                 setAnimData(TURRET_HAS_TARGET, false);
                 targetentity = null;
                 targetDistance = 0;
-                xRot0 = 0;
-                yRot0 = 0;
                 targetPreVelocity.clear();
             }
         }
@@ -102,8 +132,6 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
                 setAnimData(TURRET_HAS_TARGET, false);
                 targetprojectile = null;
                 targetDistance = 0;
-                xRot0 = 0;
-                yRot0 = 0;
                 targetPreVelocity.clear();
             }
         }
@@ -111,15 +139,21 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
 
     private boolean isValidTargetProjectile(@Nullable Entity e) {
         // 只负责实体判断，输入的只有实体
-        if (e == null || e.isRemoved() || e.getDeltaMovement().lengthSqr() < 0.3) {
+        if (e == null || e.isRemoved() || e.getDeltaMovement().lengthSqr() < MIN_PROJECTILE_SPEED_SQR) {
             return false;
         }
         // 功能：目标实体已经消失（如雪球撞地）时立即判定失效，避免炮塔锁定到最后坐标抖动。
+        // Function: support modded shots that are not Projectile subclasses; anything with health is not intercepted.
         if (e instanceof LivingEntity) {
             return false;
         }
 
         //速度判断
+        // Function: dropped items can move like shots but cannot be intercepted or cleared by CIWS.
+        if (e instanceof ItemEntity) {
+            return false;
+        }
+
         Vec3 center = new Vec3(0,0,0);
         SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, this.getBlockPos());
         if (subLevel != null) {
@@ -130,7 +164,9 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
         } else {
             center = new Vec3(this.currentworldpos.x, this.currentworldpos.y, this.currentworldpos.z);
         }
-        if(isflyingtowards(e,center)){return false;}
+        if (!isProjectileThreatening(e, center)) {
+            return false;
+        }
 
         // 距离判断（用世界坐标）
         double distSq = e.distanceToSqr(currentworldpos.x, currentworldpos.y, currentworldpos.z);
@@ -324,24 +360,37 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
     }
 
     private void fireWhenLocked() {
+        if (!isFireCooldownReady()) {
+            return;
+        }
         if (aimtype == 1) {
             shootentity();
-            idleTicks = getCoolDown();
+            consumeFireCooldown();
         } else if (aimtype == 2) {
             interceptprojectile();
-            idleTicks = getCoolDown();
+            consumeFireCooldown();
         }
     }
 
-    private boolean isflyingtowards(Entity e, Vec3 center) {
-        // 速度阈值，可调（单位：方块/刻）
-        double speed = e.getDeltaMovement().length();
-        if (speed < 0.25) return false; // 太慢的直接忽略（比如漂浮的物品）
+    protected boolean canFireAtCurrentAim() {
+        // Function: subclasses can start CIWS fire before the turret reaches a perfect lock.
+        return xOK && yOK;
+    }
 
-        // 计算是否朝船本身飞来
-        Vec3 toEntity = e.position().subtract(center);
-        double dot = e.getDeltaMovement().normalize().dot(toEntity.normalize());
-        return dot < -0.3; // 越负说明越正对护盾飞来（-0.3~0.6 之间调节手感）
+    private boolean isProjectileThreatening(Entity e, Vec3 center) {
+        Vec3 velocity = e.getDeltaMovement();
+        if (velocity.lengthSqr() < MIN_PROJECTILE_SPEED_SQR) {
+            return false;
+        }
+
+        Vec3 fromCenterToProjectile = e.position().subtract(center);
+        if (fromCenterToProjectile.lengthSqr() < 1.0E-6D) {
+            return true;
+        }
+
+        // Function: keep incoming and crossing projectiles, but ignore shots clearly moving away from the protected center.
+        double approachDot = velocity.normalize().dot(fromCenterToProjectile.normalize());
+        return approachDot < 0.15D;
     }
 
     public abstract void interceptprojectile();
@@ -349,5 +398,10 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
     @Override
     public Component getDisplayName() {
         return Component.literal("CIWS Screen");
+    }
+
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return cache;
     }
 }

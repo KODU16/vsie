@@ -7,6 +7,8 @@
     "block.vsie.basic_vector_thruster": "basic vector thruster",
     "block.vsie.infra_knife_accelerator": "infra knife accelerator",
     "block.vsie.basic_missile_launcher": "basic missile launcher",
+    "block.vsie.verticle_launching_slot": "verticle launching slot",
+    "block.vsie.verticle_launching_slot_core": "verticle launching slot core",
     "block.vsie.arc_emitter": "arc emitter",
     "block.vsie.cenix_plasma_cannon": "cenix plasma cannon",
 
@@ -44,6 +46,8 @@
     "key.vsie.brake": "throttle down",
     "key.vsie.roll_left": "roll left",
     "key.vsie.roll_right": "roll right",
+    "key.vsie.control_left": "control left",
+    "key.vsie.control_right": "control right",
     "key.vsie.adjust_left":"adjust movement left",
     "key.vsie.adjust_right":"adjust movement right",
     "key.vsie.scan_peripheral": "scan peripheral",

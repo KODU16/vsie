@@ -1,5 +1,6 @@
 package com.kodu16.vsie.content.turret;
 
+import com.kodu16.vsie.content.cooldown.FireCooldown;
 import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.foundation.Vec;
 import com.mojang.logging.LogUtils;
@@ -55,7 +56,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     public static SerializableDataTicket<Boolean> TURRET_HAS_TARGET;
 
     public boolean hasInitialized = false;//鍊煎緱琚啓鍏bstract绫昏鎵€鏈変汉瀛︿範锛?
-    public Level level = this.getLevel();
+    public Level level = null;
     public BlockPos pos = this.getBlockPos();
     public BlockState state = this.getBlockState();
     public boolean onShip = false;
@@ -81,6 +82,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     public static Vector3d pivotPoint = new Vector3d(); // 妯″瀷涓殑鏋㈣酱鐐?姝ゅ悗浼氭嵁姝よ嚜鍔ㄨ绠楁灑杞寸偣鐨勫亸绉?
 
     public int idleTicks = 0;
+    protected int fireCooldownValue = -1;
     // 鍔熻兘锛氳褰曠偖鍙ｇ伀鐒板墿浣欐樉绀烘椂闂达紙鍗曚綅锛歵ick锛夛紝鐢ㄤ簬瀹炵幇鈥滃紑鐏悗寤惰繜鐔勭伃鈥濇晥鏋溿€?
     public int muzzleFlashTicks = 0;
 
@@ -151,6 +153,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     public void tick() {
         Level level = this.getLevel();
         if (level == null || level.isClientSide()) { return; }
+        this.level = level;
 
         if (!hasInitialized){
             BlockPos pos = this.getBlockPos();
@@ -169,18 +172,16 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             this.turretData.setWorldPivotOffset(pivotoffsetworld);
 
             // 鍔熻兘锛氬喎鍗存椂闂翠粎鐢ㄤ簬绂佹寮€鐏紝涓嶅啀闃绘柇绱㈡晫涓庤浆鍚戦€昏緫銆俿
-            if (idleTicks > 0) {
-                idleTicks = idleTicks - 1;
-            }
             // 鍔熻兘锛氭瘡 tick 琛板噺鐐彛鐏劙鏄剧ず璁℃椂锛岃鏃剁粨鏉熷悗鑷姩闅愯棌鐏劙灞傘€?
             if (muzzleFlashTicks > 0) {
                 muzzleFlashTicks = muzzleFlashTicks - 1;
             }
             // 鍔熻兘锛氱粺涓€鍒锋柊鐐涓栫晫鍧愭爣锛屽噺灏?tick 涓绘祦绋嬪垎鏀鏉傚害銆?
-            currentworldpos = subLevel.logicalPose().transformPosition(Vec3.atLowerCornerOf(pos));
+            currentworldpos = ServerShipUtils.getBlockCenterWorld(subLevel, pos);
             // 鍔熻兘锛氱粺涓€澶勭悊鐩爣鎼滅储锛岃嫢鏃犳湁鏁堢洰鏍囧垯璁╃偖濉斿洖褰掗粯璁よ搴︺€?
             acquireTargetByAimType();
             tryInvalidateTarget();
+            tickFireCooldown(hasValidTarget());
 
             if (hasValidTarget()) {
                 // 鍔熻兘锛氱淮鎶ら€熷害閲囨牱绐楀彛锛屼负寮归亾棰勬祴鎻愪緵鏈€杩戠Щ鍔ㄨ秼鍔裤€?
@@ -255,7 +256,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     private void fireWhenLocked() {
         //LogUtils.getLogger().warn("shooting");
         // 鍔熻兘锛氬喎鍗存湡闂村厑璁哥户缁储鏁屼笌鏃嬭浆锛屼絾绂佹閲嶅寮€鐏€?
-        if (idleTicks > 0) {
+        if (!isFireCooldownReady()) {
             return;
         }
         // 鍔熻兘锛氬厑璁稿瓙绫诲０鏄庘€滃綋鍓嶆槸鍚︽弧瓒冲紑鐏祫婧愭潯浠垛€濓紙濡傚脊鑽粨锛夛紝涓嶆弧瓒虫椂浠呯瀯鍑嗕笉灏勫嚮銆?
@@ -265,7 +266,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         if (aimtype == 1) {
             targetDistance = Vec.Distance(currentworldpos, targetPos);
             shootentity();
-            idleTicks = getCoolDown();
+            consumeFireCooldown();
             // 鍔熻兘锛氬疄浣撶洰鏍囧紑鐏悗淇濇寔 0.5 绉掔偖鍙ｇ伀鐒版樉绀猴紙20tick/s * 0.5s = 10tick锛夈€?
             muzzleFlashTicks = 10;
         } else if (aimtype == 2) {
@@ -277,7 +278,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
                 return;
             }
             shootship();
-            idleTicks = getCoolDown();
+            consumeFireCooldown();
             // 鍔熻兘锛氳埌鑸圭洰鏍囧紑鐏悗鍚屾牱淇濇寔 0.5 绉掔偖鍙ｇ伀鐒版樉绀恒€?
             muzzleFlashTicks = 10;
         }
@@ -296,9 +297,36 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
     public abstract double getcannonlength();//鐢ㄤ簬鐐彛鐗规晥鍙戝皠浣嶇疆鐨勮绠楋紙鐪熸伓蹇冿級
 
+    protected Vec3 getTurretAimOriginWorld() {
+        Vec3 localOrigin = Vec3.atCenterOf(this.getBlockPos()).add(0.0D, getYAxisOffset(), 0.0D);
+        Level level = this.getLevel();
+        if (level == null) {
+            return localOrigin;
+        }
+
+        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, this.getBlockPos());
+        // Function: compute the server-side aim origin without using the client Geckolib firepoint bone.
+        return subLevel == null ? localOrigin : subLevel.logicalPose().transformPosition(localOrigin);
+    }
+
+    protected @Nullable Vec3 getCannonMuzzleWorld(Vec3 target) {
+        Vec3 origin = getTurretAimOriginWorld();
+        Vec3 direction = target.subtract(origin);
+        if (direction.lengthSqr() < 1.0E-6D) {
+            return null;
+        }
+
+        // Function: project cannon length from the aim origin along the current target line to get muzzle position.
+        return origin.add(direction.normalize().scale(getcannonlength()));
+    }
+
     public abstract float getMaxSpinSpeed();
 
     public abstract int getCoolDown();
+
+    public FireCooldown getFireCooldown() {
+        return FireCooldown.cool1(getCoolDown());
+    }
 
     public abstract int getenergypertick();
 
@@ -312,6 +340,58 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     }
 
     // 鍔熻兘锛氬厑璁稿瓙绫诲０鏄?Geo 妯″瀷涓?turret 楠ㄩ鐨勬灑杞寸偣锛堝崟浣嶏細妯″瀷鍍忕礌锛屽師鐐逛负鏂瑰潡鏈湴鍘熺偣锛夈€?
+    protected void tickFireCooldown(boolean fireRequested) {
+        FireCooldown cooldown = getFireCooldown();
+        if (idleTicks > 0) {
+            idleTicks--;
+        }
+        ensureFireCooldownValue(cooldown);
+        if (cooldown.usesValue() && !fireRequested) {
+            fireCooldownValue = Math.min(cooldown.maxValue(), fireCooldownValue + cooldown.recoveryPerTick());
+        }
+    }
+
+    protected boolean isFireCooldownReady() {
+        FireCooldown cooldown = getFireCooldown();
+        ensureFireCooldownValue(cooldown);
+        return idleTicks <= 0 && (!cooldown.usesValue() || fireCooldownValue > 0);
+    }
+
+    protected void consumeFireCooldown() {
+        FireCooldown cooldown = getFireCooldown();
+        ensureFireCooldownValue(cooldown);
+        idleTicks = cooldown.intervalTicks();
+        if (cooldown.usesValue()) {
+            fireCooldownValue = Math.max(0, fireCooldownValue - 1);
+        }
+    }
+
+    public int getCooldownHudValue() {
+        FireCooldown cooldown = getFireCooldown();
+        ensureFireCooldownValue(cooldown);
+        return cooldown.usesValue() ? fireCooldownValue : Math.max(0, idleTicks);
+    }
+
+    public int getCooldownHudMax() {
+        FireCooldown cooldown = getFireCooldown();
+        return cooldown.usesValue() ? cooldown.maxValue() : cooldown.intervalTicks();
+    }
+
+    public boolean isCooldownHudRemaining() {
+        return !getFireCooldown().usesValue();
+    }
+
+    private void ensureFireCooldownValue(FireCooldown cooldown) {
+        if (!cooldown.usesValue()) {
+            return;
+        }
+        if (fireCooldownValue < 0) {
+            fireCooldownValue = cooldown.maxValue();
+        } else if (fireCooldownValue > cooldown.maxValue()) {
+            fireCooldownValue = cooldown.maxValue();
+        }
+    }
+
     protected Vector3d getTurretPivotInGeoPixels() {
         return new Vector3d(0.0, 0.0, 0.0);
     }
@@ -441,7 +521,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         return canSeeTarget(new Vec3(e.getX(), e.getY(), e.getZ()));
     }
 
-    private boolean isValidTargetShip(SubLevel ship) {
+    protected boolean isValidTargetShip(SubLevel ship) {
         if(ship == null) {
             return false;
         }
@@ -467,7 +547,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     }
 
     // 鍔熻兘锛氳繑鍥炰竴涓紭鍏堝彲瑙佺殑鑸拌埞鐬勫噯鐐癸紝鍑忓皯鐐鍦ㄢ€滀笉鍙璐ㄥ績鈥濅笂鍙嶅閲嶉€夌洰鏍囩殑鎶芥悙銆?
-    private Vec3 getShipAimPoint(SubLevel ship) {
+    protected Vec3 getShipAimPoint(SubLevel ship) {
         // 鍔熻兘锛氭寜鈥滃琛ㄩ潰鐐逛紭鍏堛€佷腑蹇冪偣鍏滃簳鈥濈殑椤哄簭杩斿洖鐬勫噯鐐癸紝浼樺厛鍑绘墦鑳界湅瑙佺殑浣嶇疆銆?
         for (Vec3 samplePoint : getShipAimCandidates(ship)) {
             if (canSeeTarget(samplePoint)) {
@@ -639,6 +719,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         tag.putInt("defaultyrot",this.defaultspiny);
         // 鍔熻兘锛氬悓姝ョ偖鍙ｇ伀鐒板墿浣欐椂闂村埌瀹㈡埛绔紝纭繚娓叉煋灞傚彲鎸夋椂鏄剧ず/鐔勭伃銆?
         tag.putInt("muzzleFlashTicks", this.muzzleFlashTicks);
+        tag.putInt("fireCooldownValue", this.fireCooldownValue);
     }
 
     @Override
@@ -656,6 +737,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         if (tag.contains("defaultyrot")) {this.defaultspiny = tag.getInt("defaultyrot");}
         if (tag.contains("defaultxrot")) {this.defaultspinx = tag.getInt("defaultxrot");}
         if (tag.contains("muzzleFlashTicks")) {this.muzzleFlashTicks = tag.getInt("muzzleFlashTicks");}
+        if (tag.contains("fireCooldownValue")) {this.fireCooldownValue = tag.getInt("fireCooldownValue");}
     }
 
     @Override
@@ -776,6 +858,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             this.FirePoint = null;
             return;
         }
+        // Store an absolute sublevel-space muzzle point captured from the Geckolib firepoint bone.
         this.FirePoint = new Vector3d(postofire);
     }
 

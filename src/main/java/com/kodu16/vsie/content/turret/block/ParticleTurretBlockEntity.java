@@ -1,14 +1,11 @@
 package com.kodu16.vsie.content.turret.block;
 
-import com.kodu16.vsie.content.bullet.BulletData;
 import com.kodu16.vsie.content.bullet.entity.ParticleBulletEntity;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
-import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.registries.vsieEntities;
 import com.kodu16.vsie.registries.vsieItems;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -97,6 +94,7 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity impleme
     @Override
     protected boolean canShootCurrentTarget() {
         // 鍔熻兘锛氭病鏈夊彲鐢ㄧ矑瀛愬鍣ㄦ椂锛岀偖濉斿彧淇濇寔鐬勫噯锛屼笉鎵ц寮€鐏€?
+        // Function: firing only needs ammo; muzzle position is computed server-side from cannon length.
         return hasStoredContainer();
     }
 
@@ -108,21 +106,26 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity impleme
             return;
         }
         // 鍔熻兘锛氭瘡娆＄湡姝ｅ紑鐏墠娑堣€?1 涓矑瀛愬鍣紝鑻ユ秷鑰楀け璐ュ垯缁堟鏈灏勫嚮銆?
+        Vec3 firepoint = getCannonMuzzleWorld(targetPos);
+        if (firepoint == null) {
+            return;
+        }
+
+        // Function: launch from the calculated cannon endpoint instead of the Geckolib firepoint bone.
+        Vec3 direction = targetPos.subtract(firepoint);
+        if (direction.lengthSqr() < 1.0E-6) {
+            return;
+        }
         if (!consumeOneContainer()) {
             return;
         }
-        if(getFirePoint() != null){
-            triggerAnim("controller", "shoot");
-            Vec3 center = new Vec3(this.getBlockPos().getX()+getFirePoint().x, this.getBlockPos().getY()+getFirePoint().y+getYAxisOffset(), this.getBlockPos().getZ()+getFirePoint().z);
-            SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, this.getBlockPos());
-            Vec3 firepoint = subLevel == null ? center : subLevel.logicalPose().transformPosition(center);
-            ParticleBulletEntity bullet = new ParticleBulletEntity(vsieEntities.PARTICLE_BULLET.get(), level);
-            // 鍔熻兘锛氫负绮掑瓙鐐瓙寮瑰啓鍏ユ爣鍑?data锛岀‘淇濆瓙寮圭 1 tick 浣跨敤 particle_cannon_fire 瑙﹀彂 awake FX銆?
-            bullet.setDataBase(BulletData.createParticleCannonDefault());
-            bullet.setPos(firepoint);
-            bullet.setDeltaMovement(new Vec3(targetPos.x-firepoint.x,targetPos.y-firepoint.y,targetPos.z-firepoint.z).normalize().scale(1.0F));
-            this.getLevel().addFreshEntity(bullet);
-        }
+        triggerAnim("controller", "shoot");
+        LogUtils.getLogger().warn("firepoint:"+firepoint);
+        ParticleBulletEntity bullet = new ParticleBulletEntity(vsieEntities.PARTICLE_BULLET.get(), level);
+        // The spawned bullet owns particle_bullet.fx for its whole lifetime.
+        bullet.setPos(firepoint);
+        bullet.setDeltaMovement(direction.normalize().scale(ParticleBulletEntity.SPEED));
+        level.addFreshEntity(bullet);
     }
 
     @Override

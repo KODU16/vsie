@@ -23,7 +23,7 @@ public class HeavyElectroMagnetTurretModel extends DefaultedBlockGeoModel<HeavyE
         return ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/block/heavy_electromagnet_turret.png");
     }
     public ResourceLocation getAnimationResource(HeavyElectroMagnetTurretBlockEntity turret) {
-        return ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/heavy_electromagnet_turret_anim.json");
+        return ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/turret/heavy_electromagnet_turret_anim.json");
     }
 
     @Override
@@ -36,7 +36,7 @@ public class HeavyElectroMagnetTurretModel extends DefaultedBlockGeoModel<HeavyE
             animatable.prevxrot = xRot;
             animatable.prevyrot = yRot;
             cannon.setRotZ(xRot);
-            turret.setRotY(yRot);
+            turret.setRotY((float) (yRot+Math.PI));
         }
     }
     private float lerp(float start, float end) {

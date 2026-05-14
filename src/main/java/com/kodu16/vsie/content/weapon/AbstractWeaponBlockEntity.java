@@ -1,5 +1,6 @@
 package com.kodu16.vsie.content.weapon;
 
+import com.kodu16.vsie.content.cooldown.FireCooldown;
 import com.kodu16.vsie.content.weapon.server.WeaponContainerMenu;
 import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.mojang.datafixers.util.Pair;
@@ -50,7 +51,11 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
     private float raycastDistance = 513.0f;//姝﹀櫒鐨剅aycast鍜屾帹杩涘櫒涓嶅お涓€鏍凤紝姝﹀櫒鏄皠绾挎娴嬬洰鏍囩殑璺濈锛屽鏋滄槸灏勫脊姝﹀櫒涔熸娴嬶紝浣嗕笉浼氬埄鐢?
     public Vec3 targetpos = new Vec3(0,0,0);
     public Vec3 weaponpos;
+    protected Vec3 raycastStart = Vec3.ZERO;
+    protected Vec3 raycastEnd = Vec3.ZERO;
+    private boolean raycastHit = false;
     public int currentTick = -1;
+    protected int fireCooldownValue = -1;
     public String weapontype = "";
 
     public float getRaycastDistance() {
@@ -61,9 +66,17 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         return targetpos;
     }
 
+    public boolean hasRaycastHit() {
+        return raycastHit;
+    }
+
 
     public abstract float getmaxrange(); //鑾峰彇鏈€澶у皠绋?
     public abstract int getcooldown(); //姣忎袱娆″皠鍑婚棿鏈€灏忛棿闅旂殑tick鏁?
+
+    public FireCooldown getFireCooldown() {
+        return FireCooldown.cool1(getcooldown());
+    }
 
     public String getweapontype() {
         return null;
@@ -82,12 +95,14 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
 
     public void tick() {
         super.tick();
-        currentTick++;
-        if (currentTick < getcooldown()) return;
-        currentTick = getcooldown();
         this.raycastDistance = 0;
-        if(!needtofire()) {
+        boolean fireRequested = needtofire();
+        tickFireCooldown(fireRequested);
+        if(!fireRequested) {
             getData().isfiring = false;
+            return;
+        }
+        if (!isFireCooldownReady()) {
             return;
         }
         Level level = this.getLevel();
@@ -96,14 +111,17 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         }
         if (hasInitialized)
         {
-            currentTick = 0;
+            consumeFireCooldown();
             getData().isfiring = true;
             BlockPos pos = this.getBlockPos();
             SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level,pos);;
             if (subLevel!=null) {
-                weaponpos = subLevel.logicalPose().transformPosition(new Vec3(pos.getX(),pos.getY(),pos.getZ()));
-                fire();
+                weaponpos = ServerShipUtils.getBlockCenterWorld(subLevel, pos);
+            } else {
+                // Function: weapons placed in the normal level still need to fire and use normal-world coordinates.
+                weaponpos = Vec3.atCenterOf(pos);
             }
+            fire();
         }
     }
 
@@ -115,6 +133,56 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
     }
 
     public abstract void fire();
+
+    protected void tickFireCooldown(boolean fireRequested) {
+        FireCooldown cooldown = getFireCooldown();
+        currentTick = Math.min(currentTick + 1, cooldown.intervalTicks());
+        ensureFireCooldownValue(cooldown);
+        if (cooldown.usesValue() && !fireRequested) {
+            fireCooldownValue = Math.min(cooldown.maxValue(), fireCooldownValue + cooldown.recoveryPerTick());
+        }
+    }
+
+    protected boolean isFireCooldownReady() {
+        FireCooldown cooldown = getFireCooldown();
+        ensureFireCooldownValue(cooldown);
+        return currentTick >= cooldown.intervalTicks() && (!cooldown.usesValue() || fireCooldownValue > 0);
+    }
+
+    protected void consumeFireCooldown() {
+        FireCooldown cooldown = getFireCooldown();
+        ensureFireCooldownValue(cooldown);
+        currentTick = 0;
+        if (cooldown.usesValue()) {
+            fireCooldownValue = Math.max(0, fireCooldownValue - 1);
+        }
+    }
+
+    public int getCooldownHudValue() {
+        FireCooldown cooldown = getFireCooldown();
+        ensureFireCooldownValue(cooldown);
+        return cooldown.usesValue() ? fireCooldownValue : currentTick;
+    }
+
+    public int getCooldownHudMax() {
+        FireCooldown cooldown = getFireCooldown();
+        return cooldown.usesValue() ? cooldown.maxValue() : cooldown.intervalTicks();
+    }
+
+    public boolean isCooldownHudRemaining() {
+        return false;
+    }
+
+    private void ensureFireCooldownValue(FireCooldown cooldown) {
+        if (!cooldown.usesValue()) {
+            return;
+        }
+        if (fireCooldownValue < 0) {
+            fireCooldownValue = cooldown.maxValue();
+        } else if (fireCooldownValue > cooldown.maxValue()) {
+            fireCooldownValue = cooldown.maxValue();
+        }
+    }
 
     public void receivechannel(int encode) {
         getData().receivingchannel = encode;
@@ -201,11 +269,15 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         Pair<Vec3, Vec3> raycastPositions = calculateRaycastPositions(currentBlockPos, localDirectionVector, effectiveMaxDistance);
         Vec3 worldFrom = raycastPositions.getFirst();
         Vec3 worldTo = raycastPositions.getSecond();
+        this.raycastStart = worldFrom;
+        this.raycastEnd = worldTo;
 
         // 榛樿浣跨敤鏈€澶у皠绋嬶細褰撳皠绾挎病鏈夊懡涓换浣曟柟鍧楁椂锛屾縺鍏変細鏄剧ず涓烘鍣ㄧ殑鏈€澶ч暱搴︺€?
         this.raycastDistance = effectiveMaxDistance;
         // 榛樿鐩爣鐐硅缃负鏈€澶у皠绋嬫湯绔紝渚夸簬淇濇寔瀹㈡埛绔?鏈嶅姟绔姸鎬佷竴鑷淬€?
         this.targetpos = worldTo;
+        // Function: misses still use the max-range endpoint; this flag separates visual target from real block hit.
+        this.raycastHit = false;
 
         // Perform raycast using world coordinates
         ClipContext.Fluid clipFluid = ClipContext.Fluid.ANY;
@@ -214,6 +286,7 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
 
         if (hit.getType() == HitResult.Type.BLOCK) {
             Vec3 hitPos = hit.getLocation();
+            this.raycastHit = true;
 
             // 鍛戒腑鏂瑰潡鏃讹紝婵€鍏夐暱搴︿弗鏍间娇鐢ㄢ€滄鍣ㄤ綅缃?-> 鍛戒腑浣嶇疆鈥濈殑瀹為檯璺濈銆?
             float distance = (float)worldFrom.distanceTo(hitPos);
@@ -231,10 +304,10 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
     private Pair<Vec3, Vec3> calculateRaycastPositions(BlockPos localBlockPos, Vec3 localDirectionVector, float maxRaycastDistance) {
         Level level = getLevel();
 
-        Vec3 localFromCenter = Vec3.atLowerCornerWithOffset(worldPosition, 0.5, 0.5, 0.5);
+        Vec3 localFromCenter = Vec3.atCenterOf(localBlockPos);
         Vec3 localDisplacement = localDirectionVector.scale(maxRaycastDistance);
 
-        Vec3 worldFrom = new Vec3(0,0,0);
+        Vec3 worldFrom;
         Vec3 worldDisplacement;
 
         SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level,this.getBlockPos());;
@@ -242,21 +315,29 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
             Quaterniondc shipRotation = subLevel.logicalPose().orientation();
             Vector3d rotatedDisplacementJOML = new Vector3d();
             shipRotation.transform(localDisplacement.x, localDisplacement.y, localDisplacement.z, rotatedDisplacementJOML);
+            worldFrom = subLevel.logicalPose().transformPosition(localFromCenter);
             worldDisplacement = new Vec3(rotatedDisplacementJOML.x, rotatedDisplacementJOML.y, rotatedDisplacementJOML.z);
         } else {
             worldFrom = localFromCenter;
             worldDisplacement = localDisplacement;
         }
 
+        // Function: start slightly outside the weapon block so the ray does not collide with its own collider.
+        if (worldDisplacement.lengthSqr() > 1.0E-6D) {
+            worldFrom = worldFrom.add(worldDisplacement.normalize().scale(0.75D));
+        }
         Vec3 worldTo = worldFrom.add(worldDisplacement);
         return new Pair<>(worldFrom, worldTo);
+    }
+
+    public Vec3 getRaycastStart() {
+        return raycastStart;
     }
 
     public Vec3 getWeaponPos() {
         BlockPos pos = this.getBlockPos();
         SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level,pos);;
-        if(subLevel!=null) {return subLevel.logicalPose().transformPosition(new Vec3(pos.getX(), pos.getY(), pos.getZ()));}
-        else {return new Vec3(pos.getX(),pos.getY(), pos.getZ());}
+        return ServerShipUtils.getBlockCenterWorld(subLevel, pos);
     }
 
     @Override
@@ -317,6 +398,7 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         tag.putBoolean("channel2",weaponData.getChannel2());
         tag.putBoolean("channel3",weaponData.getChannel3());
         tag.putBoolean("channel4",weaponData.getChannel4());
+        tag.putInt("fireCooldownValue", this.fireCooldownValue);
     }
 
     @Override
@@ -332,6 +414,7 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         if (tag.contains("channel2")) {weaponData.setChannel2(tag.getBoolean("channel2"));}
         if (tag.contains("channel3")) {weaponData.setChannel3(tag.getBoolean("channel3"));}
         if (tag.contains("channel4")) {weaponData.setChannel4(tag.getBoolean("channel4"));}
+        if (tag.contains("fireCooldownValue", Tag.TAG_INT)) {this.fireCooldownValue = tag.getInt("fireCooldownValue");}
     }
 
     //geckolib

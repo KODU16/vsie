@@ -4,6 +4,7 @@ import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.ActiveWeaponHudInfo;
 import com.kodu16.vsie.content.controlseat.Initialize;
 import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
+import com.kodu16.vsie.content.controlseat.functions.ScanNearByShips;
 import com.kodu16.vsie.content.controlseat.functions.ShieldHandler;
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
 import com.kodu16.vsie.content.controlseat.server.ServerShipHandler;
@@ -11,6 +12,8 @@ import com.kodu16.vsie.content.controlseat.client.Input.ClientMouseHandler;
 
 import com.kodu16.vsie.content.controlseat.server.SeatRegistry;
 import com.kodu16.vsie.foundation.ServerShipUtils;
+import com.kodu16.vsie.network.fx.FxPositionS2CPacket;
+import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.registries.vsieEntities;
 import com.kodu16.vsie.registries.vsieItems;
 import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity;
@@ -21,6 +24,7 @@ import com.kodu16.vsie.content.storage.fueltank.AbstractFuelTankBlockEntity;
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlockEntity;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
+import com.kodu16.vsie.content.weapon.missile_launcher.block.VerticleLaunchingSlotCoreBlockEntity;
 import com.kodu16.vsie.network.fuel.FluidThrusterProperties;
 import com.kodu16.vsie.registries.fuel.ThrusterFuelManager;
 import com.mojang.logging.LogUtils;
@@ -31,6 +35,7 @@ import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -54,7 +59,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import org.joml.Quaternionf;
 import org.joml.Vector3d;
+import org.joml.Vector3f;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import software.bernie.geckolib.animation.AnimatableManager;
 
@@ -62,18 +69,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity implements BlockEntitySubLevelActor {
+    private static final ResourceLocation SHIELD_OPEN_FX = ResourceLocation.fromNamespaceAndPath("vsie", "shield_open");
+    private static final ResourceLocation SHIELD_HIT_FX = ResourceLocation.fromNamespaceAndPath("vsie", "shield_hit");
+    private static final float SHIELD_OPEN_DEFAULT_RADIUS = 8.0F;
     //private final ControlSeatServerData serverData = new ControlSeatServerData();
     public volatile boolean ride = false;
     private boolean hasInitialized = false;
+    private boolean shieldOpenFxPlayed = false;
     public boolean previousfirestatus = false;
     private HolderLookup.Provider nbtRegistries;
-
-    // 閸旂喕鍏橀敍姘辩处鐎涙ɑ甯堕崚鑸殿槳瑜版挸澧犳稉鏍櫕閸ф劖鐖ｉ敍灞肩返鐏炲繐绠烽梿鐤彧娴ｈ法鏁ら妴?
     private Vector3d currentworldpos = new Vector3d();
-
-
-    //閸楀厖濞囬幋鎴滅瑝閹啿鍟撻惃鍕箹娑斿牊浼撹箛鍐跨礉娑撹桨绨＄捄銊ф樊鎼达附鍨滄潻妯绘Ц瀵版鍏?
-    //閺堝琚辨稉鐚shmap閿涘瞼顑囨禍灞奸嚋閺勵垯璐熸禍鍡樿閺屾弻UD閻ㄥ嫭妞傞崐娆戞暏閺夈儱寮介弻顧﹐ntrolseat
     private List<ControlSeatMountEntity> seats = new ArrayList<>();
     private final ServerShipHandler serverShipHandler;
 
@@ -253,6 +258,14 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         //閹躲倗娴?
         if(controlseatData.isshieldon) {//婵″倹鐏夐幎銈囨禈瀵偓閸?
             updateShieldEnergyAvalible();
+            if (!shieldOpenFxPlayed) {
+                SubLevel shieldFxSublevel = ServerShipUtils.getSubLevelAtBlockPos(level, this.getBlockPos());
+                Vec3 shieldFxCenter = shieldFxSublevel == null ? null : ServerShipUtils.getStructureCenterWorld(shieldFxSublevel);
+                if (shieldFxCenter != null && !linkedShields.isEmpty() && controlseatData.shieldradius > 0.0D) {
+                    // Play shield_open as soon as the shield is toggled on, even if the shield is cooling down.
+                    shieldOpenFxPlayed = playShieldOpenFx(shieldFxSublevel, shieldFxCenter);
+                }
+            }
             int currentcooldown = (int) controlseatData.shieldcooldowntime;
             if(controlseatData.shieldcooldowntime <= 0) {
                 SubLevel sublevel = ServerShipUtils.getSubLevelAtBlockPos(level,this.getBlockPos());
@@ -262,6 +275,9 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                 Vec3 center = ServerShipUtils.getStructureCenterWorld(sublevel);
                 if (center == null || linkedShields.isEmpty() || controlseatData.shieldradius <= 0.0D) {
                     return;
+                }
+                if (!shieldOpenFxPlayed) {
+                    shieldOpenFxPlayed = playShieldOpenFx(sublevel, center);
                 }
                 AABB searchBox = new AABB(this.getBlockPos()).inflate(controlseatData.shieldradius + 3.0); // 婢舵碍鎮虫稉鈧悙鐧哥礉闂冨弶顒涙姗€鈧喎鐤勬担鎾茬鐢呪敍鏉╁洤骞?
                 // 閺嶇绺鹃敍姘涧缁涙盯鈧鈧粍鐥呴張澶屾晸閸涜棄鈧?+ 闁喎瀹虫径鐔锋彥 + 娑撳秵妲搁悳鈺侇啀娑旂喍绗夐弰顖滄磮閻㈠弶鐏﹂垾婵呯缁崵娈戠€圭偘缍?
@@ -291,7 +307,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                         // 缁帒鐡欐禍銈囧仯
                         Vec3 hitDir = toEntity.normalize();
                         Vec3 hitPoint = finalCenter.add(hitDir.scale(controlseatData.shieldradius));
-                        ShieldHandler.spawnRippleParticles((ServerLevel) level, hitPoint, finalCenter);
+                        playShieldHitFx(hitPoint, hitDir);
 
                         // 閸欘垶鈧绱伴幘顓熸杹闂婅櫕鏅?
                         level.playSound(null, hitPoint.x, hitPoint.y, hitPoint.z,
@@ -308,6 +324,9 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             else {
                 controlseatData.shieldcooldowntime = currentcooldown - 1;
             }
+        }
+        else {
+            shieldOpenFxPlayed = false;
         }
 
     }
@@ -415,14 +434,26 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         List<ActiveWeaponHudInfo> activeWeaponHudInfos = new ArrayList<>();
         List<Vec3> toRemove = new ArrayList<>();
         int finalActiveSeatChannelEncode = activeSeatChannelEncode;
+        SubLevel lockedEnemySubLevel = resolveLockedEnemySubLevel();
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof AbstractWeaponBlockEntity weapon) {
+                // Function: sync the currently locked enemy sublevel to linked weapons before firing.
+                weapon.receivetarget(lockedEnemySubLevel);
+                if (weapon instanceof VerticleLaunchingSlotCoreBlockEntity verticalLaunchCore) {
+                    // Function: VLS cap animation follows armed channels even when the fire key is not held.
+                    verticalLaunchCore.receiveArmedChannels(finalActiveSeatChannelEncode);
+                }
                 // 閸旂喕鍏橀敍姘劅閸ｃ劑鈧俺绻冮懛顏囬煩妫版垿浜鹃柊宥囩枂閳ユ粌鎲￠惌銉⑩偓婵囧付閸掕埖顦弰顖氭儊鐏炵偘绨ぐ鎾冲濠碘偓濞插顣堕柆鎾扁偓?
                 if (isWeaponInAnyActiveChannel(weapon, finalActiveSeatChannelEncode)) {
                     // 閸旂喕鍏橀敍姘跺櫚闂嗗棙顒熼崳銊ユ倳缁夐绗岄崘宄板祱鏉╂稑瀹抽敍灞肩返鐎广垺鍩涚粩顖滅帛閸掑灈鈧粍琛ラ梻銊︾壉瀵繆鈧繆绻樻惔锔芥蒋閵?
-                    activeWeaponHudInfos.add(new ActiveWeaponHudInfo(weapon.getDisplayName().getString(), weapon.currentTick, weapon.getcooldown()));
+                    activeWeaponHudInfos.add(new ActiveWeaponHudInfo(
+                            weapon.getDisplayName().getString(),
+                            weapon.getCooldownHudValue(),
+                            weapon.getCooldownHudMax(),
+                            weapon.isCooldownHudRemaining()
+                    ));
                 }
 
                 // 閸旂喕鍏橀敍姘瘻瑜版挸澧犲鈧悘顐ゅЦ閹礁鎮滃锕€娅掗崥灞绢劄閹貉冨煑濡炲懘顣堕柆鎾圭翻閸忋儯鈧?
@@ -457,6 +488,20 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         if (weapon.getData().getChannel3()) weaponChannelEncode |= 4;
         if (weapon.getData().getChannel4()) weaponChannelEncode |= 8;
         return (weaponChannelEncode & activeSeatChannelEncode) != 0;
+    }
+
+    private SubLevel resolveLockedEnemySubLevel() {
+        // Function: resolve once per tick so every linked weapon receives the same locked target.
+        SubLevel lockedEnemySubLevel = ScanNearByShips.scanEnemySubLevelByIndex(
+                null,
+                this.getBlockPos(),
+                level,
+                controlseatData.enemy,
+                controlseatData.ally,
+                controlseatData.lockedenemyindex
+        );
+        controlseatData.lockedEnemySubLevel = lockedEnemySubLevel;
+        return lockedEnemySubLevel;
     }
 
     public void updateShield() {
@@ -549,16 +594,205 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         if (energy <= 0 || linkedShields.isEmpty()) {
             return;
         }
-        int eachregenerate = energy/linkedShields.size();
+        int acceptedByShields = simulateLinkedShieldReceive(energy);
+        if (acceptedByShields <= 0) {
+            return;
+        }
+
+        int drainedFromBatteries = drainLinkedBatteriesForShield(acceptedByShields);
+        if (drainedFromBatteries <= 0) {
+            return;
+        }
+
+        int chargedToShields = chargeLinkedShields(drainedFromBatteries);
+        int unusedEnergy = drainedFromBatteries - chargedToShields;
+        if (unusedEnergy > 0) {
+            refundLinkedBatteriesFromShield(unusedEnergy);
+        }
+
+        int consumedEnergy = drainedFromBatteries - unusedEnergy;
+        if (consumedEnergy > 0) {
+            // Shield regeneration is a real FE cost, so update the HUD-side battery cache this tick.
+            totalenergyavalible = Math.max(0, totalenergyavalible - consumedEnergy);
+            controlseatData.avalibleenergy = Math.max(0, controlseatData.avalibleenergy - consumedEnergy);
+            updateShieldEnergyAvalible();
+            setChanged();
+        }
+    }
+
+    private int simulateLinkedShieldReceive(int energy) {
+        int[] remaining = {energy};
+        int[] accepted = {0};
+        List<Vec3> toRemove = new ArrayList<>();
         this.forEachLinkedPeripheral(pos -> {
+            if (remaining[0] <= 0) {
+                return;
+            }
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
 
             if (be instanceof ShieldGeneratorBlockEntity shield) {
-                Logger LOGGER = LogUtils.getLogger();
-                shield.getEnergy().receiveEnergy(eachregenerate,false);
+                int received = shield.getEnergy().receiveEnergy(remaining[0], true);
+                remaining[0] -= received;
+                accepted[0] += received;
+            } else {
+                toRemove.add(pos);
             }
         }, 2);
+        for (Vec3 pos : toRemove) {
+            removeLinkedPeripheral(pos, 2);
+        }
+        return accepted[0];
+    }
+
+    private int chargeLinkedShields(int energy) {
+        int[] remaining = {energy};
+        int[] charged = {0};
+        List<Vec3> toRemove = new ArrayList<>();
+        this.forEachLinkedPeripheral(pos -> {
+            if (remaining[0] <= 0) {
+                return;
+            }
+            BlockPos blockPos = BlockPos.containing(pos);
+            BlockEntity be = level.getBlockEntity(blockPos);
+
+            if (be instanceof ShieldGeneratorBlockEntity shield) {
+                int received = shield.getEnergy().receiveEnergy(remaining[0], false);
+                remaining[0] -= received;
+                charged[0] += received;
+                if (received > 0) {
+                    shield.setChanged();
+                }
+            } else {
+                toRemove.add(pos);
+            }
+        }, 2);
+        for (Vec3 pos : toRemove) {
+            removeLinkedPeripheral(pos, 2);
+        }
+        return charged[0];
+    }
+
+    private int drainLinkedBatteriesForShield(int energy) {
+        int[] remaining = {energy};
+        int[] drained = {0};
+        List<Vec3> toRemove = new ArrayList<>();
+        this.forEachLinkedPeripheral(pos -> {
+            if (remaining[0] <= 0) {
+                return;
+            }
+            BlockPos blockPos = BlockPos.containing(pos);
+            BlockEntity be = level.getBlockEntity(blockPos);
+
+            if (be instanceof AbstractEnergyBatteryBlockEntity battery) {
+                int extracted = battery.getEnergyStorage().extractEnergy(remaining[0], false);
+                remaining[0] -= extracted;
+                drained[0] += extracted;
+                if (extracted > 0) {
+                    battery.setChanged();
+                }
+            } else {
+                toRemove.add(pos);
+            }
+        }, 4);
+        for (Vec3 pos : toRemove) {
+            removeLinkedPeripheral(pos, 4);
+        }
+        return drained[0];
+    }
+
+    private void refundLinkedBatteriesFromShield(int energy) {
+        int[] remaining = {energy};
+        List<Vec3> toRemove = new ArrayList<>();
+        this.forEachLinkedPeripheral(pos -> {
+            if (remaining[0] <= 0) {
+                return;
+            }
+            BlockPos blockPos = BlockPos.containing(pos);
+            BlockEntity be = level.getBlockEntity(blockPos);
+
+            if (be instanceof AbstractEnergyBatteryBlockEntity battery) {
+                // Refund only protects against stale shield receive simulations in the same tick.
+                int received = battery.getEnergyStorage().receiveEnergy(remaining[0], false);
+                remaining[0] -= received;
+                if (received > 0) {
+                    battery.setChanged();
+                }
+            } else {
+                toRemove.add(pos);
+            }
+        }, 4);
+        for (Vec3 pos : toRemove) {
+            removeLinkedPeripheral(pos, 4);
+        }
+    }
+
+    private boolean playShieldOpenFx(SubLevel sublevel, Vec3 center) {
+        if (!(level instanceof ServerLevel) || controlseatData.shieldradius <= 0.0D) {
+            return false;
+        }
+        Vector3f shieldNormal = controlSeatRightWorld(sublevel);
+        Quaternionf rotation = new Quaternionf().rotationTo(0.0F, 0.0F, 1.0F, shieldNormal.x, shieldNormal.y, shieldNormal.z);
+        float scale = Math.max(0.01F, (float) controlseatData.shieldradius / SHIELD_OPEN_DEFAULT_RADIUS);
+        Vector3d velocity = getSublevelLinearVelocity(sublevel);
+        // Scale shield_open from its default radius 8 to the current shield radius.
+        ModNetworking.sendToAll(new FxPositionS2CPacket(
+                SHIELD_OPEN_FX,
+                center.x, center.y, center.z,
+                velocity.x, velocity.y, velocity.z,
+                rotation,
+                new Vector3f(scale, scale, scale),
+                true
+        ));
+        return true;
+    }
+
+    private Vector3d getSublevelLinearVelocity(SubLevel sublevel) {
+        if (!(sublevel instanceof ServerSubLevel serverSubLevel)) {
+            return new Vector3d();
+        }
+        RigidBodyHandle handle = RigidBodyHandle.of(serverSubLevel);
+        if (handle == null || !handle.isValid()) {
+            return new Vector3d();
+        }
+        // Capture the current ship velocity so shield_open keeps moving with the sublevel while it plays.
+        return handle.getLinearVelocity(new Vector3d());
+    }
+
+    private void playShieldHitFx(Vec3 hitPoint, Vec3 normal) {
+        if (!(level instanceof ServerLevel) || normal.lengthSqr() <= 1.0E-6D) {
+            return;
+        }
+        Vec3 normalized = normal.normalize();
+        Quaternionf rotation = new Quaternionf().rotationTo(
+                0.0F, 1.0F, 0.0F,
+                (float) normalized.x, (float) normalized.y, (float) normalized.z
+        );
+        // Align shield_hit local Y axis with the shield surface normal at the impact point.
+        ModNetworking.sendToAll(new FxPositionS2CPacket(
+                SHIELD_HIT_FX,
+                hitPoint.x, hitPoint.y, hitPoint.z,
+                rotation,
+                new Vector3f(1.0F, 1.0F, 1.0F),
+                true
+        ));
+    }
+
+    private Vector3f controlSeatRightWorld(SubLevel sublevel) {
+        Direction facing = getBlockState().hasProperty(BlockStateProperties.FACING)
+                ? getBlockState().getValue(BlockStateProperties.FACING)
+                : Direction.EAST;
+        Vector3d forward = new Vector3d(facing.getStepX(), facing.getStepY(), facing.getStepZ());
+        Vector3d up = new Vector3d(0.0D, 1.0D, 0.0D);
+        Vector3d right = forward.cross(up, new Vector3d());
+        if (right.lengthSquared() <= 1.0E-6D) {
+            right.set(0.0D, 0.0D, 1.0D);
+        }
+        right.normalize();
+        sublevel.logicalPose().orientation().transform(right);
+        right.normalize();
+        // The seat uses local X as forward, Y as up, and Z as right; Z is the shield_open plane normal.
+        return new Vector3f((float) right.x, (float) right.y, (float) right.z);
     }
 
     public void updateTurret() {
@@ -578,23 +812,47 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                 this.energyspendpertick += turret.getenergypertick();
                 if (be instanceof AbstractHeavyTurretBlockEntity heavyturret) {
                     // 閸旂喕鍏橀敍姘付閸掕埖顦弴瀛樻煀闁插秴鐎烽悙顔碱敊閺冭绱濋崥灞绢劄妫版垿浜炬潏鎾冲弳閿涙稐绮庨崷銊ョ磻閻忣偅妞傛稉瀣絺濠碘偓濞插顣堕柆鎾扁偓?
+                    //閼奉亜濮╁Ο鈥崇础閻╁瓨甯撮弴瀛樻煀閻╊喗鐖ｉ敍灞炬￥鐟欏棛甯虹€规湹缍呯純?
+                    boolean hasSeatedPlayer = controlseatData.getPlayer() != null;
+                    boolean isViewLocked = controlseatData.isviewlocked;
+                    heavyturret.armedChannelFromCtrl(finalActiveSeatChannelEncode);
+                    heavyturret.updateControlSeatViewLock(isViewLocked);
+                    // Function: choose heavy turret targeting from the current seat state, not stale turret NBT.
+                    if (heavyturret.usesAutomaticTarget(hasSeatedPlayer, isViewLocked)) {
+                        if (controlseatData.lockedEnemySubLevel != null) {
+                            // Function: pass the live enemy sublevel so heavy turrets can track its current position every tick.
+                            heavyturret.updatespecificenemy(controlseatData.lockedEnemySubLevel);
+                        } else if (!controlseatData.enemyshipsData.isEmpty()) {
+                            int targetIndex = Math.floorMod(controlseatData.lockedenemyindex, controlseatData.enemyshipsData.size());
+                            heavyturret.updatespecificenemy(controlseatData.enemyshipsData.get(targetIndex));
+                        } else {
+                            heavyturret.clearSpecificEnemy();
+                        }
+                    }
+                    //閹靛濮╁Ο鈥崇础閺囧瓨鏌婇悳鈺侇啀娴ｅ秶鐤嗛敍宀冣偓灞肩瑝閺勵垱鏅€靛湱娲伴弽?
+                    else if (heavyturret.usesManualTarget(hasSeatedPlayer, isViewLocked)){
+                        // 閸旂喕鍏橀敍姘倱濮濄儳甯虹€规儼顫嬬憴鎺楁敚閻樿埖鈧緤绱濋獮鍓佹纯閹恒儰绗呴崣鎴濐吂閹撮顏拋锛勭暬閻ㄥ嫭澧滈崝銊х€崙鍡欐窗閺嶅洨鍋ｇ紒娆撳櫢閸ㄥ鍋栨繅鏂烩偓?
+                        heavyturret.updateplayerstatus(
+                                hasSeatedPlayer,
+                                isViewLocked,
+                                new Vec3(controlseatData.manualAimTargetX, controlseatData.manualAimTargetY, controlseatData.manualAimTargetZ)
+                        );
+                    } else {
+                        // Function: manual mode with view lock or no seated player clears target and lets the turret re-center.
+                        heavyturret.clearSpecificEnemy();
+                    }
                     if (controlseatData.isfiring) {
                         heavyturret.channelFromCtrl(finalActiveSeatChannelEncode);
                     } else {
                         heavyturret.channelFromCtrl(0);
                     }
-                    //閼奉亜濮╁Ο鈥崇础閻╁瓨甯撮弴瀛樻煀閻╊喗鐖ｉ敍灞炬￥鐟欏棛甯虹€规湹缍呯純?
-                    if (!controlseatData.enemyshipsData.isEmpty() && heavyturret.needupdateenemy()) {
-                        int targetIndex = Math.floorMod(controlseatData.lockedenemyindex, controlseatData.enemyshipsData.size());
-                        heavyturret.updatespecificenemy(controlseatData.enemyshipsData.get(targetIndex));
-                    }
-                    //閹靛濮╁Ο鈥崇础閺囧瓨鏌婇悳鈺侇啀娴ｅ秶鐤嗛敍宀冣偓灞肩瑝閺勵垱鏅€靛湱娲伴弽?
-                    else{
-                        // 閸旂喕鍏橀敍姘倱濮濄儳甯虹€规儼顫嬬憴鎺楁敚閻樿埖鈧緤绱濋獮鍓佹纯閹恒儰绗呴崣鎴濐吂閹撮顏拋锛勭暬閻ㄥ嫭澧滈崝銊х€崙鍡欐窗閺嶅洨鍋ｇ紒娆撳櫢閸ㄥ鍋栨繅鏂烩偓?
-                        heavyturret.updateplayerstatus(
-                                controlseatData.isviewlocked,
-                                new Vec3(controlseatData.manualAimTargetX, controlseatData.manualAimTargetY, controlseatData.manualAimTargetZ)
-                        );
+                    if (heavyturret.isArmedChannelMatch()) {
+                        controlseatData.activeWeaponHudInfos.add(new ActiveWeaponHudInfo(
+                                heavyturret.getDisplayName().getString(),
+                                heavyturret.getCooldownHudValue(),
+                                heavyturret.getCooldownHudMax(),
+                                heavyturret.isCooldownHudRemaining()
+                        ));
                     }
                 }
             } else {
@@ -678,11 +936,12 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             if (subLevel instanceof dev.ryanhcode.sable.sublevel.ServerSubLevel serverSubLevel) {
                 controlseatData.serverShip = serverSubLevel;
             }
-            Vec3 worldPos = subLevel.logicalPose().transformPosition(Vec3.atLowerCornerOf(this.getBlockPos()));
+            Vec3 worldPos = ServerShipUtils.getBlockCenterWorld(subLevel, this.getBlockPos());
             currentworldpos = new Vector3d(worldPos.x, worldPos.y, worldPos.z);
             return;
         }
-        currentworldpos = new Vector3d(this.getBlockPos().getX(), this.getBlockPos().getY(), this.getBlockPos().getZ());
+        Vec3 worldPos = Vec3.atCenterOf(this.getBlockPos());
+        currentworldpos = new Vector3d(worldPos.x, worldPos.y, worldPos.z);
     }
 
     protected boolean isWorking() {

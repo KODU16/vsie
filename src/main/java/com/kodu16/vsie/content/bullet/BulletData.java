@@ -8,6 +8,10 @@ import net.minecraft.resources.ResourceLocation;
 
 @SuppressWarnings("removal")
 public class BulletData {
+    private static final ResourceLocation PARTICLE_BULLET_FX = ResourceLocation.fromNamespaceAndPath("vsie", "particle_bullet");
+    private static final ResourceLocation CENIX_PLASMA_BULLET_FX = ResourceLocation.fromNamespaceAndPath("vsie", "cenix_plasma_bullet");
+    private static final ResourceLocation HEAVY_ELECTROMAGNETIC_BULLET_FX = ResourceLocation.fromNamespaceAndPath("vsie", "heavy_electromagnetic_bullet");
+
     // 功能：保存子弹的特效配置；兼容数据文件中使用 "fx" 或 "fxData" 两种键名。
     @SerializedName(value = "fx", alternate = {"fxData"})
     private FxData fxData;
@@ -21,9 +25,19 @@ public class BulletData {
         this.fxData = fxData;
     }
 
-    // 功能：构造一个默认粒子炮子弹数据，确保 tickCount==1 时可读取到 awake 的 FX，且不触发 Gson 反射异常。
-    public static BulletData createParticleCannonDefault() {
-        return new BulletData(FxData.createWithAwake(ResourceLocation.fromNamespaceAndPath("vsie", "particle_cannon_fire")));
+    // Keep particle bullets responsible for their own lifetime FX, not the cannon fire event.
+    public static BulletData createParticleBulletDefault() {
+        return new BulletData(FxData.createWithAwake(PARTICLE_BULLET_FX));
+    }
+
+    // Function: Cenix bullets use the dedicated plasma bullet FX for both flight and impact playback.
+    public static BulletData createCenixPlasmaBulletDefault() {
+        return new BulletData(FxData.createWithAwake(CENIX_PLASMA_BULLET_FX));
+    }
+
+    // Function: heavy electromagnetic bullets currently copy particle bullet behavior with a dedicated trail FX.
+    public static BulletData createHeavyElectroMagnetBulletDefault() {
+        return new BulletData(FxData.createWithAwake(HEAVY_ELECTROMAGNETIC_BULLET_FX));
     }
 
     public FxData getFxData() {

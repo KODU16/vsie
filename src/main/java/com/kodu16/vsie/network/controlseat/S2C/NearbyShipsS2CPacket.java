@@ -13,6 +13,7 @@ import net.minecraftforge.network.NetworkEvent;
 import net.minecraft.client.Minecraft;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -47,12 +48,14 @@ public class NearbyShipsS2CPacket implements CustomPacketPayload {
             buf.writeDouble((double) attr.get("x"));
             buf.writeDouble((double) attr.get("y"));
             buf.writeDouble((double) attr.get("z"));
+            // 功能：同步敌舰编号，客户端 HUD 用该编号显示并和直选目标保持一致。
+            buf.writeVarInt(toInt(attr.get("targetIndex")));
         }
     }
 
     // 解码（客户端读取）
     public static NearbyShipsS2CPacket decode(FriendlyByteBuf buf) {
-        Map<String, Object> data = new HashMap<>();
+        Map<String, Object> data = new LinkedHashMap<>();
 
         int size = buf.readVarInt();
 
@@ -67,6 +70,7 @@ public class NearbyShipsS2CPacket implements CustomPacketPayload {
             attr.put("x", buf.readDouble());
             attr.put("y", buf.readDouble());
             attr.put("z", buf.readDouble());
+            attr.put("targetIndex", buf.readVarInt());
 
             data.put(key, attr);
         }
@@ -107,5 +111,9 @@ public class NearbyShipsS2CPacket implements CustomPacketPayload {
     @Override
     public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
         return TYPE;
+    }
+
+    private static int toInt(Object value) {
+        return value instanceof Number number ? number.intValue() : 0;
     }
 }

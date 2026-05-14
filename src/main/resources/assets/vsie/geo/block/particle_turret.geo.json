@@ -938,11 +938,11 @@
 					]
 				},
 				{
-					"name": "cannonend",
+					"name": "firepoint",
 					"parent": "long_cannon",
-					"pivot": [0, 44, 0],
+					"pivot": [0.5, 45.5, -101.5],
 					"cubes": [
-						{"origin": [-2, 44, 0], "size": [2, 2, 2], "uv": [0, 0]}
+						{"origin": [0, 45, -102], "size": [1, 1, 1], "uv": [2, 1]}
 					]
 				},
 				{

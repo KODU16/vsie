@@ -15,7 +15,6 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
@@ -42,7 +41,6 @@ public class BulletRenderer<T extends AbstractBulletEntity> extends EntityRender
         if(pEntity.tickCount<=10) {
             return;
         }
-        fixRotation(pEntity);
         pPoseStack.pushPose();
         pPoseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(pPartialTick, pEntity.yRotO, pEntity.getYRot()) - 90.0F));
         pPoseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(pPartialTick, pEntity.xRotO, pEntity.getXRot())));
@@ -145,12 +143,6 @@ public class BulletRenderer<T extends AbstractBulletEntity> extends EntityRender
                 .setLight(pPackedLight)
                 .setNormal(1.0F, 0.0F, 0.0F)
                 ;
-    }
-
-    private void fixRotation(T entity) {
-        Vec3 vec = entity.getDeltaMovement();
-        entity.setYRot((float) Math.atan2(vec.x, vec.z) * Mth.RAD_TO_DEG);
-        entity.setXRot((float) Math.atan2(vec.y, Math.sqrt(vec.x * vec.x + vec.z * vec.z)) * Mth.RAD_TO_DEG);
     }
 
     @Override

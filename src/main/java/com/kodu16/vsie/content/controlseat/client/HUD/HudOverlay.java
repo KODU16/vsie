@@ -5,12 +5,14 @@ import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
 import com.kodu16.vsie.content.controlseat.functions.ShipAnglePainter;
+import com.kodu16.vsie.registries.vsieKeyMappings;
 import com.kodu16.vsie.registries.vsieItems;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FastColor;
@@ -34,6 +36,9 @@ public class HudOverlay {
 
     public static final int MAIN_COLOR = FastColor.ARGB32.color(TEXT_ALPHA, 0x00, 0xFF, 0x99);
     public static final int SUB_COLOR  = FastColor.ARGB32.color(TEXT_ALPHA, 0x00, 0x66, 0x33);
+    private static final int WARP_COLOR = FastColor.ARGB32.color(TEXT_ALPHA, 0x33, 0xAA, 0xFF);
+    private static final int KEY_COLOR = FastColor.ARGB32.color(TEXT_ALPHA, 0xFF, 0xFF, 0xFF);
+    private static final float HUD_TEXT_SCALE = 0.7f;
 
     private static final Minecraft mc = Minecraft.getInstance(); // drawGlowText 要用
     // 功能：记录上一帧 HUD 渲染时间，用于把慢包同步数据按真实帧间隔进行平滑插值。
@@ -100,10 +105,11 @@ public class HudOverlay {
             //绘制护盾/飞行辅助/反重力开关/武器频道开关
             int switchBaseX = centerX + (centerX / 6);
             int switchY = centerY + (centerY / 2);
-            int switchGap = 24;
-            drawSwitch(gg, "Shield", switchBaseX, switchY, data.shieldon,20,10);
-            drawSwitch(gg, "Assist", switchBaseX + switchGap, switchY, data.isflightassiston,20,10);
-            drawSwitch(gg, "AntiG", switchBaseX + switchGap * 2, switchY, data.isantigravityon,20,10);
+            int switchGap = 50;
+            drawKeyedSwitch(gg, "Shield", vsieKeyMappings.KEY_TOGGLE_SHIELD, switchBaseX, switchY, data.shieldon,46,10);
+            drawKeyedSwitch(gg, "Assist", vsieKeyMappings.KEY_TOGGLE_FLIGHT_ASSIST, switchBaseX + switchGap, switchY, data.isflightassiston,46,10);
+            drawKeyedSwitch(gg, "AntiG", vsieKeyMappings.KEY_TOGGLE_ANTI_GRAVITY, switchBaseX + switchGap * 2, switchY, data.isantigravityon,44,10);
+            drawWarpSwitch(gg, data, switchBaseX + switchGap * 3, switchY);
             drawSwitch(gg, "1", switchBaseX+5, switchY+15, data.channel1,10,10);
             drawSwitch(gg, "2", switchBaseX+20, switchY+15, data.channel2,10,10);
             drawSwitch(gg, "3", switchBaseX+35, switchY+15, data.channel3,10,10);
@@ -164,11 +170,18 @@ public class HudOverlay {
 
     // 方便的居中绘制方法（不带辉光）
     public static void drawCenteredText(GuiGraphics gg, String text, int x, int y, int color) {
-        float scale = 0.7f;
         gg.pose().pushPose();
-        gg.pose().scale(scale, scale, 1);
-        float inv = 1 / scale;
+        gg.pose().scale(HUD_TEXT_SCALE, HUD_TEXT_SCALE, 1);
+        float inv = 1 / HUD_TEXT_SCALE;
         gg.drawCenteredString(mc.font, Component.literal(text), (int)(x * inv), (int)(y * inv), color);
+        gg.pose().popPose();
+    }
+
+    private static void drawLeftText(GuiGraphics gg, String text, int x, int y, int color) {
+        gg.pose().pushPose();
+        gg.pose().scale(HUD_TEXT_SCALE, HUD_TEXT_SCALE, 1);
+        float inv = 1 / HUD_TEXT_SCALE;
+        gg.drawString(mc.font, Component.literal(text), (int)(x * inv), (int)(y * inv), color, false);
         gg.pose().popPose();
     }
 
@@ -178,7 +191,33 @@ public class HudOverlay {
         DrawShape.drawHollowRectangle(gg, x, y+2, recwidth, recheight, 1, color);
     }
 
+    private static void drawKeyedSwitch(GuiGraphics gg, String label, KeyMapping keyMapping, int x, int y, boolean active, int recwidth, int recheight) {
+        int color = active ? MAIN_COLOR : SUB_COLOR;
+        String keyText = keyMapping.getTranslatedKeyMessage().getString();
+        String separator = keyText.isEmpty() ? "" : " ";
+        int keyWidth = mc.font.width(keyText);
+        int totalWidth = keyWidth + mc.font.width(separator + label);
+        int leftX = Math.round(x - totalWidth * HUD_TEXT_SCALE / 2f);
+
+        // Function: draw the bound key as a white prefix while preserving the existing switch text style.
+        drawLeftText(gg, keyText, leftX, y, KEY_COLOR);
+        drawLeftText(gg, separator + label, Math.round(leftX + keyWidth * HUD_TEXT_SCALE), y, color);
+        DrawShape.drawHollowRectangle(gg, x, y+2, recwidth, recheight, 1, color);
+    }
+
     // 功能：把服务端同步来的激活武器名称与冷却进度（currentTick/getcooldown）逐行绘制在热量条右侧。
+    private static void drawWarpSwitch(GuiGraphics gg, ControlSeatClientData data, int x, int y) {
+        boolean active = data.isWarpPreparing || data.hasPendingWarpTeleport;
+        if (!active) {
+            drawKeyedSwitch(gg, "Warp", vsieKeyMappings.KEY_START_WARP, x, y, false, 42, 10);
+            return;
+        }
+        // Function: active warp mode hides the key hint and uses a compact state label until teleport completes.
+        String label = data.hasPendingWarpTeleport ? "JUMP" : "ALIGN";
+        drawCenteredText(gg, label, x, y, WARP_COLOR);
+        DrawShape.drawHollowRectangle(gg, x, y + 2, 42, 10, 1, WARP_COLOR);
+    }
+
     private static void drawActiveWeaponCooldowns(GuiGraphics gg, ControlSeatClientData data, int centerX, int centerY, float hudAlpha) {
         int startX = centerX + centerX / 20 + 90;
         int startY = centerY - 18;
@@ -199,7 +238,7 @@ public class HudOverlay {
             int rowY = startY + i * lineHeight;
 
             // 功能：先绘制武器名称，保持原有 HUD 信息可读性。
-            drawCenteredText(gg, info.displayName, startX, rowY, MAIN_COLOR);
+            drawLeftText(gg, info.displayName, startX - 48, rowY, MAIN_COLOR);
 
             int barCenterX = startX + 55;
             int barCenterY = rowY + 1;
@@ -208,13 +247,15 @@ public class HudOverlay {
             // 功能：对每行武器冷却进度做本地平滑，减少服务端慢包导致的突变感。
             float progress = smoothExp(data.smoothWeaponCooldownRatios.get(i), targetProgress, hudAlpha);
             data.smoothWeaponCooldownRatios.set(i, progress);
+            // Function: heavy turret HUD values are remaining cooldown, so readiness is the inverse of the shown bar.
+            float readyProgress = info.remainingCooldown ? 1.0f - progress : progress;
 
             // 功能：绘制冷却进度条外框，作为“油门样式”槽体。
             DrawShape.drawHollowRectangle(gg, barCenterX, barCenterY, barWidth, barHeight + 2, 1, SUB_COLOR);
 
             // 功能：按 currentTick/getcooldown 线性插值颜色，进度越高越绿，越低越红。
-            int red = Mth.floor(Mth.lerp(progress, 0xFF, 0x00));
-            int green = Mth.floor(Mth.lerp(progress, 0x33, 0xFF));
+            int red = Mth.floor(Mth.lerp(readyProgress, 0xFF, 0x00));
+            int green = Mth.floor(Mth.lerp(readyProgress, 0x33, 0xFF));
             int dynamicColor = FastColor.ARGB32.color(TEXT_ALPHA, red, green, 0x33);
 
             // 功能：填充进度条，模拟油门推进效果。

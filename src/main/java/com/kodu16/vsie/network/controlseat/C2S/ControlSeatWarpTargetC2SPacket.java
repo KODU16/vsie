@@ -64,6 +64,8 @@ public class ControlSeatWarpTargetC2SPacket implements CustomPacketPayload {
             serverData.warpTargetPos = storedWarpData.pos();
             serverData.warpTargetDimension = storedWarpData.dimensionId();
             serverData.warpTargetName = stack.getHoverName().getString();
+            // Function: keep warp launch math anchored to the selected control seat even before the next block tick refreshes cached data.
+            serverData.controlSeatPos = pkt.controlSeatPos;
             serverData.startWarpPreparation();
 
             controlSeat.setChanged();

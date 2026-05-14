@@ -1,18 +1,15 @@
 package com.kodu16.vsie.content.turret.client;
 
-// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
-
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.turret.TurretContainerMenu;
-import com.kodu16.vsie.content.turret.ciws.AbstractCIWSBlockEntity;
 import com.kodu16.vsie.content.turret.block.ParticleTurretBlockEntity;
-import com.kodu16.vsie.network.screen.ScreenC2SPacket;
+import com.kodu16.vsie.content.turret.ciws.AbstractCIWSBlockEntity;
+import com.kodu16.vsie.network.turret.TurretC2SPacket;
 import com.kodu16.vsie.network.turret.TurretDefaultSpinC2SPacket;
 import com.kodu16.vsie.registries.ModNetworking;
-import com.kodu16.vsie.network.turret.TurretC2SPacket;
 import com.kodu16.vsie.vsie;
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.client.gui.GuiGraphics;                  // 新增
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -24,136 +21,147 @@ import net.minecraft.world.entity.player.Inventory;
 
 @SuppressWarnings({"removal"})
 public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
-    private EditBox editBoxSpinX;
-    private EditBox editBoxSpinY;
     private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/turret_gui.png");
     private static final ResourceLocation SLOT_TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/slot.png");
+
+    private EditBox editBoxSpinX;
+    private EditBox editBoxSpinY;
 
     public TurretScreen(TurretContainerMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
         this.imageWidth = 176;
-        this.imageHeight = 166;
+        // Function: Particle Turret needs room for the added player inventory slots.
+        this.imageHeight = menu.hasInventorySlots() ? 220 : 166;
+        this.inventoryLabelY = menu.hasInventorySlots() ? TurretContainerMenu.PLAYER_INV_Y - 11 : 72;
     }
 
-    // 1.20.1 必须重写这个新签名的方法
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTicks);   // 背景（半透明黑）
+        this.renderBackground(guiGraphics, mouseX, mouseY, partialTicks);
         super.render(guiGraphics, mouseX, mouseY, partialTicks);
-        this.renderTooltip(guiGraphics, mouseX, mouseY);   // 鼠标悬停提示
+        this.renderTooltip(guiGraphics, mouseX, mouseY);
     }
 
-    // renderBg 也必须改成 GuiGraphics
     @Override
     protected void renderBg(GuiGraphics guiGraphics, float partialTicks, int mouseX, int mouseY) {
-        // 获取 TurretBlockEntity
-        AbstractTurretBlockEntity turret = menu.getBlockEntity();  // 这里 menu.getBlockEntity() 返回 TurretBlockEntity
-        // 直接用 GuiGraphics 的 blit 方法绘制纹理
-        guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
-        // 根据状态选择不同的图标
-        ResourceLocation iconhostile = turret.getData().isTargetsHostile() ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_hostile_on.png")
+        AbstractTurretBlockEntity turret = menu.getBlockEntity();
+        guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, Math.min(this.imageHeight, 166));
+        if (menu.hasInventorySlots()) {
+            // Function: extend the old texture with a neutral panel under the turret controls.
+            guiGraphics.fill(this.leftPos, this.topPos + 116, this.leftPos + this.imageWidth, this.topPos + this.imageHeight, 0xFFBDBDBD);
+            guiGraphics.fill(this.leftPos + 3, this.topPos + 119, this.leftPos + this.imageWidth - 3, this.topPos + this.imageHeight - 3, 0xFFC6C6C6);
+        }
+
+        ResourceLocation iconHostile = turret.getData().isTargetsHostile()
+                ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_hostile_on.png")
                 : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_hostile_off.png");
-        ResourceLocation iconpassive = turret.getData().isTargetsPassive() ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_passive_on.png")
+        ResourceLocation iconPassive = turret.getData().isTargetsPassive()
+                ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_passive_on.png")
                 : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_passive_off.png");
-        ResourceLocation iconplayer = turret.getData().isTargetsPlayers() ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_players_on.png")
+        ResourceLocation iconPlayer = turret.getData().isTargetsPlayers()
+                ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_players_on.png")
                 : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_players_off.png");
-        ResourceLocation iconship = turret.getData().isTargetsShip() ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_ship_on.png")
+        ResourceLocation iconShip = turret.getData().isTargetsShip()
+                ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_ship_on.png")
                 : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_ship_off.png");
-        ResourceLocation iconciws = turret.getData().isTargetsShip() ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_ciws_on.png")
+        ResourceLocation iconCiws = turret.getData().isTargetsShip()
+                ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_ciws_on.png")
                 : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_ciws_off.png");
 
-        // 绘制状态图标
-        guiGraphics.blit(iconhostile, this.leftPos + 20, this.topPos + 70, 0, 0, 19, 19, 19,19); // 你可以调整位置和大小
-        guiGraphics.blit(iconpassive, this.leftPos + 59, this.topPos + 70, 0, 0, 19, 19, 19,19);
-        guiGraphics.blit(iconplayer, this.leftPos + 98, this.topPos + 70, 0, 0, 19, 19, 19,19);
-        if(menu.getBlockEntity() instanceof AbstractCIWSBlockEntity) {
-            guiGraphics.blit(iconciws, this.leftPos + 137, this.topPos + 70, 0, 0, 19, 19, 19,19);
-        }
-        else {
-            guiGraphics.blit(iconship, this.leftPos + 137, this.topPos + 70, 0, 0, 19, 19, 19,19);
-        }
+        guiGraphics.blit(iconHostile, this.leftPos + 20, this.topPos + 70, 0, 0, 19, 19, 19, 19);
+        guiGraphics.blit(iconPassive, this.leftPos + 59, this.topPos + 70, 0, 0, 19, 19, 19, 19);
+        guiGraphics.blit(iconPlayer, this.leftPos + 98, this.topPos + 70, 0, 0, 19, 19, 19, 19);
+        guiGraphics.blit(menu.getBlockEntity() instanceof AbstractCIWSBlockEntity ? iconCiws : iconShip,
+                this.leftPos + 137, this.topPos + 70, 0, 0, 19, 19, 19, 19);
+
         if (turret instanceof ParticleTurretBlockEntity) {
-            // 功能：在粒子炮 GUI 中绘制 3x3 弹药槽底图，位置与容器菜单槽位一一对应。
             RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            int slotStartX = this.leftPos + 59 - 1;
-            int slotStartY = this.topPos + 17 - 1;
-            for (int row = 0; row < 3; row++) {
-                for (int col = 0; col < 3; col++) {
-                    guiGraphics.blit(SLOT_TEXTURE,
-                            slotStartX + col * 18,
-                            slotStartY + row * 18,
-                            0, 0, 18, 18, 18, 18);
-                }
+            drawInternalSlots(guiGraphics);
+            drawPlayerInventorySlots(guiGraphics);
+        }
+    }
+
+    private void drawInternalSlots(GuiGraphics guiGraphics) {
+        // Function: draw backgrounds for the Particle Turret's internal 3x3 ammo buffer.
+        int slotStartX = this.leftPos + TurretContainerMenu.INTERNAL_SLOT_X - 1;
+        int slotStartY = this.topPos + TurretContainerMenu.INTERNAL_SLOT_Y - 1;
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 3; col++) {
+                guiGraphics.blit(SLOT_TEXTURE, slotStartX + col * 18, slotStartY + row * 18, 0, 0, 18, 18, 18, 18);
             }
         }
     }
 
-    // 可选：如果你还想显示物品栏标签、玩家背包等文字，也可以重写这个
+    private void drawPlayerInventorySlots(GuiGraphics guiGraphics) {
+        // Function: draw backgrounds for the player inventory slots added to this menu.
+        int startX = this.leftPos + TurretContainerMenu.PLAYER_INV_X - 1;
+        int startY = this.topPos + TurretContainerMenu.PLAYER_INV_Y - 1;
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 9; col++) {
+                guiGraphics.blit(SLOT_TEXTURE, startX + col * 18, startY + row * 18, 0, 0, 18, 18, 18, 18);
+            }
+        }
+        int hotbarY = this.topPos + TurretContainerMenu.HOTBAR_Y - 1;
+        for (int col = 0; col < 9; col++) {
+            guiGraphics.blit(SLOT_TEXTURE, startX + col * 18, hotbarY, 0, 0, 18, 18, 18, 18);
+        }
+    }
+
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        // 标题
         guiGraphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0x404040, false);
-        // 玩家背包文字 “物品栏”
-        //guiGraphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 0x404040, false);
+        if (menu.hasInventorySlots()) {
+            // Function: show the normal player inventory label above the added slots.
+            guiGraphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 0x404040, false);
+        }
     }
 
     @Override
     protected void init() {
         super.init();
-        BlockPos pos = menu.getBlockEntity().getBlockPos(); // 如果有 getBlockEntity() 方法
+        BlockPos pos = menu.getBlockEntity().getBlockPos();
         var be = this.menu.getBlockEntity();
-        int spinX  = be.defaultspinx;   // 假设你有这些 getter
-        int spinY  = be.defaultspiny;
-        this.editBoxSpinX = createIntEditBox("SpinX", this.leftPos+48+16+48, 48, String.valueOf(spinX));
-        this.editBoxSpinY = createIntEditBox("SpinY", this.leftPos+48, 48, String.valueOf(spinY));
+        this.editBoxSpinX = createIntEditBox("SpinX", this.leftPos + 112, this.topPos + 48, String.valueOf(be.defaultspinx));
+        this.editBoxSpinY = createIntEditBox("SpinY", this.leftPos + 48, this.topPos + 48, String.valueOf(be.defaultspiny));
 
-        this.addRenderableWidget(Button.builder(
-                        Component.literal("HOS"),
-                        button -> ModNetworking.sendToServer(new TurretC2SPacket(pos,1)))
-                .pos(this.leftPos + 16, this.topPos + 100)
-                .size(27, 15)
-                .build());
-        this.addRenderableWidget(Button.builder(
-                        Component.literal("PAS"),
-                        button -> ModNetworking.sendToServer(new TurretC2SPacket(pos,2)))
-                .pos(this.leftPos + 55, this.topPos + 100)
-                .size(27, 15)
-                .build());
-        this.addRenderableWidget(Button.builder(
-                        Component.literal("Player"),
-                        button -> ModNetworking.sendToServer(new TurretC2SPacket(pos,3)))
-                .pos(this.leftPos + 94, this.topPos + 100)
-                .size(27, 15)
-                .build());        this.addRenderableWidget(Button.builder(
-                        Component.literal("Ship"),
-                        button -> ModNetworking.sendToServer(new TurretC2SPacket(pos,4)))
-                .pos(this.leftPos + 133, this.topPos + 100)
-                .size(27, 15)
-                .build());
+        int targetButtonY = menu.hasInventorySlots() ? 90 : 100;
+        int actionButtonY = menu.hasInventorySlots() ? 108 : 140;
 
-        this.addRenderableWidget(Button.builder(
-                        Component.literal("保存"),
-                        button -> saveAndClose()
-                )
-                .bounds(this.leftPos+32, this.topPos+140, 40, 20)
+        this.addRenderableWidget(Button.builder(Component.literal("HOS"),
+                        button -> ModNetworking.sendToServer(new TurretC2SPacket(pos, 1)))
+                .pos(this.leftPos + 16, this.topPos + targetButtonY)
+                .size(27, 15)
                 .build());
-
-        this.addRenderableWidget(Button.builder(
-                        Component.literal("取消"),
-                        button -> this.minecraft.player.closeContainer()
-                )
-                .bounds(this.leftPos+72, this.topPos+140, 40, 20)
+        this.addRenderableWidget(Button.builder(Component.literal("PAS"),
+                        button -> ModNetworking.sendToServer(new TurretC2SPacket(pos, 2)))
+                .pos(this.leftPos + 55, this.topPos + targetButtonY)
+                .size(27, 15)
+                .build());
+        this.addRenderableWidget(Button.builder(Component.literal("Player"),
+                        button -> ModNetworking.sendToServer(new TurretC2SPacket(pos, 3)))
+                .pos(this.leftPos + 94, this.topPos + targetButtonY)
+                .size(37, 15)
+                .build());
+        this.addRenderableWidget(Button.builder(Component.literal("Ship"),
+                        button -> ModNetworking.sendToServer(new TurretC2SPacket(pos, 4)))
+                .pos(this.leftPos + 137, this.topPos + targetButtonY)
+                .size(27, 15)
+                .build());
+        this.addRenderableWidget(Button.builder(Component.literal("Save"),
+                        button -> saveAndClose())
+                .bounds(this.leftPos + 32, this.topPos + actionButtonY, 40, 16)
+                .build());
+        this.addRenderableWidget(Button.builder(Component.literal("Cancel"),
+                        button -> this.minecraft.player.closeContainer())
+                .bounds(this.leftPos + 76, this.topPos + actionButtonY, 48, 16)
                 .build());
     }
 
-    // 抽取成方法，方便复用 + 设置初始值
     private EditBox createIntEditBox(String name, int x, int y, String initialValue) {
-        EditBox box = new EditBox(this.font,
-                x, y,
-                24, 10,
-                Component.literal(name));
-        box.setMaxLength(8);           // int 范围够用
-        box.setValue(initialValue);    // ← 关键！设置初始值
+        EditBox box = new EditBox(this.font, x, y, 24, 10, Component.literal(name));
+        // Function: keep the default spin input compact and numeric-friendly.
+        box.setMaxLength(8);
+        box.setValue(initialValue);
         box.setFocused(false);
         this.addRenderableWidget(box);
         return box;
@@ -171,21 +179,12 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
     }
 
     private void saveAndClose() {
-        try {
-            int spinX   = safeParseInt(editBoxSpinX.getValue(), 0);
-            int spinY   = safeParseInt(editBoxSpinY.getValue(), 0);
-            var be = this.menu.getBlockEntity();
-            be.defaultspinx = spinX;
-            be.defaultspiny = spinY;
-            BlockPos pos = menu.getBlockEntity().getBlockPos();
-            ModNetworking.sendToServer(
-                    new TurretDefaultSpinC2SPacket(pos, spinX, spinY)
-            );
-            this.minecraft.player.closeContainer();
-        } catch (Exception e) {
-            // 可以选择不做任何事，或者给玩家提示
-            // this.minecraft.player.sendSystemMessage(Component.literal("输入格式错误！使用默认值0保存。"));
-        }
-
+        int spinX = safeParseInt(editBoxSpinX.getValue(), 0);
+        int spinY = safeParseInt(editBoxSpinY.getValue(), 0);
+        var be = this.menu.getBlockEntity();
+        be.defaultspinx = spinX;
+        be.defaultspiny = spinY;
+        ModNetworking.sendToServer(new TurretDefaultSpinC2SPacket(menu.getBlockEntity().getBlockPos(), spinX, spinY));
+        this.minecraft.player.closeContainer();
     }
 }

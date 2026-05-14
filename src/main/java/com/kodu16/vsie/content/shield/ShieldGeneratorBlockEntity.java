@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.shield;
 
+import com.kodu16.vsie.network.fx.FxPositionS2CPacket;
+import com.kodu16.vsie.registries.ModNetworking;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
@@ -12,6 +14,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -27,10 +30,12 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.energy.EnergyStorage;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import org.joml.Vector3f;
+import org.joml.Quaternionf;
 
 import java.util.List;
 
 public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
+    private static final ResourceLocation SHIELD_HIT_FX = ResourceLocation.fromNamespaceAndPath("vsie", "shield_hit");
     public SmartFluidTankBehaviour tank;
     public ShieldGeneratorBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
@@ -44,12 +49,30 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
     public BlockPos linkedcontrolseatpos = new BlockPos(0,0,0);
     double RADIUS = 3;
     public int maxreceiverate = 100;
-    public EnergyStorage energyStorage = new EnergyStorage(
+    public EnergyStorage energyStorage = new ShieldEnergyStorage(); /*
             100000,    // 鏈€澶у閲?(capacity)
             maxreceiverate,      // 鏈€澶ф帴鏀堕€熺巼 (max receive)   鍙互璁?Integer.MAX_VALUE 濡傛灉鎯虫棤闄愬埗
             Integer.MAX_VALUE,      // 鏈€澶ц緭鍑洪€熺巼 (max extract)
             0         // 鍒濆鑳介噺
-    );
+    );*/
+
+    private class ShieldEnergyStorage extends EnergyStorage {
+        private ShieldEnergyStorage() {
+            super(100000, Integer.MAX_VALUE, Integer.MAX_VALUE, 0);
+        }
+
+        @Override
+        public int receiveEnergy(int maxReceive, boolean simulate) {
+            // The control seat updates this limit every tick, so apply it at receive time.
+            int dynamicReceive = Math.max(0, ShieldGeneratorBlockEntity.this.maxreceiverate);
+            return super.receiveEnergy(Math.min(maxReceive, dynamicReceive), simulate);
+        }
+
+        public void setEnergyStored(int energy) {
+            // NBT restores exact stored shield FE and should not be capped by the current receive rate.
+            this.energy = Mth.clamp(energy, 0, this.capacity);
+        }
+    }
 
     public void tick(Level level, BlockPos pos, BlockState state, ShieldGeneratorBlockEntity be) {
         if (level.isClientSide || level.getGameTime() % 2 != 0) return;
@@ -84,7 +107,7 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
                 // 绮掑瓙浜ょ偣
                 Vec3 hitDir = toEntity.normalize();
                 Vec3 hitPoint = center.add(hitDir.scale(RADIUS));
-                spawnRippleParticles((ServerLevel) level, hitPoint, hitDir);
+                playShieldHitFx((ServerLevel) level, hitPoint, hitDir);
 
                 // 鍙€夛細鎾斁闊虫晥
                 level.playSound(null, hitPoint.x, hitPoint.y, hitPoint.z,
@@ -93,6 +116,25 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
                 getEnergyStorage().extractEnergy(20,false);
             }
         });
+    }
+
+    private static void playShieldHitFx(ServerLevel level, Vec3 hitPoint, Vec3 normal) {
+        if (normal.lengthSqr() <= 1.0E-6D) {
+            return;
+        }
+        Vec3 normalized = normal.normalize();
+        Quaternionf rotation = new Quaternionf().rotationTo(
+                0.0F, 1.0F, 0.0F,
+                (float) normalized.x, (float) normalized.y, (float) normalized.z
+        );
+        // Align shield_hit local Y axis with the impact normal and play it at the shield surface point.
+        ModNetworking.sendToAll(new FxPositionS2CPacket(
+                SHIELD_HIT_FX,
+                hitPoint.x, hitPoint.y, hitPoint.z,
+                rotation,
+                new Vector3f(1.0F, 1.0F, 1.0F),
+                true
+        ));
     }
 
     private static void spawnRippleParticles(ServerLevel level, Vec3 hitPoint, Vec3 hitDir) {
@@ -150,7 +192,7 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
     public void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientpacket) {
         super.read(tag, registries, clientpacket);
         if (tag.contains("Energy")) {
-            energyStorage.receiveEnergy(tag.getInt("Energy"), false);
+            ((ShieldEnergyStorage) energyStorage).setEnergyStored(tag.getInt("Energy"));
         }
         readVec3(tag, "controlpos");
     }

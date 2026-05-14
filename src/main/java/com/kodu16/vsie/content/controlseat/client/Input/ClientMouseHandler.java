@@ -40,6 +40,9 @@ public class ClientMouseHandler {
                 data.disableViewLock();
                 data.reset();
                 data.clearUserUUID();
+                data.isWarpPreparing = false;
+                data.hasPendingWarpTeleport = false;
+                data.warpTargetName = "";
                 if (minecraft.screen instanceof ControlSeatWarpSelectionScreen) {
                     minecraft.setScreen(null);
                 }
@@ -66,7 +69,8 @@ public class ClientMouseHandler {
                 else {
                     // 功能：非视角锁定时仅上传目标点给重型炮塔手动模式，控制椅本体姿态输入归零。
                     Vec3 aimTargetPos = calculateManualAimTargetPos(player);
-                    ClientSeatInputSender.tickSend(pos, player.getUUID(), 0, 0, 0, false, data.viewLock, aimTargetPos);
+                    // Function: unlocked view still uses left click to fire active weapons and manual heavy turrets.
+                    ClientSeatInputSender.tickSend(pos, player.getUUID(), 0, 0, 0, minecraft.mouseHandler.isLeftPressed(), data.viewLock, aimTargetPos);
                     data.reset();
                 }
         }
@@ -92,18 +96,15 @@ public class ClientMouseHandler {
         if (minecraft.level == null) {
             return;
         }
-        if (!data.isViewLocked()) {
+        if (data.isWarpPreparing) {
+            // 功能：warp 准备状态下再次按 P，不再弹出菜单，而是直接通知服务端取消自动对准与目标记录。
+            ModNetworking.sendToServer(new ControlSeatWarpCancelC2SPacket(pos));
             if (minecraft.screen instanceof ControlSeatWarpSelectionScreen) {
                 minecraft.setScreen(null);
             }
             return;
         }
-        if (!(minecraft.level.getBlockEntity(pos) instanceof com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity controlSeat)) {
-            return;
-        }
-        if (controlSeat.getServerData().isWarpPreparing) {
-            // 功能：warp 准备状态下再次按 P，不再弹出菜单，而是直接通知服务端取消自动对准与目标记录。
-            ModNetworking.sendToServer(new ControlSeatWarpCancelC2SPacket(pos));
+        if (data.hasPendingWarpTeleport) {
             if (minecraft.screen instanceof ControlSeatWarpSelectionScreen) {
                 minecraft.setScreen(null);
             }

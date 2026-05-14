@@ -24,6 +24,8 @@ import com.kodu16.vsie.content.weapon.cenix_plasma_cannon.CenixPlasmaCannonBlock
 import com.kodu16.vsie.content.weapon.electro_magnet_rail_cannon.ElectroMagnetRailCannonBlock;
 import com.kodu16.vsie.content.weapon.infra_knife_accelerator.InfraKnifeAcceleratorBlock;
 import com.kodu16.vsie.content.weapon.missile_launcher.block.BasicMissileLauncherBlock;
+import com.kodu16.vsie.content.weapon.missile_launcher.block.VerticleLaunchingSlotBlock;
+import com.kodu16.vsie.content.weapon.missile_launcher.block.VerticleLaunchingSlotCoreBlock;
 import com.kodu16.vsie.vsie;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlock;
 import com.kodu16.vsie.content.thruster.block.BasicThrusterBlock;
@@ -92,6 +94,24 @@ public class vsieBlocks {
             .register();
 
     public static final BlockEntry<BasicMissileLauncherBlock> BASIC_MISSILE_LAUNCHER_BLOCK = REGISTRATE.block("basic_missile_launcher", BasicMissileLauncherBlock::new)
+            .properties(p -> p.mapColor(MapColor.METAL))
+            .properties(p -> p.requiresCorrectToolForDrops())
+            .properties(p -> p.sound(SoundType.METAL))
+            .properties(p -> p.strength(5.5f, 4.0f))
+            .properties(p -> p.noOcclusion())
+            .simpleItem()
+            .register();
+    // Function: register the upward-only Gecko launch slot as a passive weapon-model block.
+    public static final BlockEntry<VerticleLaunchingSlotBlock> VERTICLE_LAUNCHING_SLOT_BLOCK = REGISTRATE.block("verticle_launching_slot", VerticleLaunchingSlotBlock::new)
+            .properties(p -> p.mapColor(MapColor.METAL))
+            .properties(p -> p.requiresCorrectToolForDrops())
+            .properties(p -> p.sound(SoundType.METAL))
+            .properties(p -> p.strength(5.5f, 4.0f))
+            .properties(p -> p.noOcclusion())
+            .simpleItem()
+            .register();
+    // Function: register the Java-model launch slot core that stores ordered slot links.
+    public static final BlockEntry<VerticleLaunchingSlotCoreBlock> VERTICLE_LAUNCHING_SLOT_CORE_BLOCK = REGISTRATE.block("verticle_launching_slot_core", VerticleLaunchingSlotCoreBlock::new)
             .properties(p -> p.mapColor(MapColor.METAL))
             .properties(p -> p.requiresCorrectToolForDrops())
             .properties(p -> p.sound(SoundType.METAL))

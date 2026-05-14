@@ -196,7 +196,7 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
         return subLevel.logicalPose().transformPosition(massData.getCenterOfMass(), new Vector3d());
     }
 
-    private void performRaycast(@Nonnull Level level) {
+    protected void performRaycast(@Nonnull Level level) {
         Logger LOGGER = LogUtils.getLogger();
         BlockState state = this.getBlockState();
         //LOGGER.warn(String.valueOf(Component.literal("throttle:"+thrusterData.getThrottle())));
@@ -204,7 +204,7 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
         updateRaycastDistance(level, state, (float) (thrusterData.getThrottle()*getMaxFlameDistance()));
     }
 
-    private void updateRaycastDistance(@Nonnull Level level, @Nonnull BlockState state, float distance) {
+    protected void updateRaycastDistance(@Nonnull Level level, @Nonnull BlockState state, float distance) {
         this.raycastDistance = distance;
         setChanged();
         if (!level.isClientSide()) {

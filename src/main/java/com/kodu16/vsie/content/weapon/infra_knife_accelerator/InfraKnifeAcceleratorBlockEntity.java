@@ -3,20 +3,19 @@ package com.kodu16.vsie.content.weapon.infra_knife_accelerator;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import org.jetbrains.annotations.Nullable;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
-
-import java.util.logging.Logger;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3f;
 
 public class InfraKnifeAcceleratorBlockEntity extends AbstractWeaponBlockEntity {
+    private static final DustParticleOptions RED_BEAM_PARTICLE = new DustParticleOptions(new Vector3f(1.0F, 0.02F, 0.0F), 2.0F);
+
     public InfraKnifeAcceleratorBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
     }
@@ -33,18 +32,49 @@ public class InfraKnifeAcceleratorBlockEntity extends AbstractWeaponBlockEntity 
 
     @Override
     public void fire() {
-        performRaycast(level);
-        if(getRaycastDistance()<getmaxrange())
-        {
-            LogUtils.getLogger().warn("explode at:"+targetpos);
-            level.explode(
-                    null, // 爆炸源实体，可为null
-                    targetpos.x, targetpos.y, targetpos.z, // 爆炸坐标
-                    3, // 爆炸半径
-                    true,// 是否点燃火焰
-                    Level.ExplosionInteraction.NONE // 不破坏方块
+        Level level = getLevel();
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+
+        performRaycast(serverLevel);
+        Vec3 beamStart = getRaycastStart();
+        Vec3 beamEnd = getTargetpos();
+        spawnRedBeam(serverLevel, beamStart, beamEnd);
+
+        if (hasRaycastHit()) {
+            LogUtils.getLogger().warn("explode at:" + targetpos);
+            spawnHitParticles(serverLevel, targetpos);
+            serverLevel.explode(
+                    null,
+                    targetpos.x, targetpos.y, targetpos.z,
+                    3,
+                    true,
+                    Level.ExplosionInteraction.NONE
             );
         }
+    }
+
+    private void spawnRedBeam(ServerLevel level, Vec3 from, Vec3 to) {
+        Vec3 delta = to.subtract(from);
+        double length = delta.length();
+        if (length < 1.0E-4D) {
+            return;
+        }
+        int samples = Math.max(2, Math.min(128, (int) (length / 4.0D)));
+        Vec3 step = delta.scale(1.0D / samples);
+        // Function: draw the instantaneous infra-knife beam on clients without relying on block animation state.
+        for (int i = 0; i <= samples; i++) {
+            Vec3 point = from.add(step.scale(i));
+            level.sendParticles(RED_BEAM_PARTICLE, point.x, point.y, point.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+        }
+    }
+
+    private void spawnHitParticles(ServerLevel level, Vec3 hitPos) {
+        // Function: reinforce the non-destructive explosion with visible impact and flame particles at the ray hit.
+        level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, hitPos.x, hitPos.y, hitPos.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+        level.sendParticles(ParticleTypes.FLAME, hitPos.x, hitPos.y, hitPos.z, 48, 0.8D, 0.8D, 0.8D, 0.04D);
+        level.sendParticles(ParticleTypes.LARGE_SMOKE, hitPos.x, hitPos.y, hitPos.z, 24, 0.8D, 0.8D, 0.8D, 0.02D);
     }
 
     @Override

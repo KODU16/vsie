@@ -1,13 +1,12 @@
 package com.kodu16.vsie.content.storage.energybattery;
 
-import com.kodu16.vsie.content.controlseat.client.AbstractControlSeatModel;
+import com.kodu16.vsie.foundation.AlwaysRenderGeoBlockRenderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
-import software.bernie.geckolib.renderer.GeoBlockRenderer;
 
-public class AbstractEnergyBatteryGeoRenderer extends GeoBlockRenderer<AbstractEnergyBatteryBlockEntity> {
+public class AbstractEnergyBatteryGeoRenderer extends AlwaysRenderGeoBlockRenderer<AbstractEnergyBatteryBlockEntity> {
     public AbstractEnergyBatteryGeoRenderer(BlockEntityRendererProvider.Context context) {
         super(new AbstractEnergyBatteryModel());
     }

@@ -29,6 +29,7 @@ public class TurretFirePointC2SPacket implements CustomPacketPayload {
     }
 
     public static void encode(TurretFirePointC2SPacket pkt, FriendlyByteBuf buf) {
+        // Send the absolute sublevel-space firepoint sampled from the rendered Geckolib bone.
         // 功能：把客户端 firepoint 坐标发送到服务端，供粒子炮直接作为生成点使用。
         buf.writeBlockPos(pkt.pos);
         buf.writeDouble(pkt.postofire.x);
@@ -57,6 +58,7 @@ public class TurretFirePointC2SPacket implements CustomPacketPayload {
             ServerLevel level = sender.serverLevel();
             BlockEntity be = level.getBlockEntity(pkt.pos);
             if (be instanceof AbstractTurretBlockEntity turret) {
+                // Cache the Geckolib-derived muzzle point for the next server-side shot.
                 // 功能：缓存firepoint 坐标，供服务端开火时直接读取。
                 turret.setFirePoint(pkt.postofire);
             }

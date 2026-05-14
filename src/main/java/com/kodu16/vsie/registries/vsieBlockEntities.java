@@ -33,11 +33,13 @@ import com.kodu16.vsie.content.vectorthruster.client.AbstractVectorThrusterGeoRe
 import com.kodu16.vsie.content.weapon.arc_emitter.ArcEmitterBlockEntity;
 import com.kodu16.vsie.content.weapon.cenix_plasma_cannon.CenixPlasmaCannonBlockEntity;
 import com.kodu16.vsie.content.weapon.client.AbstractWeaponGeoRenderer;
-import com.kodu16.vsie.content.weapon.arc_emitter.ArcEmitterGeoRenderer;
+import com.kodu16.vsie.content.weapon.missile_launcher.client.VerticleLaunchingSlotGeoRenderer;
 import com.kodu16.vsie.content.weapon.electro_magnet_rail_cannon.ElectroMagnetRailCannonBlockEntity;
 import com.kodu16.vsie.content.weapon.infra_knife_accelerator.InfraKnifeAcceleratorBlockEntity;
 import com.kodu16.vsie.content.turret.client.AbstractTurretGeoRenderer;
 import com.kodu16.vsie.content.weapon.missile_launcher.block.BasicMissileLauncherBlockEntity;
+import com.kodu16.vsie.content.weapon.missile_launcher.block.VerticleLaunchingSlotBlockEntity;
+import com.kodu16.vsie.content.weapon.missile_launcher.block.VerticleLaunchingSlotCoreBlockEntity;
 import com.kodu16.vsie.content.weapon.missile_launcher.client.AbstractMissileLauncherGeoRenderer;
 
 import com.kodu16.vsie.vsie;
@@ -116,15 +118,31 @@ public class vsieBlockEntities {
                     .validBlocks(vsieBlocks.INFRA_KNIFE_ACCELERATOR_BLOCK)
                     .renderer(() -> AbstractWeaponGeoRenderer::new)
                     .register();
+    // Function: missile launcher exposes its internal ammo buffer through the item handler capability.
     public static final BlockEntityEntry<BasicMissileLauncherBlockEntity> BASIC_MISSILE_LAUNCHER_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("basic_missile_launcher_block_entity", BasicMissileLauncherBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("basic_missile_launcher_block_entity", BasicMissileLauncherBlockEntity::new)
                     .validBlocks(vsieBlocks.BASIC_MISSILE_LAUNCHER_BLOCK)
                     .renderer(() -> AbstractMissileLauncherGeoRenderer::new)
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
+    // Function: vertical launch slots reuse the abstract weapon Gecko renderer but remain passive linked endpoints.
+    public static final BlockEntityEntry<VerticleLaunchingSlotBlockEntity> VERTICLE_LAUNCHING_SLOT_BLOCK_ENTITY =
+            REGISTRATE.blockEntity("verticle_launching_slot_block_entity", VerticleLaunchingSlotBlockEntity::new)
+                    .validBlocks(vsieBlocks.VERTICLE_LAUNCHING_SLOT_BLOCK)
+                    .renderer(() -> VerticleLaunchingSlotGeoRenderer::new)
                     .register();
+    // Function: the launch slot core stores ordered slot connections for linker highlighting and later launch logic.
+    public static final BlockEntityEntry<VerticleLaunchingSlotCoreBlockEntity> VERTICLE_LAUNCHING_SLOT_CORE_BLOCK_ENTITY =
+            withCapability(REGISTRATE.blockEntity("verticle_launching_slot_core_block_entity", VerticleLaunchingSlotCoreBlockEntity::new)
+                    .validBlocks(vsieBlocks.VERTICLE_LAUNCHING_SLOT_CORE_BLOCK)
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
     public static final BlockEntityEntry<ArcEmitterBlockEntity> ARC_EMITTER_BLOCK_ENTITY =
             REGISTRATE.blockEntity("arc_emitter_block_entity", ArcEmitterBlockEntity::new)
                     .validBlocks(vsieBlocks.ARC_EMITTER_BLOCK)
-                    .renderer(() -> ArcEmitterGeoRenderer::new)
+                    .renderer(() -> AbstractWeaponGeoRenderer::new)
                     .register();
     public static final BlockEntityEntry<CenixPlasmaCannonBlockEntity> CENIX_PLASMA_CANNON_BLOCK_ENTITY =
             REGISTRATE.blockEntity("cenix_plasma_cannon_block_entity", CenixPlasmaCannonBlockEntity::new)

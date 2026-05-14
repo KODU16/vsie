@@ -1,34 +1,21 @@
 package com.kodu16.vsie.content.turret.client;
 
+import com.kodu16.vsie.foundation.AlwaysRenderGeoBlockRenderer;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
-import com.kodu16.vsie.network.turret.TurretFirePointC2SPacket;
-import com.kodu16.vsie.registries.ModNetworking;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.logging.LogUtils;
 import com.mojang.math.Axis;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.Direction;
-import net.minecraft.core.Vec3i;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3d;
-import org.joml.Vector3f;
-import software.bernie.geckolib.cache.object.BakedGeoModel;
-import software.bernie.geckolib.cache.object.GeoBone;
-import software.bernie.geckolib.cache.object.GeoBone;
-import software.bernie.geckolib.renderer.GeoBlockRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
-import org.joml.Matrix4f;
 
-import java.util.Optional;
-
-public class AbstractTurretGeoRenderer extends GeoBlockRenderer<AbstractTurretBlockEntity>  {
+public class AbstractTurretGeoRenderer extends AlwaysRenderGeoBlockRenderer<AbstractTurretBlockEntity>  {
 
     public AbstractTurretGeoRenderer(BlockEntityRendererProvider.Context context) {
         super(new AbstractTurretModel());
 
         // 注册 Layer！这是关键，不会触发任何 override
+        // Send the rendered firepoint bone to the server before particle turrets fire.
+        this.addRenderLayer(new TurretFirePointLayer(this));
         this.addRenderLayer(new TurretLaserLayer(this));
     }
 

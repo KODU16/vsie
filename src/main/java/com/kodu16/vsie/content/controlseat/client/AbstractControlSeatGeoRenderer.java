@@ -1,16 +1,14 @@
 package com.kodu16.vsie.content.controlseat.client;
 
+import com.kodu16.vsie.foundation.AlwaysRenderGeoBlockRenderer;
 import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
-import com.kodu16.vsie.content.turret.client.AbstractTurretModel;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
-import net.minecraft.core.Vec3i;
 import net.minecraft.world.phys.Vec3;
-import software.bernie.geckolib.renderer.GeoBlockRenderer;
 
-public class AbstractControlSeatGeoRenderer extends GeoBlockRenderer<AbstractControlSeatBlockEntity> {
+public class AbstractControlSeatGeoRenderer extends AlwaysRenderGeoBlockRenderer<AbstractControlSeatBlockEntity> {
     public AbstractControlSeatGeoRenderer(BlockEntityRendererProvider.Context context) {
         super(new AbstractControlSeatModel());
     }
@@ -41,6 +39,6 @@ public class AbstractControlSeatGeoRenderer extends GeoBlockRenderer<AbstractCon
     @Override
     public boolean shouldRender(AbstractControlSeatBlockEntity be, Vec3 cameraPos) {
         // 自己写距离判断，比如 256 格以内都渲染
-        return be.getBlockPos().distSqr(new Vec3i((int) cameraPos.x, (int) cameraPos.y, (int) cameraPos.z)) < 2048 * 2048;
+        return true;
     }
 }

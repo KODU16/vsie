@@ -1,14 +1,14 @@
 package com.kodu16.vsie.content.thruster.client;
 
+import com.kodu16.vsie.foundation.AlwaysRenderGeoBlockRenderer;
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlockEntity;
 import com.kodu16.vsie.content.thruster.client.trailflame.ThrusterFlameLayer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
-import software.bernie.geckolib.renderer.GeoBlockRenderer;
 
-public class AbstractThrusterGeoRenderer extends GeoBlockRenderer<AbstractThrusterBlockEntity> {
+public class AbstractThrusterGeoRenderer extends AlwaysRenderGeoBlockRenderer<AbstractThrusterBlockEntity> {
 
     public AbstractThrusterGeoRenderer(BlockEntityRendererProvider.Context context) {
         super(new AbstractThrusterModel());

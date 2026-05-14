@@ -1,0 +1,9 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "vsie:block/gecko_block"
+      }
+    }
+  ]
+}

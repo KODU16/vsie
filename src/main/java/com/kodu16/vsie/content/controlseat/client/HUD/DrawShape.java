@@ -68,6 +68,9 @@ public class DrawShape {
             float startRad = (float) Math.toRadians(startAngleDeg);
             float endRad = (float) Math.toRadians(endAngleDeg);
             if (endRad < startRad) endRad += Math.PI * 2f;
+            if (endRad - startRad < 0.0001f) {
+                return;
+            }
 
             int segments = Math.max(16, (int) Math.toDegrees(endRad - startRad)); // 每度1段就够顺滑了
 
@@ -81,25 +84,32 @@ public class DrawShape {
             RenderSystem.setShader(GameRenderer::getPositionColorShader);
             RenderSystem.enableBlend();
             // 功能：NeoForge 1.21.1 使用 Tesselator.begin(...) 直接创建并开始写入缓冲。
-            BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
+            // Function: submit each arc segment independently so partial bars cannot form stray connector triangles.
+            BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
 
             float innerR = radius - thickness;
 
-            // Draw the partial arc
-            for (int i = 0; i <= segments; i++) {
-                float angle = startRad + i * (endRad - startRad) / segments;
-                float cos = (float) Math.cos(angle);
-                float sin = (float) Math.sin(angle);
+            for (int i = 0; i < segments; i++) {
+                float angle0 = startRad + i * (endRad - startRad) / segments;
+                float angle1 = startRad + (i + 1) * (endRad - startRad) / segments;
+                float cos0 = (float) Math.cos(angle0);
+                float sin0 = (float) Math.sin(angle0);
+                float cos1 = (float) Math.cos(angle1);
+                float sin1 = (float) Math.sin(angle1);
 
-                float outerX = cx + cos * radius;
-                float outerY = cy + sin * radius;
-                float innerX = cx + cos * innerR;
-                float innerY = cy + sin * innerR;
+                float outerX0 = cx + cos0 * radius;
+                float outerY0 = cy + sin0 * radius;
+                float innerX0 = cx + cos0 * innerR;
+                float innerY0 = cy + sin0 * innerR;
+                float outerX1 = cx + cos1 * radius;
+                float outerY1 = cy + sin1 * radius;
+                float innerX1 = cx + cos1 * innerR;
+                float innerY1 = cy + sin1 * innerR;
 
-                // Outer ring
-                buffer.addVertex(pose, outerX, outerY, 0).setColor(r, g, b, a);
-                // Inner ring
-                buffer.addVertex(pose, innerX, innerY, 0).setColor(r, g, b, a);
+                buffer.addVertex(pose, outerX0, outerY0, 0).setColor(r, g, b, a);
+                buffer.addVertex(pose, innerX0, innerY0, 0).setColor(r, g, b, a);
+                buffer.addVertex(pose, innerX1, innerY1, 0).setColor(r, g, b, a);
+                buffer.addVertex(pose, outerX1, outerY1, 0).setColor(r, g, b, a);
             }
 
             // Finish the current drawing operation
