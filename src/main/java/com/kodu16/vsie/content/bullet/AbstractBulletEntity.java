@@ -1,54 +1,89 @@
 package com.kodu16.vsie.content.bullet;
 
+import com.kodu16.vsie.registries.vsieSounds;
 import com.kodu16.vsie.utility.FxData;
 import com.kodu16.vsie.utility.vsieFxHelper;
 import com.lowdragmc.photon.client.fx.EntityEffectExecutor;
 import com.lowdragmc.photon.client.fx.FX;
 import com.lowdragmc.photon.client.fx.FXHelper;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.SectionPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
-import net.minecraft.world.item.ArmorItem;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.entity.player.Player;
 
 import java.util.List;
 import java.util.Optional;
 
-import static net.minecraft.world.item.enchantment.EnchantmentHelper.getEnchantmentLevel;
-
 public abstract class AbstractBulletEntity extends Projectile {
 
-    private static final int DEFAULT_MAX_LIFETIME_TICKS = 5 * 20;
+    private static final EntityDataAccessor<Float> DATA_LAUNCH_DIR_X =
+            SynchedEntityData.defineId(AbstractBulletEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_LAUNCH_DIR_Y =
+            SynchedEntityData.defineId(AbstractBulletEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_LAUNCH_DIR_Z =
+            SynchedEntityData.defineId(AbstractBulletEntity.class, EntityDataSerializers.FLOAT);
+
+    private static final int DEFAULT_MAX_LIFETIME_TICKS = 15 * 20;
     private static final float LIFETIME_EXPIRE_EXPLOSION_POWER = 2.0F;
+    private static final double CHUNK_EDGE_EPSILON = 1.0E-6D;
+    private static final double CLIENT_HARD_SNAP_DISTANCE_SQR = 48.0D * 48.0D;
+    private static final double CLIENT_POSITION_PULL = 0.18D;
+    private static final double CLIENT_VELOCITY_LERP = 0.55D;
+    private static final double CLIENT_MAX_CORRECTION_SPEED_FACTOR = 0.45D;
 
     private int lifeTime = 0;
+    private int unloadedChunkCollisionSkipTicks = 0;
+    private boolean clientMotionFilterReady = false;
+    private boolean localVelocityUpdate = false;
+    private int clientTicksSincePreciseSync = 0;
+    private Vec3 clientVisualPosition = Vec3.ZERO;
+    private Vec3 clientVisualVelocity = Vec3.ZERO;
+    private Vec3 clientSyncPosition = Vec3.ZERO;
+    private Vec3 clientSyncVelocity = Vec3.ZERO;
+    private float clientSyncYRot = 0.0F;
+    private float clientSyncXRot = 0.0F;
     private boolean lifecycleFxStarted = false;
+    private boolean destructionSoundPlayed = false;
     // BulletData supplies the FX resource used by the lifecycle executor.
     private BulletData dataBase = BulletData.createParticleBulletDefault();
+    // Function: weapons/turrets can disable terrain damage per shot while preserving entity-hit behaviour.
+    private boolean breaksBlocks = true;
 
     public BulletData getDataBase() {
         return dataBase;
     }
 
+    public boolean breaksBlocksEnabled() {
+        return breaksBlocks;
+    }
+
+    public void setBreaksBlocksEnabled(boolean breaksBlocks) {
+        this.breaksBlocks = breaksBlocks;
+    }
+
     public AbstractBulletEntity(EntityType<? extends AbstractBulletEntity> type, Level level) {
         super(type, level);
-        this.noPhysics = true;           // 保持高速、无重力
-        this.setNoGravity(true);         // 推荐一起设置
+        this.noPhysics = true;
+        this.setNoGravity(true);
     }
 
     @Override
@@ -70,24 +105,33 @@ public abstract class AbstractBulletEntity extends Projectile {
         Vec3 start = this.position();
         Vec3 end = start.add(movement);
 
-        // 客户端只负责表现
         if (this.level().isClientSide()) {
-            this.setPos(end);
+            tickClientFilteredMotion(movement);
             return;
         }
 
-        // ===== 1 标准射线检测 =====
-        HitResult hitResult = ProjectileUtil.getHitResultOnMoveVector(
-                this,
-                this::canHitEntity
-        );
+        double loadedEndT = findFirstUnloadedChunkT(this.level(), start, end);
+        boolean enteredUnloadedChunk = loadedEndT < 1.0D;
+        Vec3 collisionEnd = start.lerp(end, enteredUnloadedChunk ? Math.max(0.0D, loadedEndT - CHUNK_EDGE_EPSILON) : 1.0D);
+        Vec3 collisionMovement = collisionEnd.subtract(start);
 
-        // ===== 2 防止高速漏判 =====
+
+        Vec3 originalMovement = this.getDeltaMovement();
+        this.setDeltaMovement(collisionMovement);
+        HitResult hitResult = collisionMovement.lengthSqr() > 1.0E-10D
+                ? ProjectileUtil.getHitResultOnMoveVector(
+                        this,
+                        this::canHitEntity
+                )
+                : missAt(start, start.subtract(movement));
+        this.setDeltaMovement(originalMovement);
+
+
         if (hitResult.getType() == HitResult.Type.MISS) {
 
             List<Entity> entities = this.level().getEntities(
                     this,
-                    this.getBoundingBox().expandTowards(movement)
+                    this.getBoundingBox().expandTowards(collisionMovement)
             );
 
             Entity closest = null;
@@ -97,7 +141,7 @@ public abstract class AbstractBulletEntity extends Projectile {
 
                 if (!this.canHitEntity(entity)) continue;
 
-                Optional<Vec3> intercept = entity.getBoundingBox().clip(start, end);
+                Optional<Vec3> intercept = entity.getBoundingBox().clip(start, collisionEnd);
 
                 if (intercept.isPresent()) {
 
@@ -115,33 +159,398 @@ public abstract class AbstractBulletEntity extends Projectile {
             }
         }
 
-        // ===== 处理命中 =====
+
         if (hitResult.getType() == HitResult.Type.ENTITY) {
 
             this.onHitEntity((EntityHitResult) hitResult);
-            this.discard();
-            return;
+            if (shouldDiscardAfterEntityHit((EntityHitResult) hitResult)) {
+                this.discard();
+                return;
+            }
 
         } else if (hitResult.getType() == HitResult.Type.BLOCK) {
+            if (!breaksBlocksEnabled()) {
+                this.discard();
+                return;
+            }
 
             this.onHitBlock((BlockHitResult) hitResult);
-            this.discard();
+            if (shouldDiscardAfterBlockHit((BlockHitResult) hitResult)) {
+                this.discard();
+                return;
+            }
+        }
+
+
+        this.setPos(end);
+        if (enteredUnloadedChunk || !isChunkColumnLoaded(this.level(), end)) {
+            scheduleUnloadedChunkCheck(end, movement);
+        }
+
+        finishServerBulletMove(hitResult, isChunkColumnLoaded(this.level(), end));
+    }
+
+    protected boolean shouldDiscardAfterEntityHit(EntityHitResult result) {
+        return true;
+    }
+
+    protected boolean shouldDiscardAfterBlockHit(BlockHitResult result) {
+        return true;
+    }
+
+    protected void afterServerBulletMove(HitResult hitResult) {
+        // Function: piercing bullets can keep moving after a collision while normal bullets keep the default discard path.
+    }
+
+    protected boolean canBulletBreakBlock(Level level, BlockPos pos, BlockState state) {
+        return level.isLoaded(pos) && !state.isAir() && state.getDestroySpeed(level, pos) >= 0.0F;
+    }
+
+    protected float getBlockBreakTntChance() {
+        return 0.0F;
+    }
+
+    protected float getBlockBreakTntPower() {
+        return 4.0F;
+    }
+
+    protected double getBlockBreakRadius() {
+        return 0.0D;
+    }
+
+    protected double computeBlockBreakProbability(ServerLevel level, BlockPos pos, Vec3 impactPoint, double maxDistance) {
+        BlockState state = level.getBlockState(pos);
+        double hardness = Math.max(0.0D, state.getDestroySpeed(level, pos));
+        double distanceRatio = maxDistance <= 1.0E-6D ? 0.0D : Vec3.atCenterOf(pos).distanceTo(impactPoint) / maxDistance;
+        // Function: bullet break chance falls off with both impact distance and block hardness, but never exceeds 100 percent.
+        return Mth.clamp((1.2D - distanceRatio) * (1.2D - hardness / 100.0D), 0.0D, 1.0D);
+    }
+
+    protected void destroyBlocksInSphere(ServerLevel level, Vec3 impactPoint, double radius) {
+        double safeRadius = Math.max(0.0D, radius);
+        int blockRadius = (int) Math.ceil(safeRadius);
+        BlockPos center = BlockPos.containing(impactPoint);
+        double radiusSqr = safeRadius * safeRadius;
+
+        for (int x = -blockRadius; x <= blockRadius; x++) {
+            for (int y = -blockRadius; y <= blockRadius; y++) {
+                for (int z = -blockRadius; z <= blockRadius; z++) {
+                    if (safeRadius > 0.0D && x * x + y * y + z * z > radiusSqr) {
+                        continue;
+                    }
+                    BlockPos targetPos = center.offset(x, y, z);
+                    BlockState state = level.getBlockState(targetPos);
+                    if (!canBulletBreakBlock(level, targetPos, state)) {
+                        continue;
+                    }
+                    if (level.random.nextDouble() > computeBlockBreakProbability(level, targetPos, impactPoint, safeRadius)) {
+                        continue;
+                    }
+                    breakBlockAsMined(level, targetPos);
+                }
+            }
+        }
+    }
+
+    protected boolean breakBlockAsMined(ServerLevel level, BlockPos pos) {
+        BlockState state = level.getBlockState(pos);
+        if (!canBulletBreakBlock(level, pos, state)) {
+            return false;
+        }
+        // Function: bullet terrain hits should use the vanilla break event while suppressing item drops.
+        level.levelEvent(2001, pos, Block.getId(state));
+        boolean destroyed = level.destroyBlock(pos, false, this);
+        if (destroyed) {
+            maybeTriggerBlockBreakTnt(level, pos);
+        }
+        return destroyed;
+    }
+
+    protected void maybeTriggerBlockBreakTnt(ServerLevel level, BlockPos pos) {
+        float chance = Mth.clamp(getBlockBreakTntChance(), 0.0F, 1.0F);
+        if (chance <= 0.0F || level.random.nextFloat() >= chance) {
+            return;
+        }
+        // Function: some bullets can optionally turn a successful block break into a TNT-like follow-up blast.
+        level.explode(
+                this,
+                pos.getX() + 0.5D,
+                pos.getY() + 0.5D,
+                pos.getZ() + 0.5D,
+                getBlockBreakTntPower(),
+                false,
+                Level.ExplosionInteraction.TNT
+        );
+    }
+
+    protected int getMaxLifeTime() {
+        // Function: bullets self-destruct after 20 seconds so missed shots cannot accumulate forever.
+        return DEFAULT_MAX_LIFETIME_TICKS;
+    }
+
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        builder.define(DATA_LAUNCH_DIR_X, 0.0F);
+        builder.define(DATA_LAUNCH_DIR_Y, 0.0F);
+        builder.define(DATA_LAUNCH_DIR_Z, 0.0F);
+    }
+
+    private void tickClientFilteredMotion(Vec3 syncedMovement) {
+        if (!clientMotionFilterReady) {
+            clientMotionFilterReady = true;
+            clientVisualPosition = this.position();
+            clientVisualVelocity = syncedMovement;
+            clientSyncPosition = clientVisualPosition;
+            clientSyncVelocity = syncedMovement;
+        }
+
+        // Function: start prediction from the latest server sample; adding one tick here made fast bullets overshoot every precise sync.
+        Vec3 predictedServerPosition = clientSyncPosition.add(clientSyncVelocity.scale(clientTicksSincePreciseSync));
+        clientTicksSincePreciseSync++;
+        Vec3 positionError = predictedServerPosition.subtract(clientVisualPosition);
+        if (positionError.lengthSqr() > CLIENT_HARD_SNAP_DISTANCE_SQR) {
+            clientVisualPosition = predictedServerPosition;
+            clientVisualVelocity = clientSyncVelocity;
+            this.setPos(clientVisualPosition);
+            updateClientFilteredRotation(clientVisualVelocity);
             return;
         }
 
-        // ===== 最后移动 =====
-        this.setPos(end);
+        Vec3 velocityTarget = clientSyncVelocity.lengthSqr() > 1.0E-10D ? clientSyncVelocity : syncedMovement;
+        Vec3 velocityCorrection = velocityTarget.subtract(clientVisualVelocity).scale(CLIENT_VELOCITY_LERP);
+        Vec3 positionCorrection = clampLength(
+                positionError.scale(CLIENT_POSITION_PULL),
+                Math.max(getSpeed() * CLIENT_MAX_CORRECTION_SPEED_FACTOR, 0.25D)
+        );
+        clientVisualVelocity = clientVisualVelocity.add(velocityCorrection).add(positionCorrection);
+        clientVisualPosition = clientVisualPosition.add(clientVisualVelocity);
+        this.setPos(clientVisualPosition);
+        updateClientFilteredRotation(clientVisualVelocity);
+    }
 
+    private Vec3 clampLength(Vec3 vector, double maxLength) {
+        double lengthSqr = vector.lengthSqr();
+        if (lengthSqr <= maxLength * maxLength || lengthSqr < 1.0E-10D) {
+            return vector;
+        }
+        return vector.normalize().scale(maxLength);
+    }
+
+    private void updateClientFilteredRotation(Vec3 movement) {
+        updateRotationFromMovement(movement);
+        if (movement.lengthSqr() < 1.0E-6D) {
+            this.setYRot(clientSyncYRot);
+            this.setXRot(clientSyncXRot);
+        }
+    }
+
+    @Override
+    public void lerpTo(double x, double y, double z, float yRot, float xRot, int steps) {
+        if (!this.level().isClientSide()) {
+            super.lerpTo(x, y, z, yRot, xRot, steps);
+            return;
+        }
+
+        Vec3 target = new Vec3(x, y, z);
+        if (clientMotionFilterReady) {
+            Vec3 sampledVelocity = target.subtract(clientSyncPosition)
+                    .scale(1.0D / Math.max(1, clientTicksSincePreciseSync));
+            if (sampledVelocity.lengthSqr() > 1.0E-10D) {
+                // Function: precise position samples preserve direction even when vanilla velocity packets are clamped.
+                clientSyncVelocity = normalizeClientSyncVelocity(sampledVelocity);
+            }
+        }
+        clientSyncPosition = target;
+        clientSyncYRot = yRot;
+        clientSyncXRot = xRot;
+        clientTicksSincePreciseSync = 0;
+
+        if (!clientMotionFilterReady || this.position().distanceToSqr(target) > CLIENT_HARD_SNAP_DISTANCE_SQR) {
+            clientMotionFilterReady = true;
+            clientVisualPosition = target;
+            clientVisualVelocity = normalizeClientSyncVelocity(this.getDeltaMovement(), true);
+            this.setPos(target);
+        }
+        this.setRot(yRot, xRot);
+    }
+
+    @Override
+    public void setDeltaMovement(Vec3 deltaMovement) {
+        super.setDeltaMovement(deltaMovement);
+        if (this.level() != null && this.level().isClientSide() && !localVelocityUpdate) {
+            clientSyncVelocity = normalizeClientSyncVelocity(deltaMovement, true);
+            if (!clientMotionFilterReady) {
+                clientVisualVelocity = clientSyncVelocity;
+            } else if (clientVisualVelocity.lengthSqr() < 1.0E-10D && deltaMovement.lengthSqr() > 1.0E-10D) {
+                clientVisualVelocity = clientSyncVelocity;
+            }
+        }
+    }
+
+    private Vec3 normalizeClientSyncVelocity(Vec3 velocity) {
+        return normalizeClientSyncVelocity(velocity, false);
+    }
+
+    private Vec3 normalizeClientSyncVelocity(Vec3 velocity, boolean preferLaunchDirection) {
+        if (velocity.lengthSqr() < 1.0E-10D) {
+            return Vec3.ZERO;
+        }
+
+        double speed = getSpeed();
+        if (speed <= 0.0D || !Double.isFinite(speed)) {
+            return velocity;
+        }
+
+        if (preferLaunchDirection && this.level() != null && this.level().isClientSide() && !clientMotionFilterReady) {
+            Vec3 launchDirection = getSyncedLaunchDirection();
+            if (launchDirection.lengthSqr() > 1.0E-10D) {
+                return launchDirection.normalize().scale(speed);
+            }
+        }
+
+        // Function: vanilla entity motion packets clamp components above about 3.9, so restore the intended bullet speed.
+        return velocity.normalize().scale(speed);
+    }
+
+    public void setPreciseLaunchDirection(Vec3 direction) {
+        Vec3 normalized = direction.lengthSqr() < 1.0E-10D ? Vec3.ZERO : direction.normalize();
+        this.entityData.set(DATA_LAUNCH_DIR_X, (float) normalized.x);
+        this.entityData.set(DATA_LAUNCH_DIR_Y, (float) normalized.y);
+        this.entityData.set(DATA_LAUNCH_DIR_Z, (float) normalized.z);
+    }
+
+    public void setPreciseLaunchVelocity(Vec3 direction) {
+        setPreciseLaunchDirection(direction);
+        Vec3 normalized = direction.lengthSqr() < 1.0E-10D ? Vec3.ZERO : direction.normalize();
+        this.setDeltaMovement(normalized.scale(getSpeed()));
+    }
+
+    public static Vec3 spawnBehindMuzzle(Vec3 muzzle, Vec3 direction) {
+        Vec3 normalized = direction.lengthSqr() < 1.0E-10D ? Vec3.ZERO : direction.normalize();
+        // Function: mirror CBC's stable launch setup by spawning just behind the muzzle along the same shot axis.
+        return muzzle.subtract(normalized.scale(2.0D));
+    }
+
+    private Vec3 getSyncedLaunchDirection() {
+        return new Vec3(
+                this.entityData.get(DATA_LAUNCH_DIR_X),
+                this.entityData.get(DATA_LAUNCH_DIR_Y),
+                this.entityData.get(DATA_LAUNCH_DIR_Z)
+        );
+    }
+
+    private void moveWithoutCollisionUntilNextChunkCheck(Vec3 movement, Vec3 end) {
+        this.setPos(end);
+        unloadedChunkCollisionSkipTicks--;
+        if (unloadedChunkCollisionSkipTicks <= 0 && !isChunkColumnLoaded(this.level(), end)) {
+            scheduleUnloadedChunkCheck(end, movement);
+        }
+        finishServerBulletMove(missAt(end, end.subtract(movement)), false);
+    }
+
+    private void finishServerBulletMove(HitResult hitResult, boolean allowAfterMove) {
         lifeTime++;
+        if (allowAfterMove) {
+            afterServerBulletMove(hitResult);
+        }
+        if (this.isRemoved()) {
+            return;
+        }
 
         if (lifeTime >= getMaxLifeTime()) {
             explodeAndDiscardAfterLifetime();
         }
     }
 
-    protected int getMaxLifeTime() {
-        // Function: bullets self-destruct after 20 seconds so missed shots cannot accumulate forever.
-        return DEFAULT_MAX_LIFETIME_TICKS;
+    private double findFirstUnloadedChunkT(Level level, Vec3 from, Vec3 to) {
+        double dx = to.x - from.x;
+        double dz = to.z - from.z;
+        int chunkX = SectionPos.blockToSectionCoord(Mth.floor(from.x));
+        int chunkZ = SectionPos.blockToSectionCoord(Mth.floor(from.z));
+
+        if (!level.getChunkSource().hasChunk(chunkX, chunkZ)) {
+            return 0.0D;
+        }
+        if (Math.abs(dx) < 1.0E-10D && Math.abs(dz) < 1.0E-10D) {
+            return 1.0D;
+        }
+
+        int stepX = dx > 0.0D ? 1 : dx < 0.0D ? -1 : 0;
+        int stepZ = dz > 0.0D ? 1 : dz < 0.0D ? -1 : 0;
+        double nextX = stepX == 0 ? Double.POSITIVE_INFINITY : firstChunkBoundaryT(from.x, dx, chunkX, stepX);
+        double nextZ = stepZ == 0 ? Double.POSITIVE_INFINITY : firstChunkBoundaryT(from.z, dz, chunkZ, stepZ);
+        double deltaX = stepX == 0 ? Double.POSITIVE_INFINITY : 16.0D / Math.abs(dx);
+        double deltaZ = stepZ == 0 ? Double.POSITIVE_INFINITY : 16.0D / Math.abs(dz);
+        double segmentStart = 0.0D;
+
+        while (segmentStart < 1.0D) {
+            double segmentEnd = Math.min(1.0D, Math.min(nextX, nextZ));
+            if (segmentEnd >= 1.0D) {
+                return 1.0D;
+            }
+
+            boolean advanceX = nextX <= nextZ;
+            boolean advanceZ = nextZ <= nextX;
+            if (advanceX) {
+                chunkX += stepX;
+                nextX += deltaX;
+            }
+            if (advanceZ) {
+                chunkZ += stepZ;
+                nextZ += deltaZ;
+            }
+
+            segmentStart = segmentEnd;
+            if (!level.getChunkSource().hasChunk(chunkX, chunkZ)) {
+                return segmentStart;
+            }
+        }
+
+        return 1.0D;
+    }
+
+    private void scheduleUnloadedChunkCheck(Vec3 position, Vec3 movement) {
+        if (isChunkColumnLoaded(this.level(), position) || movement.lengthSqr() < 1.0E-10D) {
+            unloadedChunkCollisionSkipTicks = 0;
+            return;
+        }
+
+        double ticksToBoundary = Math.min(
+                ticksToNextAxisChunkBoundary(position.x, movement.x),
+                ticksToNextAxisChunkBoundary(position.z, movement.z)
+        );
+        int ticks = Double.isFinite(ticksToBoundary) && ticksToBoundary > 0.0D
+                ? (int) Math.ceil(ticksToBoundary)
+                : 1;
+        // Function: unloaded chunk columns are treated as empty until the projectile reaches a chunk edge.
+        unloadedChunkCollisionSkipTicks = Math.max(1, ticks);
+    }
+
+    private double ticksToNextAxisChunkBoundary(double position, double velocity) {
+        if (Math.abs(velocity) < 1.0E-10D) {
+            return Double.POSITIVE_INFINITY;
+        }
+
+        int chunk = SectionPos.blockToSectionCoord(Mth.floor(position));
+        double boundary = velocity > 0.0D ? (chunk + 1) * 16.0D : chunk * 16.0D;
+        double ticks = (boundary - position) / velocity;
+        return ticks <= CHUNK_EDGE_EPSILON ? 1.0D : ticks;
+    }
+
+    private boolean isChunkColumnLoaded(Level level, Vec3 position) {
+        int chunkX = SectionPos.blockToSectionCoord(Mth.floor(position.x));
+        int chunkZ = SectionPos.blockToSectionCoord(Mth.floor(position.z));
+        return level.getChunkSource().hasChunk(chunkX, chunkZ);
+    }
+
+    private double firstChunkBoundaryT(double start, double delta, int chunk, int step) {
+        double boundary = step > 0 ? (chunk + 1) * 16.0D : chunk * 16.0D;
+        return (boundary - start) / delta;
+    }
+
+    private BlockHitResult missAt(Vec3 location, Vec3 previous) {
+        Vec3 direction = previous.subtract(location);
+        return BlockHitResult.miss(location, Direction.getNearest(direction.x, direction.y, direction.z), BlockPos.containing(location));
     }
 
     protected void explodeAndDiscardAfterLifetime() {
@@ -151,6 +560,30 @@ public abstract class AbstractBulletEntity extends Projectile {
                     LIFETIME_EXPIRE_EXPLOSION_POWER, false, Level.ExplosionInteraction.NONE);
         }
         this.discard();
+    }
+
+    @Override
+    public void remove(Entity.RemovalReason removalReason) {
+        playDestroySoundOnce();
+        super.remove(removalReason);
+    }
+
+    private void playDestroySoundOnce() {
+        if (destructionSoundPlayed || this.level() == null || this.level().isClientSide()) {
+            return;
+        }
+
+        destructionSoundPlayed = true;
+        this.level().playSound(
+                null,
+                this.getX(),
+                this.getY(),
+                this.getZ(),
+                vsieSounds.BULLET_EXPLODE1.get(),
+                SoundSource.HOSTILE,
+                0.85F,
+                1.0F
+        );
     }
 
     // Keep the entity's authoritative rotation aligned with its velocity for hitbox debug and attached FX.
@@ -172,19 +605,28 @@ public abstract class AbstractBulletEntity extends Projectile {
 
     private Vec3 applyConstantSpeed() {
         Vec3 movement = this.getDeltaMovement();
+        if (this.level() != null && this.level().isClientSide() && !clientMotionFilterReady) {
+            Vec3 launchDirection = getSyncedLaunchDirection();
+            if (launchDirection.lengthSqr() > 1.0E-10D) {
+                movement = launchDirection.normalize().scale(getSpeed());
+            }
+        }
         if (movement.lengthSqr() < 1.0E-6D) {
             return movement;
         }
 
         Vec3 constantMovement = movement.normalize().scale(getSpeed());
-        this.setDeltaMovement(constantMovement);
+        localVelocityUpdate = true;
+        try {
+            this.setDeltaMovement(constantMovement);
+        } finally {
+            localVelocityUpdate = false;
+        }
         return constantMovement;
     }
 
-    public abstract int startemitticks();//开始发出粒子的tick数
-
-    public abstract int stopemitticks();//停止发出粒子的tick数
-
+    public abstract int startemitticks();
+    public abstract int stopemitticks();
     protected void startLifecycleFx(FX fx) {
         var effect = new EntityEffectExecutor(fx, this.level(), this, EntityEffectExecutor.AutoRotate.XROT);
         // Function: lifecycle bullet FX must stay attached to the entity instead of being force-killed on start.
@@ -213,5 +655,34 @@ public abstract class AbstractBulletEntity extends Projectile {
     public void setDataBase(BulletData dataBase) {
         this.dataBase = dataBase == null ? BulletData.createParticleBulletDefault() : dataBase;
         this.lifecycleFxStarted = false;
+    }
+
+    @Override
+    protected void addAdditionalSaveData(CompoundTag tag) {
+        super.addAdditionalSaveData(tag);
+        tag.putBoolean("BreaksBlocks", this.breaksBlocks);
+        tag.putInt("UnloadedChunkCollisionSkipTicks", this.unloadedChunkCollisionSkipTicks);
+        Vec3 launchDirection = getSyncedLaunchDirection();
+        tag.putDouble("LaunchDirX", launchDirection.x);
+        tag.putDouble("LaunchDirY", launchDirection.y);
+        tag.putDouble("LaunchDirZ", launchDirection.z);
+    }
+
+    @Override
+    protected void readAdditionalSaveData(CompoundTag tag) {
+        super.readAdditionalSaveData(tag);
+        if (tag.contains("BreaksBlocks")) {
+            this.breaksBlocks = tag.getBoolean("BreaksBlocks");
+        }
+        if (tag.contains("UnloadedChunkCollisionSkipTicks")) {
+            this.unloadedChunkCollisionSkipTicks = tag.getInt("UnloadedChunkCollisionSkipTicks");
+        }
+        if (tag.contains("LaunchDirX") && tag.contains("LaunchDirY") && tag.contains("LaunchDirZ")) {
+            setPreciseLaunchDirection(new Vec3(
+                    tag.getDouble("LaunchDirX"),
+                    tag.getDouble("LaunchDirY"),
+                    tag.getDouble("LaunchDirZ")
+            ));
+        }
     }
 }

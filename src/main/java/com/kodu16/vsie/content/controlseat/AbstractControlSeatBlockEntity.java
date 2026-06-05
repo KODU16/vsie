@@ -1,11 +1,12 @@
 package com.kodu16.vsie.content.controlseat;
 
-
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
 import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
+import dev.ryanhcode.sable.sublevel.ServerSubLevel;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -16,16 +17,15 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import org.slf4j.Logger;
-import dev.ryanhcode.sable.sublevel.ServerSubLevel;
-import dev.ryanhcode.sable.sublevel.SubLevel;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
 import software.bernie.geckolib.animation.AnimatableManager;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 @SuppressWarnings({"deprecation", "unchecked"})
@@ -38,20 +38,22 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
 
     //energy
     public int energyspendpertick = 10;
-    public int capacitorenergy = 0;//鎺у埗妞呰褰曠殑褰搕ick闇€瑕佹秷鑰楃殑鐢甸噺锛屽鏋滄娊涓嶅鐢甸噺鍒欏仠鏈?
+    public int capacitorenergy = 0;
     public int totalenergy = 100;
-    public int totalenergyavalible = 0;//缂撳瓨鐨勮兘閲?
+    public int totalenergyavalible = 0;
+    public boolean linkedBatteryPowerAvailableThisTick = false;
 
     //fuel
     public int fuelspendcurrenttick = 0;
-    public int capacitorfuel = 0;//鎺у埗妞呰褰曠殑褰搕ick闇€瑕佹秷鑰楃殑娌癸紝濡傛灉鎶戒笉澶熸补鍒欏紩鎿庡仠鏈猴紙涓嶅仠鐢碉級
+    public int capacitorfuel = 0;
     public int totalfuel = 100;
     public int totalfuelavalible = 0;
 
     //shield
-    public double avalibleshield = 0;//缂撳瓨鐨勬姢鐩捐兘閲?
+    public double avalibleshield = 0;
 
     //Links(nbt:true)
+    private static final int LINKED_PERIPHERAL_MISSING_TICKS_BEFORE_REMOVAL = 5;
     private final List<Vec3> linkedThrusters = new ArrayList<>();
     public final List<Vec3> linkedWeapons = new ArrayList<>();
     public final List<Vec3> linkedShields = new ArrayList<>();
@@ -60,10 +62,7 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
     public final List<Vec3> linkedFuelTanks = new ArrayList<>();
     public final List<Vec3> linkedAmmoboxes = new ArrayList<>();
     public final List<Vec3> linkedScreens = new ArrayList<>();
-    //鎺у埗妞呰繛鐨勭數姹狅紝寮硅嵂搴擄紝鐕冩枡搴?
-    //涓嶅姞浜嗭紝鍐嶅姞鏈夌偣澶氫簡
-
-
+    private final Map<String, MissingLinkedPeripheralState> missingLinkedPeripheralStates = new HashMap<>();
 
     public AbstractControlSeatBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
@@ -76,7 +75,6 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         return controlseatData;
     }
 
-    // 鍦ㄧЩ闄ゅ骇妞呮椂娓呴櫎鎺у埗璁板綍
     public abstract void onRemove();
 
     public abstract String getcontrolseattype();
@@ -88,10 +86,10 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         nbt.putString("ally", controlseatData.ally);
 
         writeVec3List(nbt, "Thrusters", linkedThrusters);
-        writeVec3List(nbt,"Weapons",linkedWeapons);
+        writeVec3List(nbt, "Weapons", linkedWeapons);
         writeVec3List(nbt, "Shields", linkedShields);
         writeVec3List(nbt, "Turrets", linkedTurrets);
-        writeVec3List(nbt, "Batteries",linkedBatteries);
+        writeVec3List(nbt, "Batteries", linkedBatteries);
         writeVec3List(nbt, "Fueltanks", linkedFuelTanks);
         writeVec3List(nbt, "Ammoboxes", linkedAmmoboxes);
         writeVec3List(nbt, "Screens", linkedScreens);
@@ -100,11 +98,15 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
     @Override
     public void read(CompoundTag nbt, HolderLookup.Provider registries, boolean clientPacket) {
         super.read(nbt, registries, clientPacket);
-        if(this.controlseatData == null) {
+        if (this.controlseatData == null) {
             this.controlseatData = new ControlSeatServerData();
         }
-        if(nbt.contains("enemy")) {this.controlseatData.enemy = nbt.getString("enemy");}
-        if(nbt.contains("ally")) {this.controlseatData.ally = nbt.getString("ally");}
+        if (nbt.contains("enemy")) {
+            this.controlseatData.enemy = nbt.getString("enemy");
+        }
+        if (nbt.contains("ally")) {
+            this.controlseatData.ally = nbt.getString("ally");
+        }
 
         linkedThrusters.clear();
         linkedWeapons.clear();
@@ -114,20 +116,24 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         linkedFuelTanks.clear();
         linkedAmmoboxes.clear();
         linkedScreens.clear();
+        missingLinkedPeripheralStates.clear();
 
         readVec3List(nbt, "Thrusters", linkedThrusters);
-        readVec3List(nbt, "Weapons",linkedWeapons);
-        readVec3List(nbt, "Shields",linkedShields);
-        readVec3List(nbt, "Turrets",linkedTurrets);
-        readVec3List(nbt, "Batteries",linkedBatteries);
-        readVec3List(nbt, "Fueltanks" ,linkedFuelTanks);
+        readVec3List(nbt, "Weapons", linkedWeapons);
+        readVec3List(nbt, "Shields", linkedShields);
+        readVec3List(nbt, "Turrets", linkedTurrets);
+        readVec3List(nbt, "Batteries", linkedBatteries);
+        readVec3List(nbt, "Fueltanks", linkedFuelTanks);
         readVec3List(nbt, "Ammoboxes", linkedAmmoboxes);
-        readVec3List(nbt, "Screens",linkedScreens);
+        readVec3List(nbt, "Screens", linkedScreens);
     }
 
     @Override
     public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
-        return super.getUpdateTag(registries);
+        CompoundTag tag = super.getUpdateTag(registries);
+        // Function: linker overlays need the control seat's linked peripheral lists on the client.
+        write(tag, registries, true);
+        return tag;
     }
 
     @Override
@@ -143,7 +149,9 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         read(tag, registries, true);
     }
 
-    public void setEnemy(String str) {controlseatData.enemy = str;}
+    public void setEnemy(String str) {
+        controlseatData.enemy = str;
+    }
 
     public void setAlly(String str) {
         SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, getBlockPos());
@@ -153,104 +161,145 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         controlseatData.ally = str;
     }
 
-    public void addLinkedPeripheral(Vec3 pos, int type) { //0锛氭帹杩涘櫒 1锛氫富姝﹀櫒 2锛氭姢鐩?3锛氱偖濉?4锛氱數姹?5锛氱噧鏂欑 6锛氬脊鑽锛?锛氬睆骞曪紝鍔″繀涓嶈鍐欓敊
-        Logger LOGGER = LogUtils.getLogger();
-        if (type == 0 && !linkedThrusters.contains(pos)) {
-            linkedThrusters.add(pos);
-            LOGGER.warn("adding thruster to controlseat: " + pos);
-            setChanged(); // 鏍囪鏂瑰潡瀹炰綋鑴忎簡锛屽己鍒朵繚瀛?
-        }
-        else if (type == 1 && !linkedWeapons.contains(pos)) {
-            linkedWeapons.add(pos);
-            LOGGER.warn("adding weapon to controlseat: " + pos);
-            setChanged(); // 鏍囪鏂瑰潡瀹炰綋鑴忎簡锛屽己鍒朵繚瀛?
-        }
-        else if(type == 2 && !linkedShields.contains(pos)) {
-            linkedShields.add(pos);
-            LOGGER.warn("adding shield to controlseat: " + pos);
-            setChanged();
+    public void addLinkedPeripheral(Vec3 pos, int type) {
+        List<Vec3> linkedPeripherals = getLinkedPeripheralOffsets(type);
+        if (linkedPeripherals == null) {
+            return;
         }
 
-        else if(type == 3 && !linkedTurrets.contains(pos)) {
-            linkedTurrets.add(pos);
-            LOGGER.warn("adding turret to controlseat: " + pos);
+        Vec3 relativeOffset = toRelativeLinkedPeripheralOffset(pos);
+        Vec3 storedOffset = findStoredLinkedOffset(linkedPeripherals, relativeOffset);
+        if (storedOffset == null) {
+            linkedPeripherals.add(relativeOffset);
+            LogUtils.getLogger().warn("adding linked peripheral offset to controlseat: " + relativeOffset);
             setChanged();
+        } else {
+            clearMissingLinkedPeripheralState(storedOffset, type);
         }
-
-        else if(type == 4 && !linkedBatteries.contains(pos)) {
-            linkedBatteries.add(pos);
-            LOGGER.warn("adding battery to controlseat: " + pos);
-            setChanged();
-        }
-
-        else if(type == 5 && !linkedFuelTanks.contains(pos)) {
-            linkedFuelTanks.add(pos);
-            LOGGER.warn("adding fueltank to controlseat: " + pos);
-            setChanged();
-        }
-        else if(type == 7 && !linkedScreens.contains(pos)) {
-            linkedScreens.add(pos);
-            LOGGER.warn("adding screen to controlseat: " + pos);
-            setChanged();
-        }
+        // Function: push updated relative linker data to clients after peripheral link changes.
+        sendData();
     }
 
     public void removeLinkedPeripheral(Vec3 pos, int type) {
-        if (type==0 && linkedThrusters.contains(pos)) {
-            linkedThrusters.remove(pos);
-            setChanged(); // 鏍囪鏂瑰潡瀹炰綋鑴忎簡锛屽己鍒朵繚瀛?
-        }
-        else if (type==1 && linkedWeapons.contains(pos)) {
-            linkedWeapons.remove(pos);
-            setChanged(); // 鏍囪鏂瑰潡瀹炰綋鑴忎簡锛屽己鍒朵繚瀛?
-        }
-        else if (type==2 && linkedShields.contains(pos)) {
-            linkedShields.remove(pos);
-            setChanged(); // 鏍囪鏂瑰潡瀹炰綋鑴忎簡锛屽己鍒朵繚瀛?
-        }
-        else if (type==3 && linkedTurrets.contains(pos)) {
-            linkedTurrets.remove(pos);
-            setChanged(); // 鏍囪鏂瑰潡瀹炰綋鑴忎簡锛屽己鍒朵繚瀛?
-        }
-        else if (type==4 && linkedBatteries.contains(pos)) {
-            linkedBatteries.remove(pos);
-            setChanged(); // 鏍囪鏂瑰潡瀹炰綋鑴忎簡锛屽己鍒朵繚瀛?
+        Vec3 storedOffset = findStoredLinkedOffset(pos, type);
+        if (storedOffset == null || !shouldRemoveMissingLinkedPeripheral(storedOffset, type)) {
+            return;
         }
 
-        else if (type==5 && linkedFuelTanks.contains(pos)) {
-            linkedFuelTanks.remove(pos);
-            setChanged(); // 鏍囪鏂瑰潡瀹炰綋鑴忎簡锛屽己鍒朵繚瀛?
+        List<Vec3> linkedPeripherals = getLinkedPeripheralOffsets(type);
+        if (linkedPeripherals == null || !linkedPeripherals.remove(storedOffset)) {
+            return;
         }
-        else if (type==7 && linkedScreens.contains(pos)) {
-            // 鍔熻兘锛氭敮鎸佺Щ闄ゆ棤鏁堢殑灞忓箷缁戝畾锛岄伩鍏嶆帶鍒舵淇濈暀鑴忛摼鎺ャ€?
-            linkedScreens.remove(pos);
-            setChanged();
+
+        clearMissingLinkedPeripheralState(storedOffset, type);
+        setChanged();
+        // Function: keep client-side linker overlays consistent after a missing peripheral expires.
+        sendData();
+    }
+
+    public void confirmLinkedPeripheralPresent(Vec3 pos, int type) {
+        Vec3 storedOffset = findStoredLinkedOffset(pos, type);
+        if (storedOffset != null) {
+            clearMissingLinkedPeripheralState(storedOffset, type);
         }
     }
 
     public void forEachLinkedPeripheral(Consumer<Vec3> action, int type) {
-        if(type==0) {
-            linkedThrusters.forEach(action);
+        List<Vec3> linkedPeripherals = getLinkedPeripheralOffsets(type);
+        if (linkedPeripherals == null) {
+            return;
         }
-        if(type==1) {
-            linkedWeapons.forEach(action);
+
+        for (Vec3 relativeOffset : new ArrayList<>(linkedPeripherals)) {
+            action.accept(toAbsoluteLinkedPeripheralPos(relativeOffset));
         }
-        if(type==2) {
-            linkedShields.forEach(action);
+    }
+
+    public List<BlockPos> getLinkedTurretPositionsInOrder() {
+        List<BlockPos> turretPositions = new ArrayList<>(linkedTurrets.size());
+        for (Vec3 relativeOffset : linkedTurrets) {
+            turretPositions.add(BlockPos.containing(toAbsoluteLinkedPeripheralPos(relativeOffset)));
         }
-        if(type==3) {
-            linkedTurrets.forEach(action);
+        // Function: HUD weapon markers use the saved linker order as the stable external peripheral index.
+        return turretPositions;
+    }
+
+    private List<Vec3> getLinkedPeripheralOffsets(int type) {
+        return switch (type) {
+            case 0 -> linkedThrusters;
+            case 1 -> linkedWeapons;
+            case 2 -> linkedShields;
+            case 3 -> linkedTurrets;
+            case 4 -> linkedBatteries;
+            case 5 -> linkedFuelTanks;
+            case 6 -> linkedAmmoboxes;
+            case 7 -> linkedScreens;
+            default -> null;
+        };
+    }
+
+    private Vec3 toRelativeLinkedPeripheralOffset(Vec3 absolutePos) {
+        BlockPos peripheralPos = BlockPos.containing(absolutePos);
+        BlockPos seatPos = getBlockPos();
+        // Function: persist links as seat-relative block offsets so sublevel pose rebuilds cannot invalidate them.
+        return new Vec3(
+                peripheralPos.getX() - seatPos.getX(),
+                peripheralPos.getY() - seatPos.getY(),
+                peripheralPos.getZ() - seatPos.getZ()
+        );
+    }
+
+    private Vec3 toAbsoluteLinkedPeripheralPos(Vec3 relativeOffset) {
+        BlockPos offset = BlockPos.containing(relativeOffset);
+        BlockPos absolutePos = getBlockPos().offset(offset.getX(), offset.getY(), offset.getZ());
+        return Vec3.atLowerCornerOf(absolutePos);
+    }
+
+    private Vec3 findStoredLinkedOffset(Vec3 pos, int type) {
+        List<Vec3> linkedPeripherals = getLinkedPeripheralOffsets(type);
+        if (linkedPeripherals == null) {
+            return null;
         }
-        if(type==4) {
-            linkedBatteries.forEach(action);
+
+        Vec3 relativeOffset = toRelativeLinkedPeripheralOffset(pos);
+        Vec3 storedOffset = findStoredLinkedOffset(linkedPeripherals, relativeOffset);
+        return storedOffset != null ? storedOffset : findStoredLinkedOffset(linkedPeripherals, pos);
+    }
+
+    private Vec3 findStoredLinkedOffset(List<Vec3> linkedPeripherals, Vec3 relativeOffset) {
+        BlockPos targetOffset = BlockPos.containing(relativeOffset);
+        for (Vec3 linkedOffset : linkedPeripherals) {
+            if (BlockPos.containing(linkedOffset).equals(targetOffset)) {
+                return linkedOffset;
+            }
         }
-        if(type==5) {
-            linkedFuelTanks.forEach(action);
+        return null;
+    }
+
+    private boolean shouldRemoveMissingLinkedPeripheral(Vec3 relativeOffset, int type) {
+        String key = getMissingLinkedPeripheralKey(relativeOffset, type);
+        long currentTick = level == null ? Long.MIN_VALUE : level.getGameTime();
+        MissingLinkedPeripheralState state = missingLinkedPeripheralStates.computeIfAbsent(
+                key,
+                ignored -> new MissingLinkedPeripheralState()
+        );
+
+        if (state.lastMissingTick == currentTick) {
+            return state.missingTicks >= LINKED_PERIPHERAL_MISSING_TICKS_BEFORE_REMOVAL;
         }
-        if(type==7) {
-            // 鍔熻兘锛氭彁渚涘睆骞曞璁鹃亶鍘嗚兘鍔涳紝鐢ㄤ簬姣?tick 鍚戝睆骞曞悓姝ラ浄杈炬暟鎹€?
-            linkedScreens.forEach(action);
-        }
+
+        state.missingTicks = state.lastMissingTick == currentTick - 1 ? state.missingTicks + 1 : 1;
+        state.lastMissingTick = currentTick;
+        return state.missingTicks >= LINKED_PERIPHERAL_MISSING_TICKS_BEFORE_REMOVAL;
+    }
+
+    private void clearMissingLinkedPeripheralState(Vec3 relativeOffset, int type) {
+        missingLinkedPeripheralStates.remove(getMissingLinkedPeripheralKey(relativeOffset, type));
+    }
+
+    private String getMissingLinkedPeripheralKey(Vec3 relativeOffset, int type) {
+        BlockPos offset = BlockPos.containing(relativeOffset);
+        return type + ":" + offset.getX() + "," + offset.getY() + "," + offset.getZ();
     }
 
     @Override
@@ -264,16 +313,13 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
     }
 
     public static String processSlug(String a, String b) {
-        // 鍖归厤鏍煎紡锛氬紑澶存槸 [浠绘剰鍐呭] + 鍚庨潰浠绘剰瀛楃
         if (a != null && a.matches("^\\[.*?\\].*")) {
-            // 鎵惧埌绗竴涓?] 鐨勪綅缃?
             int endIndex = a.indexOf(']');
             if (endIndex != -1) {
                 String suffix = a.substring(endIndex + 1);
                 return "[" + b + "]" + suffix;
             }
         }
-        // 涓嶇鍚?[xxx]yyy 鏍煎紡锛屾垨鑰?a 鏄?null
         return "[" + b + "]" + a;
     }
 
@@ -302,4 +348,8 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         }
     }
 
+    private static class MissingLinkedPeripheralState {
+        private int missingTicks;
+        private long lastMissingTick = Long.MIN_VALUE;
+    }
 }

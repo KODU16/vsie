@@ -1,5 +1,5 @@
 {
   "fluid": "vsie:dtfuel",
   "thrust_multiplier": 1.0,
-  "consumption_multiplier": 0.1
+  "consumption_multiplier": 0.5
 }

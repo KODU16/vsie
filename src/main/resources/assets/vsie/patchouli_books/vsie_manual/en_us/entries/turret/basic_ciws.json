@@ -1,0 +1,21 @@
+{
+  "name": "“三零式”近防炮塔",
+  "icon": "vsie:basic_ciws",
+  "category": "vsie:turret",
+  "sortnum": 30,
+  "extra_recipe_mappings": {
+    "vsie:basic_ciws": 0
+  },
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:basic_ciws",
+      "title": "“三零式”近防炮塔",
+      "text": "$(br2)射速极高、转火极快的转管炮塔，又称点防御炮塔（PDT）。$(br2)发射电磁推进的小口径弹，仅支持在子维度上工作。"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "支持切换索敌模式。防御模式下会自动拦截向当前子维度飞行的弹射物。$(br2)对实体和弹射物非常有效，但无法攻击敌对子维度。$(br2)最大索敌距离/射程：256。"
+    }
+  ]
+}

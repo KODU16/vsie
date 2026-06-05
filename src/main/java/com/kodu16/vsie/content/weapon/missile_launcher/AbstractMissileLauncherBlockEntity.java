@@ -5,11 +5,13 @@ import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
 import com.kodu16.vsie.content.weapon.WeaponData;
 import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.registries.vsieEntities;
+import com.kodu16.vsie.registries.vsieItems;
 import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -34,6 +36,16 @@ public abstract class AbstractMissileLauncherBlockEntity extends AbstractWeaponB
 
     @Override
     public abstract String getweapontype();
+
+    @Override
+    public boolean isEnergyWeapon() {
+        return false;
+    }
+
+    @Override
+    public Item getAmmoItem() {
+        return vsieItems.PARTICLE_CONTAINER.get();
+    }
 
     @Override
     public void receivechannel(int encode) {
@@ -82,7 +94,6 @@ public abstract class AbstractMissileLauncherBlockEntity extends AbstractWeaponB
     public void fire() {
         Level level = this.getLevel();
         if (getData().targetship == null || level == null || level.isClientSide()) {
-            LogUtils.getLogger().warn("target is empty");
             return;
         }
         if (!hasMissileAmmo()) {
@@ -92,19 +103,17 @@ public abstract class AbstractMissileLauncherBlockEntity extends AbstractWeaponB
         SubLevel target = getData().targetship;
         Vec3 targetPoint = ServerShipUtils.getStructureCenterWorld(target);
         if (targetPoint == null) {
-            LogUtils.getLogger().warn("missile target has no valid structure center");
             return;
         }
 
         Vec3 spawnpos = getMissileSpawnPosition(level);
         BasicMissileEntity missile = new BasicMissileEntity(vsieEntities.BASIC_MISSILE.get(), level);
         missile.setTarget(target);
+        missile.setLaunchSubLevel(ServerShipUtils.getSubLevelAtBlockPos(level, this.getBlockPos()));
         missile.setPos(spawnpos);
         missile.setInitialDirection(getMissileLaunchDirection(level));
 
-        if (level.addFreshEntity(missile) && consumeMissileAmmo()) {
-            LogUtils.getLogger().warn("firing missile at:" + getData().targetship + " from:" + spawnpos);
-        } else {
+        if (!(level.addFreshEntity(missile) && consumeMissileAmmo())) {
             missile.discard();
         }
     }

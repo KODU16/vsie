@@ -70,7 +70,12 @@ public class TurretC2SPacket implements CustomPacketPayload {
                 return;
             }
             // 功能：普通炮塔只允许 1~4（敌对/被动/玩家/舰船）目标编码，忽略其它编码。
-            if (changetype < 1 || changetype > 4) {
+            if (changetype < 1 || changetype > 5) {
+                return;
+            }
+            if (changetype == 5) {
+                turret.toggleBreaksBlocksEnabled();
+                turret.markUpdated();
                 return;
             }
             turret.modifyTargetType(pkt.changetype);

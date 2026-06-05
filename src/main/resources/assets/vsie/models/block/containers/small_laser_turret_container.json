@@ -1,0 +1,6 @@
+{
+  "parent": "vsie:block/containers/medium_laser_turret_container",
+  "textures": {
+    "1": "vsie:icon/small_laser_turret"
+  }
+}

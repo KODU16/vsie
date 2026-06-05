@@ -1,3 +1,14 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+# Function: manual/resource JSON must stay UTF-8 so Patchouli can render direct Chinese text correctly.
+[*.{json,json5,mcmeta,lang,md,txt,toml}]
+charset = utf-8
+
 [*.{kt,kts}]
 ktlint_standard_property-naming = disabled
 ktlint_standard_function-naming = disabled

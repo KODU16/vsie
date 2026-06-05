@@ -1,35 +1,31 @@
 package com.kodu16.vsie.content.screen.client.functions;
 
-// 功能：适配 NeoForge 1.21.1 顶点提交流程，使用 addVertex/setColor 等新链式 API。
-
-import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
-import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
 import com.kodu16.vsie.content.controlseat.functions.WorldMarkerPainter;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.entity.ItemRenderer;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
 
 import java.util.Map;
-import java.util.UUID;
 
 public class Radar {
-    // 功能：雷达默认中立目标颜色（浅蓝）。
     private static final int RADAR_COLOR_NEUTRAL = 0xFF6699FF;
-    // 功能：雷达敌对目标颜色（红）。
     private static final int RADAR_COLOR_ENEMY = 0xFFFF5555;
-    // 功能：雷达友方目标颜色（绿）。
     private static final int RADAR_COLOR_ALLY = 0xFF55FF55;
-    // 功能：雷达锁定敌对目标颜色（黄）。
     private static final int RADAR_COLOR_LOCKED_ENEMY = 0xFFFFFF55;
-    // 功能：在屏幕平面绘制一个实心小方框，作为雷达上的船只标记。
-    private static Minecraft mc = Minecraft.getInstance();
-    ItemRenderer itemRenderer = mc.getItemRenderer();
+    private static final int RADAR_COLOR_SELF = 0xFF33FFAA;
+    private static final double RADAR_RANGE_METERS = 512.0D;
+    private static final float RADAR_SELF_MARKER_HALF_SIZE = 0.02f;
+    private static final float RADAR_TARGET_MARKER_HALF_SIZE = 0.02f;
+    private static final float RADAR_TEXT_SCALE = 0.005f;
+    private static final float RADAR_LABEL_OFFSET_Y = 0.05f;
+    private static final String UNNAMED_SUBLEVEL = "[Unnamed Sublevel]";
+
+    // Function: draw a filled square marker on the screen plane.
     public static void drawSquare(PoseStack poseStack, MultiBufferSource bufferSource, float centerX, float centerY, float halfSize, int argb) {
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.gui());
         Matrix4f matrix = poseStack.last().pose();
@@ -50,75 +46,88 @@ public class Radar {
         consumer.addVertex(matrix, maxX, minY, 0).setColor(r, g, b, a);
     }
 
-    // 功能：读取绑定玩家的 shipsData，并在屏幕上绘制俯视雷达。
-    public static void renderRadar(PoseStack poseStack, AbstractScreenBlockEntity screen, MultiBufferSource bufferSource) {
-        UUID radarPlayerUuid = screen.getRadarPlayerUuid();
-        if (radarPlayerUuid == null || mc.level == null) {
-            return;
-        }
-        // 功能：通过屏幕记录的玩家 UUID 反查该玩家的客户端控制数据。
-        var player = mc.level.getPlayerByUUID(radarPlayerUuid);
-        if (player == null) {
-            return;
-        }
-        ControlSeatClientData clientData = ClientDataManager.getClientData(player);
-        if (clientData == null || clientData.shipsData == null) {
-            return;
-        }
-        // 功能：将雷达绘制区域放在屏幕中间，并保持与现有物品/文字渲染同平面。
+    // Function: render the linked control-seat radar snapshot directly from the screen block entity.
+    public static void renderRadar(PoseStack poseStack, AbstractScreenBlockEntity screen, MultiBufferSource bufferSource, Font font) {
+        drawSquare(poseStack, bufferSource, 0f, 0f, RADAR_SELF_MARKER_HALF_SIZE, RADAR_COLOR_SELF);
 
-        // 功能：先绘制中心方框，表示当前控制椅所在船只（雷达自身）。
-        Radar.drawSquare(poseStack, bufferSource, 0f, 0f, 0.02f, 0xFF33FFAA);
+        Map<String, Object> shipsData = screen.getRadarShipsData();
+        if (shipsData == null || shipsData.isEmpty()) {
+            return;
+        }
 
         Vector3d seatWorldPos = screen.getRadarControlSeatWorldPos();
-        for (Map.Entry<String, Object> entry : clientData.shipsData.entrySet()) {
+        for (Map.Entry<String, Object> entry : shipsData.entrySet()) {
             if (!(entry.getValue() instanceof Map<?, ?> rawMap)) {
                 continue;
             }
+
             @SuppressWarnings("unchecked")
             Map<String, Object> shipData = (Map<String, Object>) rawMap;
-            if (!shipData.containsKey("x") || !shipData.containsKey("z")) {
-                continue;
-            }
             double shipX = toDouble(shipData.get("x"));
             double shipZ = toDouble(shipData.get("z"));
             double dx = shipX - seatWorldPos.x;
             double dz = shipZ - seatWorldPos.z;
-            // 功能：仅显示 512 范围内其它船只，减少噪声并满足需求。
-            if (Math.sqrt(dx * dx + dz * dz) > 512.0) {
+            double horizontalDistance = Math.sqrt(dx * dx + dz * dz);
+            if (horizontalDistance > RADAR_RANGE_METERS) {
                 continue;
             }
-            // 功能：将世界 XZ 相对坐标投影到屏幕局部平面，形成俯视雷达图。
-            float px = (float) (dx / 512.0 * 2.0);
-            float py = (float) (dz / 512.0 * 2.0);
 
-            // 功能：复用 WorldMarkerPainter 的敌我识别规则，保证 HUD 与雷达判定一致。
-            String slug = String.valueOf(shipData.getOrDefault("slug", ""));
-            int priority = WorldMarkerPainter.getPriority(clientData.enemy, clientData.ally, slug);
-            int radarColor = RADAR_COLOR_NEUTRAL;
+            // Function: project the world-space XZ delta into the flat radar plane.
+            float px = (float) (dx / RADAR_RANGE_METERS * 2.0);
+            float py = (float) (dz / RADAR_RANGE_METERS * 2.0);
+            String slug = stringValue(shipData.get("slug"));
+            int radarColor = radarColor(screen, slug);
 
-            // 功能：根据敌我关系给雷达点分配颜色（enemy=红，ally=绿，其它=浅蓝）。
-            if (priority == 1) {
-                radarColor = RADAR_COLOR_ENEMY;
-            } else if (priority == 2) {
-                radarColor = RADAR_COLOR_ALLY;
-            }
-
-            // 功能：若该目标是当前锁定敌人，则覆盖为黄色，突出锁定状态。
-            if (!slug.isEmpty() && slug.equals(clientData.lockedenemyslug) && priority == 1) {
-                radarColor = RADAR_COLOR_LOCKED_ENEMY;
-            }
-
-            // 跳过中心点附近，避免与本船方框重叠。
-            Radar.drawSquare(poseStack, bufferSource, px, py, 0.02f, radarColor);
+            drawSquare(poseStack, bufferSource, px, py, RADAR_TARGET_MARKER_HALF_SIZE, radarColor);
+            renderShipLabel(poseStack, bufferSource, font, displayName(slug), px, py + RADAR_LABEL_OFFSET_Y, radarColor);
         }
     }
 
-    // 功能：将 Object 数值安全转成 double，兼容网络包里的 Number 类型。
-    private static double toDouble(Object value) {
-        if (value instanceof Number number) {
-            return number.doubleValue();
+    // Function: keep radar colors consistent with the control-seat HUD target rules.
+    private static int radarColor(AbstractScreenBlockEntity screen, String slug) {
+        int priority = WorldMarkerPainter.getPriority(screen.getRadarEnemy(), screen.getRadarAlly(), slug);
+        if (!slug.isEmpty() && slug.equals(screen.getRadarLockedEnemySlug()) && priority == 1) {
+            return RADAR_COLOR_LOCKED_ENEMY;
         }
-        return 0.0;
+        if (priority == 1) {
+            return RADAR_COLOR_ENEMY;
+        }
+        if (priority == 2) {
+            return RADAR_COLOR_ALLY;
+        }
+        return RADAR_COLOR_NEUTRAL;
+    }
+
+    // Function: draw a compact label below each radar point using the same font scale as server-info mode.
+    private static void renderShipLabel(PoseStack poseStack, MultiBufferSource bufferSource, Font font, String label, float centerX, float centerY, int color) {
+        poseStack.pushPose();
+        poseStack.translate(centerX, centerY, 0.0f);
+        poseStack.scale(RADAR_TEXT_SCALE, RADAR_TEXT_SCALE, RADAR_TEXT_SCALE);
+        float drawX = -font.width(label) / 2f;
+        font.drawInBatch(
+                label,
+                drawX,
+                0f,
+                color,
+                false,
+                poseStack.last().pose(),
+                bufferSource,
+                Font.DisplayMode.NORMAL,
+                0,
+                0x00F000F0
+        );
+        poseStack.popPose();
+    }
+
+    private static String displayName(String slug) {
+        return slug == null || slug.isBlank() ? UNNAMED_SUBLEVEL : slug;
+    }
+
+    private static String stringValue(Object value) {
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private static double toDouble(Object value) {
+        return value instanceof Number number ? number.doubleValue() : 0.0D;
     }
 }

@@ -18,12 +18,14 @@ import com.kodu16.vsie.network.rail.ElectroMagnetRailCoreDetectC2SPacket;
 import com.kodu16.vsie.network.screen.ScreenC2SPacket;
 import com.kodu16.vsie.network.screen.ScreentypeC2SPacket;
 import com.kodu16.vsie.network.thruster.ThrusterS2CPacket;
+import com.kodu16.vsie.network.thruster.ThrusterLimitC2SPacket;
 import com.kodu16.vsie.network.thruster.VectorThrusterS2CPacket;
 import com.kodu16.vsie.network.turret.HeavyTurretC2SPacket;
 import com.kodu16.vsie.network.turret.TurretC2SPacket;
 import com.kodu16.vsie.network.turret.TurretDefaultSpinC2SPacket;
 import com.kodu16.vsie.network.turret.TurretFirePointC2SPacket;
 import com.kodu16.vsie.network.weapon.WeaponC2SPacket;
+import com.kodu16.vsie.network.weapon.WeaponDisplayNameC2SPacket;
 import com.kodu16.vsie.network.weapon.WeaponLaunchIntervalC2SPacket;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
@@ -56,11 +58,13 @@ public final class ModNetworking {
         registrar.playToServer(TurretFirePointC2SPacket.TYPE, TurretFirePointC2SPacket.STREAM_CODEC, TurretFirePointC2SPacket::handle);
         registrar.playToServer(HeavyTurretC2SPacket.TYPE, HeavyTurretC2SPacket.STREAM_CODEC, HeavyTurretC2SPacket::handle);
         registrar.playToServer(WeaponC2SPacket.TYPE, WeaponC2SPacket.STREAM_CODEC, WeaponC2SPacket::handle);
+        registrar.playToServer(WeaponDisplayNameC2SPacket.TYPE, WeaponDisplayNameC2SPacket.STREAM_CODEC, WeaponDisplayNameC2SPacket::handle);
         registrar.playToServer(WeaponLaunchIntervalC2SPacket.TYPE, WeaponLaunchIntervalC2SPacket.STREAM_CODEC, WeaponLaunchIntervalC2SPacket::handle);
         registrar.playToServer(IFFC2SPacket.TYPE, IFFC2SPacket.STREAM_CODEC, IFFC2SPacket::handle);
         registrar.playToServer(ScreenC2SPacket.TYPE, ScreenC2SPacket.STREAM_CODEC, ScreenC2SPacket::handle);
         registrar.playToServer(ScreentypeC2SPacket.TYPE, ScreentypeC2SPacket.STREAM_CODEC, ScreentypeC2SPacket::handle);
         registrar.playToServer(ElectroMagnetRailCoreDetectC2SPacket.TYPE, ElectroMagnetRailCoreDetectC2SPacket.STREAM_CODEC, ElectroMagnetRailCoreDetectC2SPacket::handle);
+        registrar.playToServer(ThrusterLimitC2SPacket.TYPE, ThrusterLimitC2SPacket.STREAM_CODEC, ThrusterLimitC2SPacket::handle);
 
         registrar.playToClient(ControlSeatS2CPacket.TYPE, ControlSeatS2CPacket.STREAM_CODEC, ControlSeatS2CPacket::handle);
         registrar.playToClient(ControlSeatInputS2CPacket.TYPE, ControlSeatInputS2CPacket.STREAM_CODEC, ControlSeatInputS2CPacket::handle);

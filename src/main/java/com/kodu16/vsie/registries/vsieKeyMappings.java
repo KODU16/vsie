@@ -17,14 +17,24 @@ public class vsieKeyMappings {
             GLFW.GLFW_KEY_LEFT_ALT,
             "category.vsie"
     );
-    public static final KeyMapping KEY_TOGGLE_FLIGHT_ASSIST = new KeyMapping(
-            "key.vsie.toggle_flight_assist",
+    public static final KeyMapping KEY_TOGGLE_FORCE_ASSIST = new KeyMapping(
+            "key.vsie.toggle_force_assist",
             GLFW.GLFW_KEY_B,
+            "category.vsie"
+    );
+    public static final KeyMapping KEY_TOGGLE_TORQUE_ASSIST = new KeyMapping(
+            "key.vsie.toggle_torque_assist",
+            GLFW.GLFW_KEY_H,
             "category.vsie"
     );
     public static final KeyMapping KEY_TOGGLE_ANTI_GRAVITY = new KeyMapping(
             "key.vsie.toggle_anti_gravity",
             GLFW.GLFW_KEY_G,
+            "category.vsie"
+    );
+    public static final KeyMapping KEY_TOGGLE_AUTO_LEVEL = new KeyMapping(
+            "key.vsie.toggle_auto_level",
+            GLFW.GLFW_KEY_L,
             "category.vsie"
     );
     public static final KeyMapping KEY_THROTTLE = new KeyMapping(
@@ -90,7 +100,9 @@ public class vsieKeyMappings {
         event.register(KEY_SWITCH_ENEMY);
         event.register(KEY_TOGGLE_SHIELD);
         event.register(KEY_START_WARP);
-        event.register(KEY_TOGGLE_FLIGHT_ASSIST);
+        event.register(KEY_TOGGLE_FORCE_ASSIST);
+        event.register(KEY_TOGGLE_TORQUE_ASSIST);
         event.register(KEY_TOGGLE_ANTI_GRAVITY);
+        event.register(KEY_TOGGLE_AUTO_LEVEL);
     }
 }

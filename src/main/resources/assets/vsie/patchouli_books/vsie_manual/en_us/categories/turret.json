@@ -1,0 +1,6 @@
+{
+  "name": "炮塔",
+  "description": "能按轴转动，必须安装在子维度上的各类自动炮塔、近防和定向能量攻击性部件。",
+  "icon": "vsie:medium_laser_turret",
+  "sortnum": 4
+}

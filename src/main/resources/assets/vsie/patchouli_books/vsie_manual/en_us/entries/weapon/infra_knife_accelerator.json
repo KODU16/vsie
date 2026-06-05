@@ -1,0 +1,21 @@
+{
+  "name": "红外切割加速器",
+  "icon": "vsie:infra_knife_accelerator",
+  "category": "vsie:weapon",
+  "sortnum": 10,
+  "extra_recipe_mappings": {
+    "vsie:infra_knife_accelerator": 0
+  },
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:infra_knife_accelerator",
+      "title": "“NMS-S”红外切割加速器",
+      "text": "射速高的定向能武器，可对射击到的目标产生局部的爆炸和点火效果$(br2)对实体、易燃方块和小型子维度目标有效$(br2)仅支持在子维度上工作"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "最大射程：256。"
+    }
+  ]
+}

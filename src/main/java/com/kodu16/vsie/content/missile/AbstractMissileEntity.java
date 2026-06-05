@@ -1,18 +1,27 @@
 package com.kodu16.vsie.content.missile;
 
+import com.kodu16.vsie.content.missile.client.MissileSoundManager;
 import com.kodu16.vsie.foundation.ServerShipUtils;
+import com.kodu16.vsie.registries.vsieSounds;
 import com.lowdragmc.photon.client.fx.EntityEffectExecutor;
 import com.lowdragmc.photon.client.fx.FXHelper;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.projectile.AbstractHurtingProjectile;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
@@ -23,6 +32,8 @@ import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceC
 import software.bernie.geckolib.animation.AnimatableManager;
 import software.bernie.geckolib.constant.dataticket.SerializableDataTicket;
 
+import java.util.UUID;
+
 public abstract class AbstractMissileEntity extends AbstractHurtingProjectile implements GeoEntity {
     private static final EntityDataAccessor<Float> DATA_SPEED = SynchedEntityData.defineId(AbstractMissileEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Integer> DATA_AGE = SynchedEntityData.defineId(AbstractMissileEntity.class, EntityDataSerializers.INT);
@@ -31,16 +42,20 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
     private static final float DEFAULT_MAX_TURN_RATE_PER_TICK = 0.15F;
     private static final int GUIDANCE_DELAY_TICKS = 20;
     private static final int MAX_LIFETIME_TICKS = 20 * 10;
+    private static final float MISSILE_EXPLOSION_POWER = 16.0F;
+    private static final double IMPACT_BLOCK_BREAK_RADIUS = 5.0D;
     private static final ResourceLocation MISSILE_SWITCH_TRACK_FX = ResourceLocation.fromNamespaceAndPath("vsie", "missile_switchtrack");
     private static final ResourceLocation MISSILE_TRAIL_FX = ResourceLocation.fromNamespaceAndPath("vsie", "missile_trail");
 
     private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
     private SubLevel target;
+    private UUID launchSubLevelId;
     private Vec3 currentDirection = null;
     private float maxTurnRatePerTick = DEFAULT_MAX_TURN_RATE_PER_TICK;
     // Function: client-side FX state prevents replaying the transition and trail effects every tick.
     private boolean switchTrackFxStarted = false;
     private boolean trailFxStarted = false;
+    private boolean launchSoundPlayed = false;
 
     public float xRot0 = 0f;
     public float yRot0 = 0f;
@@ -63,6 +78,10 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
 
     public void setTarget(SubLevel ship) {
         this.target = ship;
+    }
+
+    public void setLaunchSubLevel(SubLevel subLevel) {
+        this.launchSubLevelId = subLevel == null ? null : subLevel.getUniqueId();
     }
 
     public void setInitialDirection(Vec3 direction) {
@@ -93,10 +112,11 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
     @Override
     public void tick() {
         if (!this.level().isClientSide) {
+            playLaunchSoundOnce();
             int age = this.entityData.get(DATA_AGE) + 1;
             this.entityData.set(DATA_AGE, age);
             if (age >= MAX_LIFETIME_TICKS) {
-                explodeAndDiscard(this.position());
+                detonateAt(this.position());
                 return;
             }
             if (age < GUIDANCE_DELAY_TICKS) {
@@ -108,9 +128,15 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
             }
         } else {
             handleClientGuidanceFx();
+            handleClientLoopSound();
         }
         updateRotationFromMovement(this.getDeltaMovement());
         super.tick();
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    private void handleClientLoopSound() {
+        MissileSoundManager.updateMissile(this);
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -217,8 +243,10 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
                 // Function: during the straight launch phase, missiles ignore block hits so VLS cells cannot self-detonate them.
                 return;
             }
-            // Function: after guidance starts, block impact is authoritative on the server and explodes at the contact point.
-            explodeAndDiscard(result.getLocation());
+            if (shouldDetonateOnBlockHit(result)) {
+                // Function: after guidance starts, impacts outside the launch ship detonate at the exact contact point.
+                detonateAt(result.getLocation());
+            }
         }
     }
 
@@ -226,13 +254,96 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
         return this.entityData.get(DATA_AGE) >= GUIDANCE_DELAY_TICKS;
     }
 
-    protected void explodeAndDiscard(Vec3 position) {
-        this.level().explode(this,
-                position.x, position.y, position.z,
-                4.0F,
-                Level.ExplosionInteraction.BLOCK
-        );
+    protected void detonateAt(Vec3 position) {
+        if (this.level() instanceof ServerLevel serverLevel) {
+            destroyBlocksInSphere(serverLevel, position, IMPACT_BLOCK_BREAK_RADIUS);
+            serverLevel.explode(
+                    this,
+                    position.x,
+                    position.y,
+                    position.z,
+                    MISSILE_EXPLOSION_POWER,
+                    false,
+                    Level.ExplosionInteraction.NONE
+            );
+        }
         this.discard();
+    }
+
+    private void playLaunchSoundOnce() {
+        if (launchSoundPlayed) {
+            return;
+        }
+
+        launchSoundPlayed = true;
+        this.level().playSound(
+                null,
+                this.getX(),
+                this.getY(),
+                this.getZ(),
+                vsieSounds.MISSILE_DECOUPLER_FIRE.get(),
+                SoundSource.HOSTILE,
+                0.9F,
+                1.0F
+        );
+    }
+
+    private boolean shouldDetonateOnBlockHit(BlockHitResult result) {
+        SubLevel hitSubLevel = ServerShipUtils.getSubLevelAtBlockPos(this.level(), result.getBlockPos());
+        if (hitSubLevel == null) {
+            return true;
+        }
+        if (launchSubLevelId == null) {
+            return true;
+        }
+        return !launchSubLevelId.equals(hitSubLevel.getUniqueId());
+    }
+
+    protected void destroyBlocksInSphere(ServerLevel level, Vec3 impactPoint, double radius) {
+        double safeRadius = Math.max(0.0D, radius);
+        int blockRadius = (int) Math.ceil(safeRadius);
+        BlockPos center = BlockPos.containing(impactPoint);
+        double radiusSqr = safeRadius * safeRadius;
+
+        for (int x = -blockRadius; x <= blockRadius; x++) {
+            for (int y = -blockRadius; y <= blockRadius; y++) {
+                for (int z = -blockRadius; z <= blockRadius; z++) {
+                    if (safeRadius > 0.0D && x * x + y * y + z * z > radiusSqr) {
+                        continue;
+                    }
+                    BlockPos targetPos = center.offset(x, y, z);
+                    BlockState state = level.getBlockState(targetPos);
+                    if (!canMissileBreakBlock(level, targetPos, state)) {
+                        continue;
+                    }
+                    if (level.random.nextDouble() > computeBlockBreakProbability(level, targetPos, impactPoint, safeRadius)) {
+                        continue;
+                    }
+                    breakBlockAsMined(level, targetPos);
+                }
+            }
+        }
+    }
+
+    protected boolean canMissileBreakBlock(ServerLevel level, BlockPos pos, BlockState state) {
+        return level.isLoaded(pos) && !state.isAir() && state.getDestroySpeed(level, pos) >= 0.0F;
+    }
+
+    protected double computeBlockBreakProbability(ServerLevel level, BlockPos pos, Vec3 impactPoint, double maxDistance) {
+        BlockState state = level.getBlockState(pos);
+        double hardness = Math.max(0.0D, state.getDestroySpeed(level, pos));
+        double distanceRatio = maxDistance <= 1.0E-6D ? 0.0D : Vec3.atCenterOf(pos).distanceTo(impactPoint) / maxDistance;
+        // Function: match bullet terrain clearing so missile blasts thin out with distance and block hardness.
+        return Mth.clamp((1.2D - distanceRatio) * (1.2D - hardness / 100.0D), 0.0D, 1.0D);
+    }
+
+    protected boolean breakBlockAsMined(ServerLevel level, BlockPos pos) {
+        BlockState state = level.getBlockState(pos);
+        if (!canMissileBreakBlock(level, pos, state)) {
+            return false;
+        }
+        level.levelEvent(2001, pos, Block.getId(state));
+        return level.destroyBlock(pos, false, this);
     }
 
     protected void updateRotationFromMovement(Vec3 movement) {
@@ -248,9 +359,44 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
     }
 
     @Override
+    public void remove(Entity.RemovalReason removalReason) {
+        if (this.level() != null && this.level().isClientSide) {
+            stopClientLoopSound();
+        }
+        super.remove(removalReason);
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    private void stopClientLoopSound() {
+        MissileSoundManager.stopMissile(this);
+    }
+
+    @Override
     public boolean displayFireAnimation() {
         // Function: missiles use their Geo model only; hide Minecraft's built-in burning overlay.
         return false;
+    }
+
+    @Override
+    public void addAdditionalSaveData(CompoundTag tag) {
+        super.addAdditionalSaveData(tag);
+        if (launchSubLevelId != null) {
+            tag.putUUID("LaunchSubLevelId", launchSubLevelId);
+        }
+        tag.putBoolean("LaunchSoundPlayed", launchSoundPlayed);
+    }
+
+    @Override
+    public void readAdditionalSaveData(CompoundTag tag) {
+        super.readAdditionalSaveData(tag);
+        if (tag.hasUUID("LaunchSubLevelId")) {
+            launchSubLevelId = tag.getUUID("LaunchSubLevelId");
+        } else {
+            launchSubLevelId = null;
+        }
+        if (tag.contains("LaunchSoundPlayed")) {
+            launchSoundPlayed = tag.getBoolean("LaunchSoundPlayed");
+        }
     }
 
     @Override

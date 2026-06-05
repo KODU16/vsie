@@ -30,6 +30,16 @@ public class vsieFluidsClient {
         return () -> SolidRenderedPlaceableFluidType.create(0x06fcf4, () -> 1.0f / 4.0f, 0xff06fcf4);
     }
 
+    public static Supplier<FluidTypeFactory> getE710TypeFactory() {
+        // 功能：E-710 使用深紫黑色液体与雾效，区别于普通推进燃料。
+        return () -> SolidRenderedPlaceableFluidType.create(0x120018, () -> 1.0f / 5.0f, 0xff16001f);
+    }
+
+    public static Supplier<FluidTypeFactory> getChargedParticlesFuelTypeFactory() {
+        // Function: charged-particles fuel uses a lime tint to separate it from D-T fuel and E-710.
+        return () -> SolidRenderedPlaceableFluidType.create(0xB7FF2A, () -> 1.0f / 4.0f, 0xffB7FF2A);
+    }
+
     public static Supplier<RenderType> getDtfuelRenderType() {
         return () -> RenderType.translucent();
     }

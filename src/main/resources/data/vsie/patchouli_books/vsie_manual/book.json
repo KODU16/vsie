@@ -1,0 +1,9 @@
+{
+  "name": "book.vsie.vsie_manual.name",
+  "landing_text": "book.vsie.vsie_manual.landing_text",
+  "book_texture": "vsie:textures/gui/patchouli/vsie_manual_book.png",
+  "model": "vsie:vsie_manual",
+  "version": 1.14514,
+  "creative_tab": "vsie:base",
+  "use_resource_pack": true
+}

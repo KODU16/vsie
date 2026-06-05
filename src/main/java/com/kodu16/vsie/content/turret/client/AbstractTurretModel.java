@@ -28,6 +28,7 @@ public class AbstractTurretModel extends DefaultedBlockGeoModel<AbstractTurretBl
     public ResourceLocation getModelResource(AbstractTurretBlockEntity abstractTurretBlockEntity) {
         return switch (abstractTurretBlockEntity.getturrettype()) {
             case "medium_laser" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "geo/block/medium_laser_turret.geo.json");
+            case "small_laser" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "geo/block/small_laser_turret.geo.json");
             case "particle" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "geo/block/particle_turret.geo.json");
             case "basic_ciws" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "geo/block/basic_ciws.geo.json");
             default -> throw new IllegalStateException("Unexpected value: " + abstractTurretBlockEntity.getturrettype());
@@ -38,6 +39,7 @@ public class AbstractTurretModel extends DefaultedBlockGeoModel<AbstractTurretBl
     public ResourceLocation getTextureResource(AbstractTurretBlockEntity abstractTurretBlockEntity) {
         return switch (abstractTurretBlockEntity.getturrettype()) {
             case "medium_laser" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/block/medium_laser_turret.png");
+            case "small_laser" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/block/small_laser_turret.png");
             case "particle" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/block/particle_turret.png");
             case "basic_ciws" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/block/basic_ciws.png");
             default -> throw new IllegalStateException("Unexpected value: " + abstractTurretBlockEntity.getturrettype());
@@ -48,6 +50,7 @@ public class AbstractTurretModel extends DefaultedBlockGeoModel<AbstractTurretBl
     public ResourceLocation getAnimationResource(AbstractTurretBlockEntity abstractTurretBlockEntity) {
         return switch (abstractTurretBlockEntity.getturrettype()) {
             case "medium_laser" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/medium_laser_anim.json");
+            case "small_laser" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/medium_laser_anim.json");
             case "particle" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/turret/particle_turret_anim.json");
             case "basic_ciws" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/turret/basic_ciws_anim.json");
             default -> throw new IllegalStateException("Unexpected value: " + abstractTurretBlockEntity.getturrettype());

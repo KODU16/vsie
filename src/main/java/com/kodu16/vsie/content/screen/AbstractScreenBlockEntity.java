@@ -5,6 +5,8 @@ import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.item.ItemStack;
@@ -17,6 +19,8 @@ import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceC
 import software.bernie.geckolib.animation.AnimatableManager;
 import software.bernie.geckolib.constant.dataticket.SerializableDataTicket;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public abstract class AbstractScreenBlockEntity extends SmartBlockEntity implements GeoBlockEntity {
@@ -66,6 +70,11 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
     private UUID radarPlayerUuid;
     // 鍔熻兘锛氱紦瀛樻帶鍒舵涓栫晫鍧愭爣锛屼緵瀹㈡埛绔皢鍛ㄥ洿鑸瑰彧鎶曞奖鍒板睆骞曢浄杈句笂銆?
     private Vector3d radarControlSeatWorldPos = new Vector3d();
+    // Function: sync a render-ready radar snapshot onto the screen block entity itself.
+    private Map<String, Object> radarShipsData = new LinkedHashMap<>();
+    private String radarEnemy = "";
+    private String radarAlly = "";
+    private String radarLockedEnemySlug = "";
 
 
     private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
@@ -108,6 +117,30 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
     public void setRadarControlSeatWorldPos(Vector3d worldPos) {
         this.radarControlSeatWorldPos = new Vector3d(worldPos);
         setChanged();
+    }
+
+    public Map<String, Object> getRadarShipsData() {
+        return radarShipsData;
+    }
+
+    public String getRadarEnemy() {
+        return radarEnemy;
+    }
+
+    public String getRadarAlly() {
+        return radarAlly;
+    }
+
+    public String getRadarLockedEnemySlug() {
+        return radarLockedEnemySlug;
+    }
+
+    // Function: persist a render-ready radar snapshot on the screen so any client can draw it.
+    public void setRadarSnapshot(Map<String, Object> shipsData, String enemy, String ally, String lockedEnemySlug) {
+        this.radarShipsData = copyRadarShipsData(shipsData);
+        this.radarEnemy = enemy == null ? "" : enemy;
+        this.radarAlly = ally == null ? "" : ally;
+        this.radarLockedEnemySlug = lockedEnemySlug == null ? "" : lockedEnemySlug;
     }
 
     @Override
@@ -263,6 +296,10 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
         tag.putDouble("RadarSeatWorldX", radarControlSeatWorldPos.x);
         tag.putDouble("RadarSeatWorldY", radarControlSeatWorldPos.y);
         tag.putDouble("RadarSeatWorldZ", radarControlSeatWorldPos.z);
+        tag.putString("RadarEnemy", radarEnemy);
+        tag.putString("RadarAlly", radarAlly);
+        tag.putString("RadarLockedEnemySlug", radarLockedEnemySlug);
+        tag.put("RadarShipsData", writeRadarShipsData(radarShipsData));
     }
 
     @Override
@@ -304,6 +341,85 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
                 tag.getDouble("RadarSeatWorldY"),
                 tag.getDouble("RadarSeatWorldZ")
         );
+        radarEnemy = tag.getString("RadarEnemy");
+        radarAlly = tag.getString("RadarAlly");
+        radarLockedEnemySlug = tag.getString("RadarLockedEnemySlug");
+        radarShipsData = readRadarShipsData(tag);
+    }
+
+    // Function: keep only the radar fields that the screen renderer needs and preserve scan ordering.
+    private static Map<String, Object> copyRadarShipsData(Map<String, Object> shipsData) {
+        Map<String, Object> copiedShips = new LinkedHashMap<>();
+        if (shipsData == null) {
+            return copiedShips;
+        }
+        for (Map.Entry<String, Object> entry : shipsData.entrySet()) {
+            if (!(entry.getValue() instanceof Map<?, ?> rawShipData)) {
+                continue;
+            }
+            Map<String, Object> shipData = new LinkedHashMap<>();
+            shipData.put("slug", stringValue(rawShipData.get("slug")));
+            shipData.put("x", toDouble(rawShipData.get("x")));
+            shipData.put("y", toDouble(rawShipData.get("y")));
+            shipData.put("z", toDouble(rawShipData.get("z")));
+            shipData.put("speed", toDouble(rawShipData.get("speed")));
+            shipData.put("targetIndex", toInt(rawShipData.get("targetIndex")));
+            copiedShips.put(entry.getKey(), shipData);
+        }
+        return copiedShips;
+    }
+
+    // Function: encode the radar snapshot as a compact NBT list for block-entity sync packets.
+    private static ListTag writeRadarShipsData(Map<String, Object> shipsData) {
+        ListTag shipList = new ListTag();
+        for (Map.Entry<String, Object> entry : copyRadarShipsData(shipsData).entrySet()) {
+            if (!(entry.getValue() instanceof Map<?, ?> rawShipData)) {
+                continue;
+            }
+            CompoundTag shipTag = new CompoundTag();
+            shipTag.putString("Key", entry.getKey());
+            shipTag.putString("Slug", stringValue(rawShipData.get("slug")));
+            shipTag.putDouble("X", toDouble(rawShipData.get("x")));
+            shipTag.putDouble("Y", toDouble(rawShipData.get("y")));
+            shipTag.putDouble("Z", toDouble(rawShipData.get("z")));
+            shipTag.putDouble("Speed", toDouble(rawShipData.get("speed")));
+            shipTag.putInt("TargetIndex", toInt(rawShipData.get("targetIndex")));
+            shipList.add(shipTag);
+        }
+        return shipList;
+    }
+
+    // Function: rebuild the radar snapshot on the client so the screen can render without player-state lookups.
+    private static Map<String, Object> readRadarShipsData(CompoundTag tag) {
+        Map<String, Object> shipsData = new LinkedHashMap<>();
+        if (!tag.contains("RadarShipsData")) {
+            return shipsData;
+        }
+        ListTag shipList = tag.getList("RadarShipsData", Tag.TAG_COMPOUND);
+        for (int i = 0; i < shipList.size(); i++) {
+            CompoundTag shipTag = shipList.getCompound(i);
+            Map<String, Object> shipData = new LinkedHashMap<>();
+            shipData.put("slug", shipTag.getString("Slug"));
+            shipData.put("x", shipTag.getDouble("X"));
+            shipData.put("y", shipTag.getDouble("Y"));
+            shipData.put("z", shipTag.getDouble("Z"));
+            shipData.put("speed", shipTag.getDouble("Speed"));
+            shipData.put("targetIndex", shipTag.getInt("TargetIndex"));
+            shipsData.put(shipTag.getString("Key"), shipData);
+        }
+        return shipsData;
+    }
+
+    private static String stringValue(Object value) {
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private static double toDouble(Object value) {
+        return value instanceof Number number ? number.doubleValue() : 0.0D;
+    }
+
+    private static int toInt(Object value) {
+        return value instanceof Number number ? number.intValue() : 0;
     }
 
     @Override

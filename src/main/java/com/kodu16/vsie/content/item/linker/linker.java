@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.item.linker;
 
 import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
+import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreBlockEntity;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
 import com.kodu16.vsie.content.storage.energybattery.AbstractEnergyBatteryBlockEntity;
@@ -8,6 +9,7 @@ import com.kodu16.vsie.content.storage.fueltank.AbstractFuelTankBlockEntity;
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlockEntity;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
+import com.kodu16.vsie.content.weapon.electro_magnet_rail_accelerator.ElectromagnetRailAcceleratorBlockEntity;
 import com.kodu16.vsie.content.weapon.missile_launcher.block.VerticleLaunchingSlotBlockEntity;
 import com.kodu16.vsie.content.weapon.missile_launcher.block.VerticleLaunchingSlotCoreBlockEntity;
 import com.kodu16.vsie.utility.ItemStackNbt;
@@ -34,9 +36,11 @@ import java.util.List;
 public class linker extends Item {
     public static final String CONTROL_SEAT_POS_TAG = "ControlSeatPos";
     public static final String VERTICAL_LAUNCH_CORE_POS_TAG = "VerticleLaunchingSlotCorePos";
+    public static final String ELECTRO_MAGNET_RAIL_CORE_POS_TAG = "ElectroMagnetRailCorePos";
     private static final String STORED_TYPE_TAG = "StoredTargetType";
     private static final String TYPE_CONTROL_SEAT = "control_seat";
     private static final String TYPE_VERTICAL_LAUNCH_CORE = "verticle_launching_slot_core";
+    private static final String TYPE_ELECTRO_MAGNET_RAIL_CORE = "electro_magnet_rail_core";
 
     public linker(Properties pProperties) {
         super(pProperties);
@@ -88,8 +92,22 @@ public class linker extends Item {
             return InteractionResult.CONSUME;
         }
 
+        if (clickedBlockEntity instanceof ElectroMagnetRailCoreBlockEntity && !nbt.contains(CONTROL_SEAT_POS_TAG)) {
+            // Function: recording a rail core switches linker mode so the next click can bind one accelerator to that core.
+            clearStoredTargets(nbt);
+            putBlockPos(nbt, ELECTRO_MAGNET_RAIL_CORE_POS_TAG, clickedPos);
+            nbt.putString(STORED_TYPE_TAG, TYPE_ELECTRO_MAGNET_RAIL_CORE);
+            ItemStackNbt.set(stack, nbt);
+            player.displayClientMessage(Component.literal("Recorded rail core: " + clickedPos.toShortString()), true);
+            return InteractionResult.CONSUME;
+        }
+
         if (nbt.contains(VERTICAL_LAUNCH_CORE_POS_TAG)) {
             return handleVerticalLaunchSlotLink(level, player, stack, nbt, clickedPos, clickedBlockEntity);
+        }
+
+        if (nbt.contains(ELECTRO_MAGNET_RAIL_CORE_POS_TAG)) {
+            return handleElectroMagnetRailAcceleratorLink(level, player, stack, nbt, clickedPos, clickedBlockEntity);
         }
 
         if (!nbt.contains(CONTROL_SEAT_POS_TAG)) {
@@ -184,6 +202,30 @@ public class linker extends Item {
         return InteractionResult.CONSUME;
     }
 
+    private InteractionResult handleElectroMagnetRailAcceleratorLink(Level level, ServerPlayer player, ItemStack stack, CompoundTag nbt,
+                                                                     BlockPos clickedPos, BlockEntity clickedBlockEntity) {
+        BlockPos corePos = getBlockPos(nbt, ELECTRO_MAGNET_RAIL_CORE_POS_TAG);
+        BlockEntity coreBlockEntity = level.getBlockEntity(corePos);
+        if (!(coreBlockEntity instanceof ElectroMagnetRailCoreBlockEntity)) {
+            nbt.remove(ELECTRO_MAGNET_RAIL_CORE_POS_TAG);
+            nbt.remove(STORED_TYPE_TAG);
+            ItemStackNbt.set(stack, nbt);
+            player.displayClientMessage(Component.literal("Stored rail core is missing and has been cleared."), true);
+            return InteractionResult.CONSUME;
+        }
+
+        if (clickedBlockEntity instanceof ElectromagnetRailAcceleratorBlockEntity accelerator) {
+            // Function: the accelerator stores one explicit rail-core binding that its fire logic resolves later.
+            accelerator.setLinkedCorePos(corePos);
+            player.displayClientMessage(Component.literal("Bound accelerator " + clickedPos.toShortString()
+                    + " to rail core " + corePos.toShortString()), true);
+            return InteractionResult.CONSUME;
+        }
+
+        player.displayClientMessage(Component.literal("Right-click an electro_magnet_rail_accelerator to finish this binding."), true);
+        return InteractionResult.CONSUME;
+    }
+
     private InteractionResult linkControlSeatPeripheral(ServerPlayer player, AbstractControlSeatBlockEntity controlSeat,
                                                         BlockPos controllerPos, Vec3 peripheralPos, BlockPos clickedPos,
                                                         int type, String displayName) {
@@ -201,6 +243,10 @@ public class linker extends Item {
             BlockPos pos = getBlockPos(tag, VERTICAL_LAUNCH_CORE_POS_TAG);
             tooltip.add(Component.literal("§e已记录: 垂直发射槽核心 " + pos.toShortString()));
             tooltip.add(Component.literal("§7右键垂直发射槽可按顺序连接并分配编号"));
+        } else if (tag != null && tag.contains(ELECTRO_MAGNET_RAIL_CORE_POS_TAG)) {
+            BlockPos pos = getBlockPos(tag, ELECTRO_MAGNET_RAIL_CORE_POS_TAG);
+            tooltip.add(Component.literal("Recorded rail core: " + pos.toShortString()));
+            tooltip.add(Component.literal("Right-click electro_magnet_rail_accelerator to bind it."));
         } else if (tag != null && tag.contains(CONTROL_SEAT_POS_TAG)) {
             BlockPos pos = getBlockPos(tag, CONTROL_SEAT_POS_TAG);
             tooltip.add(Component.literal("§e已记录: 控制椅 " + pos.toShortString()));
@@ -214,6 +260,7 @@ public class linker extends Item {
     private static void clearStoredTargets(CompoundTag nbt) {
         nbt.remove(CONTROL_SEAT_POS_TAG);
         nbt.remove(VERTICAL_LAUNCH_CORE_POS_TAG);
+        nbt.remove(ELECTRO_MAGNET_RAIL_CORE_POS_TAG);
         nbt.remove(STORED_TYPE_TAG);
     }
 

@@ -15,7 +15,6 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.item.ItemDisplayContext;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.Level;
 
@@ -57,16 +56,14 @@ public class AbstractScreenRenderLayer extends GeoRenderLayer<AbstractScreenBloc
         Level level = animatable.getLevel();
         if (level == null) return;
 
-        ItemStack stack = animatable.getRenderStack();
-        if (stack.isEmpty()) return;
-
         poseStack.pushPose();
         // 旋转以平躺于表面（针对顶部面）
         poseStack.mulPose(Axis.XP.rotationDegrees(-270.0f));  // 对于其他面，使用 Axis.YP 等旋转
         //poseStack.mulPose(Axis.YP.rotationDegrees(180.0f));  // 对于其他面，使用 Axis.YP 等旋转
         poseStack.translate(0, 0, -0.05f);  // 调整为目标面，例如 NORTH: translate(0.5, 0.5, 1.0)
         poseStack.scale(0.99f,0.99f,0.99f);
-        itemRenderer.renderStatic(new ItemStack((ItemLike) vsieItems.SCREEN_BG), ItemDisplayContext.FIXED,
+        // Function: render the screen surface directly because renderStack is not populated by the current screen data flow.
+        itemRenderer.renderStatic(new net.minecraft.world.item.ItemStack((ItemLike) vsieItems.SCREEN_BG), ItemDisplayContext.FIXED,
                 LightTexture.FULL_BRIGHT,
                 OverlayTexture.NO_OVERLAY, poseStack, bufferSource,
                 level, 0);
@@ -74,7 +71,7 @@ public class AbstractScreenRenderLayer extends GeoRenderLayer<AbstractScreenBloc
         poseStack.translate(0, 0, -0.035f);  // 调整为目标面，例如 NORTH: translate(0.5, 0.5, 1.0)
         // 功能：根据 screentype 切换显示内容；0 显示雷达，1 显示服务器信息文本。
         if (animatable.displaytype == 0) {
-            Radar.renderRadar(poseStack, animatable, bufferSource);
+            Radar.renderRadar(poseStack, animatable, bufferSource, font);
         } else if (animatable.displaytype == 1) {
             poseStack.scale(0.005f, 0.005f, 0.005f);
             ServerInfo.renderServerInfo(poseStack, animatable, bufferSource, font);

@@ -24,16 +24,18 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 
 import java.util.List;
 
-//0:鎵嬪姩 1:鑷姩 2:鏅鸿兘
 public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlockEntity {
+    private static final double MANUAL_UNALIGNED_FIRE_FALLBACK_DISTANCE = 256.0D;
+
     protected AbstractHeavyTurretBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
-        // 鍒濆鍖?turretData
+        // Function: heavy turrets own their extended targeting and channel state.
         this.turretData = new TurretData();
     }
 
@@ -42,13 +44,25 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
     private volatile int armedChannelOfCtrl = 0;
     private volatile boolean currentTargetingAutomatic = false;
     private boolean manualFireQueued = false;
+    @Nullable
+    private Vec3 fireTargetOverride = null;
 
 
     public abstract int getmaxpitchdowndegrees();
 
     protected Vec3 getHeavyTurretTargetPos() {
         // Function: subclasses need the current heavy turret target for projectile spawning.
-        return targetPos;
+        return fireTargetOverride != null ? fireTargetOverride : targetPos;
+    }
+
+    protected boolean isCurrentHeavyTargetAutomatic() {
+        // Function: subclasses need to distinguish locked targets from manual sight points when firing.
+        return currentTargetingAutomatic;
+    }
+
+    public int getControlSeatEnergyCostPerTick() {
+        // Function: heavy turrets now share the same per-tick control-seat upkeep model as other linked peripherals.
+        return getenergypertick();
     }
 
     @Override
@@ -59,7 +73,6 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
     public void tick() {
         if (this.getLevel() == null || this.getLevel().isClientSide()) { return; }
 
-        // 鍔熻兘锛氬喎鍗存椂闂翠粎鐢ㄤ簬闄愬埗寮€鐏紝涓嶅啀闃绘柇鐐鐨勬寔缁浆鍚戯紝淇鈥滄墜鍔ㄦā寮忛棿姝囨€у崱椤库€濄€?
         tickFireCooldown(isHeavyFireRequested());
 
         if (!hasInitialized){
@@ -74,34 +87,39 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
         SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(this.getLevel(), this.getBlockPos());
         onShip = subLevel != null;
 
-        if (subLevel != null) {
-            // Function: turret world position is based on the block center, with the local Y muzzle/pivot offset applied before Sable conversion.
-            Vec3 center = subLevel.logicalPose().transformPosition(Vec3.atCenterOf(this.getBlockPos()).add(0, getYAxisOffset(), 0));
-            currentworldpos = new Vec3(center.x, center.y, center.z);
-        }
-        else {
-            currentworldpos = Vec3.atCenterOf(this.getBlockPos()).add(0, getYAxisOffset(), 0);
-        }
+        // Function: heavy turrets share the same mount-aware Yoffset transform as ordinary turrets.
+        currentworldpos = getTurretAimOriginWorld();
 
-        // 鍔熻兘锛氬綋鐩爣鐐规湁鏁堟椂锛屾棤璁烘墜鍔?鑷姩/鏅鸿兘妯″紡閮芥瘡 tick 鏇存柊涓€娆＄洰鏍囪搴︼紝淇鈥滆嚜鍔ㄦā寮忓畬鍏ㄤ笉杞悜鈥濄€?
         refreshTrackedShipTarget();
 
         boolean hasTargetPos = hasHeavyTargetPos();
         if (hasTargetPos) {
             updateTargetRot();
-            LogUtils.getLogger().warn("setting target:"+targetPos);
             this.xRot0 = closestReachableX(xRot0, getMaxSpinSpeed(), targetxrot);
             this.yRot0 = closestReachableY(yRot0, getMaxSpinSpeed(), targetyrot);
             setAnimData(TURRET_HAS_TARGET, true);
 
-            // 鍔熻兘锛氫粎鍦ㄥ凡瀵瑰噯涓斿喎鍗村畬鎴愭椂寮€鐏紝閬垮厤杞悜涓庡紑鐏€昏緫浜掔浉闃诲銆?
-            if (xOK && yOK && isFireCooldownReady() && shouldFireWhenReady()) {
-                targetDistance = Vec.Distance(currentworldpos, targetPos);
-                shootship();
-                consumeFireCooldown();
+            boolean firingAlignmentSatisfied = xOK && yOK;
+            // Function: automatic heavy fire still waits for alignment, while manual fire can shoot along the current barrel axis.
+            if (isFireCooldownReady() && shouldFireWhenReady() && (firingAlignmentSatisfied || !currentTargetingAutomatic)) {
+                Vec3 fireTarget = resolveCurrentFireTarget(firingAlignmentSatisfied);
+                if (fireTarget == null) {
+                    return;
+                }
+                // Function: heavy turrets share the same internal ammo row, so each aligned shot must spend one round first.
+                if (!consumeAmmoForShot()) {
+                    return;
+                }
+                fireTargetOverride = fireTarget;
+                try {
+                    targetDistance = Vec.Distance(currentworldpos, fireTarget);
+                    shootship();
+                    consumeFireCooldown();
+                } finally {
+                    fireTargetOverride = null;
+                }
             }
         } else {
-            LogUtils.getLogger().warn("target is null");
             setAnimData(TURRET_HAS_TARGET, false);
             targetDistance = 0;
             // Function: invalid heavy-turret targeting states should visibly return to the configured rest angle.
@@ -118,13 +136,15 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
     //heavy turret only
     public void modifyFireType(int type) {
         Level currentLevel = this.getLevel();
-        if (currentLevel == null || currentLevel.isClientSide) { return; }// 瀹㈡埛绔畬鍏ㄤ笉璁告敼锛?
-        getData().fireType = type;
+        if (currentLevel == null || currentLevel.isClientSide) { return; }
+        if (!isFireTypeSelectable(type)) {
+            return;
+        }
+        // Function: heavy turrets persist the chosen fire mode so control-seat target routing can react immediately.
+        getData().fireType = Math.floorMod(type, 3);
     }
 
-    // 鍔熻兘锛氫负閲嶅瀷鐐鎻愪緵涓庝富姝﹀櫒涓€鑷寸殑棰戦亾鍒囨崲閫昏緫锛堝洓閫変竴锛夈€?
     public void modifyChannel(int channel) {
-        // 鍔熻兘锛氬疄鏃惰幏鍙栧綋鍓?level锛屼慨澶嶅洜鐖剁被缂撳瓨 level 涓虹┖鑰屽鑷撮閬撳垏鎹㈣姹傝鎻愬墠 return 鐨勯棶棰樸€?
         Level currentLevel = this.getLevel();
         if (currentLevel == null || currentLevel.isClientSide) { return; }
 
@@ -165,13 +185,19 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
     }
 
     public boolean usesAutomaticTarget(boolean hasSeatedPlayer, boolean isViewLocked) {
-        // Function: smart mode uses the marked enemy ship when no player is seated or when view lock is active.
-        return getData().fireType == 1 || (getData().fireType == 2 && (!hasSeatedPlayer || isViewLocked));
+        int fireType = getData().fireType;
+        // Function: smart mode tracks enemies only while the control seat is view-locked onto an auto target.
+        return fireType == 1 || (fireType == 2 && isViewLocked);
     }
 
     public boolean usesManualTarget(boolean hasSeatedPlayer, boolean isViewLocked) {
-        // Function: manual aiming is valid only for seated players with an unlocked view.
-        return hasSeatedPlayer && !isViewLocked && (getData().fireType == 0 || getData().fireType == 2);
+        int fireType = getData().fireType;
+        // Function: smart mode falls back to the player's manual sight point when the view is unlocked.
+        return hasSeatedPlayer && !isViewLocked && (fireType == 0 || fireType == 2);
+    }
+
+    public boolean isFireTypeSelectable(int fireType) {
+        return fireType >= 0 && fireType <= 2;
     }
 
     public void updateControlSeatViewLock(boolean isviewlocked) {
@@ -179,11 +205,10 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
         this.getData().isViewLocked = isviewlocked;
     }
 
-    // 鍔熻兘锛氭帴鏀舵帶鍒舵涓嬪彂鐨勯閬撶紪鐮侊紝渚涢噸鍨嬬偖濉斿垽瀹氭槸鍚﹀厑璁稿紑鐏€?
     public void channelFromCtrl(int channel) {
         boolean wasFiringChannelMatched = isChannelMatch();
         getData().channelOfCtrl = channel;
-        if (!currentTargetingAutomatic && isFireCooldownReady() && !wasFiringChannelMatched && isChannelMatch()) {
+        if (!manualFireContinuously() && !currentTargetingAutomatic && isFireCooldownReady() && !wasFiringChannelMatched && isChannelMatch()) {
             // Function: manual heavy turrets fire once per left-click press, then wait for another press after cooldown.
             manualFireQueued = true;
         }
@@ -194,7 +219,6 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
         this.armedChannelOfCtrl = channel;
     }
 
-    // 鍔熻兘锛氬垽鏂噸鍨嬬偖濉斾笌鎺у埗妞呴閬撴槸鍚﹀尮閰嶏紝閫昏緫涓庝富姝﹀櫒淇濇寔涓€鑷淬€?
     public boolean isChannelMatch() {
         TurretData data = getData();
         int channel = data.getChannelStatus();
@@ -210,7 +234,7 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
         return Math.max(0, idleTicks);
     }
 
-    private boolean isHeavyFireRequested() {
+    protected boolean isHeavyFireRequested() {
         // Function: cool2 value only recovers while automatic fire is not armed and manual fire is not being held.
         return currentTargetingAutomatic ? isArmedChannelMatch() : isChannelMatch();
     }
@@ -219,6 +243,9 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
         if (currentTargetingAutomatic) {
             return isArmedChannelMatch();
         }
+        if (manualFireContinuously()) {
+            return isChannelMatch();
+        }
         if (!manualFireQueued || !isChannelMatch()) {
             return false;
         }
@@ -226,8 +253,49 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
         return true;
     }
 
+    protected boolean manualFireContinuously() {
+        return false;
+    }
+
+    private @Nullable Vec3 resolveCurrentFireTarget(boolean firingAlignmentSatisfied) {
+        if (currentTargetingAutomatic || firingAlignmentSatisfied) {
+            return targetPos;
+        }
+
+        Vec3 barrelDirection = getCurrentBarrelDirectionWorld();
+        if (barrelDirection == null || barrelDirection.lengthSqr() < 1.0E-6D) {
+            return targetPos;
+        }
+
+        double requestedDistance = targetPos == null ? 0.0D : currentworldpos.distanceTo(targetPos);
+        double fireDistance = Math.max(MANUAL_UNALIGNED_FIRE_FALLBACK_DISTANCE, requestedDistance);
+        // Function: use the current barrel vector for unaligned manual shots so pre-aim firing follows visible turret pose.
+        return currentworldpos.add(barrelDirection.scale(fireDistance));
+    }
+
+    @Override
+    protected @Nullable Vec3 getCannonMuzzleWorld(Vec3 target) {
+        Vec3 origin = getTurretAimOriginWorld();
+        Vec3 direction = target.subtract(origin);
+        if (direction.lengthSqr() < 1.0E-6D) {
+            return null;
+        }
+
+        // Function: heavy turret projectile spawning keeps the established target-line convention.
+        return origin.add(direction.normalize().scale(getcannonlength()));
+    }
+
+    @Override
+    protected double[] computeTargetAimAngles(Vec3 targetWorldPos) {
+        double[] aimAngles = super.computeTargetAimAngles(targetWorldPos);
+        if (aimAngles == null) {
+            return null;
+        }
+        // Function: heavy turrets use the same pitch as the base turret but keep their flipped yaw convention.
+        return new double[]{aimAngles[0], aimAngles[1] + Math.PI};
+    }
+
     public void updatespecificenemy(Vec3 pos) {
-        LogUtils.getLogger().warn("update:controlseat setting turret data to:"+targetPos);
         this.targetShip = null;
         this.currentTargetingAutomatic = true;
         this.targetPos = pos;
@@ -250,7 +318,6 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
     }
 
     public void updateplayerstatus(boolean hasSeatedPlayer, boolean isviewlocked, Vec3 manualAimTargetPos) {
-        // 鍔熻兘锛氫繚瀛樻帶鍒舵瑙嗚閿佺姸鎬侊紝骞跺皢杈撳叆绔笂浼犵殑鎵嬪姩鐩爣鐐圭洿鎺ヤ綔涓洪噸鍨嬬偖濉?targetPos銆?
         this.getData().isViewLocked = isviewlocked;
         this.targetShip = null;
         this.currentTargetingAutomatic = false;
@@ -287,9 +354,7 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
 
     private void updateTargetRot() {
         Direction facing = this.getBlockState().getValue(AbstractTurretBlock.FACING);
-        // 1. 鑾峰彇鐐褰撳墠鐨勬湞鍚戯紙鏂瑰潡鐨刦acing锛?
         Vec3 localUp  = Vec3.atLowerCornerOf(facing.getOpposite().getNormal());
-        // 2. 鑾峰彇鐐鏈湴鍧愭爣绯荤殑 "鍓? 鍜?"涓? 鍚戦噺锛堜笘鐣屽潗鏍囷級
         Vec3 localForward = switch (facing) {
             case NORTH -> new Vec3(0, 1, 0);
             case SOUTH -> new Vec3(0, -1, 0);
@@ -316,23 +381,18 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
 
         }
 
-        // 4. 鐩爣鐩稿鐐涓績鐨勫悜閲忥紙涓栫晫鍧愭爣锛?
         Vec3 toTargetWorld = new Vec3(
                 targetPos.x - currentworldpos.x,
                 targetPos.y - currentworldpos.y,
                 targetPos.z - currentworldpos.z
-        ).normalize();   // 寤鸿鍏坣ormalize锛屽噺灏戞诞鐐硅宸奖鍝?
+        ).normalize();
 
-        if (toTargetWorld.lengthSqr() < 1e-6) return; // 鐩爣鍦ㄦ涓績锛屾斁寮冭绠?
+        if (toTargetWorld.lengthSqr() < 1e-6) return;
 
-        // 5. 鎶婁笘鐣屽悜閲忚浆鎹㈠埌鐐鏈湴鍧愭爣绯伙紙鐢ㄥ熀鍚戦噺鍋氱偣绉級
         double localX = toTargetWorld.dot(new Vec3(worldZDirection.x, worldZDirection.y, worldZDirection.z));     // 鏈湴鍙?
         double localY = toTargetWorld.dot(new Vec3(worldYDirection.x, worldYDirection.y, worldYDirection.z));        // 鏈湴鍚戜笂
         double localZ = toTargetWorld.dot(new Vec3(worldXDirection.x, worldXDirection.y, worldXDirection.z));   // 鏈湴鍚戝墠
 
-        // 6. 鐜板湪灏卞湪鏈湴鍧愭爣绯讳簡锛岃绠楄搴︼紙缁忓吀鍐欐硶锛?
-        // yaw   : 宸﹀彸瑙掑害锛宎tan2(x, z)
-        // pitch : 涓婁笅瑙掑害锛宎tan2(y, 骞抽潰璺濈)
         double yaw   = Math.atan2(localX, localZ);           // 娉ㄦ剰atan2椤哄簭
         double pitch = Math.atan2(localY, Math.sqrt(localX * localX + localZ * localZ));
 
@@ -373,8 +433,6 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
         tag.putDouble("targetX", targetPos.x);
         tag.putDouble("targetY", targetPos.y);
         tag.putDouble("targetZ", targetPos.z);
-        // 鍔熻兘锛氬悓姝ラ噸鍨嬬偖濉旈厤缃瘎瀛樺櫒鍜屾帴鏀堕閬撶紪鐮侊紝纭繚 GUI 涓庤仈鍔ㄧ姸鎬佷竴鑷淬€?
-        // 棰戦亾閮ㄥ垎琚噸鍐欙紒
         tag.putInt("configregister",this.getData().configRegister);
         tag.putInt("channelofctrl", getData().channelOfCtrl);
     }
@@ -382,7 +440,6 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
     @Override
     protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.read(tag, registries, clientPacket);
-        // 纭繚 turretData 涓嶄负 null
         if (this.turretData == null) {
             this.turretData = new TurretData();
         }
@@ -397,7 +454,6 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
                 tag.getDouble("targetY"),
                 tag.getDouble("targetZ")
         );
-        // 鍔熻兘锛氳鍙栭噸鍨嬬偖濉旈厤缃瘎瀛樺櫒鍜屾帴鏀堕閬撶紪鐮侊紝鎭㈠棰戦亾鑱斿姩閰嶇疆銆?
         if (tag.contains("configregister")) { this.getData().configRegister = (byte)tag.getInt("configregister"); }
         if (tag.contains("channelofctrl")) { this.getData().channelOfCtrl = tag.getInt("channelofctrl"); }
     }

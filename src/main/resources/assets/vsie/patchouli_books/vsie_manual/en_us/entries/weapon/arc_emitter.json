@@ -1,0 +1,21 @@
+{
+  "name": "电弧发射器",
+  "icon": "vsie:arc_emitter",
+  "category": "vsie:weapon",
+  "sortnum": 11,
+  "extra_recipe_mappings": {
+    "vsie:arc_emitter": 0
+  },
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:arc_emitter",
+      "title": "“STL-L”电弧发射器",
+      "text": "由于编辑失误缺少了一个“磁”字，武器分部门发现他们被AeroIE指派开发一种1000mm口径的新型“电炮”$(br2)在成品交付的时候所有人才意识到这个离谱的失误，但是不管怎么样，这一在目标和炮口之间形成电弧的强大武器意外的非常好用$(br2)其穿透力超过了普通的电磁推进弹，对装备厚重装甲的敌对子维度尤其有效"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "最大射程：256。"
+    }
+  ]
+}

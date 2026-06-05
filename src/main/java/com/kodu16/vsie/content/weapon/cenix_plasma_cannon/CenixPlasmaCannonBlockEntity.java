@@ -9,6 +9,7 @@ import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -33,6 +34,17 @@ public class CenixPlasmaCannonBlockEntity extends AbstractWeaponBlockEntity {
     }
 
     @Override
+    public boolean isEnergyWeapon() {
+        // Function: the plasma cannon uses energy-only shots and therefore hides the shared ammo inventory.
+        return true;
+    }
+
+    @Override
+    public Item getAmmoItem() {
+        return null;
+    }
+
+    @Override
     public void fire() {
         Level level = getLevel();
         if (level == null || level.isClientSide()) {
@@ -53,10 +65,12 @@ public class CenixPlasmaCannonBlockEntity extends AbstractWeaponBlockEntity {
             direction.normalize();
         }
 
-        Vec3 velocity = new Vec3(direction.x, direction.y, direction.z).normalize().scale(CenixPlasmaBulletEntity.SPEED);
+        Vec3 launchDirection = new Vec3(direction.x, direction.y, direction.z).normalize();
         CenixPlasmaBulletEntity bullet = new CenixPlasmaBulletEntity(vsieEntities.CENIX_PLASMA_BULLET.get(), level);
-        bullet.setPos(spawnPos.add(velocity.normalize().scale(1.2D)));
-        bullet.setDeltaMovement(velocity);
+        // Function: sync the full launch axis so the client does not begin from vanilla-clamped velocity direction.
+        bullet.setPos(spawnPos.add(launchDirection.scale(1.2D)));
+        bullet.setPreciseLaunchVelocity(launchDirection);
+        bullet.setBreaksBlocksEnabled(breaksBlocksEnabled());
         level.addFreshEntity(bullet);
         //LogUtils.getLogger().warn("adding cenix bullet to:"+spawnPos);
     }

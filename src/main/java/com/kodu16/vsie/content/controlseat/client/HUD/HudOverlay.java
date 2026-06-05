@@ -1,14 +1,15 @@
 package com.kodu16.vsie.content.controlseat.client.HUD;
 
 import com.kodu16.vsie.content.controlseat.ActiveWeaponHudInfo;
-import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
+import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
+import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
 import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
 import com.kodu16.vsie.content.controlseat.functions.ShipAnglePainter;
+import com.kodu16.vsie.content.turret.TurretData;
+import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity;
 import com.kodu16.vsie.registries.vsieKeyMappings;
-import com.kodu16.vsie.registries.vsieItems;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -16,137 +17,270 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FastColor;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.util.Mth;
 import net.neoforged.api.distmarker.Dist;
-import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
+import org.joml.Quaternionf;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 @SuppressWarnings("removal")
-// 功能：在 NeoForge 1.21.1 的 GAME 总线上订阅 HUD 渲染事件。
 @EventBusSubscriber(value = Dist.CLIENT, bus = EventBusSubscriber.Bus.GAME)
 public class HudOverlay {
-
-    // 透明度配置（建议后面改成 Config）
-    private static final int TEXT_ALPHA    = 10;   // 主文字透明度
+    private static final int TEXT_ALPHA = 10;
 
     public static final int MAIN_COLOR = FastColor.ARGB32.color(TEXT_ALPHA, 0x00, 0xFF, 0x99);
-    public static final int SUB_COLOR  = FastColor.ARGB32.color(TEXT_ALPHA, 0x00, 0x66, 0x33);
+    public static final int SUB_COLOR = FastColor.ARGB32.color(TEXT_ALPHA, 0x00, 0x66, 0x33);
     private static final int WARP_COLOR = FastColor.ARGB32.color(TEXT_ALPHA, 0x33, 0xAA, 0xFF);
+    private static final int WARP_WARNING_COLOR = FastColor.ARGB32.color(TEXT_ALPHA, 0xFF, 0x22, 0x33);
+    private static final int POWER_WARNING_COLOR = FastColor.ARGB32.color(0xC0, 0xFF, 0x44, 0x44);
     private static final int KEY_COLOR = FastColor.ARGB32.color(TEXT_ALPHA, 0xFF, 0xFF, 0xFF);
+    private static final int ASSIST_LOCK_COLOR = FastColor.ARGB32.color(0x90, 0xFF, 0x22, 0x33);
+    private static final int MODE_BUTTON_WIDTH = 36;
+    private static final int MODE_BUTTON_HEIGHT = 10;
     private static final float HUD_TEXT_SCALE = 0.7f;
+    private static final float TURRET_MARKER_SCALE = 1.0f;
+    private static final float TURRET_MARKER_LABEL_SCALE = 0.45f;
+    private static final float TURRET_MARKER_DISTANCE = 256.0f;
+    private static final int TURRET_MARKER_LABEL_OFFSET_X = 8;
+    private static final int TURRET_MARKER_LABEL_OFFSET_Y = -4;
 
-    private static final Minecraft mc = Minecraft.getInstance(); // drawGlowText 要用
-    // 功能：记录上一帧 HUD 渲染时间，用于把慢包同步数据按真实帧间隔进行平滑插值。
+    private static final Minecraft mc = Minecraft.getInstance();
     private static long lastHudRenderTimeNanos = -1L;
-
 
     @SubscribeEvent
     public static void onRenderGuiOverlayEvent(RenderGuiLayerEvent.Post event) {
-        Minecraft mc = Minecraft.getInstance();
         Player player = mc.player;
-        if (player == null || player.getVehicle() == null) return;
-
-        // 必须是 VS2 的船骑乘实体
-        if (!(player.getVehicle() instanceof ControlSeatMountEntity mountEntity)) return;
+        if (player == null || player.getVehicle() == null) {
+            return;
+        }
+        if (!(player.getVehicle() instanceof ControlSeatMountEntity mountEntity)) {
+            return;
+        }
 
         BlockPos controlSeatPos = mountEntity.getBoundBlockPos();
-        if (controlSeatPos == null || mc.level == null) return;
+        if (controlSeatPos == null || mc.level == null) {
+            return;
+        }
 
         BlockEntity blockEntity = mc.level.getBlockEntity(controlSeatPos);
-        if (blockEntity instanceof ControlSeatBlockEntity controlseat) {
-            ControlSeatClientData data = ClientDataManager.getClientData(player);
-            GuiGraphics gg = event.getGuiGraphics();
-            // 功能：NeoForge 1.21.1 改为 GuiLayer 事件，需在这里读取 GUI 绘制上下文。
-            int sw = mc.getWindow().getGuiScaledWidth();
-            int sh = mc.getWindow().getGuiScaledHeight();
-            DeltaTracker partialTick = event.getPartialTick();
-
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-
-            int centerX = sw / 2;
-            int centerY = sh / 2;
-            int baseY = sh / 6; // 稍微再往上提一点，避免挡准心太严重
-
-            float energyRatio = ratio(data.energyavalible, data.energytotal);
-            float fuelRatio = ratio(data.fuelavalible, data.fueltotal);
-            float shieldRatio = ratio(data.shieldavalible, data.shieldtotal);
-            // 功能：把服务器同步油门作为“目标值”，交给本地每帧平滑跟踪，减少慢包时条形跳变。
-            data.throttleTargetRatio = Mth.clamp((data.throttle + 100f) / 200f, 0f, 1f);
-
-            // 功能：按真实渲染帧间隔计算插值权重，避免仅依赖 partialTick 导致慢包时视觉卡顿。
-            float frameDeltaSeconds = computeFrameDeltaSeconds();
-            float hudAlpha = computeSmoothingAlpha(frameDeltaSeconds, 10f);
-
-            data.smoothEnergyRatio = smoothExp(data.smoothEnergyRatio, energyRatio, hudAlpha);
-            data.smoothFuelRatio = smoothExp(data.smoothFuelRatio, fuelRatio, hudAlpha);
-            data.smoothShieldRatio = smoothExp(data.smoothShieldRatio, shieldRatio, hudAlpha);
-            data.smoothThrottle = smoothExp(data.smoothThrottle, data.throttleTargetRatio, hudAlpha);
-            int visualThrottle = Mth.floor(Mth.lerp(data.smoothThrottle, -100f, 100f));
-
-            // 标题 - 粗体 + 青色
-            //drawCenteredText(gg, "§l§b控制座椅", centerX, baseY, MAIN_COLOR);
-
-            // 坐标
-            //绘制电量条，护盾条，油条（大雾），热量条（未实装），油门，鼠标控制条
-            StatusIndicator.renderDecorative(gg,
-                    data.smoothEnergyRatio,
-                    data.smoothFuelRatio,
-                    data.smoothShieldRatio,
-                    visualThrottle,
-                    (int) data.accumulatedmousex, (int) data.accumulatedmousey);
-            gg.drawCenteredString(mc.font, visualThrottle+"%", centerX-(3*centerX/8)+40, centerY+((centerY/2)-5), MAIN_COLOR);
-
-            //绘制护盾/飞行辅助/反重力开关/武器频道开关
-            int switchBaseX = centerX + (centerX / 6);
-            int switchY = centerY + (centerY / 2);
-            int switchGap = 50;
-            drawKeyedSwitch(gg, "Shield", vsieKeyMappings.KEY_TOGGLE_SHIELD, switchBaseX, switchY, data.shieldon,46,10);
-            drawKeyedSwitch(gg, "Assist", vsieKeyMappings.KEY_TOGGLE_FLIGHT_ASSIST, switchBaseX + switchGap, switchY, data.isflightassiston,46,10);
-            drawKeyedSwitch(gg, "AntiG", vsieKeyMappings.KEY_TOGGLE_ANTI_GRAVITY, switchBaseX + switchGap * 2, switchY, data.isantigravityon,44,10);
-            drawWarpSwitch(gg, data, switchBaseX + switchGap * 3, switchY);
-            drawSwitch(gg, "1", switchBaseX+5, switchY+15, data.channel1,10,10);
-            drawSwitch(gg, "2", switchBaseX+20, switchY+15, data.channel2,10,10);
-            drawSwitch(gg, "3", switchBaseX+35, switchY+15, data.channel3,10,10);
-            drawSwitch(gg, "4", switchBaseX+50, switchY+15, data.channel4,10,10);
-
-            // 功能：在 HUD 热量条右侧逐行展示“当前控制椅激活频道下可响应武器”的名称与冷却进度条。
-            drawActiveWeaponCooldowns(gg, data, centerX, centerY, hudAlpha);
-
-            //绘制水平和竖直方位条
-            var interpolatedFacing = data.getInterpolatedShipFacing(partialTick);
-            var interpolatedUp = data.getInterpolatedShipUp(partialTick);
-            double[] angles = ShipAnglePainter.getDirectedAnglesToAxes(new Vec3(interpolatedFacing.x, interpolatedFacing.y, interpolatedFacing.z));
-            // 功能：基于 shipUp + shipFacing 计算当前俯仰角（-90~90），用于左侧俯仰条滚动。
-            double pitchDeg = ShipAnglePainter.getPitchDegrees(interpolatedFacing, interpolatedUp);
-            ShipAnglePainter.drawAngleLine(gg, interpolatedFacing, centerX, baseY+10, MAIN_COLOR);
-            drawCenteredText(gg, "§l§b"+(int)angles[0], centerX, baseY+5, MAIN_COLOR);
-
-            // 功能：在护盾弧形左侧绘制俯仰条，主粗刻线固定为 -90 / 0 / 90。
-            int shieldArcCenterX = centerX + centerX / 20;
-            int pitchBarX = shieldArcCenterX - 60 - 12;
-            ShipAnglePainter.drawPitchLine(gg, pitchDeg, pitchBarX, centerY, MAIN_COLOR);
-
-            //水平仪（未完成，目前画的是一坨构石）
-            //float horizonAngle = ShipAnglePainter.getHorizonAngleDegrees(interpolatedFacing, interpolatedUp);
-            //ShipAnglePainter.drawRotatingItem(gg, new ItemStack(vsieItems.HORIZONTAL_MARK), centerX, centerY, -horizonAngle);
-
-            RenderSystem.disableBlend();
+        if (!(blockEntity instanceof ControlSeatBlockEntity controlSeat)) {
+            return;
         }
+
+        ControlSeatClientData data = ClientDataManager.getClientData(player);
+        GuiGraphics gg = event.getGuiGraphics();
+        int sw = mc.getWindow().getGuiScaledWidth();
+        int sh = mc.getWindow().getGuiScaledHeight();
+        DeltaTracker partialTick = event.getPartialTick();
+
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+
+        int centerX = sw / 2;
+        int centerY = sh / 2;
+        int baseY = sh / 6;
+
+        float energyRatio = ratio(data.energyavalible, data.energytotal);
+        float fuelRatio = ratio(data.fuelavalible, data.fueltotal);
+        float e710Ratio = ratio(data.e710avalible, data.fueltotal);
+        boolean showWarpE710Bar = data.isWarpPreparing;
+        float warpE710CostRatio = showWarpE710Bar ? ratio(data.warpE710CostMb, data.fueltotal) : 0f;
+        float shieldRatio = ratio(data.shieldavalible, data.shieldtotal);
+        data.throttleTargetRatio = Mth.clamp((data.throttle + 100f) / 200f, 0f, 1f);
+
+        float frameDeltaSeconds = computeFrameDeltaSeconds();
+        float hudAlpha = computeSmoothingAlpha(frameDeltaSeconds, 10f);
+        float markerAlpha = computeSmoothingAlpha(frameDeltaSeconds, 18f);
+
+        data.smoothEnergyRatio = smoothExp(data.smoothEnergyRatio, energyRatio, hudAlpha);
+        data.smoothFuelRatio = smoothExp(data.smoothFuelRatio, fuelRatio, hudAlpha);
+        data.smoothE710Ratio = smoothExp(data.smoothE710Ratio, e710Ratio, hudAlpha);
+        data.smoothWarpE710CostRatio = smoothExp(data.smoothWarpE710CostRatio, warpE710CostRatio, hudAlpha);
+        data.smoothShieldRatio = smoothExp(data.smoothShieldRatio, shieldRatio, hudAlpha);
+        data.smoothThrottle = smoothExp(data.smoothThrottle, data.throttleTargetRatio, hudAlpha);
+        int visualThrottle = Mth.floor(Mth.lerp(data.smoothThrottle, -100f, 100f));
+
+        StatusIndicator.renderDecorative(
+                gg,
+                data.smoothEnergyRatio,
+                data.smoothFuelRatio,
+                data.smoothE710Ratio,
+                data.smoothWarpE710CostRatio,
+                showWarpE710Bar,
+                data.smoothShieldRatio,
+                visualThrottle,
+                (int) data.accumulatedmousex,
+                (int) data.accumulatedmousey
+        );
+
+        int throttleCenterX = centerX - (3 * centerX / 10);
+        int throttleY = centerY + (centerY / 3);
+        gg.drawCenteredString(mc.font, visualThrottle + "%", throttleCenterX, throttleY + 20, MAIN_COLOR);
+
+        int switchBaseX = throttleCenterX;
+        int switchY = throttleY + 22;
+        int switchGapX = 52;
+        int switchGapY = 18;
+        int leftSwitchX = switchBaseX - switchGapX / 2;
+        int rightSwitchX = switchBaseX + switchGapX / 2;
+        drawKeyedSwitch(gg, "Shield", vsieKeyMappings.KEY_TOGGLE_SHIELD, leftSwitchX, switchY, data.shieldon, data.isShieldOverloaded, MODE_BUTTON_WIDTH, MODE_BUTTON_HEIGHT);
+        drawKeyedSwitch(gg, "Force", vsieKeyMappings.KEY_TOGGLE_FORCE_ASSIST, rightSwitchX, switchY, data.isforceassiston, data.isForceAssistSuppressedByAccelerator, MODE_BUTTON_WIDTH, MODE_BUTTON_HEIGHT);
+        drawKeyedSwitch(gg, "Torque", vsieKeyMappings.KEY_TOGGLE_TORQUE_ASSIST, leftSwitchX, switchY + switchGapY, data.istorqueassiston, false, MODE_BUTTON_WIDTH, MODE_BUTTON_HEIGHT);
+        drawKeyedSwitch(gg, "AntiG", vsieKeyMappings.KEY_TOGGLE_ANTI_GRAVITY, rightSwitchX, switchY + switchGapY, data.isantigravityon, false, MODE_BUTTON_WIDTH, MODE_BUTTON_HEIGHT);
+        drawWarpSwitch(gg, data, leftSwitchX, switchY + switchGapY * 2);
+        drawKeyedSwitch(gg, "Level", vsieKeyMappings.KEY_TOGGLE_AUTO_LEVEL, rightSwitchX, switchY + switchGapY * 2, data.isAutoLevelOn, false, MODE_BUTTON_WIDTH, MODE_BUTTON_HEIGHT);
+
+        int rightArcCenterX = centerX + (3 * centerX / 10);
+        int rightInfoY = throttleY - 16;
+        drawCenteredText(gg, String.format(Locale.ROOT, "SPD %.1f", data.shipSpeed), rightArcCenterX, rightInfoY, MAIN_COLOR);
+        drawCenteredText(
+                gg,
+                String.format(Locale.ROOT, "XYZ %.0f %.0f %.0f",
+                        data.structureCenterWorld.x,
+                        data.structureCenterWorld.y,
+                        data.structureCenterWorld.z),
+                rightArcCenterX,
+                rightInfoY + 10,
+                MAIN_COLOR
+        );
+        int channelY = rightInfoY + 28;
+        drawSwitch(gg, "1", rightArcCenterX - 24, channelY, data.channel1, 10, 10);
+        drawSwitch(gg, "2", rightArcCenterX - 8, channelY, data.channel2, 10, 10);
+        drawSwitch(gg, "3", rightArcCenterX + 8, channelY, data.channel3, 10, 10);
+        drawSwitch(gg, "4", rightArcCenterX + 24, channelY, data.channel4, 10, 10);
+        drawLeftText(gg, String.format(Locale.ROOT, "G %.2f", data.seatGForce), rightArcCenterX + 82, centerY - 4, MAIN_COLOR);
+
+        drawActiveWeaponCooldowns(gg, data, centerX, centerY, hudAlpha);
+        drawHeavyTurretMarkers(gg, controlSeat, data, sw, sh, markerAlpha);
+
+        Vector3d interpolatedFacing = data.getInterpolatedShipFacing(partialTick);
+        Vector3d interpolatedUp = data.getInterpolatedShipUp(partialTick);
+        double[] angles = ShipAnglePainter.getDirectedAnglesToAxes(new Vec3(interpolatedFacing.x, interpolatedFacing.y, interpolatedFacing.z));
+        double pitchDeg = ShipAnglePainter.getPitchDegrees(interpolatedFacing, interpolatedUp);
+        ShipAnglePainter.drawAngleLine(gg, interpolatedFacing, centerX, baseY + 10, MAIN_COLOR);
+        drawCenteredText(gg, "§l§b" + (int) angles[0], centerX, baseY + 5, MAIN_COLOR);
+
+        int leftArcCenterX = centerX - centerX / 20;
+        int pitchBarX = leftArcCenterX - 82;
+        ShipAnglePainter.drawPitchLineCompact(gg, pitchDeg, pitchBarX, centerY, MAIN_COLOR);
+
+        if (data.energyavalible <= 0) {
+            drawCenteredText(gg, "NO BATTERY POWER", centerX, centerY + 52, POWER_WARNING_COLOR);
+        }
+
+        RenderSystem.disableBlend();
     }
 
+    private static void drawHeavyTurretMarkers(GuiGraphics gg, ControlSeatBlockEntity controlSeat, ControlSeatClientData data, int sw, int sh, float markerAlpha) {
+        if (mc.level == null) {
+            return;
+        }
+
+        List<BlockPos> retainedMarkers = new ArrayList<>();
+        List<BlockPos> turretPositions = controlSeat.getLinkedTurretPositionsInOrder();
+        for (int i = 0; i < turretPositions.size(); i++) {
+            BlockPos turretPos = turretPositions.get(i);
+            BlockEntity blockEntity = mc.level.getBlockEntity(turretPos);
+            if (!(blockEntity instanceof AbstractHeavyTurretBlockEntity heavyTurret)) {
+                continue;
+            }
+            if (!shouldShowHeavyTurretMarker(heavyTurret, data)) {
+                continue;
+            }
+
+            retainedMarkers.add(turretPos);
+            Vec3 origin = heavyTurret.getHudAimOriginWorld();
+            Vec3 direction = heavyTurret.getRenderedBarrelDirectionWorld();
+            if (direction == null || direction.lengthSqr() < 1.0E-6D) {
+                continue;
+            }
+
+            double projectionDistance = Math.max(TURRET_MARKER_DISTANCE, heavyTurret.getTargetDistance());
+            ScreenPoint projectedPoint = projectWorldToScreen(origin.add(direction.scale(projectionDistance)), sw, sh);
+            if (projectedPoint == null) {
+                continue;
+            }
+
+            ControlSeatClientData.TurretHudMarkerState markerState = data.getTurretHudMarkerState(turretPos);
+            if (!markerState.initialized) {
+                markerState.screenX = projectedPoint.x();
+                markerState.screenY = projectedPoint.y();
+                markerState.initialized = true;
+            } else {
+                markerState.screenX = smoothExp(markerState.screenX, projectedPoint.x(), markerAlpha);
+                markerState.screenY = smoothExp(markerState.screenY, projectedPoint.y(), markerAlpha);
+            }
+
+            int markerX = Math.round(markerState.screenX);
+            int markerY = Math.round(markerState.screenY);
+            // Function: the fire-direction cue must be a literal plus sign at the projected hit point.
+            drawCenteredTextScaled(gg, "+", markerX, markerY, MAIN_COLOR, TURRET_MARKER_SCALE);
+            drawLeftTextScaled(gg, "#" + (i + 1), markerX + TURRET_MARKER_LABEL_OFFSET_X, markerY + TURRET_MARKER_LABEL_OFFSET_Y, MAIN_COLOR, TURRET_MARKER_LABEL_SCALE);
+        }
+        data.retainTurretHudMarkers(retainedMarkers);
+    }
+
+    private static boolean shouldShowHeavyTurretMarker(AbstractHeavyTurretBlockEntity heavyTurret, ControlSeatClientData data) {
+        if (!isTurretInAnyActiveSeatChannel(heavyTurret.getData(), data)) {
+            return false;
+        }
+        int fireType = heavyTurret.getData().fireType;
+        // Function: only manual mode and smart-mode's manual branch show the current fire vector marker.
+        return fireType == 0 || (fireType == 2 && !data.isViewLocked());
+    }
+
+    private static boolean isTurretInAnyActiveSeatChannel(TurretData turretData, ControlSeatClientData data) {
+        int activeSeatChannelMask = 0;
+        if (data.channel1) activeSeatChannelMask |= turretData.CHANNEL_1;
+        if (data.channel2) activeSeatChannelMask |= turretData.CHANNEL_2;
+        if (data.channel3) activeSeatChannelMask |= turretData.CHANNEL_3;
+        if (data.channel4) activeSeatChannelMask |= turretData.CHANNEL_4;
+        return activeSeatChannelMask != 0 && (turretData.getChannelStatus() & activeSeatChannelMask) != 0;
+    }
+
+    private static ScreenPoint projectWorldToScreen(Vec3 worldPoint, int sw, int sh) {
+        if (mc.gameRenderer == null) {
+            return null;
+        }
+
+        Vec3 cameraPos = mc.gameRenderer.getMainCamera().getPosition();
+        Vec3 relative = worldPoint.subtract(cameraPos);
+        Quaternionf inverseCameraRotation = new Quaternionf(mc.getEntityRenderDispatcher().cameraOrientation()).conjugate();
+        Vector3f cameraSpace = new Vector3f((float) relative.x, (float) relative.y, (float) relative.z);
+        inverseCameraRotation.transform(cameraSpace);
+        if (cameraSpace.z >= -0.05f) {
+            return null;
+        }
+
+        float halfWidth = sw * 0.5f;
+        float halfHeight = sh * 0.5f;
+        float fovDegrees = mc.options.fov().get().floatValue();
+        float focalLength = (float) (halfHeight / Math.tan(fovDegrees * 0.5f * Mth.DEG_TO_RAD));
+        float screenX = halfWidth - cameraSpace.x * focalLength / cameraSpace.z;
+        float screenY = halfHeight + cameraSpace.y * focalLength / cameraSpace.z;
+        if (screenX < 0.0f || screenX > sw || screenY < 0.0f || screenY > sh) {
+            return null;
+        }
+        return new ScreenPoint(screenX, screenY);
+    }
 
     private static float ratio(int available, int total) {
-        if (total <= 0) return 0f;
+        if (total <= 0) {
+            return 0f;
+        }
         return Mth.clamp((float) available / (float) total, 0f, 1f);
     }
 
-    // 功能：计算 HUD 两帧之间的真实秒数，为指数平滑提供稳定的时间基准。
     private static float computeFrameDeltaSeconds() {
         long now = System.nanoTime();
         if (lastHudRenderTimeNanos < 0L) {
@@ -158,74 +292,82 @@ public class HudOverlay {
         return Mth.clamp(deltaNanos / 1_000_000_000f, 1f / 240f, 1f / 15f);
     }
 
-    // 功能：根据帧时长与响应速度计算指数平滑权重，让慢包下动画依然连续。
     private static float computeSmoothingAlpha(float deltaSeconds, float responsePerSecond) {
         return Mth.clamp(1f - (float) Math.exp(-responsePerSecond * deltaSeconds), 0f, 1f);
     }
 
-    // 功能：统一指数平滑函数，按 alpha 将当前值渐进逼近目标值。
     private static float smoothExp(float current, float target, float alpha) {
         return Mth.lerp(alpha, current, target);
     }
 
-    // 方便的居中绘制方法（不带辉光）
     public static void drawCenteredText(GuiGraphics gg, String text, int x, int y, int color) {
-        gg.pose().pushPose();
-        gg.pose().scale(HUD_TEXT_SCALE, HUD_TEXT_SCALE, 1);
-        float inv = 1 / HUD_TEXT_SCALE;
-        gg.drawCenteredString(mc.font, Component.literal(text), (int)(x * inv), (int)(y * inv), color);
-        gg.pose().popPose();
+        drawCenteredTextScaled(gg, text, x, y, color, HUD_TEXT_SCALE);
     }
 
     private static void drawLeftText(GuiGraphics gg, String text, int x, int y, int color) {
+        drawLeftTextScaled(gg, text, x, y, color, HUD_TEXT_SCALE);
+    }
+
+    private static void drawCenteredTextScaled(GuiGraphics gg, String text, int x, int y, int color, float scale) {
         gg.pose().pushPose();
-        gg.pose().scale(HUD_TEXT_SCALE, HUD_TEXT_SCALE, 1);
-        float inv = 1 / HUD_TEXT_SCALE;
-        gg.drawString(mc.font, Component.literal(text), (int)(x * inv), (int)(y * inv), color, false);
+        gg.pose().scale(scale, scale, 1);
+        float inv = 1.0f / scale;
+        gg.drawCenteredString(mc.font, Component.literal(text), (int) (x * inv), (int) (y * inv), color);
+        gg.pose().popPose();
+    }
+
+    private static void drawLeftTextScaled(GuiGraphics gg, String text, int x, int y, int color, float scale) {
+        gg.pose().pushPose();
+        gg.pose().scale(scale, scale, 1);
+        float inv = 1.0f / scale;
+        gg.drawString(mc.font, Component.literal(text), (int) (x * inv), (int) (y * inv), color, false);
         gg.pose().popPose();
     }
 
     private static void drawSwitch(GuiGraphics gg, String label, int x, int y, boolean active, int recwidth, int recheight) {
         int color = active ? MAIN_COLOR : SUB_COLOR;
         drawCenteredText(gg, label, x, y, color);
-        DrawShape.drawHollowRectangle(gg, x, y+2, recwidth, recheight, 1, color);
+        DrawShape.drawHollowRectangle(gg, x, y + 2, recwidth, recheight, 1, color);
     }
 
-    private static void drawKeyedSwitch(GuiGraphics gg, String label, KeyMapping keyMapping, int x, int y, boolean active, int recwidth, int recheight) {
-        int color = active ? MAIN_COLOR : SUB_COLOR;
+    private static void drawKeyedSwitch(GuiGraphics gg, String label, KeyMapping keyMapping, int x, int y, boolean active, boolean forcedDisabled, int recwidth, int recheight) {
+        int color = forcedDisabled ? ASSIST_LOCK_COLOR : (active ? MAIN_COLOR : SUB_COLOR);
+        int keyColor = forcedDisabled ? ASSIST_LOCK_COLOR : KEY_COLOR;
         String keyText = keyMapping.getTranslatedKeyMessage().getString();
         String separator = keyText.isEmpty() ? "" : " ";
         int keyWidth = mc.font.width(keyText);
         int totalWidth = keyWidth + mc.font.width(separator + label);
         int leftX = Math.round(x - totalWidth * HUD_TEXT_SCALE / 2f);
 
-        // Function: draw the bound key as a white prefix while preserving the existing switch text style.
-        drawLeftText(gg, keyText, leftX, y, KEY_COLOR);
+        drawLeftText(gg, keyText, leftX, y, keyColor);
         drawLeftText(gg, separator + label, Math.round(leftX + keyWidth * HUD_TEXT_SCALE), y, color);
-        DrawShape.drawHollowRectangle(gg, x, y+2, recwidth, recheight, 1, color);
+        DrawShape.drawHollowRectangle(gg, x, y + 2, recwidth, recheight, 1, color);
     }
 
-    // 功能：把服务端同步来的激活武器名称与冷却进度（currentTick/getcooldown）逐行绘制在热量条右侧。
     private static void drawWarpSwitch(GuiGraphics gg, ControlSeatClientData data, int x, int y) {
         boolean active = data.isWarpPreparing || data.hasPendingWarpTeleport;
         if (!active) {
-            drawKeyedSwitch(gg, "Warp", vsieKeyMappings.KEY_START_WARP, x, y, false, 42, 10);
+            drawKeyedSwitch(gg, "Warp", vsieKeyMappings.KEY_START_WARP, x, y, false, false, MODE_BUTTON_WIDTH, MODE_BUTTON_HEIGHT);
+            if (data.warpE710Insufficient) {
+                drawCenteredText(gg, "NO E-710", x, y + 13, WARP_WARNING_COLOR);
+            }
             return;
         }
-        // Function: active warp mode hides the key hint and uses a compact state label until teleport completes.
+
         String label = data.hasPendingWarpTeleport ? "JUMP" : "ALIGN";
         drawCenteredText(gg, label, x, y, WARP_COLOR);
-        DrawShape.drawHollowRectangle(gg, x, y + 2, 42, 10, 1, WARP_COLOR);
+        DrawShape.drawHollowRectangle(gg, x, y + 2, MODE_BUTTON_WIDTH, MODE_BUTTON_HEIGHT, 1, WARP_COLOR);
     }
 
     private static void drawActiveWeaponCooldowns(GuiGraphics gg, ControlSeatClientData data, int centerX, int centerY, float hudAlpha) {
-        int startX = centerX + centerX / 20 + 90;
+        int rightStatusArcRight = centerX + centerX / 20 + 68;
+        int startX = rightStatusArcRight + 10;
         int startY = centerY - 18;
         int lineHeight = 14;
         int barWidth = 52;
         int barHeight = 4;
+        int textBarGap = 6;
 
-        // 功能：把平滑数组长度对齐武器行数，确保每行冷却条都有独立插值状态。
         while (data.smoothWeaponCooldownRatios.size() < data.activeWeaponHudInfos.size()) {
             data.smoothWeaponCooldownRatios.add(0f);
         }
@@ -236,36 +378,36 @@ public class HudOverlay {
         for (int i = 0; i < data.activeWeaponHudInfos.size(); i++) {
             ActiveWeaponHudInfo info = data.activeWeaponHudInfos.get(i);
             int rowY = startY + i * lineHeight;
+            drawLeftText(gg, info.displayName, startX, rowY, MAIN_COLOR);
 
-            // 功能：先绘制武器名称，保持原有 HUD 信息可读性。
-            drawLeftText(gg, info.displayName, startX - 48, rowY, MAIN_COLOR);
-
-            int barCenterX = startX + 55;
+            int nameWidth = Math.round(mc.font.width(info.displayName) * HUD_TEXT_SCALE);
+            int barCenterX = startX + nameWidth + textBarGap + barWidth / 2;
             int barCenterY = rowY + 1;
             int safeMaxCooldown = Math.max(1, info.maxCooldown);
             float targetProgress = Mth.clamp((float) Math.max(0, info.currentTick) / (float) safeMaxCooldown, 0f, 1f);
-            // 功能：对每行武器冷却进度做本地平滑，减少服务端慢包导致的突变感。
             float progress = smoothExp(data.smoothWeaponCooldownRatios.get(i), targetProgress, hudAlpha);
             data.smoothWeaponCooldownRatios.set(i, progress);
-            // Function: heavy turret HUD values are remaining cooldown, so readiness is the inverse of the shown bar.
             float readyProgress = info.remainingCooldown ? 1.0f - progress : progress;
 
-            // 功能：绘制冷却进度条外框，作为“油门样式”槽体。
             DrawShape.drawHollowRectangle(gg, barCenterX, barCenterY, barWidth, barHeight + 2, 1, SUB_COLOR);
 
-            // 功能：按 currentTick/getcooldown 线性插值颜色，进度越高越绿，越低越红。
             int red = Mth.floor(Mth.lerp(readyProgress, 0xFF, 0x00));
             int green = Mth.floor(Mth.lerp(readyProgress, 0x33, 0xFF));
             int dynamicColor = FastColor.ARGB32.color(TEXT_ALPHA, red, green, 0x33);
 
-            // 功能：填充进度条，模拟油门推进效果。
             int fillWidth = Mth.floor((barWidth - 2) * progress);
             if (fillWidth > 0) {
-                gg.fill(barCenterX - barWidth / 2 + 1, barCenterY - barHeight / 2 + 1,
-                        barCenterX - barWidth / 2 + 1 + fillWidth, barCenterY + barHeight / 2,
-                        dynamicColor);
+                gg.fill(
+                        barCenterX - barWidth / 2 + 1,
+                        barCenterY - barHeight / 2 + 1,
+                        barCenterX - barWidth / 2 + 1 + fillWidth,
+                        barCenterY + barHeight / 2,
+                        dynamicColor
+                );
             }
         }
     }
 
+    private record ScreenPoint(float x, float y) {
+    }
 }

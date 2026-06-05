@@ -11,6 +11,7 @@ import com.kodu16.vsie.registries.vsieDataTickets;
 import com.kodu16.vsie.registries.vsieEntities;
 import com.kodu16.vsie.registries.vsieFluids;
 import com.kodu16.vsie.registries.vsieItems;
+import com.kodu16.vsie.registries.vsieSounds;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.CreativeModeTab;
@@ -38,6 +39,7 @@ public class vsie {
         vsieEntities.register();
         vsieFluids.register();
         vsieItems.register();
+        vsieSounds.SOUND_EVENTS.register(modBus);
         vsieCreativeTab.register(modBus);
         vsieDataTickets.registerDataTickets();
         ModMenuTypes.MENUS.register(modBus);

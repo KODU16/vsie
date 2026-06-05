@@ -1,0 +1,5 @@
+{
+  "fluid": "vsie:charged_particles_fuel",
+  "thrust_multiplier": 1.2,
+  "consumption_multiplier": 1.0
+}

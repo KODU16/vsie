@@ -4,11 +4,12 @@ import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntityRenderer
 import com.kodu16.vsie.content.controlseat.gui.ControlSeatWarpScreen;
 import com.kodu16.vsie.content.item.IFF.IFFScreen;
 import com.kodu16.vsie.content.item.shieldtool.shieldtoolScreen;
-import com.kodu16.vsie.content.misc.electromagnet_rail.core.ElectroMagnetRailCoreScreen;
+import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreScreen;
 import com.kodu16.vsie.content.missile.AbstractMissileGeoRenderer;
 import com.kodu16.vsie.content.particle.ShieldParticle;
 import com.kodu16.vsie.content.screen.client.ScreenScreen;
 import com.kodu16.vsie.content.storage.ammobox.AmmoBoxScreen;
+import com.kodu16.vsie.content.thruster.client.ThrusterScreen;
 import com.kodu16.vsie.content.turret.client.TurretScreen;
 import com.kodu16.vsie.content.turret.heavyturret.HeavyTurretScreen;
 import com.kodu16.vsie.content.warpprojectile.WarpProjectileRenderer;
@@ -35,6 +36,7 @@ public class vsieClientModRegistryEvents {
         event.register(ModMenuTypes.AMMO_BOX_MENU.get(), AmmoBoxScreen::new);
         event.register(ModMenuTypes.CONTROL_SEAT_WARP_MENU.get(), ControlSeatWarpScreen::new);
         event.register(ModMenuTypes.ELECTRO_MAGNET_RAIL_CORE_MENU.get(), ElectroMagnetRailCoreScreen::new);
+        event.register(ModMenuTypes.THRUSTER_MENU.get(), ThrusterScreen::new);
     }
 
     @SubscribeEvent

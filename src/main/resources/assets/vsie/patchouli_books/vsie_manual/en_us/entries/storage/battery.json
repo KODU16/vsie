@@ -1,0 +1,23 @@
+{
+  "name": "电池",
+  "icon": "vsie:small_energy_battery",
+  "category": "vsie:storage",
+  "sortnum": 0,
+  "extra_recipe_mappings": {
+    "vsie:small_energy_battery": 0,
+    "vsie:medium_energy_battery": 1,
+    "vsie:large_energy_battery": 1
+  },
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:small_energy_battery",
+      "title": "电池",
+      "text": "由于不同模组的电池机制不同，AeroIE不能随便绑一个装着FE的方块，因此添加了这种专属的电池，其可以被任意FE线缆充能，但能量只能被控制椅抽取，电量由控制椅统一分配消耗"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "三种电池的容量分别为：$(br2)小型；100kFE$(br2)中型；1MFE$(br2)大型；10MFE"
+    }
+  ]
+}

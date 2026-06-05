@@ -1,6 +1,8 @@
 package com.kodu16.vsie.content.controlseat.functions;
 
 import com.kodu16.vsie.foundation.ServerShipUtils;
+import com.kodu16.vsie.foundation.Vec;
+import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
 import dev.ryanhcode.sable.api.sublevel.ServerSubLevelContainer;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
@@ -61,6 +63,8 @@ public class ScanNearByShips {
             attr.put("x", center.x);
             attr.put("y", center.y);
             attr.put("z", center.z);
+            // Function: include live ship speed so the control-seat world marker can show distance and speed on separate lines.
+            attr.put("speed", subLevelSpeed(subLevel));
             attr.put("targetIndex", 0);
             ships.put(stableShipKey(subLevel), attr);
         }
@@ -89,32 +93,47 @@ public class ScanNearByShips {
         return enemies;
     }
 
-    public static SubLevel scanEnemySubLevelByIndex(Iterable<?> ignored, BlockPos pos, Level level, String enemystr, String allystr, int lockedEnemyIndex) {
+    public static ArrayList<SubLevel> scanEnemySubLevels(Iterable<?> ignored, BlockPos pos, Level level, String enemystr, String allystr) {
+        ArrayList<SubLevel> enemies = new ArrayList<>();
         if (!(level instanceof ServerLevel serverLevel)) {
-            return null;
+            return enemies;
         }
 
         SubLevel ownSubLevel = ServerShipUtils.getSubLevelAtBlockPos(level, pos);
         Vec3 seatWorldPos = worldSeatPos(pos, ownSubLevel);
         if (seatWorldPos == null) {
-            return null;
+            return enemies;
         }
 
         ServerSubLevelContainer container = SubLevelContainer.getContainer(serverLevel);
         if (container == null) {
-            return null;
+            return enemies;
         }
 
-        List<ServerSubLevel> enemies = new ArrayList<>(container.getAllSubLevels());
-        enemies.removeIf(subLevel -> {
+        List<ServerSubLevel> subLevels = new ArrayList<>(container.getAllSubLevels());
+        subLevels.sort(Comparator.comparingDouble(subLevel -> {
+            Vec3 center = ServerShipUtils.getStructureCenterWorld(subLevel);
+            return center == null ? Double.MAX_VALUE : center.distanceToSqr(seatWorldPos);
+        }));
+
+        for (ServerSubLevel subLevel : subLevels) {
             if (subLevel == null || subLevel.isRemoved() || subLevel == ownSubLevel) {
-                return true;
+                continue;
             }
-            // Function: keep target selection consistent with the HUD enemy naming filter.
-            return getPriority(enemystr, allystr, normalizedName(subLevel)) != 1
-                    || ServerShipUtils.getStructureCenterWorld(subLevel) == null;
-        });
-        enemies.sort(Comparator.comparingDouble(subLevel -> ServerShipUtils.getStructureCenterWorld(subLevel).distanceToSqr(seatWorldPos)));
+            if (getPriority(enemystr, allystr, normalizedName(subLevel)) != 1) {
+                continue;
+            }
+            if (ServerShipUtils.getStructureCenterWorld(subLevel) == null) {
+                continue;
+            }
+            // Function: normal turrets need live SubLevel targets, not the HUD Vec3 snapshot list.
+            enemies.add(subLevel);
+        }
+        return enemies;
+    }
+
+    public static SubLevel scanEnemySubLevelByIndex(Iterable<?> ignored, BlockPos pos, Level level, String enemystr, String allystr, int lockedEnemyIndex) {
+        ArrayList<SubLevel> enemies = scanEnemySubLevels(ignored, pos, level, enemystr, allystr);
         if (enemies.isEmpty()) {
             return null;
         }
@@ -201,6 +220,16 @@ public class ScanNearByShips {
     private static String stableShipKey(ServerSubLevel subLevel) {
         UUID uuid = subLevel.getUniqueId();
         return uuid != null ? uuid.toString() : String.valueOf(subLevel.getRuntimeId());
+    }
+
+    private static double subLevelSpeed(ServerSubLevel subLevel) {
+        RigidBodyHandle handle = RigidBodyHandle.of(subLevel);
+        if (handle == null || !handle.isValid()) {
+            return 0.0D;
+        }
+
+        Vec3 velocity = Vec.toVec3(handle.getLinearVelocity(new org.joml.Vector3d()));
+        return Double.isFinite(velocity.length()) ? velocity.length() : 0.0D;
     }
 
     private static double toDouble(Object value) {

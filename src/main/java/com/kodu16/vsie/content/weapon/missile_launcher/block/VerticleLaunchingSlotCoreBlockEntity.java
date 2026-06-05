@@ -12,23 +12,18 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.items.IItemHandlerModifiable;
-import net.neoforged.neoforge.items.ItemStackHandler;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class VerticleLaunchingSlotCoreBlockEntity extends AbstractWeaponBlockEntity implements IItemHandlerModifiable {
+public class VerticleLaunchingSlotCoreBlockEntity extends AbstractWeaponBlockEntity {
     private static final String LINKED_SLOTS_TAG = "LinkedSlots";
     private static final String SLOT_POS_TAG = "Pos";
-    private static final String MISSILE_INVENTORY_TAG = "VerticalLaunchMissileInventory";
     private static final String LAUNCH_INTERVAL_TAG = "LaunchIntervalTicks";
     private static final int COOLDOWN_TICKS = 100;
     private static final int DEFAULT_LAUNCH_INTERVAL_TICKS = 20;
@@ -46,19 +41,6 @@ public class VerticleLaunchingSlotCoreBlockEntity extends AbstractWeaponBlockEnt
         INVALID_SLOT
     }
 
-    // Function: the launch core stores basic missiles that are consumed by linked vertical launch slots.
-    private final ItemStackHandler missileInventory = new ItemStackHandler(9) {
-        @Override
-        protected void onContentsChanged(int slot) {
-            setChanged();
-        }
-
-        @Override
-        public boolean isItemValid(int slot, @NotNull ItemStack stack) {
-            return stack.is(vsieItems.BASIC_MISSILE_ITEM.get());
-        }
-    };
-
     public VerticleLaunchingSlotCoreBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
         this.currentTick = COOLDOWN_TICKS;
@@ -72,6 +54,16 @@ public class VerticleLaunchingSlotCoreBlockEntity extends AbstractWeaponBlockEnt
     @Override
     public int getcooldown() {
         return COOLDOWN_TICKS;
+    }
+
+    @Override
+    public boolean isEnergyWeapon() {
+        return false;
+    }
+
+    @Override
+    public Item getAmmoItem() {
+        return vsieItems.BASIC_MISSILE_ITEM.get();
     }
 
     @Override
@@ -192,6 +184,7 @@ public class VerticleLaunchingSlotCoreBlockEntity extends AbstractWeaponBlockEnt
             BasicMissileEntity missile = new BasicMissileEntity(vsieEntities.BASIC_MISSILE.get(), level);
             Vec3 launchDirection = getLaunchWorldDirection(level, slotPos);
             missile.setTarget(getData().targetship);
+            missile.setLaunchSubLevel(ServerShipUtils.getSubLevelAtBlockPos(level, slotPos));
             missile.setPos(getLaunchWorldPosition(level, slotPos).add(launchDirection.scale(4.0D)));
             // Function: spawn missiles clear of the slot collider so straight-launch movement does not instantly impact itself.
             missile.setInitialDirection(launchDirection);
@@ -278,33 +271,11 @@ public class VerticleLaunchingSlotCoreBlockEntity extends AbstractWeaponBlockEnt
     }
 
     private boolean hasMissileAmmo() {
-        for (int slot = 0; slot < missileInventory.getSlots(); slot++) {
-            if (!missileInventory.extractItem(slot, 1, true).isEmpty()) {
-                return true;
-            }
-        }
-        return false;
+        return hasAmmoReady();
     }
 
     private boolean consumeMissileAmmo() {
-        for (int slot = 0; slot < missileInventory.getSlots(); slot++) {
-            ItemStack extracted = missileInventory.extractItem(slot, 1, false);
-            if (!extracted.isEmpty()) {
-                setChanged();
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public void dropStoredMissiles(Level level, BlockPos pos) {
-        for (int slot = 0; slot < missileInventory.getSlots(); slot++) {
-            ItemStack stack = missileInventory.getStackInSlot(slot);
-            if (!stack.isEmpty()) {
-                Block.popResource(level, pos, stack.copy());
-                missileInventory.setStackInSlot(slot, ItemStack.EMPTY);
-            }
-        }
+        return consumeAmmoForShot();
     }
 
     @Override
@@ -318,7 +289,6 @@ public class VerticleLaunchingSlotCoreBlockEntity extends AbstractWeaponBlockEnt
         }
         tag.put(LINKED_SLOTS_TAG, list);
         tag.putInt(LAUNCH_INTERVAL_TAG, launchIntervalTicks);
-        tag.put(MISSILE_INVENTORY_TAG, missileInventory.serializeNBT(registries));
     }
 
     @Override
@@ -333,48 +303,5 @@ public class VerticleLaunchingSlotCoreBlockEntity extends AbstractWeaponBlockEnt
         if (tag.contains(LAUNCH_INTERVAL_TAG, Tag.TAG_INT)) {
             launchIntervalTicks = Math.max(1, tag.getInt(LAUNCH_INTERVAL_TAG));
         }
-        if (tag.contains(MISSILE_INVENTORY_TAG)) {
-            missileInventory.deserializeNBT(registries, tag.getCompound(MISSILE_INVENTORY_TAG));
-        }
-    }
-
-    public IItemHandlerModifiable getItemHandler() {
-        return this;
-    }
-
-    @Override
-    public int getSlots() {
-        return missileInventory.getSlots();
-    }
-
-    @Override
-    public @NotNull ItemStack getStackInSlot(int slot) {
-        return missileInventory.getStackInSlot(slot);
-    }
-
-    @Override
-    public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
-        return missileInventory.insertItem(slot, stack, simulate);
-    }
-
-    @Override
-    public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
-        return missileInventory.extractItem(slot, amount, simulate);
-    }
-
-    @Override
-    public int getSlotLimit(int slot) {
-        return missileInventory.getSlotLimit(slot);
-    }
-
-    @Override
-    public boolean isItemValid(int slot, @NotNull ItemStack stack) {
-        return missileInventory.isItemValid(slot, stack);
-    }
-
-    @Override
-    public void setStackInSlot(int slot, @NotNull ItemStack stack) {
-        missileInventory.setStackInSlot(slot, stack);
-        setChanged();
     }
 }

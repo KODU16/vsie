@@ -1,0 +1,17 @@
+{
+  "name": "红石代理",
+  "icon": "vsie:redstone_relay",
+  "category": "vsie:weapon",
+  "sortnum": 15,
+  "extra_recipe_mappings": {
+    "vsie:redstone_relay": 0
+  },
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:redstone_relay",
+      "title": "红石代理",
+      "text": "红石代理是一种特殊的武器，它在GUI中可以自由修改链接的控制椅HUD中显示的名称，其不存在任何热量相关消耗与产生，在开火时，会持续在六个面输出强度为15的红石信号，供链接的其它武器（包括但不限于机械动力：火炮等）被控制椅控制开火"
+    }
+  ]
+}

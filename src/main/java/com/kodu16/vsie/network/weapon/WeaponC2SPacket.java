@@ -63,8 +63,13 @@ public class WeaponC2SPacket implements CustomPacketPayload {
                 sender.sendSystemMessage(Component.literal("Invalid weapon at " + pos));
                 return;
             }
-            weapon.modifychannel(channelchange);
-            LogUtils.getLogger().warn(String.valueOf(Component.literal("changing weapon channel"+channelchange)));
+            if (channelchange == 5) {
+                // Function: the shared weapon GUI toggles terrain damage independently from fire-channel assignment.
+                weapon.toggleBreaksBlocksEnabled();
+            } else {
+                weapon.modifychannel(channelchange);
+                LogUtils.getLogger().warn(String.valueOf(Component.literal("changing weapon channel"+channelchange)));
+            }
             // 可选：标记方块实体为脏以保存更改
             weapon.setChanged();
             weapon.getLevel().sendBlockUpdated(     // 向附近玩家同步 BE

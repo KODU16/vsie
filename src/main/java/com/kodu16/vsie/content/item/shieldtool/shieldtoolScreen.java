@@ -1,21 +1,19 @@
 package com.kodu16.vsie.content.item.shieldtool;
 
-// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
-
-//import com.kodu16.vsie.network.packet.IFFC2SPacket;
+import com.kodu16.vsie.foundation.client.GuiTooltipHelper;
 import com.kodu16.vsie.vsie;
 import net.minecraft.client.gui.GuiGraphics;
-        import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 
+import java.util.List;
+import java.util.Locale;
+
 @SuppressWarnings({"removal"})
 public class shieldtoolScreen extends AbstractContainerScreen<ShieldToolContainerMenu> {
-
-    private EditBox editBoxA;
-    private EditBox editBoxB;
+    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/iff/iff_gui.png");
 
     public shieldtoolScreen(ShieldToolContainerMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
@@ -28,21 +26,17 @@ public class shieldtoolScreen extends AbstractContainerScreen<ShieldToolContaine
         super.init();
     }
 
-    private void saveAndClose() {
-        this.minecraft.player.closeContainer();
-    }
-
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         this.renderTooltip(guiGraphics, mouseX, mouseY);
+        renderLineTooltips(guiGraphics, mouseX, mouseY);
     }
 
     @Override
     protected void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
-        ResourceLocation texture = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/iff/iff_gui.png");
-        guiGraphics.blit(texture,   // 用实例字段
+        guiGraphics.blit(TEXTURE,
                 this.leftPos, this.topPos,
                 0, 0,
                 this.imageWidth, this.imageHeight,
@@ -51,71 +45,85 @@ public class shieldtoolScreen extends AbstractContainerScreen<ShieldToolContaine
 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        // 标题（保持原样）
         guiGraphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0x404040, false);
 
-        int startX = 8;           // 左边距（可调）
-        int startY = 24;          // 第一行开始的 Y 坐标（标题下面一点，可调）
-        int lineHeight = 10;      // 每行间隔（字体高度通常9–10）
+        int startX = 8;
+        int startY = 24;
+        int lineHeight = 12;
+        int color = 0x202020;
 
-        // ──────────────────────────────────────────────
-        // 准备要显示的几行内容 和 对应的详细 tooltip
-        // ──────────────────────────────────────────────
-        record LineData(String displayText, Component detailedTooltip) {}
-
-        var lines = new LineData[] {
-                new LineData("§0Max shield generator Distance: " + menu.dmax,
-                        Component.literal("§3绑定的护盾发生器之间的最大距离")),
-                new LineData("§0Min shield generator Distance: " + menu.dmin,
-                        Component.literal("§3绑定的护盾发生器之间的最小距离")),
-
-                new LineData("Max shield amount: " + menu.maxShield,
-                        Component.literal("§7所有护盾发生器FE容量总和，能量消耗在护盾发生器之间均分")),
-
-                new LineData("Shield radius: " + menu.radius,
-                        Component.literal("§7绑定的所有护盾发生器之间的最大距离*0.75")),
-
-                new LineData("Energy cost per intercept: " + menu.costPerProjectile,
-                        Component.literal("§7（护盾发生器之间的最大距离^2/护盾发生器之间的最小距离）*护盾发生器数*1000")),
-
-                new LineData("Energy regenerate per tick: " + menu.regenPerTick,
-                        Component.literal("§7（护盾发生器之间的最大距离*护盾发生器个数）* 500 FE")),
-
-                new LineData("Overload cooldown time: " + menu.maxCooldown+"ticks",
-                        Component.literal("§7(护盾发生器之间的最大距离/护盾发生器之间的最小距离)*100 ticks"))
-        };
-
-        // 当前鼠标在 GUI 内的相对坐标
-        int relMouseX = mouseX - leftPos;
-        int relMouseY = mouseY - topPos;
-
-        Component hoveredTooltip = null;
-
-        for (int i = 0; i < lines.length; i++) {
-            LineData line = lines[i];
-            int y = startY + i * lineHeight;
-
-            // 绘制带颜色的文字（§b 会生效）
-            guiGraphics.drawString(font, line.displayText, startX, y, 0x404040, false);  // true = drop shadow
-
-            // 判断鼠标是否在这个文字行上（宽松一点的判定区域）
-            boolean isHovered =
-                    relMouseX >= startX - 4 &&
-                            relMouseX <= startX + 160 &&     // 假设最长一行不超过这个宽度
-                            relMouseY >= y - 2 &&
-                            relMouseY <= y + lineHeight + 1;
-
-            if (isHovered) {
-                hoveredTooltip = line.detailedTooltip;
-            }
-        }
-
-        // 如果有悬停的 tooltip，就在最后渲染（最上层）
-        if (hoveredTooltip != null) {
-            // 可以用 renderTooltip，也可以自己控制位置
-            guiGraphics.renderTooltip(font, hoveredTooltip, relMouseX, relMouseY);
-            // 或者偏右上一点：guiGraphics.renderTooltip(font, hoveredTooltip, relMouseX + 12, relMouseY - 12);
+        for (int i = 0; i < createLines().size(); i++) {
+            ShieldLine line = createLines().get(i);
+            guiGraphics.drawString(this.font, line.display(), startX, startY + i * lineHeight, color, false);
         }
     }
 
+    private void renderLineTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        int startX = this.leftPos + 8;
+        int startY = this.topPos + 24;
+        int lineHeight = 12;
+
+        List<ShieldLine> lines = createLines();
+        for (int i = 0; i < lines.size(); i++) {
+            ShieldLine line = lines.get(i);
+            int y = startY + i * lineHeight;
+            int width = Math.min(this.imageWidth - 16, this.font.width(line.display()) + 6);
+            if (!GuiTooltipHelper.isMouseWithin(mouseX, mouseY, startX - 2, y - 1, width, lineHeight)) {
+                continue;
+            }
+            guiGraphics.renderComponentTooltip(this.font, line.tooltip(), mouseX, mouseY);
+            return;
+        }
+    }
+
+    private List<ShieldLine> createLines() {
+        return List.of(
+                createLine(
+                        Component.translatable("gui.vsie.shield_tool.max_distance.label", formatDistance(menu.getMaxDistance())),
+                        Component.translatable("gui.vsie.shield_tool.max_distance.tooltip")
+                ),
+                createLine(
+                        Component.translatable("gui.vsie.shield_tool.min_distance.label", formatDistance(menu.getMinDistance())),
+                        Component.translatable("gui.vsie.shield_tool.min_distance.tooltip")
+                ),
+                createLine(
+                        Component.translatable("gui.vsie.shield_tool.max_shield.label", menu.getMaxShield()),
+                        Component.translatable("gui.vsie.shield_tool.max_shield.tooltip")
+                ),
+                createLine(
+                        Component.translatable("gui.vsie.shield_tool.radius.label", menu.getRadius()),
+                        Component.translatable("gui.vsie.shield_tool.radius.tooltip")
+                ),
+                createLine(
+                        Component.translatable("gui.vsie.shield_tool.cost.label", menu.getCostPerProjectile()),
+                        Component.translatable("gui.vsie.shield_tool.cost.tooltip")
+                ),
+                createLine(
+                        Component.translatable("gui.vsie.shield_tool.regen.label", menu.getRegenPerTick()),
+                        Component.translatable("gui.vsie.shield_tool.regen.tooltip")
+                ),
+                createLine(
+                        Component.translatable("gui.vsie.shield_tool.cooldown.label", menu.getMaxCooldown()),
+                        Component.translatable("gui.vsie.shield_tool.cooldown.tooltip")
+                )
+        );
+    }
+
+    private ShieldLine createLine(Component display, Component formulaTooltip) {
+        // 把当前显示值和计算说明一起放进 tooltip，便于直接核对公式与结果。
+        return new ShieldLine(
+                display,
+                List.of(
+                        display,
+                        formulaTooltip
+                )
+        );
+    }
+
+    private static String formatDistance(double distance) {
+        return String.format(Locale.ROOT, "%.2f", distance);
+    }
+
+    private record ShieldLine(Component display, List<Component> tooltip) {
+    }
 }

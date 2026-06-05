@@ -1,12 +1,15 @@
 package com.kodu16.vsie.content.weapon.infra_knife_accelerator;
 
+import com.kodu16.vsie.content.cooldown.FireCooldown;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
+import com.kodu16.vsie.content.weapon.infra_knife_accelerator.client.InfraKnifeSoundManager;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -15,9 +18,20 @@ import org.joml.Vector3f;
 
 public class InfraKnifeAcceleratorBlockEntity extends AbstractWeaponBlockEntity {
     private static final DustParticleOptions RED_BEAM_PARTICLE = new DustParticleOptions(new Vector3f(1.0F, 0.02F, 0.0F), 2.0F);
+    private static final int MAX_COOLDOWN_VALUE = 30;
+    private static final double IDLE_RECOVERY_PER_TICK = 0.5D;
 
     public InfraKnifeAcceleratorBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
+    }
+
+    @Override
+    public void tick() {
+        Level level = getLevel();
+        if (level != null && level.isClientSide()) {
+            InfraKnifeSoundManager.updateWeapon(this);
+        }
+        super.tick();
     }
 
     @Override
@@ -28,6 +42,23 @@ public class InfraKnifeAcceleratorBlockEntity extends AbstractWeaponBlockEntity 
     @Override
     public int getcooldown() {
         return 4;
+    }
+
+    @Override
+    public FireCooldown getFireCooldown() {
+        // Function: infra-knife uses stored firing charge, recovering quickly while the trigger is released.
+        return FireCooldown.cool2(getcooldown(), MAX_COOLDOWN_VALUE, IDLE_RECOVERY_PER_TICK);
+    }
+
+    @Override
+    public boolean isEnergyWeapon() {
+        // Function: infra-knife shots are ray weapons, so they do not consume ammo items.
+        return true;
+    }
+
+    @Override
+    public Item getAmmoItem() {
+        return null;
     }
 
     @Override
@@ -43,7 +74,6 @@ public class InfraKnifeAcceleratorBlockEntity extends AbstractWeaponBlockEntity 
         spawnRedBeam(serverLevel, beamStart, beamEnd);
 
         if (hasRaycastHit()) {
-            LogUtils.getLogger().warn("explode at:" + targetpos);
             spawnHitParticles(serverLevel, targetpos);
             serverLevel.explode(
                     null,

@@ -7,6 +7,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
@@ -85,7 +86,6 @@ public class VerticleLaunchingSlotBlockEntity extends AbstractWeaponBlockEntity 
         boolean shouldOpen = linkedCoreActive && cooldownTicks < PRE_OPEN_COOLDOWN_WINDOW;
         //LogUtils.getLogger().warn("shouldopen:"+shouldOpen+"capopen:"+capOpen);
         if (shouldOpen && !capOpen) {
-            LogUtils.getLogger().warn("opening cap");
             capOpen = true;
             if(!level.isClientSide){
                 triggerCapAnimation(true);
@@ -94,7 +94,6 @@ public class VerticleLaunchingSlotBlockEntity extends AbstractWeaponBlockEntity 
             setChanged();
             sendData();
         } else if (!shouldOpen && capOpen) {
-            LogUtils.getLogger().warn("closing cap");
             capOpen = false;
             if(!level.isClientSide){
                 triggerCapAnimation(false);
@@ -113,6 +112,17 @@ public class VerticleLaunchingSlotBlockEntity extends AbstractWeaponBlockEntity 
     @Override
     public int getcooldown() {
         return SLOT_COOLDOWN_TICKS;
+    }
+
+    @Override
+    public boolean isEnergyWeapon() {
+        // Function: standalone launch slots are passive endpoints and therefore should not expose an ammo buffer.
+        return true;
+    }
+
+    @Override
+    public Item getAmmoItem() {
+        return null;
     }
 
     @Override

@@ -1,0 +1,21 @@
+{
+  "name": "重型激光炮塔",
+  "icon": "vsie:heavy_laser_turret",
+  "category": "vsie:turret",
+  "sortnum": 20,
+  "extra_recipe_mappings": {
+    "vsie:heavy_laser_turret": 0
+  },
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:heavy_laser_turret",
+      "title": "重型激光炮塔",
+      "text": "$(br2)重型激光炮塔，可射出大范围破坏任何方块的激光。$(br2)仅支持在子维度上工作。"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "由于超长距离射线检测算法的性能占用极高问题暂未解决，因此暂时只支持自动模式。$(br2)对敌对子维度非常有效。$(br2)最大索敌距离/射程：256。"
+    }
+  ]
+}

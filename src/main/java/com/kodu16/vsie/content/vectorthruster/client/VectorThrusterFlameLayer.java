@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.vectorthruster.client;
 
 import com.kodu16.vsie.content.vectorthruster.AbstractVectorThrusterBlockEntity;
+import com.kodu16.vsie.content.thruster.client.FlameColorJitter;
 import com.kodu16.vsie.foundation.translucentbeamrendertype;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -18,7 +19,7 @@ public class VectorThrusterFlameLayer extends GeoRenderLayer<AbstractVectorThrus
     private static final String NOZZLE_BONE_NAME = "nozzle1";
     private static final int SEGMENTS = 8;
     private static final int LENGTH_SEGMENTS = 16;
-    private static final float TIP_RADIUS_SCALE = 0.35f;
+    private static final float TIP_RADIUS_SCALE = 0.15f;
     private static final RenderType FLAME_RENDER_TYPE = translucentbeamrendertype.SOLID_TRANSLUCENT_BEAM;
     private static final int FULL_BRIGHT = 0xF000F0;
     private static final float M_2PI = (float) (Math.PI * 2);
@@ -56,18 +57,22 @@ public class VectorThrusterFlameLayer extends GeoRenderLayer<AbstractVectorThrus
         VertexConsumer vc = bufferSource.getBuffer(FLAME_RENDER_TYPE);
         float[][] layers = new float[LENGTH_SEGMENTS + 1][];
         float baseRadius = animatable.getflamewidth();
-        float tipRadius = baseRadius * TIP_RADIUS_SCALE;
+        float tipRadius = baseRadius;
+        long seed = animatable.getBlockPos().asLong() ^ 0xBB67AE8584CAA73BL;
+        float time = getRenderTime(animatable, partialTick);
 
         for (int i = 0; i <= LENGTH_SEGMENTS; i++) {
             float t = i / (float) LENGTH_SEGMENTS;
             float y = t * flameLength;
             float radius = baseRadius + (tipRadius - baseRadius) * t;
-            float r = lerp(1.0f, 0.6f, t);
+            float r = lerp(0.6f, 0.6f, t);
             float g = lerp(0.7f, 0.4f, t);
             float b = lerp(0.3f, 0.9f, t);
-            float a = lerp(0.8f, 0.3f, t);
+            float a = lerp(0.8f, 0.0f, t);
+            // Function: natural longitudinal color jitter keeps the vector flame from reading as a flat solid cone.
+            float[] color = FlameColorJitter.apply(seed, time, t, r, g, b, a);
             // Function: vector thruster nozzles emit along their local +Y axis, matching the nozzle bone.
-            layers[i] = new float[]{y, radius, r, g, b, a};
+            layers[i] = new float[]{y, radius, color[0], color[1], color[2], color[3]};
         }
 
         PoseStack.Pose last = poseStack.last();
@@ -95,6 +100,10 @@ public class VectorThrusterFlameLayer extends GeoRenderLayer<AbstractVectorThrus
 
     private static float lerp(float a, float b, float t) {
         return a + (b - a) * t;
+    }
+
+    private static float getRenderTime(AbstractVectorThrusterBlockEntity animatable, float partialTick) {
+        return (animatable.getLevel() == null ? 0.0F : animatable.getLevel().getGameTime()) + partialTick;
     }
 
     private static void vertex(VertexConsumer vc, Matrix4f pose, Matrix3f normal,

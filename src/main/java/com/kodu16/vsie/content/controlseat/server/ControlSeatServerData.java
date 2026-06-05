@@ -17,13 +17,13 @@ import java.util.Map;
 import com.kodu16.vsie.content.controlseat.ActiveWeaponHudInfo;
 
 
-//请勿在客户端使用，或加入任何仅限客户端的值
+
 public class ControlSeatServerData {
-    public volatile List<BlockPos> thrusterpositionslist = new ArrayList<>(); // 用来存储推进器的位置
+    public volatile List<BlockPos> thrusterpositionslist = new ArrayList<>();
     public volatile Vec3 force =  new Vec3(0,0,0);
     public volatile Vec3 torque = new Vec3(0,0,0);
     public volatile int throttle = 0;
-    //似乎自带UUID
+
     public volatile Player player = null;
     //Direction in ship space. Expected to be normalized
     private volatile Vec3i directionForward;
@@ -34,72 +34,86 @@ public class ControlSeatServerData {
     public volatile boolean channel2 = true;
     public volatile boolean channel3 = true;
     public volatile boolean channel4 = true;
-    public volatile int channelencode = 0;
+    public volatile int channelencode = 0b1111;
     public volatile boolean isfiring = false;
 
     public volatile String enemy = "";
     public volatile String ally = "";
     public volatile int lockedenemyindex = 0;
-    // 功能：缓存当前编号选中的敌方 sublevel 名称，供 S2C/HUD 用同一个目标显示 TGT。
     public volatile String lockedenemyslug = "";
+
     // Function: runtime cache for the currently locked enemy sublevel used by linked weapons.
     public volatile SubLevel lockedEnemySubLevel = null;
     public volatile Map<String, Object> shipsData = new HashMap<>();
     public volatile ArrayList<Vec3> enemyshipsData = new ArrayList<>();
 
     public volatile float thruster_strength = 0;
-    // 功能：缓存东南西北上下六个方向（索引顺序：东南西北上下）上，朝向该方向的推进器最大推力总和。
+    public volatile float thruster_force_strength = 0;
+    public volatile float thruster_torque_strength = 0;
+
     public volatile float[] facingMaxThrustSum = new float[6];
 
-    public volatile int totalenergystorage = 100;//最大可储存的电量
-    public volatile int avalibleenergy = 0;//当前可用的电量
+    public volatile int totalenergystorage = 100;
+    public volatile int avalibleenergy = 0;
 
-    public volatile int totalfuelstorage = 100;//最大可储存的电量
-    public volatile int avaliblefuel = 0;//当前可用的电量
+    public volatile int totalfuelstorage = 100;
+    public volatile int avaliblefuel = 0;
+    public volatile int avalibleE710 = 0;
+    public volatile int warpE710CostMb = 0;
+    public volatile boolean warpE710Insufficient = false;
 
-    public volatile double totalshield = 1;//最大护盾
-    public volatile double avalibleshield = 0;//当前剩余护盾
-    public volatile double shieldradius = 0;//护盾的范围
-    public volatile double shieldcostperprojectile = 0;//拦截一个弹射物消耗的护盾能量
-    public volatile double shieldregeneratepertick = 0;//每秒回复量
-    public volatile double shieldmaxcooldowntime = 0;//护盾过载后需要多长时间才能回充
-    public volatile double shieldcooldowntime = 0;//护盾过载后准备重新开始回充的时间
-    public volatile boolean isshieldon = false;//是否开启护盾
-    public volatile boolean isflightassiston = true;//是否开启飞行辅助
-    public volatile boolean isantigravityon = true;//是否开启反重力
+    public volatile double totalshield = 1;
+    public volatile double avalibleshield = 0;
+    public volatile double shieldradius = 0;
+    public volatile double shieldcostperprojectile = 0;
+    public volatile double shieldregeneratepertick = 0;
+    public volatile double shieldmaxcooldowntime = 0;
+    public volatile double shieldcooldowntime = 0;
+    public volatile boolean isshieldon = false;
+    public volatile boolean isflightassiston = true;
+    public volatile boolean isantigravityon = true;
+    // Function: keeps the seat upright relative to world Y even when no player is riding.
+    public volatile boolean isforceassiston = true;// Function: toggles automatic counter-force damping.
+    public volatile boolean istorqueassiston = true;// Function: toggles automatic counter-torque damping.
+    public volatile boolean isForceAssistSuppressedByAccelerator = false;// Function: rail acceleration hard-disables force assist while active.
+    public volatile boolean isAutoLevelOn = false;
     public volatile double shieldmin = 0;
     public volatile double shieldmax = 0;
 
-    // 功能：缓存“当前控制椅激活频道下可响应武器”的 HUD 数据（名称+冷却进度），用于 HUD 展示。
+
     public volatile List<ActiveWeaponHudInfo> activeWeaponHudInfos = new ArrayList<>();
 
-    // 功能：记录控制椅下一次跃迁所使用的目标坐标、维度与芯片名称，供后续跃迁逻辑读取。
+
     public volatile BlockPos warpTargetPos = BlockPos.ZERO;
-    // 功能：缓存跃迁目标维度；默认留空，避免在未选择目标时随意写入固定默认维度。
+
     public volatile String warpTargetDimension = "";
     public volatile String warpTargetName = "";
-    // 功能：标记控制椅是否已进入 warp 准备状态；准备阶段会屏蔽玩家手动姿态/推力输入并启用自动对准。
+
     public volatile boolean isWarpPreparing = false;
-    // 功能：标记是否已经发射 warp projectile 并进入延迟传送阶段，避免一轮跃迁重复安排传送。
+
     public volatile boolean hasPendingWarpTeleport = false;
-    // 功能：缓存延迟传送的目标世界坐标，供弹体寿命结束后执行 teleportship。
+
     public volatile Vector3d pendingWarpTeleportPos = new Vector3d();
-    // 功能：记录延迟传送应在服务器哪个 gameTime 执行，实现“弹体寿命 + 1 秒”后再跃迁。
+
     public volatile long pendingWarpTeleportGameTime = -1L;
 
     public volatile boolean isviewlocked = false;
-    // 功能：缓存客户端上报的手动瞄准世界坐标（玩家视线延伸 1024 格），供重型炮塔直接瞄准。
+
     public volatile double manualAimTargetX = 0;
     public volatile double manualAimTargetY = 0;
     public volatile double manualAimTargetZ = 0;
 
-    // 功能：缓存当前控制椅方块坐标，供 warp 自动对准时把座椅位置转换为世界空间。
+
     public volatile BlockPos controlSeatPos = BlockPos.ZERO;
 
     public Level level;
     public ServerSubLevel serverShip;
     public volatile Vector3d finaltorque = new Vector3d(0,0,0);
     public volatile Vector3d finalforce = new Vector3d(0,0,0);
+    public volatile Vector3d thrusterVisualForce = new Vector3d(0,0,0);
+    public volatile double shipSpeed = 0.0D;
+    public volatile Vector3d structureCenterWorld = new Vector3d();
+    public volatile double seatGForce = 0.0D;
 
     public Vec3 getForce() {
         return force;
@@ -181,49 +195,90 @@ public class ControlSeatServerData {
         this.finalforce = finalforce;
     }
 
+    public Vector3d getThrusterVisualForce() {
+        return thrusterVisualForce;
+    }
+
+    public void setThrusterVisualForce(Vector3d thrusterVisualForce) {
+        // Function: visual thruster selection can differ from the physics impulse sign for seat throttle.
+        this.thrusterVisualForce = thrusterVisualForce;
+    }
+
     public boolean getChannel1() {return channel1;}
     public boolean getChannel2() {return channel2;}
     public boolean getChannel3() {return channel3;}
     public boolean getChannel4() {return channel4;}
 
+    public void setWeaponChannelEncode(int channelencode) {
+        this.channelencode = channelencode & 0b1111;
+        this.channel1 = (this.channelencode & (1 << 0)) != 0;
+        this.channel2 = (this.channelencode & (1 << 1)) != 0;
+        this.channel3 = (this.channelencode & (1 << 2)) != 0;
+        this.channel4 = (this.channelencode & (1 << 3)) != 0;
+    }
 
-    public void reset() {
+    public void refreshWeaponChannelEncode() {
+        // Function: persist the four independent weapon channel toggles as one compact bit mask.
+        setWeaponChannelEncode(
+                (channel1 ? (1 << 0) : 0)
+                        | (channel2 ? (1 << 1) : 0)
+                        | (channel3 ? (1 << 2) : 0)
+                        | (channel4 ? (1 << 3) : 0)
+        );
+    }
+
+
+    public void clearSeatOccupantState() {
         this.torque = new Vec3(0,0,0);
         this.force = new Vec3(0,0,0);
         this.throttle = 0;
         this.player = null;
         this.isfiring = false;
-        // 功能：控制椅失去操作者时强制退出 warp 准备状态，避免残留的自动对准继续作用到空座椅上。
+        this.isForceAssistSuppressedByAccelerator = false;
         clearWarpPreparation();
     }
 
-    // 功能：进入 warp 准备状态前统一清空手动扭矩与油门，确保后续只由自动对准逻辑接管姿态控制。
+    public void reset() {
+        clearSeatOccupantState();
+    }
+
+
     public void startWarpPreparation() {
         this.isWarpPreparing = true;
-        // 功能：开始新的 warp 准备时清空上一轮尚未执行的延迟传送，避免旧任务误触发。
+        this.warpE710Insufficient = false;
         clearPendingWarpTeleport();
         this.torque = new Vec3(0, 0, 0);
         this.throttle = 0;
     }
 
-    // 功能：取消 warp 准备状态并清空目标，供玩家按 P 直接退出自动对准时复用。
+    public void rejectWarpForInsufficientE710(int requiredMb) {
+        this.isWarpPreparing = false;
+        this.hasPendingWarpTeleport = false;
+        this.warpE710CostMb = Math.max(0, requiredMb);
+        this.warpE710Insufficient = true;
+        this.torque = new Vec3(0, 0, 0);
+        this.throttle = 0;
+    }
+
     public void clearWarpPreparation() {
         this.isWarpPreparing = false;
         this.warpTargetPos = BlockPos.ZERO;
         this.warpTargetDimension = "";
         this.warpTargetName = "";
+        this.warpE710CostMb = 0;
+        this.warpE710Insufficient = false;
         this.torque = new Vec3(0, 0, 0);
         this.throttle = 0;
     }
 
-    // 功能：安排一条延迟执行的跃迁任务，在 warp projectile 生命周期结束并额外等待 1 秒后传送船只。
+
     public void schedulePendingWarpTeleport(Vector3d destination, long executeGameTime) {
         this.hasPendingWarpTeleport = true;
         this.pendingWarpTeleportPos = new Vector3d(destination);
         this.pendingWarpTeleportGameTime = executeGameTime;
     }
 
-    // 功能：清除已经完成或被打断的延迟跃迁任务，避免残留任务在后续 tick 被再次执行。
+
     public void clearPendingWarpTeleport() {
         this.hasPendingWarpTeleport = false;
         this.pendingWarpTeleportPos = new Vector3d();

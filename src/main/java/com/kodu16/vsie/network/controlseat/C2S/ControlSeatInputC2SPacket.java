@@ -92,12 +92,7 @@ public class ControlSeatInputC2SPacket implements CustomPacketPayload {
             if ((keys & KeysInput.CHANNEL4) != 0) {
                 serverData.channel4 = !serverData.getChannel4();
             }
-            // Function: rebuild the independent channel bitmask so several weapon channels may stay active together.
-            serverData.channelencode =
-                    (serverData.channel1 ? (1 << 0) : 0)
-                            | (serverData.channel2 ? (1 << 1) : 0)
-                            | (serverData.channel3 ? (1 << 2) : 0)
-                            | (serverData.channel4 ? (1 << 3) : 0);
+            serverData.refreshWeaponChannelEncode();
 
             if ((keys & KeysInput.SWITCHENEMY) != 0 && !serverData.enemyshipsData.isEmpty()) {
                 // Function: cycle through detected enemy targets; number keys are reserved for weapon channels.
@@ -105,13 +100,30 @@ public class ControlSeatInputC2SPacket implements CustomPacketPayload {
                 serverData.lockedenemyindex = index % serverData.enemyshipsData.size();
             }
             if ((keys & KeysInput.TOGGLESHIELD) != 0) {
-                serverData.isshieldon = !serverData.isshieldon;
+                // Function: overloaded shields stay armed in HUD but cannot be toggled until cooldown ends.
+                if (serverData.shieldcooldowntime <= 0.0D) {
+                    serverData.isshieldon = !serverData.isshieldon;
+                } else {
+                    serverData.isshieldon = true;
+                }
             }
-            if ((keys & KeysInput.TOGGLEFLIGHTASSIST) != 0) {
-                serverData.isflightassiston = !serverData.isflightassiston;
+            if ((keys & KeysInput.TOGGLEFORCEASSIST) != 0) {
+                // Function: active rail acceleration can hard-disable force assist and reject re-enable attempts for that tick.
+                if (!serverData.isForceAssistSuppressedByAccelerator) {
+                    serverData.isforceassiston = !serverData.isforceassiston;
+                } else {
+                    serverData.isforceassiston = false;
+                }
+            }
+            if ((keys & KeysInput.TOGGLETORQUEASSIST) != 0) {
+                serverData.istorqueassiston = !serverData.istorqueassiston;
             }
             if ((keys & KeysInput.TOGGLEANTIGRAVITY) != 0) {
                 serverData.isantigravityon = !serverData.isantigravityon;
+            }
+            if ((keys & KeysInput.TOGGLEAUTOLEVEL) != 0) {
+                // Function: auto-level persists like anti-gravity so an empty seat can keep stabilizing.
+                serverData.isAutoLevelOn = !serverData.isAutoLevelOn;
             }
 
             serverData.isviewlocked = pkt.isviewlock;
@@ -132,8 +144,10 @@ public class ControlSeatInputC2SPacket implements CustomPacketPayload {
         public static final int CHANNEL4 = 1 << 3;
         public static final int SWITCHENEMY = 1 << 4;
         public static final int TOGGLESHIELD = 1 << 5;
-        public static final int TOGGLEFLIGHTASSIST = 1 << 6;
-        public static final int TOGGLEANTIGRAVITY = 1 << 7;
+        public static final int TOGGLEFORCEASSIST = 1 << 6;
+        public static final int TOGGLETORQUEASSIST = 1 << 7;
+        public static final int TOGGLEANTIGRAVITY = 1 << 8;
+        public static final int TOGGLEAUTOLEVEL = 1 << 9;
     }
 
     @Override

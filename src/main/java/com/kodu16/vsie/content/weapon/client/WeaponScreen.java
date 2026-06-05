@@ -1,10 +1,11 @@
 package com.kodu16.vsie.content.weapon.client;
 
-import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
-import com.kodu16.vsie.content.weapon.missile_launcher.block.BasicMissileLauncherBlockEntity;
+import com.kodu16.vsie.content.weapon.redstone_relay.RedstoneRelayBlockEntity;
 import com.kodu16.vsie.content.weapon.missile_launcher.block.VerticleLaunchingSlotCoreBlockEntity;
+import com.kodu16.vsie.foundation.client.GuiTooltipHelper;
 import com.kodu16.vsie.content.weapon.server.WeaponContainerMenu;
 import com.kodu16.vsie.network.weapon.WeaponC2SPacket;
+import com.kodu16.vsie.network.weapon.WeaponDisplayNameC2SPacket;
 import com.kodu16.vsie.network.weapon.WeaponLaunchIntervalC2SPacket;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.vsie;
@@ -19,18 +20,35 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 
-@SuppressWarnings({"removal"})
+@SuppressWarnings("removal")
 public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
     private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/weapon_gui.png");
+    private static final ResourceLocation AMMO_TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/weapon_gui_ammo.png");
     private static final ResourceLocation SLOT_TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/slot.png");
+    private static final int DISPLAY_NAME_PANEL_TOP = 94;
+    private static final int DISPLAY_NAME_PANEL_BOTTOM = 122;
+    private static final int AMMO_PANEL_TOP = 110;
+    private static final int AMMO_PANEL_BOTTOM = 139;
+    private static final int INVENTORY_PANEL_TOP = 146;
+    private static final int INVENTORY_PANEL_BOTTOM = 236;
+    private static final int VLS_PANEL_TOP = 78;
+    private static final int VLS_PANEL_BOTTOM = 106;
+    private static final int BREAK_BLOCKS_LABEL_X = 12;
+    private static final int BREAK_BLOCKS_LABEL_Y = 68;
+    private static final int BREAK_BLOCKS_BUTTON_X = 94;
+    private static final int BREAK_BLOCKS_BUTTON_Y = 64;
+    private static final int AMMO_SCREEN_WIDTH = 228;
+    private static final int AMMO_SCREEN_HEIGHT = 246;
     private EditBox launchIntervalBox;
+    private EditBox displayNameBox;
+    private Button breakBlocksButton;
 
     public WeaponScreen(WeaponContainerMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
-        this.imageWidth = 176;
-        // Function: missile launchers need extra space for missile storage and player inventory.
-        this.imageHeight = menu.hasInventorySlots() ? 220 : 166;
-        this.inventoryLabelY = menu.hasInventorySlots() ? WeaponContainerMenu.PLAYER_INV_Y - 11 : 72;
+        // Function: ammo screens are wider so the full player inventory does not make the GUI look cramped.
+        this.imageWidth = menu.hasAmmoSlots() ? AMMO_SCREEN_WIDTH : 176;
+        this.imageHeight = menu.hasAmmoSlots() ? AMMO_SCREEN_HEIGHT : 166;
+        this.inventoryLabelY = 1000;
     }
 
     @Override
@@ -38,28 +56,42 @@ public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTicks);
         super.render(guiGraphics, mouseX, mouseY, partialTicks);
         this.renderTooltip(guiGraphics, mouseX, mouseY);
+        renderControlTooltips(guiGraphics, mouseX, mouseY);
     }
 
     @Override
     protected void renderBg(GuiGraphics guiGraphics, float partialTicks, int mouseX, int mouseY) {
-        AbstractWeaponBlockEntity blockEntity = menu.getBlockEntity();
-        guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, Math.min(this.imageHeight, 166));
-        if (menu.hasInventorySlots()) {
-            // Function: draw a simple panel below the original weapon controls for inventory slots.
-            guiGraphics.fill(this.leftPos, this.topPos + 56, this.leftPos + this.imageWidth, this.topPos + this.imageHeight, 0xFFBDBDBD);
-            guiGraphics.fill(this.leftPos + 3, this.topPos + 59, this.leftPos + this.imageWidth - 3, this.topPos + this.imageHeight - 3, 0xFFC6C6C6);
+        if (menu.hasAmmoSlots()) {
+            // Function: ammo weapons use a taller baked background so all item slots share one visual frame.
+            guiGraphics.blit(AMMO_TEXTURE, this.leftPos, this.topPos, 0, 0,
+                    this.imageWidth, this.imageHeight, this.imageWidth, this.imageHeight);
+        } else {
+            guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, 166);
+        }
+        if (isRedstoneRelayScreen()) {
+            // Function: redstone relay reuses the standard weapon menu and reserves the lower strip for HUD short-name editing.
+            guiGraphics.fill(this.leftPos + 4, this.topPos + DISPLAY_NAME_PANEL_TOP, this.leftPos + this.imageWidth - 4, this.topPos + DISPLAY_NAME_PANEL_BOTTOM, 0x70505050);
+        }
+        if (menu.hasAmmoSlots()) {
+            RenderSystem.setShader(GameRenderer::getPositionTexShader);
+            drawAmmoSlots(guiGraphics);
+            drawPlayerInventorySlots(guiGraphics);
+        }
+        if (isVlsCoreScreen()) {
+            // Function: split the VLS timing controls into their own footer panel so they do not overlap the ammo row.
+            guiGraphics.fill(this.leftPos + 4, this.topPos + VLS_PANEL_TOP, this.leftPos + this.imageWidth - 4, this.topPos + VLS_PANEL_BOTTOM, 0x70505050);
         }
 
-        ResourceLocation iconChannel1 = blockEntity.getData().channel1
+        ResourceLocation iconChannel1 = menu.getBlockEntity().getData().channel1
                 ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel1_on.png")
                 : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel1_off.png");
-        ResourceLocation iconChannel2 = blockEntity.getData().channel2
+        ResourceLocation iconChannel2 = menu.getBlockEntity().getData().channel2
                 ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel2_on.png")
                 : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel2_off.png");
-        ResourceLocation iconChannel3 = blockEntity.getData().channel3
+        ResourceLocation iconChannel3 = menu.getBlockEntity().getData().channel3
                 ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel3_on.png")
                 : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel3_off.png");
-        ResourceLocation iconChannel4 = blockEntity.getData().channel4
+        ResourceLocation iconChannel4 = menu.getBlockEntity().getData().channel4
                 ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel4_on.png")
                 : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel4_off.png");
 
@@ -67,51 +99,53 @@ public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
         guiGraphics.blit(iconChannel2, this.leftPos + 60, this.topPos + 20, 0, 0, 20, 20, 20, 20);
         guiGraphics.blit(iconChannel3, this.leftPos + 90, this.topPos + 20, 0, 0, 20, 20, 20, 20);
         guiGraphics.blit(iconChannel4, this.leftPos + 120, this.topPos + 20, 0, 0, 20, 20, 20, 20);
-
-        if (blockEntity instanceof BasicMissileLauncherBlockEntity || blockEntity instanceof VerticleLaunchingSlotCoreBlockEntity) {
-            RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            drawInternalSlots(guiGraphics);
-            drawPlayerInventorySlots(guiGraphics);
-        }
     }
 
-    private void drawInternalSlots(GuiGraphics guiGraphics) {
-        // Function: draw missile buffer slot backgrounds.
+    private void drawAmmoSlots(GuiGraphics guiGraphics) {
+        // Function: non-energy weapons display exactly one 9-slot ammo row.
         int slotStartX = this.leftPos + WeaponContainerMenu.INTERNAL_SLOT_X - 1;
         int slotStartY = this.topPos + WeaponContainerMenu.INTERNAL_SLOT_Y - 1;
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
-                guiGraphics.blit(SLOT_TEXTURE, slotStartX + col * 18, slotStartY + row * 18, 0, 0, 18, 18, 18, 18);
-            }
+        for (int col = 0; col < WeaponContainerMenu.INTERNAL_SLOT_COUNT; col++) {
+            guiGraphics.blit(SLOT_TEXTURE, slotStartX + col * 18, slotStartY, 0, 0, 18, 18, 18, 18);
         }
     }
 
     private void drawPlayerInventorySlots(GuiGraphics guiGraphics) {
-        // Function: draw player inventory slot backgrounds for launchers with internal ammo storage.
-        int startX = this.leftPos + WeaponContainerMenu.PLAYER_INV_X - 1;
-        int startY = this.topPos + WeaponContainerMenu.PLAYER_INV_Y - 1;
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                guiGraphics.blit(SLOT_TEXTURE, startX + col * 18, startY + row * 18, 0, 0, 18, 18, 18, 18);
+                guiGraphics.blit(SLOT_TEXTURE,
+                        this.leftPos + WeaponContainerMenu.PLAYER_INVENTORY_X + col * 18 - 1,
+                        this.topPos + WeaponContainerMenu.PLAYER_INVENTORY_Y + row * 18 - 1,
+                        0, 0, 18, 18, 18, 18);
             }
         }
-        int hotbarY = this.topPos + WeaponContainerMenu.HOTBAR_Y - 1;
         for (int col = 0; col < 9; col++) {
-            guiGraphics.blit(SLOT_TEXTURE, startX + col * 18, hotbarY, 0, 0, 18, 18, 18, 18);
+            guiGraphics.blit(SLOT_TEXTURE,
+                    this.leftPos + WeaponContainerMenu.PLAYER_INVENTORY_X + col * 18 - 1,
+                    this.topPos + WeaponContainerMenu.PLAYER_HOTBAR_Y - 1,
+                    0, 0, 18, 18, 18, 18);
         }
     }
 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         guiGraphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0x404040, false);
-        if (menu.hasInventorySlots()) {
-            // Function: label the added player inventory section.
-            guiGraphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 0x404040, false);
+        if (menu.getBlockEntity().supportsBlockDestructionToggle()) {
+            guiGraphics.drawString(this.font, Component.translatable("gui.vsie.common.break_blocks.label"),
+                    BREAK_BLOCKS_LABEL_X, BREAK_BLOCKS_LABEL_Y, 0x404040, false);
+        }
+        if (menu.hasAmmoSlots()) {
+            guiGraphics.drawString(this.font, Component.translatable("gui.vsie.common.ammo"), 8, 110, 0x404040, false);
+            guiGraphics.drawString(this.font, Component.translatable("container.inventory"), 8, 146, 0x404040, false);
+        }
+        if (menu.getBlockEntity() instanceof RedstoneRelayBlockEntity relay) {
+            guiGraphics.drawString(this.font, Component.translatable("gui.vsie.weapon.display_name.label"), 8, 86, 0x404040, false);
+            guiGraphics.drawString(this.font, Component.translatable("gui.vsie.weapon.display_name.current", relay.getResolvedHudDisplayName()), 8, 112, 0x404040, false);
         }
         if (menu.getBlockEntity() instanceof VerticleLaunchingSlotCoreBlockEntity core) {
-            // Function: show the adjustable launch interval k directly in the weapon inventory GUI.
-            guiGraphics.drawString(this.font, "k(tick)", 36, 56, 0x404040, false);
-            guiGraphics.drawString(this.font, "current " + core.getLaunchIntervalTicks(), 112, 56, 0x404040, false);
+            // Function: keep the adjustable launch interval on a dedicated lower row under the shared ammo strip.
+            guiGraphics.drawString(this.font, Component.translatable("gui.vsie.weapon.launch_interval.label"), 8, 82, 0x404040, false);
+            guiGraphics.drawString(this.font, Component.translatable("gui.vsie.weapon.launch_interval.current", core.getLaunchIntervalTicks()), 8, 98, 0x404040, false);
         }
     }
 
@@ -120,33 +154,72 @@ public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
         super.init();
         BlockPos pos = menu.getBlockEntity().getBlockPos();
         this.addRenderableWidget(Button.builder(
-                Component.literal("CH1"),
+                Component.translatable("gui.vsie.weapon.channel_1.label"),
                 btn -> ModNetworking.sendToServer(new WeaponC2SPacket(pos, 1))
         ).bounds(leftPos + 30, topPos + 40, 20, 10).build());
         this.addRenderableWidget(Button.builder(
-                Component.literal("CH2"),
+                Component.translatable("gui.vsie.weapon.channel_2.label"),
                 btn -> ModNetworking.sendToServer(new WeaponC2SPacket(pos, 2))
         ).bounds(leftPos + 60, topPos + 40, 20, 10).build());
         this.addRenderableWidget(Button.builder(
-                Component.literal("CH3"),
+                Component.translatable("gui.vsie.weapon.channel_3.label"),
                 btn -> ModNetworking.sendToServer(new WeaponC2SPacket(pos, 3))
         ).bounds(leftPos + 90, topPos + 40, 20, 10).build());
         this.addRenderableWidget(Button.builder(
-                Component.literal("CH4"),
+                Component.translatable("gui.vsie.weapon.channel_4.label"),
                 btn -> ModNetworking.sendToServer(new WeaponC2SPacket(pos, 4))
         ).bounds(leftPos + 120, topPos + 40, 20, 10).build());
+        if (menu.getBlockEntity().supportsBlockDestructionToggle()) {
+            this.breakBlocksButton = this.addRenderableWidget(Button.builder(
+                    breakBlocksButtonLabel(),
+                    btn -> {
+                        ModNetworking.sendToServer(new WeaponC2SPacket(pos, 5));
+                        menu.getBlockEntity().toggleBreaksBlocksEnabled();
+                        updateBreakBlocksButtonLabel();
+                    }
+            ).bounds(leftPos + BREAK_BLOCKS_BUTTON_X, topPos + BREAK_BLOCKS_BUTTON_Y, 20, 14).build());
+        }
+
+        if (menu.getBlockEntity() instanceof RedstoneRelayBlockEntity relay) {
+            this.displayNameBox = new EditBox(this.font, leftPos + 8, topPos + 96, 124, 14, Component.translatable("gui.vsie.weapon.display_name.input"));
+            // Function: the relay HUD short name is intentionally short so the control-seat overlay stays compact.
+            this.displayNameBox.setMaxLength(12);
+            this.displayNameBox.setValue(relay.getCustomHudDisplayName());
+            this.addRenderableWidget(this.displayNameBox);
+            this.addRenderableWidget(Button.builder(
+                    Component.translatable("gui.vsie.common.save"),
+                    btn -> saveDisplayName()
+            ).bounds(leftPos + 136, topPos + 96, 28, 14).build());
+        }
 
         if (menu.getBlockEntity() instanceof VerticleLaunchingSlotCoreBlockEntity core) {
-            this.launchIntervalBox = new EditBox(this.font, leftPos + 72, topPos + 54, 32, 12, Component.literal("k"));
+            this.launchIntervalBox = new EditBox(this.font, leftPos + 104, topPos + 80, 28, 14, Component.translatable("gui.vsie.weapon.launch_interval.input"));
             // Function: the VLS burst interval is sent as an integer tick count to the server.
             this.launchIntervalBox.setMaxLength(5);
             this.launchIntervalBox.setValue(String.valueOf(core.getLaunchIntervalTicks()));
             this.addRenderableWidget(this.launchIntervalBox);
             this.addRenderableWidget(Button.builder(
-                    Component.literal("Save"),
+                    Component.translatable("gui.vsie.common.save"),
                     btn -> saveLaunchInterval()
-            ).bounds(leftPos + 112, topPos + 70, 42, 14).build());
+            ).bounds(leftPos + 136, topPos + 80, 28, 14).build());
         }
+    }
+
+    private boolean isVlsCoreScreen() {
+        return menu.getBlockEntity() instanceof VerticleLaunchingSlotCoreBlockEntity;
+    }
+
+    private boolean isRedstoneRelayScreen() {
+        return menu.getBlockEntity() instanceof RedstoneRelayBlockEntity;
+    }
+
+    private void saveDisplayName() {
+        if (!(menu.getBlockEntity() instanceof RedstoneRelayBlockEntity relay) || this.displayNameBox == null) {
+            return;
+        }
+        String displayName = this.displayNameBox.getValue();
+        relay.setCustomHudDisplayName(displayName);
+        ModNetworking.sendToServer(new WeaponDisplayNameC2SPacket(relay.getBlockPos(), displayName));
     }
 
     private void saveLaunchInterval() {
@@ -166,6 +239,73 @@ public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
             return Integer.parseInt(text.trim());
         } catch (NumberFormatException e) {
             return defaultValue;
+        }
+    }
+
+    private void renderControlTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        if (this.breakBlocksButton != null
+                && GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.leftPos + BREAK_BLOCKS_LABEL_X, this.topPos + BREAK_BLOCKS_BUTTON_Y, 96, 16,
+                Component.translatable("gui.vsie.common.break_blocks.tooltip"))) {
+            return;
+        }
+        int[] channelXs = {30, 60, 90, 120};
+        String[] channelKeys = {
+                "gui.vsie.weapon.channel_1.tooltip",
+                "gui.vsie.weapon.channel_2.tooltip",
+                "gui.vsie.weapon.channel_3.tooltip",
+                "gui.vsie.weapon.channel_4.tooltip"
+        };
+        for (int i = 0; i < channelXs.length; i++) {
+            if (GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                    this.leftPos + channelXs[i], this.topPos + 40, 20, 10,
+                    Component.translatable(channelKeys[i]))) {
+                return;
+            }
+        }
+
+        if (menu.hasAmmoSlots() && (this.hoveredSlot == null || !this.hoveredSlot.hasItem())
+                && GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.leftPos + 4, this.topPos + AMMO_PANEL_TOP, this.imageWidth - 8, AMMO_PANEL_BOTTOM - AMMO_PANEL_TOP,
+                Component.translatable("gui.vsie.weapon.ammo_slots.tooltip"))) {
+            return;
+        }
+
+        if (this.launchIntervalBox != null
+                && GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.launchIntervalBox.getX(), this.launchIntervalBox.getY(), this.launchIntervalBox.getWidth(), this.launchIntervalBox.getHeight(),
+                Component.translatable("gui.vsie.weapon.launch_interval.input.tooltip"))) {
+            return;
+        }
+
+        if (this.launchIntervalBox != null) {
+            GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                    this.leftPos + 136, this.topPos + 80, 28, 14,
+                    Component.translatable("gui.vsie.weapon.launch_interval.save.tooltip"));
+            return;
+        }
+
+        if (this.displayNameBox != null
+                && GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.displayNameBox.getX(), this.displayNameBox.getY(), this.displayNameBox.getWidth(), this.displayNameBox.getHeight(),
+                Component.translatable("gui.vsie.weapon.display_name.input.tooltip"))) {
+            return;
+        }
+
+        if (this.displayNameBox != null) {
+            GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                    this.leftPos + 136, this.topPos + 96, 28, 14,
+                    Component.translatable("gui.vsie.weapon.display_name.save.tooltip"));
+        }
+    }
+
+    private Component breakBlocksButtonLabel() {
+        return Component.literal(menu.getBlockEntity().breaksBlocksEnabled() ? "[x]" : "[ ]");
+    }
+
+    private void updateBreakBlocksButtonLabel() {
+        if (this.breakBlocksButton != null) {
+            this.breakBlocksButton.setMessage(breakBlocksButtonLabel());
         }
     }
 }

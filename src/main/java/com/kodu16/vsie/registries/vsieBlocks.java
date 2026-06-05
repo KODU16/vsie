@@ -1,10 +1,11 @@
 package com.kodu16.vsie.registries;
 
 import com.kodu16.vsie.content.misc.electromagnet_rail.ElectroMagnetRailBlock;
-import com.kodu16.vsie.content.misc.electromagnet_rail.core.ElectroMagnetRailCoreBlock;
-import com.kodu16.vsie.content.misc.electromagnet_rail.top.ElectroMagnetRailTopBlock;
+import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreBlock;
+import com.kodu16.vsie.content.misc.electromagnet_rail.structure.top.ElectroMagnetRailTopBlock;
 import com.kodu16.vsie.content.turret.ciws.basicciws.BasicCIWSBlock;
 import com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret.HeavyElectroMagnetTurretBlock;
+import com.kodu16.vsie.content.turret.heavyturret.heavylaserturret.HeavyLaserTurretBlock;
 import com.kodu16.vsie.content.screen.block.BasicScreenBlock;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlock;
 import com.kodu16.vsie.content.storage.ammobox.AmmoBoxBlock;
@@ -18,17 +19,21 @@ import com.kodu16.vsie.content.thruster.block.LargeThrusterBlock;
 import com.kodu16.vsie.content.thruster.block.MediumThrusterBlock;
 import com.kodu16.vsie.content.turret.block.MediumLaserTurretBlock;
 import com.kodu16.vsie.content.turret.block.ParticleTurretBlock;
+import com.kodu16.vsie.content.turret.block.SmallLaserTurretBlock;
 import com.kodu16.vsie.content.vectorthruster.block.BasicVectorThrusterBlock;
 import com.kodu16.vsie.content.weapon.arc_emitter.ArcEmitterBlock;
 import com.kodu16.vsie.content.weapon.cenix_plasma_cannon.CenixPlasmaCannonBlock;
+import com.kodu16.vsie.content.weapon.electro_magnet_rail_accelerator.ElectromagnetRailAcceleratorBlock;
 import com.kodu16.vsie.content.weapon.electro_magnet_rail_cannon.ElectroMagnetRailCannonBlock;
 import com.kodu16.vsie.content.weapon.infra_knife_accelerator.InfraKnifeAcceleratorBlock;
 import com.kodu16.vsie.content.weapon.missile_launcher.block.BasicMissileLauncherBlock;
 import com.kodu16.vsie.content.weapon.missile_launcher.block.VerticleLaunchingSlotBlock;
 import com.kodu16.vsie.content.weapon.missile_launcher.block.VerticleLaunchingSlotCoreBlock;
+import com.kodu16.vsie.content.weapon.redstone_relay.RedstoneRelayBlock;
 import com.kodu16.vsie.vsie;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlock;
 import com.kodu16.vsie.content.thruster.block.BasicThrusterBlock;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.material.MapColor;
 import com.simibubi.create.foundation.data.CreateRegistrate;
@@ -38,6 +43,7 @@ import com.tterrag.registrate.util.entry.BlockEntry;
 public class vsieBlocks {
     public static final CreateRegistrate REGISTRATE = vsie.registrate();
     public static void register() {} //Loads this class
+    private static final int SMALL_AMMOBOX_DURABILITY = 1000;
 
     public static final BlockEntry<BasicThrusterBlock> BASIC_THRUSTER_BLOCK = REGISTRATE.block("basic_thruster", BasicThrusterBlock::new)
             .properties(p -> p.mapColor(MapColor.METAL))
@@ -66,6 +72,15 @@ public class vsieBlocks {
             .simpleItem()
             .register();
 
+    public static final BlockEntry<SmallLaserTurretBlock> SMALL_LASER_TURRET_BLOCK = REGISTRATE.block("small_laser_turret", SmallLaserTurretBlock::new)
+            .properties(p -> p.mapColor(MapColor.METAL))
+            .properties(p -> p.requiresCorrectToolForDrops())
+            .properties(p -> p.sound(SoundType.METAL))
+            .properties(p -> p.strength(5.5f, 4.0f))
+            .properties(p -> p.noOcclusion())
+            .simpleItem()
+            .register();
+
     public static final BlockEntry<ShieldGeneratorBlock> SHIELD_GENERATOR_BLOCK = REGISTRATE.block("shield_generator", ShieldGeneratorBlock::new)
             .properties(p -> p.mapColor(MapColor.METAL))
             .properties(p -> p.requiresCorrectToolForDrops())
@@ -85,6 +100,15 @@ public class vsieBlocks {
             .register();
 
     public static final BlockEntry<InfraKnifeAcceleratorBlock> INFRA_KNIFE_ACCELERATOR_BLOCK = REGISTRATE.block("infra_knife_accelerator", InfraKnifeAcceleratorBlock::new)
+            .properties(p -> p.mapColor(MapColor.METAL))
+            .properties(p -> p.requiresCorrectToolForDrops())
+            .properties(p -> p.sound(SoundType.METAL))
+            .properties(p -> p.strength(5.5f, 4.0f))
+            .properties(p -> p.noOcclusion())
+            .simpleItem()
+            .register();
+    // Function: register the linker-bound rail accelerator weapon block without introducing visual assets yet.
+    public static final BlockEntry<ElectromagnetRailAcceleratorBlock> ELECTRO_MAGNET_RAIL_ACCELERATOR_BLOCK = REGISTRATE.block("electro_magnet_rail_accelerator", ElectromagnetRailAcceleratorBlock::new)
             .properties(p -> p.mapColor(MapColor.METAL))
             .properties(p -> p.requiresCorrectToolForDrops())
             .properties(p -> p.sound(SoundType.METAL))
@@ -144,6 +168,14 @@ public class vsieBlocks {
             .properties(p -> p.noOcclusion())
             .simpleItem()
             .register();
+    public static final BlockEntry<RedstoneRelayBlock> REDSTONE_RELAY_BLOCK = REGISTRATE.block("redstone_relay", RedstoneRelayBlock::new)
+            .properties(p -> p.mapColor(MapColor.METAL))
+            .properties(p -> p.requiresCorrectToolForDrops())
+            .properties(p -> p.sound(SoundType.METAL))
+            .properties(p -> p.strength(5.5f, 4.0f))
+            .properties(p -> p.noOcclusion())
+            .simpleItem()
+            .register();
     public static final BlockEntry<MediumThrusterBlock> MEDIUM_THRUSTER_BLOCK = REGISTRATE.block("medium_thruster", MediumThrusterBlock::new)
             .properties(p -> p.mapColor(MapColor.METAL))
             .properties(p -> p.requiresCorrectToolForDrops())
@@ -169,6 +201,14 @@ public class vsieBlocks {
             .simpleItem()
             .register();
     public static final BlockEntry<HeavyElectroMagnetTurretBlock> HEAVY_ELECTROMAGNET_TURRET_BLOCK = REGISTRATE.block("heavy_electromagnet_turret", HeavyElectroMagnetTurretBlock::new)
+            .properties(p -> p.mapColor(MapColor.METAL))
+            .properties(p -> p.requiresCorrectToolForDrops())
+            .properties(p -> p.sound(SoundType.METAL))
+            .properties(p -> p.strength(5.5f, 4.0f))
+            .properties(p -> p.noOcclusion())
+            .simpleItem()
+            .register();
+    public static final BlockEntry<HeavyLaserTurretBlock> HEAVY_LASER_TURRET_BLOCK = REGISTRATE.block("heavy_laser_turret", HeavyLaserTurretBlock::new)
             .properties(p -> p.mapColor(MapColor.METAL))
             .properties(p -> p.requiresCorrectToolForDrops())
             .properties(p -> p.sound(SoundType.METAL))
@@ -247,6 +287,17 @@ public class vsieBlocks {
             .properties(p -> p.strength(5.5f, 4.0f))
             .properties(p -> p.noOcclusion())
             .simpleItem()
+            .register();
+    // Function: small ammobox is a placeable durable ammo cartridge consumed by CIWS fire.
+    public static final BlockEntry<Block> SMALL_AMMOBOX_BLOCK = REGISTRATE.block("small_ammobox", Block::new)
+            .properties(p -> p.mapColor(MapColor.METAL))
+            .properties(p -> p.requiresCorrectToolForDrops())
+            .properties(p -> p.sound(SoundType.METAL))
+            .properties(p -> p.strength(5.5f, 4.0f))
+            .properties(p -> p.noOcclusion())
+            .item()
+            .properties(p -> p.durability(SMALL_AMMOBOX_DURABILITY))
+            .build()
             .register();
     public static final BlockEntry<ElectroMagnetRailCoreBlock> ELECTRO_MAGNET_RAIL_CORE_BLOCK = REGISTRATE.block("electro_magnet_rail_core", ElectroMagnetRailCoreBlock::new)
             .properties(p -> p.mapColor(MapColor.METAL))

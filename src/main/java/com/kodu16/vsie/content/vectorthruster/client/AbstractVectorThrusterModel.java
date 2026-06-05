@@ -78,8 +78,8 @@ public class AbstractVectorThrusterModel extends DefaultedBlockGeoModel<Abstract
         state[1] = smoothPitchrad;
 
         // 设置回骨骼（转回弧度）
-        spinner.setRotY(smoothSpinrad);
-        nozzle.setRotX(smoothPitchrad);
+        spinner.setRotY((float) (Math.PI+smoothSpinrad));
+        nozzle.setRotX((float) (Math.PI+smoothPitchrad));
     }
 
     private boolean controlling(AbstractVectorThrusterBlockEntity animatable) {

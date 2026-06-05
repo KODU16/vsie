@@ -24,9 +24,6 @@ public class vsieItems {
     public static final CreateRegistrate REGISTRATE = vsie.registrate();
     public static void register() {} //Loads this class
 
-    //public static final ItemEntry<BurnableItem> PINE_RESIN = REGISTRATE.item("pine_resin", p -> new BurnableItem(p, 1200)).register();
-    //Lenses
-    //public static final ItemEntry<OpticalLensItem> OPTICAL_LENS = REGISTRATE.item("optical_lens", OpticalLensItem::new).register();
     public static final ItemEntry<testItem> TEST_ITEM = REGISTRATE.item("test_item", testItem::new).register();
     public static final ItemEntry<linker> LINKER = REGISTRATE.item("linker", linker::new).register();
     public static final ItemEntry<horizontal_mark> HORIZONTAL_MARK = REGISTRATE.item("horizontal_mark", horizontal_mark::new).register();
@@ -42,4 +39,10 @@ public class vsieItems {
     public static final ItemEntry<iff> IFF = REGISTRATE.item("iff", iff::new).register();
     public static final ItemEntry<shieldtool> SHIELD_TOOL = REGISTRATE.item("shield_tool", shieldtool::new).register();
     public static final ItemEntry<warp_data_chip> WARP_DATA_CHIP = REGISTRATE.item("warp_data_chip", warp_data_chip::new).register();
+    // Function: solid E-710 is a simple crafting ingredient reserved for future recipes.
+    public static final ItemEntry<Item> SOLID_E710 = REGISTRATE.item("solid_e710", Item::new).register();
+    // Function: advanced material items used by later crafting recipes.
+    public static final ItemEntry<Item> COMPUTRONIC_SUBSTRATE = REGISTRATE.item("computronic_substrate", Item::new).register();
+    public static final ItemEntry<Item> METALIC_MICROLATTICE = REGISTRATE.item("metalic_microlattice", Item::new).register();
+    public static final ItemEntry<Item> SILICON_CARBIDE = REGISTRATE.item("silicon_carbide", Item::new).register();
 }

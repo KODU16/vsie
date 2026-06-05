@@ -1,6 +1,6 @@
 package com.kodu16.vsie.content.item.shieldtool;
 
-import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
+import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
 import com.kodu16.vsie.utility.ItemStackNbt;
@@ -21,6 +21,8 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Locale;
 
 public class shieldtool extends Item {
 
@@ -44,25 +46,28 @@ public class shieldtool extends Item {
         CompoundTag tag = ItemStackNbt.get(stack);
         if (tag == null) return;
 
-        int max    = tag.getInt(KEY_MAX_SHIELD);
+        int max = tag.getInt(KEY_MAX_SHIELD);
         int radius = tag.getInt(KEY_RADIUS);
-        int cost   = tag.getInt(KEY_COST);
-        int regen  = tag.getInt(KEY_REGEN);
-        int cd     = tag.getInt(KEY_COOLDOWN);
+        int cost = tag.getInt(KEY_COST);
+        int regen = tag.getInt(KEY_REGEN);
+        int cd = tag.getInt(KEY_COOLDOWN);
         double dmax = tag.getDouble(KEY_DISTANCE_MAX);
         double dmin = tag.getDouble(KEY_DISTANCE_MIN);
 
         if (max == 0) {
-            tooltip.add(Component.literal("§7右键一个正常工作的护盾发生器来查看护盾参数"));
+            tooltip.add(Component.translatable("gui.vsie.shield_tool.no_data"));
+            tooltip.add(Component.translatable("gui.vsie.shield_tool.refresh_hint"));
             return;
         }
 
-        tooltip.add(Component.literal("§bdistance: Max:" + dmax+" Min:"+dmin));
-        tooltip.add(Component.literal("§bMax shield amount: " + max));
-        tooltip.add(Component.literal("§bShield radius: " + radius));
-        tooltip.add(Component.literal("§bEnergy cost per intercept: " + cost));
-        tooltip.add(Component.literal("§bEnergy regenerate per tick: " + regen));
-        tooltip.add(Component.literal("§bOverload cooldown time before regeneration: " + cd));
+        tooltip.add(Component.translatable("gui.vsie.shield_tool.max_distance.label", formatDistance(dmax)));
+        tooltip.add(Component.translatable("gui.vsie.shield_tool.min_distance.label", formatDistance(dmin)));
+        tooltip.add(Component.translatable("gui.vsie.shield_tool.max_shield.label", max));
+        tooltip.add(Component.translatable("gui.vsie.shield_tool.radius.label", radius));
+        tooltip.add(Component.translatable("gui.vsie.shield_tool.cost.label", cost));
+        tooltip.add(Component.translatable("gui.vsie.shield_tool.regen.label", regen));
+        tooltip.add(Component.translatable("gui.vsie.shield_tool.cooldown.label", cd));
+        tooltip.add(Component.translatable("gui.vsie.shield_tool.refresh_hint"));
     }
 
     // 你原来的右键打开界面代码（保持不变）
@@ -72,8 +77,8 @@ public class shieldtool extends Item {
             return InteractionResultHolder.pass(player.getItemInHand(hand));
         }
 
+        ItemStack stack = player.getItemInHand(hand);
         if (!level.isClientSide) {
-            //LogUtils.getLogger().warn("opening iff GUI");
             player.openMenu(new MenuProvider() {
                 @Override
                 public Component getDisplayName() {
@@ -82,20 +87,24 @@ public class shieldtool extends Item {
 
                 @Override
                 public AbstractContainerMenu createMenu(int windowId, Inventory inv, Player player) {
-                    return new ShieldToolContainerMenu(windowId, inv, player.getMainHandItem());
+                    return new ShieldToolContainerMenu(windowId, inv, stack);
                 }
             });
         }
 
-        return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide());
+        return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
     }
 
     @Override
     public InteractionResult useOn(UseOnContext context) {
         Level level = context.getLevel();
-        if (level.isClientSide) return InteractionResult.PASS;
+        if (level.isClientSide) {
+            return InteractionResult.SUCCESS;
+        }
 
-        ServerPlayer player = (ServerPlayer) context.getPlayer();
+        if (!(context.getPlayer() instanceof ServerPlayer player)) {
+            return InteractionResult.FAIL;
+        }
         BlockPos clickedPos = context.getClickedPos();
         ItemStack stack = context.getItemInHand();
 
@@ -106,24 +115,47 @@ public class shieldtool extends Item {
         }
 
         BlockEntity seatBe = level.getBlockEntity(shieldGen.linkedcontrolseatpos);
-        if (!(seatBe instanceof AbstractControlSeatBlockEntity controlSeat)) {
+        if (!(seatBe instanceof ControlSeatBlockEntity controlSeat)) {
             player.displayClientMessage(Component.literal("护盾发生器未绑定有效的控制座椅"), true);
             return InteractionResult.FAIL;
         }
 
         ControlSeatServerData data = controlSeat.getControlSeatData();
+        // 右键瞬间强制重算一次护盾参数，避免工具打开时仍显示上一拍的旧结果。
+        controlSeat.updateShield();
+        controlSeat.updateShieldEnergyAvalible();
 
-        ItemStackNbt.update(stack, tag -> {
-            tag.putInt(KEY_DISTANCE_MAX, (int) data.shieldmax);
-            tag.putInt(KEY_DISTANCE_MIN, (int) data.shieldmin);
-            tag.putInt(KEY_MAX_SHIELD, (int) data.totalshield);
-            tag.putInt(KEY_RADIUS,    (int) data.shieldradius);
-            tag.putInt(KEY_COST,      (int) data.shieldcostperprojectile);
-            tag.putInt(KEY_REGEN,     (int) data.shieldregeneratepertick);
-            tag.putInt(KEY_COOLDOWN,  (int) data.shieldmaxcooldowntime);
+        writeShieldSnapshot(stack, data);
+
+        player.openMenu(new MenuProvider() {
+            @Override
+            public Component getDisplayName() {
+                return Component.translatable("container.vsie.shield_tool");
+            }
+
+            @Override
+            public AbstractContainerMenu createMenu(int windowId, Inventory inv, Player currentPlayer) {
+                return new ShieldToolContainerMenu(windowId, inv, stack);
+            }
         });
 
         return InteractionResult.CONSUME;
+    }
+
+    private static void writeShieldSnapshot(ItemStack stack, ControlSeatServerData data) {
+        ItemStackNbt.update(stack, tag -> {
+            tag.putDouble(KEY_DISTANCE_MAX, data.shieldmax);
+            tag.putDouble(KEY_DISTANCE_MIN, data.shieldmin);
+            tag.putInt(KEY_MAX_SHIELD, (int) data.totalshield);
+            tag.putInt(KEY_RADIUS, (int) data.shieldradius);
+            tag.putInt(KEY_COST, (int) data.shieldcostperprojectile);
+            tag.putInt(KEY_REGEN, (int) data.shieldregeneratepertick);
+            tag.putInt(KEY_COOLDOWN, (int) data.shieldmaxcooldowntime);
+        });
+    }
+
+    private static String formatDistance(double distance) {
+        return String.format(Locale.ROOT, "%.2f", distance);
     }
 
 }

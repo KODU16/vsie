@@ -4,10 +4,12 @@ import com.kodu16.vsie.content.bullet.entity.HeavyElectroMagnetBulletEntity;
 import com.kodu16.vsie.content.turret.TurretData;
 import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity;
 import com.kodu16.vsie.registries.vsieEntities;
+import com.kodu16.vsie.registries.vsieItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -63,6 +65,17 @@ public class HeavyElectroMagnetTurretBlockEntity extends AbstractHeavyTurretBloc
     }
 
     @Override
+    public boolean isEnergyTurret() {
+        // Function: heavy electromagnetic salvos are treated as ammo-fed rounds until dedicated shells exist.
+        return false;
+    }
+
+    @Override
+    public Item getAmmoItem() {
+        return vsieItems.PARTICLE_CONTAINER.get();
+    }
+
+    @Override
     public String getturrettype() {
         return "heavy_electromagnet";
     }
@@ -113,10 +126,10 @@ public class HeavyElectroMagnetTurretBlockEntity extends AbstractHeavyTurretBloc
         }
 
         Vec3 sideDirection = getSideFirepointDirection(fireDirection.normalize());
-        // Function: queue a left-to-right three-shot salvo around the calculated center firepoint.
-        pendingFirepoints[0] = centerFirepoint.subtract(sideDirection.scale(SIDE_FIREPOINT_OFFSET));
+        // Function: queue a right-to-left three-shot salvo to match the authored firing animation.
+        pendingFirepoints[0] = centerFirepoint.add(sideDirection.scale(SIDE_FIREPOINT_OFFSET));
         pendingFirepoints[1] = centerFirepoint;
-        pendingFirepoints[2] = centerFirepoint.add(sideDirection.scale(SIDE_FIREPOINT_OFFSET));
+        pendingFirepoints[2] = centerFirepoint.subtract(sideDirection.scale(SIDE_FIREPOINT_OFFSET));
         pendingFireDirection = fireDirection.normalize();
         pendingShotIndex = 0;
         pendingShotDelay = 0;
@@ -184,8 +197,10 @@ public class HeavyElectroMagnetTurretBlockEntity extends AbstractHeavyTurretBloc
 
         // Function: projectile velocity stays parallel to the turret-origin-to-target line for this salvo.
         HeavyElectroMagnetBulletEntity bullet = new HeavyElectroMagnetBulletEntity(vsieEntities.HEAVY_ELECTROMAGNETIC_BULLET.get(), level);
-        bullet.setPos(firepoint);
-        bullet.setDeltaMovement(direction.normalize().scale(HeavyElectroMagnetBulletEntity.SPEED));
+        // Function: start behind each muzzle on the same axis, matching CBC's stable out-of-barrel launch.
+        bullet.setPos(HeavyElectroMagnetBulletEntity.spawnBehindMuzzle(firepoint, direction));
+        bullet.setPreciseLaunchVelocity(direction);
+        bullet.setBreaksBlocksEnabled(breaksBlocksEnabled());
         level.addFreshEntity(bullet);
     }
 

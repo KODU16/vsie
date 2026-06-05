@@ -3,6 +3,7 @@ package com.kodu16.vsie.content.controlseat.gui;
 // NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
 
 import com.kodu16.vsie.vsie;
+import com.kodu16.vsie.foundation.client.GuiTooltipHelper;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -39,5 +40,18 @@ public class ControlSeatWarpScreen extends AbstractContainerScreen<ControlSeatWa
         this.renderBackground(gg, mouseX, mouseY, partialTicks);
         super.render(gg, mouseX, mouseY, partialTicks);
         this.renderTooltip(gg, mouseX, mouseY);
+        renderControlTooltips(gg, mouseX, mouseY);
+    }
+
+    private void renderControlTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        if ((this.hoveredSlot == null || !this.hoveredSlot.hasItem())
+                && GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.leftPos + 8, this.topPos + 18, 162, 54,
+                Component.translatable("gui.vsie.control_seat_warp.chip_slots.tooltip"))) {
+            return;
+        }
+        GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.leftPos + 8, this.topPos + 84, 162, 76,
+                Component.translatable("gui.vsie.control_seat_warp.player_inventory.tooltip"));
     }
 }

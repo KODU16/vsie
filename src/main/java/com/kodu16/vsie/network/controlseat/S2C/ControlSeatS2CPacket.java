@@ -33,11 +33,14 @@ public class ControlSeatS2CPacket implements CustomPacketPayload {
     public String ally;
     public String lockedenemyslug;
     public int throttle;
+    public double shipSpeed;
+    public Vector3d structureCenterWorld;
+    public double seatGForce;
     // 功能：同步服务端判定的视角锁定状态，确保玩家重进世界后客户端控制态与服务端一致。
     public boolean isViewLocked;
 
     // 构造函数
-    public ControlSeatS2CPacket(BlockPos pos, Vector3d shipFacing, Vector3d shipUp, String enemy, String ally, String lockedenemyslug, int throttle, boolean isViewLocked) {
+    public ControlSeatS2CPacket(BlockPos pos, Vector3d shipFacing, Vector3d shipUp, String enemy, String ally, String lockedenemyslug, int throttle, boolean isViewLocked, double shipSpeed, Vector3d structureCenterWorld, double seatGForce) {
         this.pos = pos;
         this.shipFacing = shipFacing;
         this.shipUp = shipUp;
@@ -46,6 +49,9 @@ public class ControlSeatS2CPacket implements CustomPacketPayload {
         this.lockedenemyslug = lockedenemyslug;
         this.throttle = throttle;
         this.isViewLocked = isViewLocked;
+        this.shipSpeed = shipSpeed;
+        this.structureCenterWorld = structureCenterWorld;
+        this.seatGForce = seatGForce;
     }
 
     // 编码（序列化）
@@ -62,6 +68,11 @@ public class ControlSeatS2CPacket implements CustomPacketPayload {
         buf.writeUtf(lockedenemyslug,64);
         buf.writeInt(throttle);
         buf.writeBoolean(isViewLocked);
+        buf.writeDouble(shipSpeed);
+        buf.writeDouble(structureCenterWorld.x);
+        buf.writeDouble(structureCenterWorld.y);
+        buf.writeDouble(structureCenterWorld.z);
+        buf.writeDouble(seatGForce);
     }
 
     // 解码（反序列化）
@@ -80,7 +91,10 @@ public class ControlSeatS2CPacket implements CustomPacketPayload {
         Vector3d shipUp = new Vector3d(upX, upY, upZ);
         int throttle = buf.readInt();
         boolean isViewLocked = buf.readBoolean();
-        return new ControlSeatS2CPacket(pos, shipFacing, shipUp, enemy, ally, lockedenemyslug, throttle, isViewLocked);
+        double shipSpeed = buf.readDouble();
+        Vector3d structureCenterWorld = new Vector3d(buf.readDouble(), buf.readDouble(), buf.readDouble());
+        double seatGForce = buf.readDouble();
+        return new ControlSeatS2CPacket(pos, shipFacing, shipUp, enemy, ally, lockedenemyslug, throttle, isViewLocked, shipSpeed, structureCenterWorld, seatGForce);
     }
 
     // 处理客户端接收到的数据包
@@ -113,6 +127,9 @@ public class ControlSeatS2CPacket implements CustomPacketPayload {
             clientData.ally = ally;
             clientData.lockedenemyslug = lockedenemyslug;
             clientData.throttle = throttle;
+            clientData.shipSpeed = shipSpeed;
+            clientData.structureCenterWorld = new Vector3d(structureCenterWorld);
+            clientData.seatGForce = seatGForce;
             // 功能：把服务端视角锁定状态回写到客户端，解决重进后客户端锁定态丢失导致输入被清空的问题。
             //LOGGER.warn(String.valueOf(Component.literal("S2C data:enemy:"+clientData.enemy+"ally:"+clientData.ally)));
             // 这里可以进一步根据需要应用旋转到某个实体或者更新视角

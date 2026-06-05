@@ -1,0 +1,25 @@
+{
+  "name": "武器：冷却",
+  "icon": "vsie:infra_knife_accelerator",
+  "category": "vsie:weapon",
+  "sortnum": 2,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "title": "什么是冷却",
+      "text": "武器每次开火都会消耗弹药，但同时也会产生热量，冷却完成前无法射击，武器的热量情况会在控制椅的HUD中显示在缩写的右侧（详见章节：$(l:vsie:weapon/weapon_channel)武器：频道/$ 和 $(l:vsie:control_seat/flying_information)控制椅：HUD信息/$）$(br2)AeroIE的武器冷却方式可分为两种，详见下文："
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:cenix_plasma_cannon",
+      "title": "第一种冷却",
+      "text": "这类武器的产生热量速率远高于散热速率，因此每次开火必定过热，必须等待冷却完成才能射击下一次"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:infra_knife_accelerator",
+      "title": "第二种冷却",
+      "text": "这类武器允许多次连射，每次射击时产生一定量热量，在不射击时热量能够缓慢恢复"
+    }
+  ]
+}

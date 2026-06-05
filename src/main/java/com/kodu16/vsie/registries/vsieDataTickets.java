@@ -3,6 +3,7 @@ package com.kodu16.vsie.registries;
 // NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
 
 import com.kodu16.vsie.content.missile.AbstractMissileEntity;
+import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreBlockEntity;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.vectorthruster.AbstractVectorThrusterBlockEntity;
@@ -37,6 +38,9 @@ public class vsieDataTickets {
         AbstractScreenBlockEntity.SCREEN_OFFSET_X = addInt("screen_offset_x");
         AbstractScreenBlockEntity.SCREEN_OFFSET_Y = addInt("screen_offset_y");
         AbstractScreenBlockEntity.SCREEN_OFFSET_Z = addInt("screen_offset_z");
+
+        // Function: rail core uses this ticket when syncing its working animation state after terminal detection.
+        ElectroMagnetRailCoreBlockEntity.IS_WORKING = addBoolean("electro_magnet_rail_core_is_working");
     }
 
 

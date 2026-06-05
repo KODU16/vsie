@@ -1,0 +1,17 @@
+{
+  "name": "控制椅：HUD信息",
+  "icon": "vsie:control_seat",
+  "category": "vsie:control_seat",
+  "sortnum": 4,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "title": "HUD中的信息",
+      "text": "在控制椅的HUD中，会显示如下信息：$(br2)最上方的竖条：指示东南西北的水平方向$(br2)左侧的横条：指示俯仰角度$(br2)左侧的弧形：指示燃料和电量的余量$(br2)中心的线段：指示鼠标控制时鼠标的位置和力矩施加方向"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "右侧的弧形：指示护盾和热量（未实装）的余量$(br2)下方的按钮：指示前面的章节所述几个功能和武器频道的开关状态$(br2)右侧的武器名称和冷却条：指示当前频道激活的武器和冷却状态，详见$(l:vsie:weapon/weapon_channel)“武器：频道”章节/$"
+    }
+  ]
+}

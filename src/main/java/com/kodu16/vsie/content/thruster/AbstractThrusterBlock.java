@@ -5,11 +5,20 @@ import javax.annotation.Nullable;
 
 import com.kodu16.vsie.foundation.ServerShipUtils;
 import dev.ryanhcode.sable.sublevel.SubLevel;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.level.block.RenderShape;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -25,6 +34,8 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
+import net.minecraft.world.phys.BlockHitResult;
+import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("deprecation")
 public abstract class AbstractThrusterBlock extends DirectionalBlock implements EntityBlock {
@@ -98,6 +109,37 @@ public abstract class AbstractThrusterBlock extends DirectionalBlock implements 
     @Override
     public void neighborChanged(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos, @Nonnull Block block, @Nonnull BlockPos fromPos, boolean isMoving) {
         if (level.isClientSide()) return;
+    }
+
+    @Override
+    protected @NotNull ItemInteractionResult useItemOn(@NotNull ItemStack stack, @NotNull BlockState state, @NotNull Level level,
+                                                      @NotNull BlockPos pos, @NotNull Player player, @NotNull InteractionHand hand,
+                                                      @NotNull BlockHitResult hit) {
+        // Function: held-item right clicks can still fall through to the thruster GUI when the item does not consume useOn.
+        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+    }
+
+    @Override
+    protected @NotNull InteractionResult useWithoutItem(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos,
+                                                       @NotNull Player player, @NotNull BlockHitResult hit) {
+        if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
+            BlockEntity be = level.getBlockEntity(pos);
+            if (be instanceof AbstractThrusterBlockEntity thruster) {
+                // Function: empty-hand right click opens the per-thruster force/torque authority GUI.
+                serverPlayer.openMenu(new MenuProvider() {
+                    @Override
+                    public Component getDisplayName() {
+                        return Component.translatable("container.vsie.thruster");
+                    }
+
+                    @Override
+                    public AbstractContainerMenu createMenu(int id, Inventory inv, Player p) {
+                        return new ThrusterContainerMenu(id, inv, thruster);
+                    }
+                }, buf -> buf.writeBlockPos(pos));
+            }
+        }
+        return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
 

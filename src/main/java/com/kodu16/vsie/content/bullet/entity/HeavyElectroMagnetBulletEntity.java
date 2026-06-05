@@ -4,14 +4,26 @@ import com.kodu16.vsie.content.bullet.AbstractBulletEntity;
 import com.kodu16.vsie.content.bullet.BulletData;
 import com.lowdragmc.photon.client.fx.EntityEffectExecutor;
 import com.lowdragmc.photon.client.fx.FX;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 
 public class HeavyElectroMagnetBulletEntity extends AbstractBulletEntity {
-    public static final double SPEED = 5.0D;
+    public static final double SPEED = 7.0D;
+    private static final float BLOCK_BREAK_TNT_CHANCE = 0.0F;
+    private static final int PIERCING_DURATION_TICKS = 10;
+    private static final double BLOCK_BREAK_RADIUS = 5.0D;
+    private boolean piercingStarted = false;
+    private int piercingTicks = 5;
 
     public HeavyElectroMagnetBulletEntity(EntityType<? extends AbstractBulletEntity> type, Level pLevel) {
         super(type, pLevel);
@@ -36,6 +48,71 @@ public class HeavyElectroMagnetBulletEntity extends AbstractBulletEntity {
     }
 
     @Override
+    protected float getBlockBreakTntChance() {
+        return BLOCK_BREAK_TNT_CHANCE;
+    }
+
+    @Override
+    protected double getBlockBreakRadius() {
+        return BLOCK_BREAK_RADIUS;
+    }
+
+    protected int getPiercingDurationTicks() {
+        return PIERCING_DURATION_TICKS;
+    }
+
+    protected boolean isPiercingStarted() {
+        return piercingStarted;
+    }
+
+    @Override
+    protected boolean shouldDiscardAfterEntityHit(EntityHitResult result) {
+        return false;
+    }
+
+    @Override
+    protected boolean shouldDiscardAfterBlockHit(BlockHitResult result) {
+        return false;
+    }
+
+    @Override
+    protected void onHitEntity(EntityHitResult result) {
+        this.piercingStarted = true;
+        Entity target = result.getEntity();
+        if (target != null) {
+            target.hurt(this.level().damageSources().onFire(), 15);
+        }
+    }
+
+    @Override
+    protected void onHitBlock(BlockHitResult result) {
+        this.piercingStarted = true;
+        if (breaksBlocksEnabled() && this.level() instanceof ServerLevel serverLevel) {
+            // Function: heavy electromagnetic rounds break a sphere at the first impact point, then keep boring forward.
+            destroyBlocksInSphere(serverLevel, result.getLocation(), getBlockBreakRadius());
+        }
+    }
+
+    @Override
+    protected void afterServerBulletMove(HitResult hitResult) {
+        if (!this.piercingStarted) {
+            return;
+        }
+
+        if (breaksBlocksEnabled() && hitResult.getType() != HitResult.Type.BLOCK && this.level() instanceof ServerLevel serverLevel) {
+            BlockState state = serverLevel.getBlockState(this.blockPosition());
+            if (!state.isAir() && state.isCollisionShapeFullBlock(serverLevel, this.blockPosition())) {
+                destroyBlocksInSphere(serverLevel, this.position(), getBlockBreakRadius());
+            }
+        }
+
+        this.piercingTicks++;
+        if (this.piercingTicks >= getPiercingDurationTicks()) {
+            this.discard();
+        }
+    }
+
+    @Override
     protected void startLifecycleFx(FX fx) {
         var effect = new EntityEffectExecutor(fx, this.level(), this, EntityEffectExecutor.AutoRotate.NONE);
         Vec3 velocity = this.getDeltaMovement();
@@ -55,6 +132,24 @@ public class HeavyElectroMagnetBulletEntity extends AbstractBulletEntity {
 
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+    }
 
+    @Override
+    protected void addAdditionalSaveData(CompoundTag tag) {
+        super.addAdditionalSaveData(tag);
+        tag.putBoolean("PiercingStarted", this.piercingStarted);
+        tag.putInt("PiercingTicks", this.piercingTicks);
+    }
+
+    @Override
+    protected void readAdditionalSaveData(CompoundTag tag) {
+        super.readAdditionalSaveData(tag);
+        if (tag.contains("PiercingStarted")) {
+            this.piercingStarted = tag.getBoolean("PiercingStarted");
+        }
+        if (tag.contains("PiercingTicks")) {
+            this.piercingTicks = tag.getInt("PiercingTicks");
+        }
     }
 }

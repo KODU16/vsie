@@ -24,14 +24,17 @@ import com.kodu16.vsie.content.storage.fueltank.AbstractFuelTankBlockEntity;
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlockEntity;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
+import com.kodu16.vsie.content.weapon.electro_magnet_rail_accelerator.ElectromagnetRailAcceleratorBlockEntity;
 import com.kodu16.vsie.content.weapon.missile_launcher.block.VerticleLaunchingSlotCoreBlockEntity;
 import com.kodu16.vsie.network.fuel.FluidThrusterProperties;
 import com.kodu16.vsie.registries.fuel.ThrusterFuelManager;
+import com.kodu16.vsie.registries.vsieFluids;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
 import dev.ryanhcode.sable.api.block.BlockEntitySubLevelActor;
 import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
+import dev.ryanhcode.sable.api.physics.mass.MassData;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.nbt.CompoundTag;
@@ -76,6 +79,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
     public volatile boolean ride = false;
     private boolean hasInitialized = false;
     private boolean shieldOpenFxPlayed = false;
+    private boolean hasThrusterFuelThisTick = false;
     public boolean previousfirestatus = false;
     private HolderLookup.Provider nbtRegistries;
     private Vector3d currentworldpos = new Vector3d();
@@ -84,7 +88,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
     public SmartFluidTankBehaviour tank;
 
-    // 閸旂喕鍏橀敍姘礋 Shift+閸欐娊鏁幍鎾崇磻閻ㄥ嫭甯堕崚鑸殿槳娑撴挾鏁?GUI 閹绘劒绶?27 閺?warp data chip 鐎涙ê鍋嶉妴?
+
     private final ItemStackHandler warpChipInventory = new ItemStackHandler(27) {
         @Override
         protected void onContentsChanged(int slot) {
@@ -93,7 +97,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
         @Override
         public boolean isItemValid(int slot, ItemStack stack) {
-            // 閸旂喕鍏橀敍姘舵閸掕埖甯堕崚鑸殿槳娴犳挷缍呴崣顏呭复閺€?warp data chip閵?
+
             return stack.is(vsieItems.WARP_DATA_CHIP.get());
         }
     };
@@ -132,13 +136,13 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
     }
 
 
-    //閸忓牊甯撮弨绂糽ient閺囧瓨鏌婇敍灞藉建client閸氭垶婀囬崝锛勵伂閸欐垵瀵?
+
     public void clientTick() {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer lp = mc.player;
         BlockPos pos = getBlockPos();
-        // 閸欘亝婀佽ぐ鎾存拱閸︽壆甯虹€硅泛姘ㄩ弰顖濈箹瀵姴楠囧鍛畱娑旀ê顓归弮鑸靛閻㈢喐鏅?
-        //鏉╂瑦妲告稉顏堟饯閹焦鏌熷▔鏇礉閺堚偓婵傝姤褰侀崜宥団€樼€规艾銈芥担鐘叉躬server鐎涙ê銈芥禍鍡曠铂娑撳﹣绔村▎锛勬畱姒х姵鐖ｆ担宥囩枂閸滃奔绮稉濠佺濞嗏剝鎼锋担婊勬闂?
+
+
         ClientMouseHandler.handle(lp, pos);
     }
 
@@ -159,33 +163,44 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
     @Override
     public void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.write(tag, registries, clientPacket);
-        // 閸旂喕鍏橀敍姘瘮娑斿懎瀵查幒褍鍩楀?GUI 娑擃厼鐡ㄩ弨鍓ф畱 warp data chip閵?
+
         tag.put("WarpChipInventory", warpChipInventory.serializeNBT(registries));
-        // 閸旂喕鍏橀敍姘Ω瑜版挸澧犻柅澶夎厬閻ㄥ嫯绌潻浣烘窗閺嶅洣绔撮獮璺哄晸閸?NBT閿涘奔绻氱拠浣稿隘閸ф宓忔潪钘夋倵 control seat 娴犲秷顔囧妞剧瑓娑撯偓濞喡ょ┈鏉╀礁娼楅弽鍥モ偓?
+
         tag.putInt("WarpTargetX", controlseatData.warpTargetPos.getX());
         tag.putInt("WarpTargetY", controlseatData.warpTargetPos.getY());
         tag.putInt("WarpTargetZ", controlseatData.warpTargetPos.getZ());
         tag.putString("WarpTargetDimension", controlseatData.warpTargetDimension);
         tag.putString("WarpTargetName", controlseatData.warpTargetName);
-        // 閸旂喕鍏橀敍姘倱濮?warp 閸戝棗顦悩鑸碘偓浣稿煂鐎广垺鍩涚粩顖ょ礉鐠佲晜瀵滄稉?P 閺冩儼鍏樺锝団€樼挧鎵斥偓婊冨絿濞戝牆鍣径鍥ｂ偓婵娾偓灞肩瑝閺勵垰鍟€濞嗏€崇磻閼挎粌宕熼妴?
+
         tag.putBoolean("IsWarpPreparing", controlseatData.isWarpPreparing);
-        // 閸旂喕鍏橀敍姘瘮娑斿懎瀵查垾婊嗩潒鐟欐帡鏀ｇ€规埃鈧繂绱戦崗绛圭礉娣囨繆鐦夐悳鈺侇啀闁插秷绻樻稉鏍櫕娑撴柧绮涢崷銊ラ獓濡炲懍绗傞弮璺哄讲閹垹顦查幒褍鍩楅幀浣碘偓?
+
         tag.putBoolean("IsViewLocked", controlseatData.isviewlocked);
+        // Function: auto-level is a ship mode like anti-gravity and should survive block reloads.
+        tag.putBoolean("IsAutoLevelOn", controlseatData.isAutoLevelOn);
+        controlseatData.refreshWeaponChannelEncode();
+        // Function: weapon channel toggles must survive world reloads, not just the live S2C HUD sync.
+        tag.putInt("WeaponChannelEncode", controlseatData.channelencode);
     }
 
     @Override
     public void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.read(tag, registries, clientPacket);
         if (tag.contains("WarpChipInventory")) {
-            // 閸旂喕鍏橀敍姘躬閸栧搫娼￠崝鐘烘祰/閸氬本顒為弮鑸典划婢跺秵甯堕崚鑸殿槳 GUI 娑擃厺绻氱€涙娈?warp data chip閵?
+
             warpChipInventory.deserializeNBT(registries, tag.getCompound("WarpChipInventory"));
         }
-        // 閸旂喕鍏橀敍姘躬閸栧搫娼￠崝鐘烘祰/閸氬本顒為弮鑸典划婢跺秵甯堕崚鑸殿槳瀹歌尙绮￠柅澶娿偨閻ㄥ嫯绌潻浣烘窗閺嶅洢鈧?
+
         controlseatData.warpTargetPos = new BlockPos(tag.getInt("WarpTargetX"), tag.getInt("WarpTargetY"), tag.getInt("WarpTargetZ"));
         controlseatData.warpTargetDimension = tag.getString("WarpTargetDimension");
         controlseatData.warpTargetName = tag.getString("WarpTargetName");
         controlseatData.isWarpPreparing = tag.getBoolean("IsWarpPreparing");
         controlseatData.isviewlocked = tag.getBoolean("IsViewLocked");
+        controlseatData.isAutoLevelOn = tag.getBoolean("IsAutoLevelOn");
+        if (tag.contains("WeaponChannelEncode")) {
+            controlseatData.setWeaponChannelEncode(tag.getInt("WeaponChannelEncode"));
+        } else {
+            controlseatData.refreshWeaponChannelEncode();
+        }
     }
 
     @Override
@@ -198,16 +213,15 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         if (level.isClientSide)
             return;
         if (hasInitialized) {
-            // 閸旂喕鍏橀敍姘槨 tick 娴犲簼绗橀悾灞艰厬閻ㄥ嫮婀＄€圭偛楠囧鍛杽娴ｆ挸寮介弻銉ョ秼閸撳秳绠婚崸鎰负鐎硅绱濇穱顔碱槻闁插秷绻樻稉鏍櫕閸?ride/player 娑撱垹銇戠€佃壈鍤ч弮鐘崇《閹貉冨煑閻ㄥ嫰妫舵０妯糕偓?
             refreshSeatOccupancyFromWorld();
 
-            // 閸旂喕鍏橀敍姘槨 tick 閸掗攱鏌婇幒褍鍩楀鍛板殰闊偅鏌熼崸妤€娼楅弽鍥风礉娓?warp 閼奉亜濮╃€电懓鍣幎濠勬窗閺嶅洣缍呯純顔挎祮閹诡澀璐熼幒褍鍩楀鍛秼閸撳秶娈戞稉鏍櫕閺堟繂鎮滈崺鍝勫櫙閵?
             controlseatData.controlSeatPos = getBlockPos();
 
             //update
             if (!ride) {
-                controlseatData.reset();
-                serverShipHandler.resetControlInput();
+                controlseatData.clearSeatOccupantState();
+                // Function: empty seat clears player input but leaves assist damping available for drift suppression.
+                serverShipHandler.clearManualControlInput();
                 controlseatData.setPlayer(null);
             }
             this.calculatedstrength = 0;
@@ -216,8 +230,17 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
             this.totalenergy =100;
             this.totalenergyavalible = 0;
-            this.totalfuel = 100;
+            this.totalfuel = 0;
             this.totalfuelavalible = 0;
+            this.capacitorenergy = 0;
+
+            updateEnergy();
+            this.linkedBatteryPowerAvailableThisTick = this.totalenergyavalible > 0;
+            if (!this.linkedBatteryPowerAvailableThisTick) {
+                disableLinkedPeripheralsForNoPower();
+                updateFuel();
+                return;
+            }
 
             updateThruster();
             updateWeapon();
@@ -226,20 +249,22 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             this.capacitorenergy = -this.energyspendpertick;
             this.capacitorfuel = -this.fuelspendcurrenttick;
             //LogUtils.getLogger().warn("current energy cost per tick:"+this.energyspendpertick);
+            this.totalenergy =100;
+            this.totalenergyavalible = 0;
             updateEnergy();
             updateFuel();
             updateScreen();
 
             if(this.capacitorenergy < 0) {
                 this.capacitorenergy = 0;
-                this.calculatedstrength = 0;
+                disableThrusterOutput();
                 return;
             }
             this.capacitorenergy = 0;
 
-            if(this.capacitorfuel < 0) {
+            if(this.capacitorfuel < 0 || !this.hasThrusterFuelThisTick) {
                 this.capacitorfuel = 0;
-                this.calculatedstrength = 0;
+                disableThrusterOutput();
                 return;
             }
         }
@@ -255,19 +280,23 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             }
         }
 
-        //閹躲倗娴?
-        if(controlseatData.isshieldon) {//婵″倹鐏夐幎銈囨禈瀵偓閸?
-            updateShieldEnergyAvalible();
-            if (!shieldOpenFxPlayed) {
-                SubLevel shieldFxSublevel = ServerShipUtils.getSubLevelAtBlockPos(level, this.getBlockPos());
-                Vec3 shieldFxCenter = shieldFxSublevel == null ? null : ServerShipUtils.getStructureCenterWorld(shieldFxSublevel);
-                if (shieldFxCenter != null && !linkedShields.isEmpty() && controlseatData.shieldradius > 0.0D) {
-                    // Play shield_open as soon as the shield is toggled on, even if the shield is cooling down.
-                    shieldOpenFxPlayed = playShieldOpenFx(shieldFxSublevel, shieldFxCenter);
+
+        if(this.linkedBatteryPowerAvailableThisTick && controlseatData.isshieldon) {
+            boolean shieldOverloaded = controlseatData.shieldcooldowntime > 0.0D;
+            if (shieldOverloaded) {
+                // Cooldown means the shield stays armed in HUD but remains physically closed and cannot regenerate yet.
+                controlseatData.shieldcooldowntime = Math.max(0.0D, controlseatData.shieldcooldowntime - 1.0D);
+                shieldOpenFxPlayed = false;
+                updateShieldEnergyAvalible();
+            } else {
+                updateShieldEnergyAvalible();
+                if (!shieldOpenFxPlayed) {
+                    SubLevel shieldFxSublevel = ServerShipUtils.getSubLevelAtBlockPos(level, this.getBlockPos());
+                    Vec3 shieldFxCenter = shieldFxSublevel == null ? null : ServerShipUtils.getStructureCenterWorld(shieldFxSublevel);
+                    if (shieldFxCenter != null && !linkedShields.isEmpty() && controlseatData.shieldradius > 0.0D) {
+                        shieldOpenFxPlayed = playShieldOpenFx(shieldFxSublevel, shieldFxCenter);
+                    }
                 }
-            }
-            int currentcooldown = (int) controlseatData.shieldcooldowntime;
-            if(controlseatData.shieldcooldowntime <= 0) {
                 SubLevel sublevel = ServerShipUtils.getSubLevelAtBlockPos(level,this.getBlockPos());
                 if (sublevel == null) {
                     return;
@@ -279,50 +308,49 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                 if (!shieldOpenFxPlayed) {
                     shieldOpenFxPlayed = playShieldOpenFx(sublevel, center);
                 }
-                AABB searchBox = new AABB(this.getBlockPos()).inflate(controlseatData.shieldradius + 3.0); // 婢舵碍鎮虫稉鈧悙鐧哥礉闂冨弶顒涙姗€鈧喎鐤勬担鎾茬鐢呪敍鏉╁洤骞?
-                // 閺嶇绺鹃敍姘涧缁涙盯鈧鈧粍鐥呴張澶屾晸閸涜棄鈧?+ 闁喎瀹虫径鐔锋彥 + 娑撳秵妲搁悳鈺侇啀娑旂喍绗夐弰顖滄磮閻㈠弶鐏﹂垾婵呯缁崵娈戠€圭偘缍?
+                AABB searchBox = new AABB(this.getBlockPos()).inflate(controlseatData.shieldradius + 3.0);
                 Vec3 finalCenter = center;
+                int shieldCost = Math.max(0, (int) Math.ceil(controlseatData.shieldcostperprojectile));
+                final int[] remainingShieldEnergy = {(int) Math.max(0.0D, controlseatData.avalibleshield)};
+                final boolean[] overloadTriggered = {false};
                 level.getEntitiesOfClass(Entity.class, searchBox, entity -> {
                     if (entity.isRemoved() || entity instanceof LivingEntity)
                         return false;
 
-                    // 闁喎瀹抽梼鍫濃偓纭风礉閸欘垵鐨熼敍鍫濆礋娴ｅ稄绱伴弬鐟版健/閸掍紮绱?
                     double speed = entity.getDeltaMovement().length();
-                    if (speed < 0.25) return false; // 婢额亝鍙冮惃鍕纯閹恒儱鎷烽悾銉礄濮ｆ柨顩у鍌涜癁閻ㄥ嫮澧块崫渚婄礆
+                    if (speed < 0.25) return false;
 
-                    // 鐠侊紕鐣婚弰顖氭儊閺堟繃濮㈤惄楣冾棧閺?
                     Vec3 toEntity = entity.position().subtract(finalCenter);
                     double dot = entity.getDeltaMovement().normalize().dot(toEntity.normalize());
-                    return dot < -0.3; // 鐡掑﹨绀嬬拠瀛樻鐡掑﹥顒滅€佃濮㈤惄楣冾棧閺夈儻绱?0.3~0.6 娑斿妫跨拫鍐Ν閹靛鍔呴敍?
+                    return dot < -0.3;
                 }).forEach(entity -> {
 
                     Vec3 toEntity = entity.position().subtract(finalCenter);
                     double distSq = toEntity.lengthSqr();
 
+                    if (overloadTriggered[0]) return;
                     if (distSq > controlseatData.shieldradius * controlseatData.shieldradius || distSq < 0.25) return;
-                    if(controlseatData.avalibleshield>0)
-                    {
-                        // 閹凤附鍩?
-                        entity.discard();
-                        // 缁帒鐡欐禍銈囧仯
-                        Vec3 hitDir = toEntity.normalize();
-                        Vec3 hitPoint = finalCenter.add(hitDir.scale(controlseatData.shieldradius));
-                        playShieldHitFx(hitPoint, hitDir);
 
-                        // 閸欘垶鈧绱伴幘顓熸杹闂婅櫕鏅?
-                        level.playSound(null, hitPoint.x, hitPoint.y, hitPoint.z,
-                                SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), SoundSource.BLOCKS,
-                                1.0f, 1.2f + level.random.nextFloat() * 0.4f);
-                        SubtractShieldEnergy((int) controlseatData.shieldcostperprojectile);
-                    }
-                    else {
-                        controlseatData.shieldcooldowntime = controlseatData.shieldmaxcooldowntime;
+                    entity.discard();
+                    Vec3 hitDir = toEntity.normalize();
+                    Vec3 hitPoint = finalCenter.add(hitDir.scale(controlseatData.shieldradius));
+                    playShieldHitFx(hitPoint, hitDir);
+
+                    level.playSound(null, hitPoint.x, hitPoint.y, hitPoint.z,
+                            SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), SoundSource.BLOCKS,
+                            1.0f, 1.2f + level.random.nextFloat() * 0.4f);
+
+                    if (remainingShieldEnergy[0] >= shieldCost) {
+                        SubtractShieldEnergy(shieldCost);
+                        remainingShieldEnergy[0] = Math.max(0, remainingShieldEnergy[0] - shieldCost);
+                    } else {
+                        overloadTriggered[0] = true;
+                        overloadShieldAfterIntercept();
                     }
                 });
-                RegenerateShieldEnergy((int) controlseatData.shieldregeneratepertick);
-            }
-            else {
-                controlseatData.shieldcooldowntime = currentcooldown - 1;
+                if (!overloadTriggered[0]) {
+                    RegenerateShieldEnergy((int) controlseatData.shieldregeneratepertick);
+                }
             }
         }
         else {
@@ -331,14 +359,15 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
     }
 
-    //0閿涙碍甯规潻娑樻珤 1閿涙矮瀵屽锕€娅?2閿涙碍濮㈤惄?3閿涙氨鍋栨繅?4閿涙氨鏁稿Ч?5閿涙氨鍣ч弬娆戭唸 6閿涙艾鑴婇懡顖滎唸閿涘苯濮熻箛鍛瑝鐟曚礁鍟撻柨?
-    public void updateEnergy() {//avalible閿涙艾澧挎担娆忊偓纭风礉闂堢€塿alible閿涙碍鈧鈧?
+
+    public void updateEnergy() {
         List<Vec3> toRemove = new ArrayList<>();
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
 
             if (be instanceof AbstractEnergyBatteryBlockEntity battery) {
+                confirmLinkedPeripheralPresent(pos, 4);
                 int energy = battery.getEnergy().getEnergyStored();
                 if(energy>=-this.capacitorenergy) {
                     battery.getEnergyStorage().extractEnergy(-this.capacitorenergy,false);
@@ -351,14 +380,14 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                 totalenergy += battery.getEnergy().getMaxEnergyStored();
                 totalenergyavalible += battery.getEnergy().getEnergyStored();
             } else {
-                // 閸忓牐顔囨稉瀣降閿涘苯鎯婇悳顖氱暚娴滃棗鍟€閸?
+
                 toRemove.add(pos);
             }
         }, 4);
         controlseatData.totalenergystorage = totalenergy;
         controlseatData.avalibleenergy = totalenergyavalible;
         //LogUtils.getLogger().warn("detected total energy:"+controlseatData.totalenergystorage+"avalible:"+controlseatData.avalibleenergy);
-        // 瀵邦亞骞嗙紒鎾存将閸氬海绮烘稉鈧崚鐘绘珟
+
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 4);
         }
@@ -366,49 +395,60 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
     public void updateThruster() {
         List<Vec3> toRemove = new ArrayList<>();
-        // 閸旂喕鍏橀敍姘槨濞嗏剝娲块弬鐗堝腹鏉╂稑娅掗崜宥夊櫢缂冾喒鈧粈绗㈤崡妤勩偪閸栨ぞ绗傛稉瀣р偓婵嗗彋閺傜懓鎮滈張鈧径褎甯归崝娑欌偓璇叉嫲閿涘矂浼╅崗宥嗛儴閻劋绗傛稉鈧?tick 缂傛挸鐡ㄩ妴?
+
         float[] facingMaxThrustSum = new float[6];
-        // 閸旂喕鍏橀敍姘辩处鐎涙ɑ婀?tick 閸愬懍绮涢崷銊у殠閻ㄥ嫭甯规潻娑樻珤閸掓銆冮敍宀€绮虹拋鈥崇暚閹存劕鎮楅崘宥囩埠娑撯偓娑撳褰傞垾婊冩倱閺堟繂鎮滈幀缁樺腹閸旀稈鈧縿鈧?
+        double[] forceStrengthSum = new double[1];
+        double[] torqueStrengthSum = new double[1];
+
         List<AbstractThrusterBlockEntity> activeThrusters = new ArrayList<>();
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
 
             if (be instanceof AbstractThrusterBlockEntity thruster) {
+                confirmLinkedPeripheralPresent(pos, 0);
                 Logger LOGGER = LogUtils.getLogger();
-                //LOGGER.warn("writing to thrusters:" +blockPos+ "torque:"+controlseatData.getFinaltorque()+"force:"+controlseatData.getFinalforce());
-                this.calculatedstrength+=thruster.getMaxThrust();
-                // 閸旂喕鍏橀敍姘瘻閹恒劏绻橀崳銊︽煙閸?FACING 缂佺喕顓哥拠銉︽煙閸氭垹娈戦張鈧径褎甯归崝娑欌偓璇叉嫲閿涘牅绗㈤崡妤勩偪閸栨ぞ绗傛稉瀣剁礆閵?
+                this.energyspendpertick += thruster.getControlSeatEnergyCostPerTick();
+                //LOGGER.warn("writing to thrusters:" +blockPos+ "torque:"+controlseatData.getFinaltorque()+"force:"+controlseatData.getThrusterVisualForce());
+                // Function: control authority uses the player's per-thruster limits, not raw max thrust.
+                double forceCoefficient = thruster.getForceCoefficient();
+                double torqueCoefficient = thruster.getTorqueCoefficient();
+                forceStrengthSum[0] += forceCoefficient;
+                torqueStrengthSum[0] += torqueCoefficient;
+
                 Direction thrusterFacing = thruster.getBlockState().getValue(BlockStateProperties.FACING);
                 int facingIndex = getFacingThrustIndex(thrusterFacing);
                 if (facingIndex >= 0) {
-                    facingMaxThrustSum[facingIndex] += thruster.getMaxThrust();
+                    facingMaxThrustSum[facingIndex] += (float) forceCoefficient;
                 }
-                // 閸旂喕鍏橀敍姘愁唶瑜版洘甯规潻娑樻珤鐎圭偘绶ラ敍灞界窡閺傜懓鎮滈幀缁樺腹閸旀稓绮虹拋鈥崇暚閹存劕鎮楅崘宥嗗Ω缂佹挻鐏夌划鍓р€橀崶鐐插晸缂佹瑥顕惔鏃€甯规潻娑樻珤閵?
+
                 activeThrusters.add(thruster);
                 this.fuelspendcurrenttick += thruster.fuelconsumptionperthrottle()*thruster.getFuelThrottle();
             } else {
-                // 閸忓牐顔囨稉瀣降閿涘苯鎯婇悳顖氱暚娴滃棗鍟€閸?
+
                 toRemove.add(pos);
             }
         }, 0);
-        // 閸旂喕鍏橀敍姘Ω閳ユ粌鎮撻張婵嗘倻閹恒劏绻橀崳銊︹偓缁樺腹閸旀稈鈧繀绗岄幒褍鍩楁潏鎾冲弳娑撯偓鐠ц渹绗呴崣鎴犵舶濮ｅ繋閲滈幒銊ㄧ箻閸ｎ煉绱濇笟娑樺従鐠侊紕鐣婚崝娑滅閻氼喗娼堥柌宥冣偓?
+
         for (AbstractThrusterBlockEntity thruster : activeThrusters) {
             Direction thrusterFacing = thruster.getBlockState().getValue(BlockStateProperties.FACING);
             int facingIndex = getFacingThrustIndex(thrusterFacing);
-            double sameFacingSum = facingIndex >= 0 ? facingMaxThrustSum[facingIndex] : thruster.getMaxThrust();
-            thruster.setdata(controlseatData.getFinaltorque(), controlseatData.getFinalforce(), sameFacingSum);
+            double sameFacingSum = facingIndex >= 0 ? facingMaxThrustSum[facingIndex] : thruster.getForceCoefficient();
+            thruster.setdata(controlseatData.getFinaltorque(), controlseatData.getThrusterVisualForce(), sameFacingSum);
         }
+        this.calculatedstrength = (float) forceStrengthSum[0];
         controlseatData.thruster_strength = this.calculatedstrength;
-        // 閸旂喕鍏橀敍姘殺閳ユ粈绗㈤崡妤勩偪閸栨ぞ绗傛稉瀣р偓婵嗗彋閺傜懓鎮滈幒銊ュ缂佺喕顓哥紒鎾寸亯閸愭瑥鍙嗛幒褍鍩楀鍛箛閸旓紕顏弫鐗堝祦閿涘奔绶甸崥搴ｇ敾闁槒绶拠璇插絿閵?
+        controlseatData.thruster_force_strength = (float) forceStrengthSum[0];
+        controlseatData.thruster_torque_strength = (float) torqueStrengthSum[0];
+
         controlseatData.facingMaxThrustSum = facingMaxThrustSum;
-        // 瀵邦亞骞嗙紒鎾存将閸氬海绮烘稉鈧崚鐘绘珟
+
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 0);
         }
     }
 
-    // 閸旂喕鍏橀敍姘Ω Direction 閺勭姴鐨犻崚鐗堝腹閸旀稓绮虹拋鈩冩殶缂佸嫮鍌ㄥ鏇礄娑?閵嗕礁宕?閵嗕浇銈?閵嗕礁瀵?閵嗕椒绗?閵嗕椒绗?閿涘鈧?
+
     private int getFacingThrustIndex(Direction direction) {
         return switch (direction) {
             case EAST -> 0;
@@ -421,10 +461,10 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
     }
 
     public void updateWeapon() {
-        // 濮?tick 闁棄鎮滃锕€娅掗崥灞绢劄娑撯偓濞嗏€崇磻閻忣偆濮搁幀浣风瑢妫版垿浜鹃敍宀勪缉閸忓秴娲滄稉銏犲瘶/閻樿埖鈧椒绗夐崥灞绢劄鐎佃壈鍤ч垾婊冧箯闁款喗瀵滄稉瀣╃稻濮濓箑娅掓稉宥呭絺鐏忓嫧鈧縿鈧?
-        // 娴犲懎婀悩鑸碘偓浣稿綁閸栨牗妞傞幍宥呮倱濮濄儰绱伴崙铏瑰箛濮濓箑娅掔粩顖炩偓姘朵壕鐞氼偊鍣哥純顔兼倵閺冪姵纭堕懛顏勫З閹垹顦查惃鍕６妫版ǜ鈧?
+
+
         previousfirestatus = controlseatData.isfiring;
-        // 閸旂喕鍏橀敍姘絹閸撳秷顓哥粻妤佸付閸掕埖顦ぐ鎾冲濠碘偓濞插顣堕柆鎾剁椽閻緤绱濋崥搴ｇ敾閻劋绨垾婊勵劅閸?妫版垿浜鹃崠褰掑帳閳ユ繀绗岄崥灞绢劄瀵偓閻忣偉绶崗銉ｂ偓?
+
         int activeSeatChannelEncode = 0;
         if (controlseatData.getChannel1()) activeSeatChannelEncode |= 1;
         if (controlseatData.getChannel2()) activeSeatChannelEncode |= 2;
@@ -433,21 +473,26 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
         List<ActiveWeaponHudInfo> activeWeaponHudInfos = new ArrayList<>();
         List<Vec3> toRemove = new ArrayList<>();
+        // Function: remember whether any active rail accelerator is currently forcing counter-force assist off.
+        final boolean[] forceAssistSuppressedByAccelerator = {false};
         int finalActiveSeatChannelEncode = activeSeatChannelEncode;
         SubLevel lockedEnemySubLevel = resolveLockedEnemySubLevel();
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof AbstractWeaponBlockEntity weapon) {
+                confirmLinkedPeripheralPresent(pos, 1);
+                this.energyspendpertick += weapon.getControlSeatEnergyCostPerTick();
                 // Function: sync the currently locked enemy sublevel to linked weapons before firing.
                 weapon.receivetarget(lockedEnemySubLevel);
                 if (weapon instanceof VerticleLaunchingSlotCoreBlockEntity verticalLaunchCore) {
                     // Function: VLS cap animation follows armed channels even when the fire key is not held.
                     verticalLaunchCore.receiveArmedChannels(finalActiveSeatChannelEncode);
                 }
-                // 閸旂喕鍏橀敍姘劅閸ｃ劑鈧俺绻冮懛顏囬煩妫版垿浜鹃柊宥囩枂閳ユ粌鎲￠惌銉⑩偓婵囧付閸掕埖顦弰顖氭儊鐏炵偘绨ぐ鎾冲濠碘偓濞插顣堕柆鎾扁偓?
-                if (isWeaponInAnyActiveChannel(weapon, finalActiveSeatChannelEncode)) {
-                    // 閸旂喕鍏橀敍姘跺櫚闂嗗棙顒熼崳銊ユ倳缁夐绗岄崘宄板祱鏉╂稑瀹抽敍灞肩返鐎广垺鍩涚粩顖滅帛閸掑灈鈧粍琛ラ梻銊︾壉瀵繆鈧繆绻樻惔锔芥蒋閵?
+
+                boolean activeForSeat = isWeaponInAnyActiveChannel(weapon, finalActiveSeatChannelEncode);
+                if (activeForSeat) {
+
                     activeWeaponHudInfos.add(new ActiveWeaponHudInfo(
                             weapon.getDisplayName().getString(),
                             weapon.getCooldownHudValue(),
@@ -456,28 +501,39 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                     ));
                 }
 
-                // 閸旂喕鍏橀敍姘瘻瑜版挸澧犲鈧悘顐ゅЦ閹礁鎮滃锕€娅掗崥灞绢劄閹貉冨煑濡炲懘顣堕柆鎾圭翻閸忋儯鈧?
+
                 if (controlseatData.isfiring) {
                     weapon.receivechannel(finalActiveSeatChannelEncode);
                 } else {
                     weapon.receivechannel(0);
                 }
+                if (controlseatData.isfiring
+                        && activeForSeat
+                        && weapon instanceof ElectromagnetRailAcceleratorBlockEntity accelerator
+                        && accelerator.shouldSuppressForceAssist()) {
+                    forceAssistSuppressedByAccelerator[0] = true;
+                }
             } else {
-                // 閸忓牐顔囨稉瀣降閿涘苯鎯婇悳顖氱暚娴滃棗鍟€閸?
+
                 toRemove.add(pos);
             }
         }, 1);
 
-        // 閸旂喕鍏橀敍姘纯閺傜増婀囬崝锛勵伂缂傛挸鐡ㄩ惃鍕负濞茬粯顒熼崳?HUD 閺佺増宓侀敍灞肩返閻樿埖鈧礁瀵橀崥灞绢劄閸?HUD閵?
-        controlseatData.activeWeaponHudInfos = activeWeaponHudInfos;
 
-        // 瀵邦亞骞嗙紒鎾存将閸氬海绮烘稉鈧崚鐘绘珟
+        controlseatData.activeWeaponHudInfos = activeWeaponHudInfos;
+        // Function: rail acceleration overrides player preference and forces counter-force assist off while active.
+        controlseatData.isForceAssistSuppressedByAccelerator = forceAssistSuppressedByAccelerator[0];
+        if (forceAssistSuppressedByAccelerator[0]) {
+            controlseatData.isforceassiston = false;
+        }
+
+
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 1);
         }
     }
 
-    // 閸旂喕鍏橀敍姘灲閺傤厽顒熼崳銊︽Ц閸氾箓鍘ょ純顔兼躬閹貉冨煑濡炲懎缍嬮崜宥嗙负濞插顣堕柆鎾茶厬閻ㄥ嫪鎹㈡稉鈧０鎴︿壕閵?
+
     private boolean isWeaponInAnyActiveChannel(AbstractWeaponBlockEntity weapon, int activeSeatChannelEncode) {
         if (activeSeatChannelEncode == 0) {
             return false;
@@ -511,13 +567,14 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             BlockEntity be = level.getBlockEntity(blockPos);
 
             if (be instanceof ShieldGeneratorBlockEntity shield) {
+                confirmLinkedPeripheralPresent(pos, 2);
                 Logger LOGGER = LogUtils.getLogger();
             } else {
-                // 閸忓牐顔囨稉瀣降閿涘苯鎯婇悳顖氱暚娴滃棗鍟€閸?
+
                 toRemove.add(pos);
             }
         }, 2);
-        // 瀵邦亞骞嗙紒鎾存将閸氬海绮烘稉鈧崚鐘绘珟
+
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 2);
         }
@@ -526,19 +583,21 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             return;
         }
         double[] minmax = ShieldHandler.getMinMaxDistance(linkedShields);
-        double max = minmax[0];
-        double min = minmax[1];
+        // ShieldHandler returns [min, max], so unpack in the same order here.
+        double min = minmax[0];
+        double max = minmax[1];
         if (max <= 0.0D || min <= 0.0D) {
             resetShieldStats();
             return;
         }
+
         controlseatData.shieldmax = max;
         controlseatData.shieldmin = min;
         controlseatData.shieldradius = 0.75*max;
         controlseatData.totalshield = 100000 * linkedShields.size();
         controlseatData.shieldcostperprojectile = ((max*(max/min)*linkedShields.size()))*1000;
         controlseatData.shieldregeneratepertick = ((max*linkedShields.size()))*500;
-        controlseatData.shieldmaxcooldowntime = (max/min)*100;
+        controlseatData.shieldmaxcooldowntime = (max/min)*50;
     }
 
     private void resetShieldStats() {
@@ -566,6 +625,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             BlockEntity be = level.getBlockEntity(blockPos);
 
             if (be instanceof ShieldGeneratorBlockEntity shield) {
+                confirmLinkedPeripheralPresent(pos, 2);
                 Logger LOGGER = LogUtils.getLogger();
                 avalibleshield += shield.getEnergy().getEnergyStored();
                 shield.maxreceiverate = (int) (controlseatData.shieldregeneratepertick/linkedShields.size())+10;
@@ -584,8 +644,36 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             BlockEntity be = level.getBlockEntity(blockPos);
 
             if (be instanceof ShieldGeneratorBlockEntity shield) {
+                confirmLinkedPeripheralPresent(pos, 2);
                 Logger LOGGER = LogUtils.getLogger();
                 shield.getEnergy().extractEnergy(eachsubtract,false);
+            }
+        }, 2);
+    }
+
+    private void overloadShieldAfterIntercept() {
+        drainAllLinkedShieldEnergy();
+        controlseatData.avalibleshield = 0;
+        avalibleshield = 0;
+        controlseatData.shieldcooldowntime = Math.max(1.0D, controlseatData.shieldmaxcooldowntime);
+        shieldOpenFxPlayed = false;
+        setChanged();
+    }
+
+    private void drainAllLinkedShieldEnergy() {
+        if (linkedShields.isEmpty()) {
+            return;
+        }
+        this.forEachLinkedPeripheral(pos -> {
+            BlockPos blockPos = BlockPos.containing(pos);
+            BlockEntity be = level.getBlockEntity(blockPos);
+            if (be instanceof ShieldGeneratorBlockEntity shield) {
+                confirmLinkedPeripheralPresent(pos, 2);
+                int stored = shield.getEnergy().getEnergyStored();
+                if (stored > 0) {
+                    shield.getEnergy().extractEnergy(stored, false);
+                    shield.setChanged();
+                }
             }
         }, 2);
     }
@@ -632,6 +720,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             BlockEntity be = level.getBlockEntity(blockPos);
 
             if (be instanceof ShieldGeneratorBlockEntity shield) {
+                confirmLinkedPeripheralPresent(pos, 2);
                 int received = shield.getEnergy().receiveEnergy(remaining[0], true);
                 remaining[0] -= received;
                 accepted[0] += received;
@@ -657,6 +746,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             BlockEntity be = level.getBlockEntity(blockPos);
 
             if (be instanceof ShieldGeneratorBlockEntity shield) {
+                confirmLinkedPeripheralPresent(pos, 2);
                 int received = shield.getEnergy().receiveEnergy(remaining[0], false);
                 remaining[0] -= received;
                 charged[0] += received;
@@ -685,6 +775,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             BlockEntity be = level.getBlockEntity(blockPos);
 
             if (be instanceof AbstractEnergyBatteryBlockEntity battery) {
+                confirmLinkedPeripheralPresent(pos, 4);
                 int extracted = battery.getEnergyStorage().extractEnergy(remaining[0], false);
                 remaining[0] -= extracted;
                 drained[0] += extracted;
@@ -712,6 +803,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             BlockEntity be = level.getBlockEntity(blockPos);
 
             if (be instanceof AbstractEnergyBatteryBlockEntity battery) {
+                confirmLinkedPeripheralPresent(pos, 4);
                 // Refund only protects against stale shield receive simulations in the same tick.
                 int received = battery.getEnergyStorage().receiveEnergy(remaining[0], false);
                 remaining[0] -= received;
@@ -731,8 +823,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         if (!(level instanceof ServerLevel) || controlseatData.shieldradius <= 0.0D) {
             return false;
         }
-        Vector3f shieldNormal = controlSeatRightWorld(sublevel);
-        Quaternionf rotation = new Quaternionf().rotationTo(0.0F, 0.0F, 1.0F, shieldNormal.x, shieldNormal.y, shieldNormal.z);
+        Quaternionf rotation = shieldOpenRotation(sublevel);
         float scale = Math.max(0.01F, (float) controlseatData.shieldradius / SHIELD_OPEN_DEFAULT_RADIUS);
         Vector3d velocity = getSublevelLinearVelocity(sublevel);
         // Scale shield_open from its default radius 8 to the current shield radius.
@@ -745,6 +836,36 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                 true
         ));
         return true;
+    }
+
+    private Quaternionf shieldOpenRotation(SubLevel sublevel) {
+        Vector3f shieldUp = controlSeatUpWorld(sublevel);
+        Vector3f shieldNormal = controlSeatRightWorld(sublevel);
+
+        // First align the effect local Y axis to the control seat local Y axis in world space.
+        Quaternionf rotation = new Quaternionf().rotationTo(
+                0.0F, 1.0F, 0.0F,
+                shieldUp.x, shieldUp.y, shieldUp.z
+        );
+
+        // Then twist around that Y axis so the effect local Z axis still matches the shield plane normal.
+        Vector3f rotatedLocalZ = new Vector3f(0.0F, 0.0F, 1.0F);
+        rotation.transform(rotatedLocalZ);
+        projectOntoPlane(rotatedLocalZ, shieldUp);
+        Vector3f targetNormal = new Vector3f(shieldNormal);
+        projectOntoPlane(targetNormal, shieldUp);
+        if (rotatedLocalZ.lengthSquared() > 1.0E-6F && targetNormal.lengthSquared() > 1.0E-6F) {
+            rotatedLocalZ.normalize();
+            targetNormal.normalize();
+            float dot = Mth.clamp(rotatedLocalZ.dot(targetNormal), -1.0F, 1.0F);
+            float angle = (float) Math.acos(dot);
+            Vector3f cross = rotatedLocalZ.cross(targetNormal, new Vector3f());
+            if (cross.dot(shieldUp) < 0.0F) {
+                angle = -angle;
+            }
+            rotation.rotateAxis(angle, shieldUp.x, shieldUp.y, shieldUp.z);
+        }
+        return rotation;
     }
 
     private Vector3d getSublevelLinearVelocity(SubLevel sublevel) {
@@ -772,10 +893,22 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         ModNetworking.sendToAll(new FxPositionS2CPacket(
                 SHIELD_HIT_FX,
                 hitPoint.x, hitPoint.y, hitPoint.z,
+                0.0D, 0.0D, 0.0D,
                 rotation,
                 new Vector3f(1.0F, 1.0F, 1.0F),
+                true,
                 true
         ));
+    }
+
+    private Vector3f controlSeatUpWorld(SubLevel sublevel) {
+        Vector3d up = new Vector3d(0.0D, 1.0D, 0.0D);
+        sublevel.logicalPose().orientation().transform(up);
+        if (up.lengthSquared() <= 1.0E-6D) {
+            up.set(0.0D, 1.0D, 0.0D);
+        }
+        up.normalize();
+        return new Vector3f((float) up.x, (float) up.y, (float) up.z);
     }
 
     private Vector3f controlSeatRightWorld(SubLevel sublevel) {
@@ -795,8 +928,17 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         return new Vector3f((float) right.x, (float) right.y, (float) right.z);
     }
 
+    private static void projectOntoPlane(Vector3f vector, Vector3f planeNormal) {
+        float alongNormal = vector.dot(planeNormal);
+        vector.sub(
+                planeNormal.x * alongNormal,
+                planeNormal.y * alongNormal,
+                planeNormal.z * alongNormal
+        );
+    }
+
     public void updateTurret() {
-        // 閸旂喕鍏橀敍姘帥鐠侊紕鐣婚幒褍鍩楀鍛秼閸撳秵绺哄ú濠氼暥闁挾绱惍渚婄礉閻劋绨崥鎴﹀櫢閸ㄥ鍋栨繅鏂挎倱濮濄儰绗屾稉缁橆劅閸ｃ劋绔撮懛瀵告畱妫版垿浜炬潏鎾冲弳閵?
+
         int activeSeatChannelEncode = 0;
         if (controlseatData.getChannel1()) activeSeatChannelEncode |= 1;
         if (controlseatData.getChannel2()) activeSeatChannelEncode |= 2;
@@ -805,14 +947,22 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
         List<Vec3> toRemove = new ArrayList<>();
         int finalActiveSeatChannelEncode = activeSeatChannelEncode;
+        ArrayList<SubLevel> enemySubLevels = ScanNearByShips.scanEnemySubLevels(
+                null,
+                getBlockPos(),
+                level,
+                controlseatData.enemy,
+                controlseatData.ally
+        );
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof AbstractTurretBlockEntity turret) {
-                this.energyspendpertick += turret.getenergypertick();
+                confirmLinkedPeripheralPresent(pos, 3);
                 if (be instanceof AbstractHeavyTurretBlockEntity heavyturret) {
-                    // 閸旂喕鍏橀敍姘付閸掕埖顦弴瀛樻煀闁插秴鐎烽悙顔碱敊閺冭绱濋崥灞绢劄妫版垿浜炬潏鎾冲弳閿涙稐绮庨崷銊ョ磻閻忣偅妞傛稉瀣絺濠碘偓濞插顣堕柆鎾扁偓?
-                    //閼奉亜濮╁Ο鈥崇础閻╁瓨甯撮弴瀛樻煀閻╊喗鐖ｉ敍灞炬￥鐟欏棛甯虹€规湹缍呯純?
+                    this.energyspendpertick += heavyturret.getControlSeatEnergyCostPerTick();
+
+
                     boolean hasSeatedPlayer = controlseatData.getPlayer() != null;
                     boolean isViewLocked = controlseatData.isviewlocked;
                     heavyturret.armedChannelFromCtrl(finalActiveSeatChannelEncode);
@@ -829,9 +979,9 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                             heavyturret.clearSpecificEnemy();
                         }
                     }
-                    //閹靛濮╁Ο鈥崇础閺囧瓨鏌婇悳鈺侇啀娴ｅ秶鐤嗛敍宀冣偓灞肩瑝閺勵垱鏅€靛湱娲伴弽?
+
                     else if (heavyturret.usesManualTarget(hasSeatedPlayer, isViewLocked)){
-                        // 閸旂喕鍏橀敍姘倱濮濄儳甯虹€规儼顫嬬憴鎺楁敚閻樿埖鈧緤绱濋獮鍓佹纯閹恒儰绗呴崣鎴濐吂閹撮顏拋锛勭暬閻ㄥ嫭澧滈崝銊х€崙鍡欐窗閺嶅洨鍋ｇ紒娆撳櫢閸ㄥ鍋栨繅鏂烩偓?
+
                         heavyturret.updateplayerstatus(
                                 hasSeatedPlayer,
                                 isViewLocked,
@@ -854,13 +1004,17 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                                 heavyturret.isCooldownHudRemaining()
                         ));
                     }
+                } else {
+                    // Function: normal turrets require live enemy SubLevels for ship-target acquisition.
+                    turret.updateenemy(new ArrayList<>(enemySubLevels));
+                    this.energyspendpertick += turret.getControlSeatEnergyCostPerTick();
                 }
             } else {
-                // 閸忓牐顔囨稉瀣降閿涘苯鎯婇悳顖氱暚娴滃棗鍟€閸?
+
                 toRemove.add(pos);
             }
         }, 3);
-        // 瀵邦亞骞嗙紒鎾存将閸氬海绮烘稉鈧崚鐘绘珟
+
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 3);
         }
@@ -868,60 +1022,139 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
     public void updateFuel() {
         List<Vec3> toRemove = new ArrayList<>();
+        this.hasThrusterFuelThisTick = false;
+        int[] totalE710Available = {0};
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
 
             if (be instanceof AbstractFuelTankBlockEntity fueltank) {
+                confirmLinkedPeripheralPresent(pos, 5);
                 FluidStack fluid = fueltank.getFluidTank().getFluid();
                 int currenttankremain = fluid.getAmount();
-                if(getFuelProperties(fluid.getFluid()) == null) {
+                if (isE710Fluid(fluid)) {
+                    totalE710Available[0] += currenttankremain;
+                }
+                FluidThrusterProperties fuelProperties = getFuelProperties(fluid.getFluid());
+                if(fuelProperties == null) {
                     totalfuel += fueltank.getFluidTank().getCapacity();
                     controlseatData.totalfuelstorage = totalfuel;
                     return;
                 }
-                float consumptionmultiplier = getFuelProperties(fluid.getFluid()).consumptionMultiplier;
-                if(currenttankremain>=-this.capacitorfuel*consumptionmultiplier) {
-                    fueltank.getFluidTank().drain((int) (-this.capacitorfuel*consumptionmultiplier), IFluidHandler.FluidAction.EXECUTE);
-                    this.capacitorfuel = 0;
+                float consumptionmultiplier = Math.max(fuelProperties.consumptionMultiplier, 1.0E-6F);
+                if (currenttankremain > 0) {
+                    this.hasThrusterFuelThisTick = true;
                 }
-                else {
-                    fueltank.getFluidTank().drain(currenttankremain, IFluidHandler.FluidAction.EXECUTE);
-                    this.capacitorfuel += (int) (currenttankremain/consumptionmultiplier);
+                if(this.capacitorfuel < 0 && currenttankremain > 0) {
+                    // Function: round fluid drain up so low-throttle DT fuel consumption does not truncate to zero.
+                    int requestedDrain = (int) Math.ceil((-this.capacitorfuel) * consumptionmultiplier);
+                    int drained = fueltank.getFluidTank()
+                            .drain(Math.min(currenttankremain, Math.max(1, requestedDrain)), IFluidHandler.FluidAction.EXECUTE)
+                            .getAmount();
+                    this.capacitorfuel += (int) Math.floor(drained / consumptionmultiplier);
                 }
                 totalfuel += fueltank.getFluidTank().getCapacity();
-                totalfuelavalible += currenttankremain;
+                totalfuelavalible += fueltank.getFluidTank().getFluid().getAmount();
             } else {
-                // 閸忓牐顔囨稉瀣降閿涘苯鎯婇悳顖氱暚娴滃棗鍟€閸?
+
                 toRemove.add(pos);
             }
         }, 5);
         controlseatData.totalfuelstorage = totalfuel;
         controlseatData.avaliblefuel = totalfuelavalible;
+        controlseatData.avalibleE710 = totalE710Available[0];
+        if (controlseatData.warpE710Insufficient
+                && controlseatData.warpE710CostMb > 0
+                && totalE710Available[0] >= controlseatData.warpE710CostMb) {
+
+            controlseatData.warpE710Insufficient = false;
+        }
         //LogUtils.getLogger().warn("detected total energy:"+controlseatData.totalenergystorage+"avalible:"+controlseatData.avalibleenergy);
-        // 瀵邦亞骞嗙紒鎾存将閸氬海绮烘稉鈧崚鐘绘珟
+
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 5);
         }
     }
 
+    private void disableThrusterOutput() {
+        this.calculatedstrength = 0;
+        controlseatData.thruster_strength = 0;
+        controlseatData.thruster_force_strength = 0;
+        controlseatData.thruster_torque_strength = 0;
+        controlseatData.setFinalforce(new Vector3d());
+        controlseatData.setThrusterVisualForce(new Vector3d());
+        controlseatData.setFinaltorque(new Vector3d());
+        serverShipHandler.resetControlInput();
+        // Function: linked thrusters receive zero demand immediately when fuel or energy cannot support thrust.
+        this.forEachLinkedPeripheral(pos -> {
+            BlockEntity be = level.getBlockEntity(BlockPos.containing(pos));
+            if (be instanceof AbstractThrusterBlockEntity thruster) {
+                confirmLinkedPeripheralPresent(pos, 0);
+                thruster.setdata(new Vector3d(), new Vector3d(), 0.0D);
+            }
+        }, 0);
+    }
+
+    private void disableLinkedPeripheralsForNoPower() {
+        disableThrusterOutput();
+        shieldOpenFxPlayed = false;
+        controlseatData.activeWeaponHudInfos = new ArrayList<>();
+        controlseatData.isForceAssistSuppressedByAccelerator = false;
+
+        // Function: zero all weapon channels/targets so linked weapons cannot keep firing on stale control-seat state.
+        this.forEachLinkedPeripheral(pos -> {
+            BlockEntity be = level.getBlockEntity(BlockPos.containing(pos));
+            if (be instanceof AbstractWeaponBlockEntity weapon) {
+                confirmLinkedPeripheralPresent(pos, 1);
+                weapon.receivetarget(null);
+                weapon.receivechannel(0);
+                weapon.getData().isfiring = false;
+                if (weapon instanceof VerticleLaunchingSlotCoreBlockEntity verticalLaunchCore) {
+                    verticalLaunchCore.receiveArmedChannels(0);
+                }
+            }
+        }, 1);
+
+        // Function: clear all turret targets and channels so autonomous turrets do not continue to act while unpowered.
+        this.forEachLinkedPeripheral(pos -> {
+            BlockEntity be = level.getBlockEntity(BlockPos.containing(pos));
+            if (be instanceof AbstractTurretBlockEntity turret) {
+                confirmLinkedPeripheralPresent(pos, 3);
+                turret.clearControlSeatTargeting();
+                if (turret instanceof AbstractHeavyTurretBlockEntity heavyturret) {
+                    heavyturret.armedChannelFromCtrl(0);
+                    heavyturret.channelFromCtrl(0);
+                    heavyturret.clearSpecificEnemy();
+                }
+            }
+        }, 3);
+    }
+
     public void updateScreen(){
-        // 閸旂喕鍏橀敍姘槨 tick 閸掗攱鏌婇幒褍鍩楀鍛瑯閻ｅ苯娼楅弽鍥风礉娓氭盯娴勬潏鐐瑜板彉濞囬悽銊ｂ偓?
+
         refreshWorldPosition();
         List<Vec3> toRemove = new ArrayList<>();
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof AbstractScreenBlockEntity screen) {
-                // 閸旂喕鍏橀敍姘秼鐏炲繐绠风亸姘弓缂佹垵鐣鹃悳鈺侇啀閺冭绱濈紒鎴濈暰瑜版挸澧犻幒褍鍩楀鍛负鐎硅翰鈧?
+                confirmLinkedPeripheralPresent(pos, 7);
+
                 if (!screen.hasRadarPlayer() && controlseatData.getPlayer() != null) {
                     screen.setRadarPlayerUuid(controlseatData.getPlayer().getUUID());
                 }
-                // 閸旂喕鍏橀敍姘瘮缂侇厼鎮滅仦蹇撶閸氬本顒為幒褍鍩楀鍛瑯閻ｅ苯娼楅弽鍥风礉娣囨繆鐦夐梿鐤彧娑擃厼绺鹃悙鐟扮杽閺冭埖娲块弬鑸偓?
+
+                // Function: push the current control-seat radar snapshot to every linked screen each server tick.
+                screen.setRadarSnapshot(
+                        controlseatData.shipsData,
+                        controlseatData.enemy,
+                        controlseatData.ally,
+                        controlseatData.lockedenemyslug
+                );
                 screen.setRadarControlSeatWorldPos(new Vector3d(currentworldpos));
                 return;
             }
-            // 閸旂喕鍏橀敍姘閻炲棗鍑＄紒蹇撱亼閺佸牊鍨ㄧ悮顐ｆ禌閹广垻娈戠仦蹇撶闁剧偓甯撮妴?
+
             toRemove.add(pos);
         }, 7);
         for (Vec3 pos : toRemove) {
@@ -929,7 +1162,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         }
     }
 
-    // 閸旂喕鍏橀敍姘雹閻撗呭仏婵夋棃鈧槒绶敍灞藉煕閺傜増甯堕崚鑸殿槳娑撴牜鏅崸鎰垼閿涘牅绗夐崷銊ㄥ煘娑撳﹣璐?blockpos閿涘苯婀懜閫涚瑐鏉烆兛绗橀悾灞芥綏閺嶅浄绱氶妴?
+
     public void refreshWorldPosition() {
         SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, this.getBlockPos());
         if (subLevel != null) {
@@ -1001,7 +1234,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
     }
 
 
-    // 閸︺劎些闂勩倕楠囧鍛濞撳懘娅庨幒褍鍩楃拋鏉跨秿
+
     @Override
     public void onRemove() {
         controlseatData.reset();
@@ -1012,7 +1245,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             }
             seats.clear();
         }
-        // 缁夊娅庨悳鈺侇啀閻?UUID 鐠佹澘缍?
+
         super.setRemoved();
     }
 
@@ -1032,12 +1265,12 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         return entity;
     }
 
-    // 娣囶喗鏁?startRiding 閺傝纭堕敍宀€鈥樻穱婵囩槨娑擃亜楠囧鍛付閸掓湹绗岄悳鈺侇啀 UUID 閻╃鍙ч懕?
+
     public boolean startRiding(boolean force, BlockPos blockPos, BlockState state, ServerLevel level) {
         Player player = controlseatData.getPlayer();
         Initialize.initialize(level,blockPos,state);
-        // 娴ｈ法鏁ら悳鈺侇啀閻?UUID 閺夈儳鈥樼€规艾鎽㈡稉顏嗗负鐎硅泛婀潻娆庨嚋鎼囱勵槳娑?
-        // 濞撳懐鎮婄粚铏规畱鎼囱勵槳
+
+
         for (int i = seats.size() - 1; i >= 0; i--) {
             ControlSeatMountEntity seat = seats.get(i);
             if (!seat.isVehicle()) {
@@ -1064,12 +1297,12 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         return ride;
     }
 
-    // 閸旂喕鍏橀敍姘壌閹诡喗甯堕崚鑸殿槳閺傜懓娼￠張婵嗘倻鐠侊紕鐣?ControlSeatMountEntity 鎼存柨婀惃鍕瘯鏉炶棄娼楅弽鍥风礉娓氭盯鍣告潻鐐叉倵閻ㄥ嫬楠囧鍛杽娴ｆ挻澹傞幓蹇擃槻閻劊鈧?
+
     private Vec3 getSeatMountPosition(BlockPos pos, BlockState state) {
         return ControlSeatMountEntity.getSeatMountPosition(pos, state);
     }
 
-    // 閸旂喕鍏橀敍姘躬閺堝秴濮熺粩?tick 娑擃參鍣稿琛♀偓婊勫付閸掕埖顦?-> 鎼囱勵槳鐎圭偘缍?-> 閻溾晛顔嶉垾婵嗗彠缁紮绱濇穱婵婄槈閻溾晛顔嶉柌宥堢箻閸?HUD 娑撳氦绶崗銉╂懠鐠侯垵鍤滈崝銊︿划婢跺秲鈧?
+
     private void refreshSeatOccupancyFromWorld() {
         if (!(level instanceof ServerLevel serverLevel)) {
             return;
@@ -1078,7 +1311,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         Vec3 mountPos = getSeatMountPosition(getBlockPos(), state);
         AABB searchBox = new AABB(mountPos, mountPos).inflate(1.25D, 1.25D, 1.25D);
 
-        // 閸旂喕鍏橀敍姘帥閹稿鈧粍妲搁崥锕佺箷濞茶崵娼冮垾婵囩閻炲棙妫紓鎾崇摠閿涘矂妲诲顫箽鐎涙ü绨℃径杈ㄦ櫏 seat UUID 瑜板崬鎼?HUD 閸欏秵鐓￠妴?
+
         seats.removeIf(seat -> seat == null || !seat.isAlive());
 
         Player seatedPlayer = null;
@@ -1096,21 +1329,89 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             }
         }
 
-        // 閸旂喕鍏橀敍姘Ω娑撴牜鏅稉顓犳畱鐎圭偞妞傛稊妯烘綏閻樿埖鈧礁娲栭崘娆忓煂 controlseatData閿涘矂浼╅崗宥夊櫢鏉╂稑鎮楃悮顐㈢秼娴ｆ壕鈧粍妫ゆ禍鐑樺付閸掑灈鈧繆鈧?reset閵?
         if (seatedPlayer != null) {
             ride = true;
             controlseatData.setPlayer(seatedPlayer);
         } else {
             ride = false;
             controlseatData.setPlayer(null);
-            serverShipHandler.resetControlInput();
-            // 閸旂喕鍏橀敍姘￥娴滆桨绠婚崸鎰姒涙顓荤憴锝夋敚鐟欏棜顫楅敍宀勬Щ濮濄垺妫悳鈺侇啀閻ｆ瑥婀柨浣哥暰閹礁濂栭崫宥呮倵缂侇厺绠婚崸鎰偓鍛秼妤犲被鈧?
+            // Function: seat exit should stop stale manual thrust immediately.
+            serverShipHandler.clearManualControlInput();
             controlseatData.isviewlocked = false;
         }
     }
 
     public FluidThrusterProperties getFuelProperties(Fluid fluid) {
         return ThrusterFuelManager.getProperties(fluid);
+    }
+
+    public int getAvailableE710Mb() {
+        int[] available = {0};
+        this.forEachLinkedPeripheral(pos -> {
+            BlockEntity be = level.getBlockEntity(BlockPos.containing(pos));
+            if (be instanceof AbstractFuelTankBlockEntity fueltank) {
+                confirmLinkedPeripheralPresent(pos, 5);
+                if (isE710Fluid(fueltank.getFluidTank().getFluid())) {
+                    available[0] += fueltank.getFluidTank().getFluidAmount();
+                }
+            }
+        }, 5);
+        return available[0];
+    }
+
+    public boolean consumeE710ForWarp(int amountMb) {
+        if (amountMb <= 0) {
+            return true;
+        }
+        if (getAvailableE710Mb() < amountMb) {
+            return false;
+        }
+        int[] remaining = {amountMb};
+        this.forEachLinkedPeripheral(pos -> {
+            if (remaining[0] <= 0) {
+                return;
+            }
+            BlockEntity be = level.getBlockEntity(BlockPos.containing(pos));
+            if (be instanceof AbstractFuelTankBlockEntity fueltank) {
+                confirmLinkedPeripheralPresent(pos, 5);
+                if (isE710Fluid(fueltank.getFluidTank().getFluid())) {
+                    int drained = fueltank.getFluidTank()
+                            .drain(Math.min(remaining[0], fueltank.getFluidTank().getFluidAmount()), IFluidHandler.FluidAction.EXECUTE)
+                            .getAmount();
+                    remaining[0] -= drained;
+                }
+            }
+        }, 5);
+
+        setChanged();
+        return remaining[0] <= 0;
+    }
+
+    public int calculateWarpE710CostMb(BlockPos targetPos) {
+        if (level == null || targetPos == null) {
+            return Integer.MAX_VALUE;
+        }
+        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, getBlockPos());
+        if (!(subLevel instanceof ServerSubLevel serverSubLevel)) {
+            return Integer.MAX_VALUE;
+        }
+        MassData massData = serverSubLevel.getMassTracker();
+        if (massData == null || massData.isInvalid()) {
+            return Integer.MAX_VALUE;
+        }
+        Vec3 seatWorldPos = ServerShipUtils.getBlockCenterWorld(subLevel, getBlockPos());
+        Vec3 targetWorldPos = Vec3.atCenterOf(targetPos);
+        double required = massData.getMass() * seatWorldPos.distanceTo(targetWorldPos) * 10.0D;
+        if (!Double.isFinite(required) || required < 0.0D) {
+            return Integer.MAX_VALUE;
+        }
+        return required >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) Math.ceil(required);
+    }
+
+    private boolean isE710Fluid(FluidStack stack) {
+        return stack != null
+                && !stack.isEmpty()
+                && stack.getFluid().getFluidType() == vsieFluids.E710.get().getFluidType();
     }
 
     @Override

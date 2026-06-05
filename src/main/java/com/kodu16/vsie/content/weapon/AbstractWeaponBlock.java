@@ -98,6 +98,10 @@ public abstract class AbstractWeaponBlock extends DirectionalBlock implements En
 
     @Override
     public void onRemove(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos, @Nonnull BlockState newState, boolean isMoving) {
+        // Function: drop buffered ammo from any non-energy weapon before the block entity is removed.
+        if (!state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof AbstractWeaponBlockEntity weapon) {
+            weapon.dropStoredAmmo(level, pos);
+        }
         super.onRemove(state, level, pos, newState, isMoving);
         if (level.isClientSide()) return;
 

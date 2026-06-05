@@ -31,11 +31,18 @@ public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
     public int energytotal;
     public int fuelavalible;
     public int fueltotal;
+    public int e710avalible;
+    public int warpE710CostMb;
+    public boolean warpE710Insufficient;
     public boolean shieldon;
     public int shieldavalible;
     public int shieldtotal;
-    public boolean flightassiston;
+    public boolean shieldOverloaded;
+    public boolean forceassiston;
+    public boolean torqueassiston;
+    public boolean forceAssistSuppressedByAccelerator;
     public boolean antigravityon;
+    public boolean autoLevelOn;
     public boolean warpPreparing;
     public boolean pendingWarpTeleport;
     public String warpTargetName;
@@ -46,8 +53,10 @@ public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
     public ControlSeatStatusS2CPacket(BlockPos pos,
                                       int energyavalible, int energytotal,
                                       int fuelavalible,int fueltotal,
-                                      boolean shieldon, int shieldavalible, int shieldtotal,
-                                      boolean flightassiston, boolean antigravityon,
+                                      int e710avalible, int warpE710CostMb, boolean warpE710Insufficient,
+                                      boolean shieldon, int shieldavalible, int shieldtotal, boolean shieldOverloaded,
+                                      boolean forceassiston, boolean torqueassiston, boolean forceAssistSuppressedByAccelerator,
+                                      boolean antigravityon, boolean autoLevelOn,
                                       boolean warpPreparing, boolean pendingWarpTeleport, String warpTargetName,
                                       List<ActiveWeaponHudInfo> activeWeaponHudInfos) {
         this.pos = pos;
@@ -55,11 +64,18 @@ public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
         this.energytotal = energytotal;
         this.fuelavalible = fuelavalible;
         this.fueltotal = fueltotal;
+        this.e710avalible = e710avalible;
+        this.warpE710CostMb = warpE710CostMb;
+        this.warpE710Insufficient = warpE710Insufficient;
         this.shieldon = shieldon;
         this.shieldavalible = shieldavalible;
         this.shieldtotal = shieldtotal;
-        this.flightassiston = flightassiston;
+        this.shieldOverloaded = shieldOverloaded;
+        this.forceassiston = forceassiston;
+        this.torqueassiston = torqueassiston;
+        this.forceAssistSuppressedByAccelerator = forceAssistSuppressedByAccelerator;
         this.antigravityon = antigravityon;
+        this.autoLevelOn = autoLevelOn;
         this.warpPreparing = warpPreparing;
         this.pendingWarpTeleport = pendingWarpTeleport;
         this.warpTargetName = warpTargetName == null ? "" : warpTargetName;
@@ -74,11 +90,19 @@ public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
         buf.writeInt(energytotal);
         buf.writeInt(fuelavalible);
         buf.writeInt(fueltotal);
+        // 功能：同步 E-710 当前量与本次跃迁预计消耗，供 HUD 绘制紫/红燃料弧。
+        buf.writeInt(e710avalible);
+        buf.writeInt(warpE710CostMb);
+        buf.writeBoolean(warpE710Insufficient);
         buf.writeBoolean(shieldon);
         buf.writeInt(shieldavalible);
         buf.writeInt(shieldtotal);
-        buf.writeBoolean(flightassiston);
+        buf.writeBoolean(shieldOverloaded);
+        buf.writeBoolean(forceassiston);
+        buf.writeBoolean(torqueassiston);
+        buf.writeBoolean(forceAssistSuppressedByAccelerator);
         buf.writeBoolean(antigravityon);
+        buf.writeBoolean(autoLevelOn);
         buf.writeBoolean(warpPreparing);
         buf.writeBoolean(pendingWarpTeleport);
         buf.writeUtf(warpTargetName);
@@ -99,11 +123,18 @@ public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
         int energytotal = buf.readInt();
         int fuelavalible = buf.readInt();
         int fueltotal = buf.readInt();
+        int e710avalible = buf.readInt();
+        int warpE710CostMb = buf.readInt();
+        boolean warpE710Insufficient = buf.readBoolean();
         boolean shieldon = buf.readBoolean();
         int shieldavalible = buf.readInt();
         int shieldtotal = buf.readInt();
-        boolean flightassiston = buf.readBoolean();
+        boolean shieldOverloaded = buf.readBoolean();
+        boolean forceassiston = buf.readBoolean();
+        boolean torqueassiston = buf.readBoolean();
+        boolean forceAssistSuppressedByAccelerator = buf.readBoolean();
         boolean antigravityon = buf.readBoolean();
+        boolean autoLevelOn = buf.readBoolean();
         boolean warpPreparing = buf.readBoolean();
         boolean pendingWarpTeleport = buf.readBoolean();
         String warpTargetName = buf.readUtf();
@@ -117,7 +148,7 @@ public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
             boolean remainingCooldown = buf.readBoolean();
             activeWeaponHudInfos.add(new ActiveWeaponHudInfo(displayName, currentTick, maxCooldown, remainingCooldown));
         }
-        return new ControlSeatStatusS2CPacket(pos, energyavalible, energytotal, fuelavalible, fueltotal, shieldon, shieldavalible, shieldtotal, flightassiston, antigravityon, warpPreparing, pendingWarpTeleport, warpTargetName, activeWeaponHudInfos);
+        return new ControlSeatStatusS2CPacket(pos, energyavalible, energytotal, fuelavalible, fueltotal, e710avalible, warpE710CostMb, warpE710Insufficient, shieldon, shieldavalible, shieldtotal, shieldOverloaded, forceassiston, torqueassiston, forceAssistSuppressedByAccelerator, antigravityon, autoLevelOn, warpPreparing, pendingWarpTeleport, warpTargetName, activeWeaponHudInfos);
     }
 
     // 处理客户端接收到的数据包
@@ -144,13 +175,20 @@ public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
 
                     clientData.fuelavalible = fuelavalible;
                     clientData.fueltotal = fueltotal;
+                    clientData.e710avalible = e710avalible;
+                    clientData.warpE710CostMb = warpE710CostMb;
+                    clientData.warpE710Insufficient = warpE710Insufficient;
 
                     clientData.shieldon = shieldon;
                     clientData.shieldavalible = shieldavalible;
                     clientData.shieldtotal = shieldtotal;
+                    clientData.isShieldOverloaded = shieldOverloaded;
 
-                    clientData.isflightassiston = flightassiston;
+                    clientData.isforceassiston = forceassiston;
+                    clientData.istorqueassiston = torqueassiston;
+                    clientData.isForceAssistSuppressedByAccelerator = forceAssistSuppressedByAccelerator;
                     clientData.isantigravityon = antigravityon;
+                    clientData.isAutoLevelOn = autoLevelOn;
                     clientData.isWarpPreparing = warpPreparing;
                     clientData.hasPendingWarpTeleport = pendingWarpTeleport;
                     clientData.warpTargetName = warpTargetName;

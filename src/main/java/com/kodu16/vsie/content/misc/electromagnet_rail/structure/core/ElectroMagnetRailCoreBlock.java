@@ -1,0 +1,167 @@
+package com.kodu16.vsie.content.misc.electromagnet_rail.structure.core;
+
+
+import com.mojang.serialization.MapCodec;
+import com.kodu16.vsie.registries.vsieBlockEntities;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Containers;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.DirectionalBlock;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.phys.BlockHitResult;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+public class ElectroMagnetRailCoreBlock extends DirectionalBlock implements EntityBlock {
+
+    // 功能：为 NeoForge 1.21.1 提供该方块的序列化 Codec。
+    public static final MapCodec<ElectroMagnetRailCoreBlock> CODEC = simpleCodec(ElectroMagnetRailCoreBlock::new);
+    public ElectroMagnetRailCoreBlock(BlockBehaviour.Properties properties) {
+        super(properties);
+    }
+    public static final DirectionProperty FACING = BlockStateProperties.FACING;
+
+    @Override
+    public MapCodec<ElectroMagnetRailCoreBlock> codec() {
+        // 功能：返回方块 Codec，确保方块状态可被数据驱动系统正确反序列化。
+        return CODEC;
+    }
+
+    @Override
+    public RenderShape getRenderShape(BlockState State) {
+        return RenderShape.ENTITYBLOCK_ANIMATED;
+    }
+
+    @Override
+    public BlockEntity newBlockEntity(@Nonnull BlockPos pos, @Nonnull BlockState state) {
+        return new ElectroMagnetRailCoreBlockEntity(vsieBlockEntities.ELECTRO_MAGNET_RAIL_CORE_BLOCK_ENTITY.get(), pos, state);
+    }
+
+    @Nullable
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(@Nonnull Level level, @Nonnull BlockState state, @Nonnull BlockEntityType<T> type) {
+        if (type == vsieBlockEntities.ELECTRO_MAGNET_RAIL_CORE_BLOCK_ENTITY.get()) {
+            return (world, pos, state1, blockEntity) -> {
+                if (blockEntity instanceof ElectroMagnetRailCoreBlockEntity core) {
+                    core.tick();
+                }
+            };
+        }
+        return null;
+    }
+
+    @Override
+    public BlockState getStateForPlacement(@Nonnull BlockPlaceContext context) {
+        Direction baseDirection = context.getHorizontalDirection();
+        Direction placeDirection;
+        Player player = context.getPlayer();
+        if (player != null) {
+            placeDirection = !player.isShiftKeyDown() ? baseDirection : baseDirection.getOpposite();
+        } else {
+            placeDirection = baseDirection.getOpposite();
+        }
+
+        return this.defaultBlockState().setValue(FACING, placeDirection);
+    }
+
+    @Override
+    protected void createBlockStateDefinition(@Nonnull StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(FACING);
+    }
+
+    @Override
+    protected @Nonnull ItemInteractionResult useItemOn(@Nonnull ItemStack stack, @Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos,
+                                                       @Nonnull Player player, @Nonnull InteractionHand hand, @Nonnull BlockHitResult hit) {
+        // 功能：在 1.21.1 的“带物品交互”阶段中回落到方块默认交互，确保核心 GUI 可被打开。
+        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+    }
+
+    @Override
+    protected @Nonnull InteractionResult useWithoutItem(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos,
+                                                        @Nonnull Player player, @Nonnull BlockHitResult hit) {
+        // 右键方块时在服务端打开 GUI，客户端直接返回 SUCCESS 保证交互手感。
+        if (level.isClientSide) {
+            return InteractionResult.SUCCESS;
+        }
+
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (blockEntity instanceof ElectroMagnetRailCoreBlockEntity coreBlockEntity && player instanceof ServerPlayer serverPlayer) {
+            // 功能：适配 NeoForge 1.21.1，使用 openMenu 打开电磁轨核心菜单并写入方块坐标。
+            serverPlayer.openMenu(new MenuProvider() {
+                @Override
+                public @Nonnull Component getDisplayName() {
+                    return Component.translatable("container.vsie.electro_magnet_rail_core");
+                }
+
+                @Override
+                public @Nullable AbstractContainerMenu createMenu(int id, @Nonnull Inventory inventory, @Nonnull Player menuPlayer) {
+                    return new ElectroMagnetRailCoreContainerMenu(id, inventory, coreBlockEntity);
+                }
+            }, buf -> buf.writeBlockPos(pos));
+            return InteractionResult.CONSUME;
+        }
+
+        return InteractionResult.PASS;
+    }
+
+    @Override
+    public boolean hasAnalogOutputSignal(@Nonnull BlockState state) {
+        // 让比较器可读取库存量（可选的红石反馈功能）。
+        return true;
+    }
+
+    @Override
+    public int getAnalogOutputSignal(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos) {
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (blockEntity instanceof ElectroMagnetRailCoreBlockEntity coreBlockEntity) {
+            int count = coreBlockEntity.getStoredRailCount();
+            return Math.min(15, (int) Math.ceil(count / 16.0));
+        }
+        return 0;
+    }
+
+    @Override
+    public void onRemove(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos,
+                         @Nonnull BlockState newState, boolean isMoving) {
+        if (state.getBlock() != newState.getBlock() && !level.isClientSide) {
+            BlockEntity blockEntity = level.getBlockEntity(pos);
+            if (blockEntity instanceof ElectroMagnetRailCoreBlockEntity coreBlockEntity) {
+                // 功能：core 被移除时，主动通知已绑定的 top 收回左右骨骼，避免 top 保持展开状态。
+                coreBlockEntity.releaseBoundTop();
+                // 破坏核心仓时，将 4 个槽位中的 rail 全部作为掉落物抛出到世界，避免物品丢失。
+                SimpleContainer drops = new SimpleContainer(coreBlockEntity.getSlots());
+                for (int slot = 0; slot < coreBlockEntity.getSlots(); slot++) {
+                    ItemStack stack = coreBlockEntity.getStackInSlot(slot);
+                    drops.setItem(slot, stack.copy());
+                    coreBlockEntity.setStackInSlot(slot, ItemStack.EMPTY);
+                }
+                Containers.dropContents(level, pos, drops);
+            }
+        }
+        super.onRemove(state, level, pos, newState, isMoving);
+    }
+}

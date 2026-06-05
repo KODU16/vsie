@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.controlseat.client;
 
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
+import com.kodu16.vsie.foundation.client.GuiTooltipHelper;
 import com.kodu16.vsie.content.item.warpdatachip.warp_data_chip;
 import com.kodu16.vsie.network.controlseat.C2S.ControlSeatWarpTargetC2SPacket;
 import com.kodu16.vsie.registries.ModNetworking;
@@ -34,7 +35,7 @@ public class ControlSeatWarpSelectionScreen extends Screen {
     private int scrollOffset = 0;
 
     public ControlSeatWarpSelectionScreen(BlockPos controlSeatPos) {
-        super(Component.literal("Warp Target Select"));
+        super(Component.translatable("gui.vsie.control_seat_warp_selection.title"));
         this.controlSeatPos = controlSeatPos;
     }
 
@@ -73,17 +74,20 @@ public class ControlSeatWarpSelectionScreen extends Screen {
             boolean dimensionMismatch = false;
             if (storedWarpData != null) {
                 dimensionMismatch = !storedWarpData.dimensionId().equals(currentDimensionId);
-                label = String.format("[%02d] %s (%d, %d, %d) - %s%s",
+                Component entryLabel = Component.translatable("gui.vsie.control_seat_warp_selection.entry",
                         slot + 1,
                         storedWarpData.dimensionId(),
                         storedWarpData.pos().getX(),
                         storedWarpData.pos().getY(),
                         storedWarpData.pos().getZ(),
                         chipName,
-                        dimensionMismatch ? " [\u7ef4\u5ea6\u4e0d\u5339\u914d]" : "");
+                        dimensionMismatch
+                                ? Component.translatable("gui.vsie.control_seat_warp_selection.dimension_mismatch_suffix").getString()
+                                : "");
+                label = entryLabel.getString();
                 active = !dimensionMismatch;
             } else {
-                label = String.format("[%02d] \u672a\u8bb0\u5f55\u5750\u6807 - %s", slot + 1, chipName);
+                label = Component.translatable("gui.vsie.control_seat_warp_selection.unrecorded", slot + 1, chipName).getString();
                 active = false;
             }
             options.add(new WarpOption(slot, Component.literal(label), active, dimensionMismatch));
@@ -147,12 +151,12 @@ public class ControlSeatWarpSelectionScreen extends Screen {
         super.render(guiGraphics, mouseX, mouseY, partialTick);
 
         int headerY = getListStartY(getVisibleCount()) - HEADER_HEIGHT;
-        guiGraphics.drawCenteredString(this.font, Component.literal("\u9009\u62e9 control seat \u7684\u8dc3\u8fc1\u76ee\u6807"), this.width / 2, headerY, 0xFFFFFF);
-        guiGraphics.drawCenteredString(this.font, Component.literal("\u6eda\u8f6e\u4e0a\u4e0b\u6ed1\u52a8\uff0c\u5de6\u952e\u9009\u5b9a warp data chip"), this.width / 2, headerY + 14, 0xA0E0FF);
-        guiGraphics.drawCenteredString(this.font, Component.literal("\u6df1\u7070\u8272\u6309\u94ae\u8868\u793a\u8bb0\u5f55\u7ef4\u5ea6\u4e0e\u5f53\u524d\u7ef4\u5ea6\u4e0d\u540c\uff0c\u5f53\u524d\u4e0d\u53ef\u9009\u62e9"), this.width / 2, headerY + 28, 0x909090);
+        guiGraphics.drawCenteredString(this.font, Component.translatable("gui.vsie.control_seat_warp_selection.header"), this.width / 2, headerY, 0xFFFFFF);
+        guiGraphics.drawCenteredString(this.font, Component.translatable("gui.vsie.control_seat_warp_selection.hint"), this.width / 2, headerY + 14, 0xA0E0FF);
+        guiGraphics.drawCenteredString(this.font, Component.translatable("gui.vsie.control_seat_warp_selection.dimension_hint"), this.width / 2, headerY + 28, 0x909090);
 
         if (options.isEmpty()) {
-            guiGraphics.drawCenteredString(this.font, Component.literal("\u63a7\u5236\u6905\u4ed3\u50a8\u5185\u6ca1\u6709 warp data chip"), this.width / 2, headerY + HEADER_HEIGHT + 12, 0xFF8080);
+            guiGraphics.drawCenteredString(this.font, Component.translatable("gui.vsie.control_seat_warp_selection.empty"), this.width / 2, headerY + HEADER_HEIGHT + 12, 0xFF8080);
         }
     }
 
@@ -188,6 +192,13 @@ public class ControlSeatWarpSelectionScreen extends Screen {
                 return;
             }
             super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
+            if (this.isHoveredOrFocused()) {
+                Component tooltip = option.dimensionMismatch()
+                        ? Component.translatable("gui.vsie.control_seat_warp_selection.button_dimension_mismatch.tooltip")
+                        : Component.translatable("gui.vsie.control_seat_warp_selection.button.tooltip");
+                GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, ControlSeatWarpSelectionScreen.this.font, mouseX, mouseY,
+                        getX(), getY(), this.width, this.height, tooltip);
+            }
         }
     }
 }

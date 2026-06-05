@@ -54,10 +54,9 @@ public class VerticleLaunchingSlotCoreBlock extends AbstractWeaponBlock {
 
     @Override
     public void onRemove(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos, @Nonnull BlockState newState, boolean isMoving) {
-        // Function: keep loaded basic missiles recoverable when the core block is broken.
+        // Function: linked launch slots still need to close when the core is removed.
         if (!state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof VerticleLaunchingSlotCoreBlockEntity core) {
             core.deactivateLinkedSlots(level);
-            core.dropStoredMissiles(level, pos);
         }
         super.onRemove(state, level, pos, newState, isMoving);
     }

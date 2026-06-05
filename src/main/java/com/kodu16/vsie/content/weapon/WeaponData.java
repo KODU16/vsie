@@ -8,6 +8,8 @@ public class WeaponData {
     public volatile boolean channel2 = false;
     public volatile boolean channel3 = false;
     public volatile boolean channel4 = false;
+    // Function: weapon block-breaking stays enabled by default so existing saves keep current behaviour.
+    public volatile boolean breaksBlocks = true;
     public volatile int receivingchannel = 0000;
     public volatile boolean isfiring = false;
     public SubLevel targetship = null;
@@ -21,4 +23,6 @@ public class WeaponData {
     public void setChannel2(boolean channel){this.channel2 = channel;}
     public void setChannel3(boolean channel){this.channel3 = channel;}
     public void setChannel4(boolean channel){this.channel4 = channel;}
+    public boolean isBreaksBlocks(){return breaksBlocks;}
+    public void setBreaksBlocks(boolean breaksBlocks){this.breaksBlocks = breaksBlocks;}
 }

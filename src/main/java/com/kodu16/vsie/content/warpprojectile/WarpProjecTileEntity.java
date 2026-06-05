@@ -121,11 +121,15 @@ public class WarpProjecTileEntity extends Projectile {
         this.finalFxPlayed = true;
 
         Vec3 direction = this.lastNonZeroVelocity.lengthSqr() < 1.0E-6D ? new Vec3(0.0D, 1.0D, 0.0D) : this.lastNonZeroVelocity.normalize();
+        playFinalFxAt(this.position(), direction, maxTravelDistance);
+    }
+
+    public static void playFinalFxAt(Vec3 position, Vec3 direction, double maxTravelDistance) {
         float scale = Math.max(0.01F, (float) (maxTravelDistance / WARP_PROJECTILE_FINAL_DEFAULT_RADIUS));
         // Function: final FX is authored on local Y, so rotate local Y onto the projectile flight direction.
         ModNetworking.sendToAll(new FxPositionS2CPacket(
                 WARP_PROJECTILE_FINAL_FX,
-                this.getX(), this.getY(), this.getZ(),
+                position.x, position.y, position.z,
                 0.0D, 0.0D, 0.0D,
                 rotationYToDirection(direction),
                 new Vector3f(scale, scale, scale),
@@ -134,7 +138,7 @@ public class WarpProjecTileEntity extends Projectile {
         ));
     }
 
-    private Quaternionf rotationYToDirection(Vec3 direction) {
+    private static Quaternionf rotationYToDirection(Vec3 direction) {
         Vec3 normalized = direction.lengthSqr() < 1.0E-6D ? new Vec3(0.0D, 1.0D, 0.0D) : direction.normalize();
         return new Quaternionf().rotationTo(
                 0.0F, 1.0F, 0.0F,

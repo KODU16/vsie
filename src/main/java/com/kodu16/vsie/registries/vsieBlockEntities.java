@@ -1,13 +1,15 @@
 package com.kodu16.vsie.registries;
 
 import com.kodu16.vsie.content.controlseat.client.AbstractControlSeatGeoRenderer;
-import com.kodu16.vsie.content.misc.electromagnet_rail.core.ElectroMagnetRailCoreBlockEntity;
-import com.kodu16.vsie.content.misc.electromagnet_rail.core.ElectroMagnetRailCoreGeoRenderer;
-import com.kodu16.vsie.content.misc.electromagnet_rail.top.ElectroMagnetRailTopBlockEntity;
-import com.kodu16.vsie.content.misc.electromagnet_rail.top.ElectroMagnetRailTopGeoRenderer;
+import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreBlockEntity;
+import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreGeoRenderer;
+import com.kodu16.vsie.content.misc.electromagnet_rail.structure.top.ElectroMagnetRailTopBlockEntity;
+import com.kodu16.vsie.content.misc.electromagnet_rail.structure.top.ElectroMagnetRailTopGeoRenderer;
 import com.kodu16.vsie.content.turret.ciws.basicciws.BasicCIWSBlockEntity;
 import com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret.HeavyElectroMagnetTurretBlockEntity;
 import com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret.HeavyElectroMagnetTurretGeoRenderer;
+import com.kodu16.vsie.content.turret.heavyturret.heavylaserturret.HeavyLaserTurretBlockEntity;
+import com.kodu16.vsie.content.turret.heavyturret.heavylaserturret.HeavyLaserTurretGeoRenderer;
 import com.kodu16.vsie.content.screen.client.AbstractScreenGeoRenderer;
 import com.kodu16.vsie.content.screen.block.BasicScreenBlockEntity;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
@@ -28,14 +30,17 @@ import com.kodu16.vsie.content.thruster.block.MediumThrusterBlockEntity;
 import com.kodu16.vsie.content.thruster.client.AbstractThrusterGeoRenderer;
 import com.kodu16.vsie.content.turret.block.MediumLaserTurretBlockEntity;
 import com.kodu16.vsie.content.turret.block.ParticleTurretBlockEntity;
+import com.kodu16.vsie.content.turret.block.SmallLaserTurretBlockEntity;
 import com.kodu16.vsie.content.vectorthruster.block.BasicVectorThrusterBlockEntity;
 import com.kodu16.vsie.content.vectorthruster.client.AbstractVectorThrusterGeoRenderer;
 import com.kodu16.vsie.content.weapon.arc_emitter.ArcEmitterBlockEntity;
 import com.kodu16.vsie.content.weapon.cenix_plasma_cannon.CenixPlasmaCannonBlockEntity;
 import com.kodu16.vsie.content.weapon.client.AbstractWeaponGeoRenderer;
+import com.kodu16.vsie.content.weapon.electro_magnet_rail_accelerator.ElectromagnetRailAcceleratorBlockEntity;
 import com.kodu16.vsie.content.weapon.missile_launcher.client.VerticleLaunchingSlotGeoRenderer;
 import com.kodu16.vsie.content.weapon.electro_magnet_rail_cannon.ElectroMagnetRailCannonBlockEntity;
 import com.kodu16.vsie.content.weapon.infra_knife_accelerator.InfraKnifeAcceleratorBlockEntity;
+import com.kodu16.vsie.content.weapon.redstone_relay.RedstoneRelayBlockEntity;
 import com.kodu16.vsie.content.turret.client.AbstractTurretGeoRenderer;
 import com.kodu16.vsie.content.weapon.missile_launcher.block.BasicMissileLauncherBlockEntity;
 import com.kodu16.vsie.content.weapon.missile_launcher.block.VerticleLaunchingSlotBlockEntity;
@@ -95,11 +100,21 @@ public class vsieBlockEntities {
                     .renderer(() -> AbstractControlSeatGeoRenderer::new)
                     .register();
     public static final BlockEntityEntry<MediumLaserTurretBlockEntity> MEDIUM_LASER_TURRET_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("medium_laser_turret_block_entity", MediumLaserTurretBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("medium_laser_turret_block_entity", MediumLaserTurretBlockEntity::new)
                     .validBlocks(vsieBlocks.MEDIUM_LASER_TURRET_BLOCK)
                     //.onRegister(be -> LOGGER.info("Medium Laser Turret BlockEntity registered!"))
                     .renderer(() -> AbstractTurretGeoRenderer::new)
-                    .register();
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
+    public static final BlockEntityEntry<SmallLaserTurretBlockEntity> SMALL_LASER_TURRET_BLOCK_ENTITY =
+            withCapability(REGISTRATE.blockEntity("small_laser_turret_block_entity", SmallLaserTurretBlockEntity::new)
+                    .validBlocks(vsieBlocks.SMALL_LASER_TURRET_BLOCK)
+                    // Function: small laser temporarily reuses the generic turret renderer just like medium laser.
+                    .renderer(() -> AbstractTurretGeoRenderer::new)
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
     public static final BlockEntityEntry<ShieldGeneratorBlockEntity> SHIELD_GENERATOR_BLOCK_ENTITY =
             withCapability(REGISTRATE.blockEntity("shield_generator_block_entity", ShieldGeneratorBlockEntity::new)
                     .validBlocks(vsieBlocks.SHIELD_GENERATOR_BLOCK)
@@ -114,10 +129,19 @@ public class vsieBlockEntities {
 
 
     public static final BlockEntityEntry<InfraKnifeAcceleratorBlockEntity> INFRA_KNIFE_ACCELERATOR_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("infra_knife_accelerator_block_entity", InfraKnifeAcceleratorBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("infra_knife_accelerator_block_entity", InfraKnifeAcceleratorBlockEntity::new)
                     .validBlocks(vsieBlocks.INFRA_KNIFE_ACCELERATOR_BLOCK)
                     .renderer(() -> AbstractWeaponGeoRenderer::new)
-                    .register();
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
+    public static final BlockEntityEntry<ElectromagnetRailAcceleratorBlockEntity> ELECTRO_MAGNET_RAIL_ACCELERATOR_BLOCK_ENTITY =
+            withCapability(REGISTRATE.blockEntity("electro_magnet_rail_accelerator_block_entity", ElectromagnetRailAcceleratorBlockEntity::new)
+                    .validBlocks(vsieBlocks.ELECTRO_MAGNET_RAIL_ACCELERATOR_BLOCK)
+                    .renderer(() -> AbstractWeaponGeoRenderer::new)
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
     // Function: missile launcher exposes its internal ammo buffer through the item handler capability.
     public static final BlockEntityEntry<BasicMissileLauncherBlockEntity> BASIC_MISSILE_LAUNCHER_BLOCK_ENTITY =
             withCapability(REGISTRATE.blockEntity("basic_missile_launcher_block_entity", BasicMissileLauncherBlockEntity::new)
@@ -128,10 +152,12 @@ public class vsieBlockEntities {
                     (blockEntity, side) -> blockEntity.getItemHandler());
     // Function: vertical launch slots reuse the abstract weapon Gecko renderer but remain passive linked endpoints.
     public static final BlockEntityEntry<VerticleLaunchingSlotBlockEntity> VERTICLE_LAUNCHING_SLOT_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("verticle_launching_slot_block_entity", VerticleLaunchingSlotBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("verticle_launching_slot_block_entity", VerticleLaunchingSlotBlockEntity::new)
                     .validBlocks(vsieBlocks.VERTICLE_LAUNCHING_SLOT_BLOCK)
                     .renderer(() -> VerticleLaunchingSlotGeoRenderer::new)
-                    .register();
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
     // Function: the launch slot core stores ordered slot connections for linker highlighting and later launch logic.
     public static final BlockEntityEntry<VerticleLaunchingSlotCoreBlockEntity> VERTICLE_LAUNCHING_SLOT_CORE_BLOCK_ENTITY =
             withCapability(REGISTRATE.blockEntity("verticle_launching_slot_core_block_entity", VerticleLaunchingSlotCoreBlockEntity::new)
@@ -140,21 +166,34 @@ public class vsieBlockEntities {
                     Capabilities.ItemHandler.BLOCK,
                     (blockEntity, side) -> blockEntity.getItemHandler());
     public static final BlockEntityEntry<ArcEmitterBlockEntity> ARC_EMITTER_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("arc_emitter_block_entity", ArcEmitterBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("arc_emitter_block_entity", ArcEmitterBlockEntity::new)
                     .validBlocks(vsieBlocks.ARC_EMITTER_BLOCK)
                     .renderer(() -> AbstractWeaponGeoRenderer::new)
-                    .register();
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
+    public static final BlockEntityEntry<RedstoneRelayBlockEntity> REDSTONE_RELAY_BLOCK_ENTITY =
+            withCapability(REGISTRATE.blockEntity("redstone_relay_block_entity", RedstoneRelayBlockEntity::new)
+                    .validBlocks(vsieBlocks.REDSTONE_RELAY_BLOCK)
+                    .renderer(() -> AbstractWeaponGeoRenderer::new)
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
     public static final BlockEntityEntry<CenixPlasmaCannonBlockEntity> CENIX_PLASMA_CANNON_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("cenix_plasma_cannon_block_entity", CenixPlasmaCannonBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("cenix_plasma_cannon_block_entity", CenixPlasmaCannonBlockEntity::new)
                     .validBlocks(vsieBlocks.CENIX_PLASMA_CANNON_BLOCK)
                     .renderer(() -> AbstractWeaponGeoRenderer::new)
-                    .register();
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
     // 功能：注册电磁导轨炮方块实体，复用通用武器渲染器。
     public static final BlockEntityEntry<ElectroMagnetRailCannonBlockEntity> ELECTRO_MAGNET_RAIL_CANNON_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("electro_magnet_rail_cannon_block_entity", ElectroMagnetRailCannonBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("electro_magnet_rail_cannon_block_entity", ElectroMagnetRailCannonBlockEntity::new)
                     .validBlocks(vsieBlocks.ELECTRO_MAGNET_RAIL_CANNON_BLOCK)
                     .renderer(() -> AbstractWeaponGeoRenderer::new)
-                    .register();
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
 
 
     public static final BlockEntityEntry<MediumThrusterBlockEntity> MEDIUM_THRUSTER_BLOCK_ENTITY =
@@ -175,15 +214,26 @@ public class vsieBlockEntities {
                     Capabilities.ItemHandler.BLOCK,
                     (blockEntity, side) -> blockEntity.getItemHandler());
     public static final BlockEntityEntry<HeavyElectroMagnetTurretBlockEntity> HEAVY_ELECTROMAGNET_TURRET_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("heavy_electromagnet_turret_block_entity", HeavyElectroMagnetTurretBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("heavy_electromagnet_turret_block_entity", HeavyElectroMagnetTurretBlockEntity::new)
                     .validBlocks(vsieBlocks.HEAVY_ELECTROMAGNET_TURRET_BLOCK)
                     .renderer(() -> HeavyElectroMagnetTurretGeoRenderer::new)
-                    .register();
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
+    public static final BlockEntityEntry<HeavyLaserTurretBlockEntity> HEAVY_LASER_TURRET_BLOCK_ENTITY =
+            withCapability(REGISTRATE.blockEntity("heavy_laser_turret_block_entity", HeavyLaserTurretBlockEntity::new)
+                    .validBlocks(vsieBlocks.HEAVY_LASER_TURRET_BLOCK)
+                    .renderer(() -> HeavyLaserTurretGeoRenderer::new)
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
     public static final BlockEntityEntry<BasicCIWSBlockEntity> BASIC_CIWS_BLOCK_ENTITY =
-            REGISTRATE.blockEntity("basic_ciws_block_entity", BasicCIWSBlockEntity::new)
+            withCapability(REGISTRATE.blockEntity("basic_ciws_block_entity", BasicCIWSBlockEntity::new)
                     .validBlocks(vsieBlocks.BASIC_CIWS_BLOCK)
                     .renderer(() -> AbstractTurretGeoRenderer::new)
-                    .register();
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
 
 
     public static final BlockEntityEntry<SmallEnergyBatteryBlockEntity> SMALL_ENERGY_BATTERY_BLOCK_ENTITY =

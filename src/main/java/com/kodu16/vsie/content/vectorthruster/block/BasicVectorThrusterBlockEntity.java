@@ -17,7 +17,7 @@ public class BasicVectorThrusterBlockEntity extends AbstractVectorThrusterBlockE
     @Override
     public float getMaxFlameDistance() {
         // Visual scale for the basic vector thruster flame.
-        return 4;
+        return 8;
     }
 
     public BasicVectorThrusterBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
@@ -43,7 +43,7 @@ public class BasicVectorThrusterBlockEntity extends AbstractVectorThrusterBlockE
 
     @Override
     public float getflamewidth() {
-        return 0.5f;
+        return 0.25f;
     }
 
     @Override

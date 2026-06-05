@@ -3,11 +3,16 @@ package com.kodu16.vsie.content.bullet.entity;
 import com.kodu16.vsie.content.bullet.AbstractBulletEntity;
 import com.kodu16.vsie.content.bullet.BulletData;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.BlockHitResult;
 
 public class ParticleBulletEntity extends AbstractBulletEntity {
-    public static final double SPEED = 5.0D;
+    public static final double SPEED = 6.0D;
+    private static final double SHIP_BLOCK_BREAK_RADIUS = 3.0D;
+    private static final float BLOCK_BREAK_TNT_CHANCE = 0.1F;
+    private boolean explodesOnBlockHit = false;
 
     public ParticleBulletEntity(EntityType<? extends AbstractBulletEntity> type, Level pLevel) {
         super(type, pLevel);
@@ -31,8 +36,45 @@ public class ParticleBulletEntity extends AbstractBulletEntity {
         return getMaxLifeTime();
     }
 
+    public void setExplodesOnBlockHit(boolean explodesOnBlockHit) {
+        // Function: particle turrets reuse the same projectile, while ship shots enable block-breaking impact.
+        this.explodesOnBlockHit = explodesOnBlockHit;
+    }
+
+    @Override
+    protected float getBlockBreakTntChance() {
+        return BLOCK_BREAK_TNT_CHANCE;
+    }
+
+    @Override
+    protected double getBlockBreakRadius() {
+        return SHIP_BLOCK_BREAK_RADIUS;
+    }
+
+    @Override
+    protected void onHitBlock(BlockHitResult result) {
+        if (!explodesOnBlockHit) {
+            super.onHitBlock(result);
+            return;
+        }
+
+        if (level() instanceof ServerLevel serverLevel) {
+            destroyBlocksInSphere(serverLevel, result.getLocation(), getBlockBreakRadius());
+            serverLevel.explode(
+                    this,
+                    result.getLocation().x,
+                    result.getLocation().y,
+                    result.getLocation().z,
+                    3.0F,
+                    false,
+                    Level.ExplosionInteraction.NONE
+            );
+        }
+        discard();
+    }
+
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
-
+        super.defineSynchedData(builder);
     }
 }

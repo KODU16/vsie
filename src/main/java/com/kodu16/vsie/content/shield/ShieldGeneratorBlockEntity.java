@@ -49,12 +49,7 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
     public BlockPos linkedcontrolseatpos = new BlockPos(0,0,0);
     double RADIUS = 3;
     public int maxreceiverate = 100;
-    public EnergyStorage energyStorage = new ShieldEnergyStorage(); /*
-            100000,    // 鏈€澶у閲?(capacity)
-            maxreceiverate,      // 鏈€澶ф帴鏀堕€熺巼 (max receive)   鍙互璁?Integer.MAX_VALUE 濡傛灉鎯虫棤闄愬埗
-            Integer.MAX_VALUE,      // 鏈€澶ц緭鍑洪€熺巼 (max extract)
-            0         // 鍒濆鑳介噺
-    );*/
+    public EnergyStorage energyStorage = new ShieldEnergyStorage();
 
     private class ShieldEnergyStorage extends EnergyStorage {
         private ShieldEnergyStorage() {
@@ -87,12 +82,11 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
 
             // 閫熷害闃堝€硷紝鍙皟锛堝崟浣嶏細鏂瑰潡/鍒伙級
             double speed = entity.getDeltaMovement().length();
-            if (speed < 0.25) return false; // 澶參鐨勭洿鎺ュ拷鐣ワ紙姣斿婕傛诞鐨勭墿鍝侊級
+            if (speed < 0.25) return false;
 
-            // 璁＄畻鏄惁鏈濇姢鐩鹃鏉?
             Vec3 toEntity = entity.position().subtract(center);
             double dot = entity.getDeltaMovement().normalize().dot(toEntity.normalize());
-            return dot < -0.3; // 瓒婅礋璇存槑瓒婃瀵规姢鐩鹃鏉ワ紙-0.3~0.6 涔嬮棿璋冭妭鎵嬫劅锛?
+            return dot < -0.3;
         }).forEach(entity -> {
 
             Vec3 toEntity = entity.position().subtract(center);
@@ -131,49 +125,12 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
         ModNetworking.sendToAll(new FxPositionS2CPacket(
                 SHIELD_HIT_FX,
                 hitPoint.x, hitPoint.y, hitPoint.z,
+                0.0D, 0.0D, 0.0D,
                 rotation,
                 new Vector3f(1.0F, 1.0F, 1.0F),
+                true,
                 true
         ));
-    }
-
-    private static void spawnRippleParticles(ServerLevel level, Vec3 hitPoint, Vec3 hitDir) {
-        int numRings = 3;
-        int particlesPerRing = 16;
-        double speed = 0.02;
-
-        // 鏋勯€犱竴涓笌 hitDir 鍨傜洿鐨勫眬閮ㄥ潗鏍囩郴 (u, v)
-        Vec3 w = hitDir.normalize();
-        Vec3 arbitrary = Math.abs(w.y) < 0.9 ? new Vec3(0, 1, 0) : new Vec3(1, 0, 0);
-        Vec3 u = w.cross(arbitrary).normalize();   // 绗竴涓浜ゅ悜閲?
-        Vec3 v = w.cross(u).normalize();           // 绗簩涓浜ゅ悜閲忥紙涔熷瀭鐩翠簬 w锛?
-
-        for (int ring = 0; ring < numRings; ring++) {
-            double ringRadius = 0.2 + ring * 0.4;
-            for (int i = 0; i < particlesPerRing; i++) {
-                double angle = (i * 2 * Math.PI) / particlesPerRing;
-                Vec3 localOffset = u.scale(Math.cos(angle) * ringRadius)
-                        .add(v.scale(Math.sin(angle) * ringRadius));
-
-                // 璁＄畻绮掑瓙浣嶇疆
-                Vec3 pos = hitPoint.add(localOffset);
-
-                // 璁＄畻婕傛诞閫熷害
-                Vec3 outwardMovement = hitDir.scale(0.05); // 鍚戝婕傛诞鐨勯€熷害
-
-                // 浣跨敤 DustParticleOptions锛堟祬钃濊壊锛?
-                Vector3f dustColor = new Vector3f(1.0f, 0.8f, 1.0f);  // 娴呰摑鑹?RGB
-                DustParticleOptions dustParticle = new DustParticleOptions(dustColor, 1.0f); // 娴呰摑鑹?
-                level.sendParticles(dustParticle,
-                        pos.x, pos.y, pos.z,
-                        1, outwardMovement.x, outwardMovement.y, outwardMovement.z, speed);
-
-                // 浣跨敤 Glow 鍙戝厜绮掑瓙
-                level.sendParticles(ParticleTypes.GLOW,
-                        pos.x, pos.y, pos.z,
-                        1, outwardMovement.x, outwardMovement.y, outwardMovement.z, speed);
-            }
-        }
     }
 
     // 鍔熻兘锛氭彁渚涚粰 NeoForge 1.21.1 capability 娉ㄥ唽鍣ㄧ殑 FE 鍌ㄨ兘鎺ュ彛瀹炰緥銆?

@@ -1,0 +1,14 @@
+{
+  "name": "小口径弹药箱",
+  "icon": "vsie:small_ammobox",
+  "category": "vsie:materials",
+  "sortnum": 3,
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:small_ammobox",
+      "title": "小口径弹药箱",
+      "text": "专供近防炮塔使用的小口径弹药箱，每箱含1000发弹药，近防炮塔会自动取用其中弹药并销毁已耗尽的箱子"
+    }
+  ]
+}

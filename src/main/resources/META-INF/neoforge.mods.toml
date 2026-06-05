@@ -41,6 +41,13 @@ versionRange = "[1.1.3,)"
 ordering = "AFTER"
 side = "BOTH"
 
+[[dependencies.${mod_id}]]
+modId = "patchouli"
+type = "optional"
+versionRange = "[0,)"
+ordering = "AFTER"
+side = "BOTH"
+
 [[mod.natives]]
 module = "lwjgl-sdl"
 os = "WINDOWS"

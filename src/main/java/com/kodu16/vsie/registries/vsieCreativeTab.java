@@ -43,10 +43,16 @@ public class vsieCreativeTab {
             output.accept(vsieItems.PARTICLE_CONTAINER);
             output.accept(vsieItems.BASIC_MISSILE_ITEM);
             output.accept(vsieItems.WARP_DATA_CHIP);
+            output.accept(vsieItems.SOLID_E710);
+            output.accept(vsieItems.COMPUTRONIC_SUBSTRATE);
+            output.accept(vsieItems.METALIC_MICROLATTICE);
+            output.accept(vsieItems.SILICON_CARBIDE);
 
 
             output.accept(vsieBlocks.BASIC_SCREEN_BLOCK);
             output.accept(vsieFluids.DTFUEL.getBucket().get());
+            output.accept(vsieFluids.CHARGED_PARTICLES_FUEL.getBucket().get());
+            output.accept(vsieFluids.E710.getBucket().get());
             output.accept(vsieBlocks.CONTROL_SEAT_BLOCK);
 
             output.accept(vsieBlocks.BASIC_THRUSTER_BLOCK);
@@ -56,10 +62,12 @@ public class vsieCreativeTab {
             output.accept(vsieBlocks.MEDIUM_LASER_TURRET_BLOCK);
             output.accept(vsieBlocks.PARTICLE_TURRET_BLOCK);
             output.accept(vsieBlocks.HEAVY_ELECTROMAGNET_TURRET_BLOCK);
+            output.accept(vsieBlocks.HEAVY_LASER_TURRET_BLOCK);
             output.accept(vsieBlocks.BASIC_CIWS_BLOCK);
 
             output.accept(vsieBlocks.SHIELD_GENERATOR_BLOCK);
             output.accept(vsieBlocks.AMMO_BOX_BLOCK);
+            output.accept(vsieBlocks.SMALL_AMMOBOX_BLOCK);
             output.accept(vsieBlocks.BASIC_VECTOR_THRUSTER_BLOCK);
 
             output.accept(vsieBlocks.INFRA_KNIFE_ACCELERATOR_BLOCK);
@@ -69,10 +77,12 @@ public class vsieCreativeTab {
             output.accept(vsieBlocks.ARC_EMITTER_BLOCK);
             output.accept(vsieBlocks.CENIX_PLASMA_CANNON_BLOCK);
             output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_CANNON_BLOCK);
+            output.accept(vsieBlocks.REDSTONE_RELAY_BLOCK);
 
             output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_TOP_BLOCK);
             output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_CORE_BLOCK);
             output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_BLOCK);
+            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_ACCELERATOR_BLOCK);
 
             output.accept(vsieBlocks.SMALL_ENERGY_BATTERY_BLOCK);
             output.accept(vsieBlocks.MEDIUM_ENERGY_BATTERY_BLOCK);

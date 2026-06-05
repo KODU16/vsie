@@ -1,0 +1,33 @@
+{
+  "name": "护盾：护盾发生器",
+  "icon": "vsie:shield_generator",
+  "category": "vsie:shield",
+  "sortnum": 0,
+  "extra_recipe_mappings": {
+    "vsie:shield_generator": 0
+  },
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:shield_generator",
+      "title": "护盾系统",
+      "text": "在护盾系统出现之前，对于任何来袭的攻击都只能使用装甲硬扛，再强大的舰船也难免受到装甲损坏需要频繁修理的困扰$(br2)然而现在你可以通过AeroIE护盾系统，供给电量来几乎零代价保护你的船只$(br2)AeroIE的护盾并非是单个特定部件，而是基于多个护盾发生器组成。它们可以共同组成一个保护子维度中心为圆心的球形区域的护盾"
+    },
+    {
+      "type": "patchouli:text",
+      "title": "护盾系统：如何建立",
+      "text": "护盾发生器是控制椅的外设，你可以将任意数量的护盾发生器绑定至同子维度的控制椅。然而，发生器之间会产生特定干涉来影响最终的护盾性能，具体的护盾性能可以使用护盾工具查看（详见章节：$(l:vsie:shield/shield_tool)护盾：护盾工具/$）。$(br2)下一章节（和护盾工具的GUI中）会给出计算公式"
+    },
+    {
+      "type": "patchouli:text",
+      "title": "护盾系统：如何使用",
+      "text": "控制椅绑定好护盾发生器后，按下V即可开启护盾，此时护盾会抽取电池的能量直至充满，再按下V可关闭护盾，此时所有护盾发生器的能量归零，抽取停止$(br2)开启的护盾会自动消耗一份能量清除进入半径，且朝着控制椅所在子维度飞行的弹射物（每拦截一个弹射物，所有护盾发生器都会消耗一份能量）"
+    },
+    {
+      "type": "patchouli:text",
+      "title": "护盾系统：如何使用",
+      "text": "护盾能量耗空时会进入冷却，冷却完成后才能从零开始继续抽取能量回复$(br2)具体参数，详见$(l:vsie:shield/shield_generator_data)下一章节“护盾：各参数计算式”/$"
+    }
+
+  ]
+}

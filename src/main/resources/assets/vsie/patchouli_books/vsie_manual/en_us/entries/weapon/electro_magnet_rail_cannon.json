@@ -1,0 +1,21 @@
+{
+  "name": "电磁轨道炮",
+  "icon": "vsie:electro_magnet_rail_cannon",
+  "category": "vsie:weapon",
+  "sortnum": 13,
+  "extra_recipe_mappings": {
+    "vsie:electro_magnet_rail_cannon": 0
+  },
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:electro_magnet_rail_cannon",
+      "title": "电磁轨道炮",
+      "text": "利用电磁轨道推进大质量穿甲弹的动能武器，仅安装在有效的电磁导轨核心的导轨面时可有效开火（详见章节：$(l:vsie:peripheral/electro_magnet_rail)电磁导轨/$）$(br2)发射的电磁弹依赖导轨提供加速，其穿透能力正比于导轨的有效长度$(br2)武器研发部门正在开发另一种依托电磁导轨的定向能武器"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "最大射程：256。"
+    }
+  ]
+}

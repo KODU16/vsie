@@ -8,11 +8,11 @@ import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.network.NetworkEvent;
-import net.minecraft.network.chat.Component;
 
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -21,7 +21,6 @@ public class HeavyTurretC2SPacket implements CustomPacketPayload {
     // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
     public static final CustomPacketPayload.Type<HeavyTurretC2SPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "turret_heavyturretc2spacket"));
     public static final StreamCodec<FriendlyByteBuf, HeavyTurretC2SPacket> STREAM_CODEC = CustomPacketPayload.codec(HeavyTurretC2SPacket::encode, HeavyTurretC2SPacket::decode);
-
     public static final Logger LOGGER = LogUtils.getLogger();
     public final BlockPos pos;
     public final int changetype;
@@ -64,12 +63,16 @@ public class HeavyTurretC2SPacket implements CustomPacketPayload {
                 return;
             }
             // 功能：复用同一数据包，同时支持“切换开火模式”和“切换频道”。
-            if (changetype >= 100) {
+            if (changetype == 5) {
+                // Function: heavy turrets reuse the same block-damage checkbox semantics as ordinary turrets.
+                heavyturret.toggleBreaksBlocksEnabled();
+            } else if (changetype >= 100) {
                 // 功能：重型炮塔的模式编码只允许 100~102（手动/自动/智能），其它编码直接忽略。
                 if (changetype > 102) {
                     return;
                 }
                 int fireType = changetype - 100;
+                // Function: each heavy turret subclass decides which fire modes are selectable.
                 heavyturret.modifyFireType(fireType);
                 LogUtils.getLogger().warn("C2S:setting heavy turret fire type to:" + fireType);
             } else {

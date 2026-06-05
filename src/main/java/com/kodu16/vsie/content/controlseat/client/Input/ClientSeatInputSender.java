@@ -74,8 +74,10 @@ public class ClientSeatInputSender {
         if (consumeNumberClick(mc, 3)) keysInput |= ControlSeatInputC2SPacket.KeysInput.CHANNEL4;
         if (consumeClick(vsieKeyMappings.KEY_SWITCH_ENEMY)) keysInput |= ControlSeatInputC2SPacket.KeysInput.SWITCHENEMY;
         if (consumeClick(vsieKeyMappings.KEY_TOGGLE_SHIELD)) keysInput |= ControlSeatInputC2SPacket.KeysInput.TOGGLESHIELD;
-        if (consumeClick(vsieKeyMappings.KEY_TOGGLE_FLIGHT_ASSIST)) keysInput |= ControlSeatInputC2SPacket.KeysInput.TOGGLEFLIGHTASSIST;
+        if (consumeClick(vsieKeyMappings.KEY_TOGGLE_FORCE_ASSIST)) keysInput |= ControlSeatInputC2SPacket.KeysInput.TOGGLEFORCEASSIST;
+        if (consumeClick(vsieKeyMappings.KEY_TOGGLE_TORQUE_ASSIST)) keysInput |= ControlSeatInputC2SPacket.KeysInput.TOGGLETORQUEASSIST;
         if (consumeClick(vsieKeyMappings.KEY_TOGGLE_ANTI_GRAVITY)) keysInput |= ControlSeatInputC2SPacket.KeysInput.TOGGLEANTIGRAVITY;
+        if (consumeClick(vsieKeyMappings.KEY_TOGGLE_AUTO_LEVEL)) keysInput |= ControlSeatInputC2SPacket.KeysInput.TOGGLEAUTOLEVEL;
         return keysInput;
     }
 

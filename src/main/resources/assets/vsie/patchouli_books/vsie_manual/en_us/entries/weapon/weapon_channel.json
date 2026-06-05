@@ -1,0 +1,17 @@
+{
+  "name": "武器：频道",
+  "icon": "vsie:infra_knife_accelerator",
+  "category": "vsie:weapon",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "title": "什么是频道",
+      "text": "右键打开任意武器的GUI，内部有四个开火频道，点选“CH...”按钮，可以设定此频道为激活频道，但同一武器只能选择一个激活频道$(br2)控制椅的HUD中，显示了控制椅的频道开启状态（详见章节：$(l:vsie:control_seat/flying_information)控制椅：HUD信息/$）$(br2)乘坐控制椅时，可以按下1/2/3/4切换每个频道的开关状态（详见章节：$(l:vsie:control_seat/flying_control)控制椅：飞行控制/$）"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "武器想要工作，则需要绑定至控制椅（详见章节：$(l:vsie:control_seat/how_to_connect)控制椅：如何连接和管理外设/$），当武器成功连接至控制椅后，若控制椅开启频道包含武器设定的激活频道，则武器激活，且会在控制椅HUD右侧显示武器的缩写和冷却状态（详见章节：$(l:vsie:weapon/weapon_cooldown)武器：冷却/$）$(br2)当按下开火键时，所有激活的武器开火"
+    }
+  ]
+}

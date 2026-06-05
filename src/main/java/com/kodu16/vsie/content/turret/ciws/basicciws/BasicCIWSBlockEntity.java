@@ -1,11 +1,14 @@
 package com.kodu16.vsie.content.turret.ciws.basicciws;
 
 import com.kodu16.vsie.content.turret.ciws.AbstractCIWSBlockEntity;
+import com.kodu16.vsie.content.turret.ciws.basicciws.client.BasicCiwsSoundManager;
 import com.kodu16.vsie.network.fx.FxPositionS2CPacket;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.vsie;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -31,8 +34,10 @@ public class BasicCIWSBlockEntity extends AbstractCIWSBlockEntity {
     private static final double FIRE_ALIGNMENT_THRESHOLD = 0.7D;
     private static final double HIT_ALIGNMENT_THRESHOLD = 0.9D;
     private static final int PROJECTILE_INTERCEPT_FIRE_TICKS = 2;
+    private static final String LOOP_SOUND_ACTIVE_TAG = "ciwsLoopSoundActive";
 
     private boolean firedThisTick;
+    private boolean loopSoundActive;
     private boolean shootAnimationActive;
     private Vec3 queuedFirepoint;
     private Vec3 queuedFireDirection;
@@ -47,6 +52,10 @@ public class BasicCIWSBlockEntity extends AbstractCIWSBlockEntity {
 
     @Override
     public void tick() {
+        Level level = this.getLevel();
+        if (level != null && level.isClientSide()) {
+            BasicCiwsSoundManager.updateCiws(this);
+        }
         firedThisTick = false;
         queuedFirepoint = null;
         queuedFireDirection = null;
@@ -58,6 +67,13 @@ public class BasicCIWSBlockEntity extends AbstractCIWSBlockEntity {
         if (!firedThisTick) {
             stopCiwsFire();
         }
+        if (level != null && !level.isClientSide()) {
+            syncLoopSoundState(firedThisTick);
+        }
+    }
+
+    public boolean isLoopSoundActive() {
+        return loopSoundActive;
     }
 
     @Override
@@ -182,26 +198,12 @@ public class BasicCIWSBlockEntity extends AbstractCIWSBlockEntity {
     private double getBarrelAimAlignment(Vec3 target) {
         Vec3 barrelDirection = getCurrentBarrelDirectionWorld();
         Vec3 targetDirection = target.subtract(getTurretAimOriginWorld());
-        if (barrelDirection.lengthSqr() < 1.0E-6 || targetDirection.lengthSqr() < 1.0E-6) {
+        if (barrelDirection == null || barrelDirection.lengthSqr() < 1.0E-6 || targetDirection.lengthSqr() < 1.0E-6) {
             return -1.0D;
         }
 
         // Function: keep CIWS fire thresholds based on turret rotation, not on the synthetic muzzle endpoint.
         return barrelDirection.normalize().dot(targetDirection.normalize());
-    }
-
-    private Vec3 getCurrentBarrelDirectionWorld() {
-        double yaw = -yRot0;
-        double pitch = xRot0;
-        double horizontal = Math.cos(pitch);
-        double localX = Math.sin(yaw) * horizontal;
-        double localY = Math.sin(pitch);
-        double localZ = Math.cos(yaw) * horizontal;
-
-        // Function: rebuild the current barrel forward vector from the same world basis used by target rotation.
-        return new Vec3(worldZDirection.x, worldZDirection.y, worldZDirection.z).scale(localX)
-                .add(new Vec3(worldYDirection.x, worldYDirection.y, worldYDirection.z).scale(localY))
-                .add(new Vec3(worldXDirection.x, worldXDirection.y, worldXDirection.z).scale(localZ));
     }
 
     private boolean queueFiringEffects(Vec3 firepoint, Vec3 direction) {
@@ -294,6 +296,31 @@ public class BasicCIWSBlockEntity extends AbstractCIWSBlockEntity {
             // Function: stop the looped fire animation as soon as the turret loses lock or target.
             stopTriggeredAnim("controller", "shoot");
             shootAnimationActive = false;
+        }
+    }
+
+    private void syncLoopSoundState(boolean firingNow) {
+        if (loopSoundActive == firingNow) {
+            return;
+        }
+
+        // Function: mirror the sustained-fire state to clients so the CIWS loop can start and stop immediately.
+        loopSoundActive = firingNow;
+        setChanged();
+        level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), 3);
+    }
+
+    @Override
+    protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(tag, registries, clientPacket);
+        tag.putBoolean(LOOP_SOUND_ACTIVE_TAG, loopSoundActive);
+    }
+
+    @Override
+    protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(tag, registries, clientPacket);
+        if (tag.contains(LOOP_SOUND_ACTIVE_TAG)) {
+            loopSoundActive = tag.getBoolean(LOOP_SOUND_ACTIVE_TAG);
         }
     }
 }

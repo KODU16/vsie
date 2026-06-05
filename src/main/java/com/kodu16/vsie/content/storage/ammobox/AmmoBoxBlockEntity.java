@@ -59,8 +59,8 @@ public class AmmoBoxBlockEntity extends BlockEntity implements MenuProvider, IIt
 
     @Override
     public Component getDisplayName() {
-        // lang: block.<modid>.ammo_box=Ammo Box
-        return Component.translatable("block.mymod.ammo_box");
+        // Function: reuse the mod namespace block translation so the ammo box title stays aligned with the item name.
+        return Component.translatable("block.vsie.ammo_box");
     }
 
     @Nullable

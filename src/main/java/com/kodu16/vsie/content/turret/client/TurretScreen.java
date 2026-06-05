@@ -2,8 +2,8 @@ package com.kodu16.vsie.content.turret.client;
 
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.turret.TurretContainerMenu;
-import com.kodu16.vsie.content.turret.block.ParticleTurretBlockEntity;
 import com.kodu16.vsie.content.turret.ciws.AbstractCIWSBlockEntity;
+import com.kodu16.vsie.foundation.client.GuiTooltipHelper;
 import com.kodu16.vsie.network.turret.TurretC2SPacket;
 import com.kodu16.vsie.network.turret.TurretDefaultSpinC2SPacket;
 import com.kodu16.vsie.registries.ModNetworking;
@@ -19,20 +19,74 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 
-@SuppressWarnings({"removal"})
+@SuppressWarnings("removal")
 public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
+    private static final int BASE_SCREEN_WIDTH = 176;
     private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/turret_gui.png");
+    private static final ResourceLocation AMMO_TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/turret_gui_ammo.png");
     private static final ResourceLocation SLOT_TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/slot.png");
+    private static final int BREAK_BLOCKS_LABEL_X = 8;
+    private static final int BREAK_BLOCKS_LABEL_Y = 114;
+    private static final int BREAK_BLOCKS_BUTTON_X = 90;
+    private static final int BREAK_BLOCKS_BUTTON_Y = 110;
+    private static final int AMMO_PANEL_TOP = 154;
+    private static final int AMMO_PANEL_BOTTOM = 183;
+    private static final int INVENTORY_PANEL_TOP = 190;
+    private static final int INVENTORY_PANEL_BOTTOM = 280;
+    private static final int AMMO_SCREEN_WIDTH = 228;
+    private static final int AMMO_SCREEN_HEIGHT = 288;
+    private static final int AIM_LEFT_LABEL_X = 24;
+    private static final int AIM_LEFT_BOX_X = 38;
+    private static final int AIM_RIGHT_LABEL_X = 104;
+    private static final int AIM_RIGHT_BOX_X = 118;
+    private static final int AIM_TOP_ROW_Y = 21;
+    private static final int AIM_BOTTOM_ROW_Y = 37;
+    private static final int AIM_INPUT_TOP_Y = 18;
+    private static final int AIM_INPUT_BOTTOM_Y = 34;
+    private static final int AIM_INPUT_WIDTH = 34;
+    private static final int SPIN_Y_LABEL_X = 42;
+    private static final int SPIN_X_LABEL_X = 106;
+    private static final int SPIN_LABEL_Y = 53;
+    private static final int SPIN_Y_BOX_X = 62;
+    private static final int SPIN_X_BOX_X = 126;
+    private static final int SPIN_INPUT_Y = 50;
+    private static final int SPIN_INPUT_WIDTH = 24;
+    private static final int TARGET_ICON_HOSTILE_X = 30;
+    private static final int TARGET_ICON_PASSIVE_X = 69;
+    private static final int TARGET_ICON_PLAYER_X = 108;
+    private static final int TARGET_ICON_SHIP_X = 147;
+    private static final int TARGET_ICON_Y = 70;
+    private static final int TARGET_BUTTON_Y = 90;
+    private static final int TARGET_BUTTON_HOSTILE_X = 26;
+    private static final int TARGET_BUTTON_PASSIVE_X = 65;
+    private static final int TARGET_BUTTON_PLAYER_X = 94;
+    private static final int TARGET_BUTTON_SHIP_X = 143;
+    private static final int TARGET_BUTTON_HOSTILE_WIDTH = 27;
+    private static final int TARGET_BUTTON_PASSIVE_WIDTH = 27;
+    private static final int TARGET_BUTTON_PLAYER_WIDTH = 37;
+    private static final int TARGET_BUTTON_SHIP_WIDTH = 27;
+    private static final int TARGET_BUTTON_HEIGHT = 15;
+    private static final int ACTION_BUTTON_Y = 110;
+    private static final int SAVE_BUTTON_X = 50;
+    private static final int SAVE_BUTTON_WIDTH = 34;
+    private static final int CANCEL_BUTTON_X = 92;
+    private static final int CANCEL_BUTTON_WIDTH = 42;
+    private static final int ACTION_BUTTON_HEIGHT = 16;
 
     private EditBox editBoxSpinX;
     private EditBox editBoxSpinY;
+    private EditBox editBoxAimLimitMinX;
+    private EditBox editBoxAimLimitMaxX;
+    private EditBox editBoxAimLimitMinY;
+    private EditBox editBoxAimLimitMaxY;
+    private Button breakBlocksButton;
 
     public TurretScreen(TurretContainerMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
-        this.imageWidth = 176;
-        // Function: Particle Turret needs room for the added player inventory slots.
-        this.imageHeight = menu.hasInventorySlots() ? 220 : 166;
-        this.inventoryLabelY = menu.hasInventorySlots() ? TurretContainerMenu.PLAYER_INV_Y - 11 : 72;
+        // Function: ammo screens are wider so the full player inventory can sit inside the same visual frame.
+        this.imageWidth = menu.hasAmmoSlots() ? AMMO_SCREEN_WIDTH : 176;
+        this.imageHeight = menu.hasAmmoSlots() ? AMMO_SCREEN_HEIGHT : 166;
+        this.inventoryLabelY = 1000;
     }
 
     @Override
@@ -40,16 +94,23 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTicks);
         super.render(guiGraphics, mouseX, mouseY, partialTicks);
         this.renderTooltip(guiGraphics, mouseX, mouseY);
+        renderControlTooltips(guiGraphics, mouseX, mouseY);
     }
 
     @Override
     protected void renderBg(GuiGraphics guiGraphics, float partialTicks, int mouseX, int mouseY) {
         AbstractTurretBlockEntity turret = menu.getBlockEntity();
-        guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, Math.min(this.imageHeight, 166));
-        if (menu.hasInventorySlots()) {
-            // Function: extend the old texture with a neutral panel under the turret controls.
-            guiGraphics.fill(this.leftPos, this.topPos + 116, this.leftPos + this.imageWidth, this.topPos + this.imageHeight, 0xFFBDBDBD);
-            guiGraphics.fill(this.leftPos + 3, this.topPos + 119, this.leftPos + this.imageWidth - 3, this.topPos + this.imageHeight - 3, 0xFFC6C6C6);
+        if (menu.hasAmmoSlots()) {
+            // Function: ammo turrets use a taller baked background so the player inventory fits without ad-hoc fills.
+            guiGraphics.blit(AMMO_TEXTURE, this.leftPos, this.topPos, 0, 0,
+                    this.imageWidth, this.imageHeight, this.imageWidth, this.imageHeight);
+        } else {
+            guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, 166);
+        }
+        if (menu.hasAmmoSlots()) {
+            RenderSystem.setShader(GameRenderer::getPositionTexShader);
+            drawAmmoSlots(guiGraphics);
+            drawPlayerInventorySlots(guiGraphics);
         }
 
         ResourceLocation iconHostile = turret.getData().isTargetsHostile()
@@ -68,51 +129,55 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
                 ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_ciws_on.png")
                 : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_ciws_off.png");
 
-        guiGraphics.blit(iconHostile, this.leftPos + 20, this.topPos + 70, 0, 0, 19, 19, 19, 19);
-        guiGraphics.blit(iconPassive, this.leftPos + 59, this.topPos + 70, 0, 0, 19, 19, 19, 19);
-        guiGraphics.blit(iconPlayer, this.leftPos + 98, this.topPos + 70, 0, 0, 19, 19, 19, 19);
+        guiGraphics.blit(iconHostile, this.leftPos + controlOffsetX() + TARGET_ICON_HOSTILE_X, this.topPos + TARGET_ICON_Y, 0, 0, 19, 19, 19, 19);
+        guiGraphics.blit(iconPassive, this.leftPos + controlOffsetX() + TARGET_ICON_PASSIVE_X, this.topPos + TARGET_ICON_Y, 0, 0, 19, 19, 19, 19);
+        guiGraphics.blit(iconPlayer, this.leftPos + controlOffsetX() + TARGET_ICON_PLAYER_X, this.topPos + TARGET_ICON_Y, 0, 0, 19, 19, 19, 19);
         guiGraphics.blit(menu.getBlockEntity() instanceof AbstractCIWSBlockEntity ? iconCiws : iconShip,
-                this.leftPos + 137, this.topPos + 70, 0, 0, 19, 19, 19, 19);
-
-        if (turret instanceof ParticleTurretBlockEntity) {
-            RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            drawInternalSlots(guiGraphics);
-            drawPlayerInventorySlots(guiGraphics);
-        }
+                this.leftPos + controlOffsetX() + TARGET_ICON_SHIP_X, this.topPos + TARGET_ICON_Y, 0, 0, 19, 19, 19, 19);
     }
 
-    private void drawInternalSlots(GuiGraphics guiGraphics) {
-        // Function: draw backgrounds for the Particle Turret's internal 3x3 ammo buffer.
+    private void drawAmmoSlots(GuiGraphics guiGraphics) {
+        // Function: non-energy turrets display exactly one 9-slot ammo row.
         int slotStartX = this.leftPos + TurretContainerMenu.INTERNAL_SLOT_X - 1;
         int slotStartY = this.topPos + TurretContainerMenu.INTERNAL_SLOT_Y - 1;
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
-                guiGraphics.blit(SLOT_TEXTURE, slotStartX + col * 18, slotStartY + row * 18, 0, 0, 18, 18, 18, 18);
-            }
+        for (int col = 0; col < TurretContainerMenu.INTERNAL_SLOT_COUNT; col++) {
+            guiGraphics.blit(SLOT_TEXTURE, slotStartX + col * 18, slotStartY, 0, 0, 18, 18, 18, 18);
         }
     }
 
     private void drawPlayerInventorySlots(GuiGraphics guiGraphics) {
-        // Function: draw backgrounds for the player inventory slots added to this menu.
-        int startX = this.leftPos + TurretContainerMenu.PLAYER_INV_X - 1;
-        int startY = this.topPos + TurretContainerMenu.PLAYER_INV_Y - 1;
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                guiGraphics.blit(SLOT_TEXTURE, startX + col * 18, startY + row * 18, 0, 0, 18, 18, 18, 18);
+                guiGraphics.blit(SLOT_TEXTURE,
+                        this.leftPos + TurretContainerMenu.PLAYER_INVENTORY_X + col * 18 - 1,
+                        this.topPos + TurretContainerMenu.PLAYER_INVENTORY_Y + row * 18 - 1,
+                        0, 0, 18, 18, 18, 18);
             }
         }
-        int hotbarY = this.topPos + TurretContainerMenu.HOTBAR_Y - 1;
         for (int col = 0; col < 9; col++) {
-            guiGraphics.blit(SLOT_TEXTURE, startX + col * 18, hotbarY, 0, 0, 18, 18, 18, 18);
+            guiGraphics.blit(SLOT_TEXTURE,
+                    this.leftPos + TurretContainerMenu.PLAYER_INVENTORY_X + col * 18 - 1,
+                    this.topPos + TurretContainerMenu.PLAYER_HOTBAR_Y - 1,
+                    0, 0, 18, 18, 18, 18);
         }
     }
 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         guiGraphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0x404040, false);
-        if (menu.hasInventorySlots()) {
-            // Function: show the normal player inventory label above the added slots.
-            guiGraphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 0x404040, false);
+        if (menu.getBlockEntity().supportsBlockDestructionToggle()) {
+            guiGraphics.drawString(this.font, Component.translatable("gui.vsie.common.break_blocks.label"),
+                    BREAK_BLOCKS_LABEL_X, BREAK_BLOCKS_LABEL_Y, 0x404040, false);
+        }
+        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.aim_min_x.label"), controlOffsetX() + AIM_LEFT_LABEL_X, AIM_TOP_ROW_Y, 0x404040, false);
+        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.aim_max_x.label"), controlOffsetX() + AIM_RIGHT_LABEL_X, AIM_TOP_ROW_Y, 0x404040, false);
+        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.aim_min_y.label"), controlOffsetX() + AIM_LEFT_LABEL_X, AIM_BOTTOM_ROW_Y, 0x404040, false);
+        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.aim_max_y.label"), controlOffsetX() + AIM_RIGHT_LABEL_X, AIM_BOTTOM_ROW_Y, 0x404040, false);
+        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.default_yaw.label"), controlOffsetX() + SPIN_Y_LABEL_X, SPIN_LABEL_Y, 0x404040, false);
+        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.default_pitch.label"), controlOffsetX() + SPIN_X_LABEL_X, SPIN_LABEL_Y, 0x404040, false);
+        if (menu.hasAmmoSlots()) {
+            guiGraphics.drawString(this.font, Component.translatable("gui.vsie.common.ammo"), 8, AMMO_PANEL_TOP, 0x404040, false);
+            guiGraphics.drawString(this.font, Component.translatable("container.inventory"), 8, INVENTORY_PANEL_TOP, 0x404040, false);
         }
     }
 
@@ -120,46 +185,57 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
     protected void init() {
         super.init();
         BlockPos pos = menu.getBlockEntity().getBlockPos();
-        var be = this.menu.getBlockEntity();
-        this.editBoxSpinX = createIntEditBox("SpinX", this.leftPos + 112, this.topPos + 48, String.valueOf(be.defaultspinx));
-        this.editBoxSpinY = createIntEditBox("SpinY", this.leftPos + 48, this.topPos + 48, String.valueOf(be.defaultspiny));
+        AbstractTurretBlockEntity be = this.menu.getBlockEntity();
+        this.editBoxAimLimitMinX = createIntEditBox("AimLimitMinX", this.leftPos + controlOffsetX() + AIM_LEFT_BOX_X, this.topPos + AIM_INPUT_TOP_Y, AIM_INPUT_WIDTH, String.valueOf(be.getData().aimLimitMinX));
+        this.editBoxAimLimitMaxX = createIntEditBox("AimLimitMaxX", this.leftPos + controlOffsetX() + AIM_RIGHT_BOX_X, this.topPos + AIM_INPUT_TOP_Y, AIM_INPUT_WIDTH, String.valueOf(be.getData().aimLimitMaxX));
+        this.editBoxAimLimitMinY = createIntEditBox("AimLimitMinY", this.leftPos + controlOffsetX() + AIM_LEFT_BOX_X, this.topPos + AIM_INPUT_BOTTOM_Y, AIM_INPUT_WIDTH, String.valueOf(be.getData().aimLimitMinY));
+        this.editBoxAimLimitMaxY = createIntEditBox("AimLimitMaxY", this.leftPos + controlOffsetX() + AIM_RIGHT_BOX_X, this.topPos + AIM_INPUT_BOTTOM_Y, AIM_INPUT_WIDTH, String.valueOf(be.getData().aimLimitMaxY));
+        this.editBoxSpinY = createIntEditBox("SpinY", this.leftPos + controlOffsetX() + SPIN_Y_BOX_X, this.topPos + SPIN_INPUT_Y, SPIN_INPUT_WIDTH, String.valueOf(be.defaultspiny));
+        this.editBoxSpinX = createIntEditBox("SpinX", this.leftPos + controlOffsetX() + SPIN_X_BOX_X, this.topPos + SPIN_INPUT_Y, SPIN_INPUT_WIDTH, String.valueOf(be.defaultspinx));
 
-        int targetButtonY = menu.hasInventorySlots() ? 90 : 100;
-        int actionButtonY = menu.hasInventorySlots() ? 108 : 140;
-
-        this.addRenderableWidget(Button.builder(Component.literal("HOS"),
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.vsie.turret.hostile.label"),
                         button -> ModNetworking.sendToServer(new TurretC2SPacket(pos, 1)))
-                .pos(this.leftPos + 16, this.topPos + targetButtonY)
-                .size(27, 15)
+                .pos(this.leftPos + controlOffsetX() + TARGET_BUTTON_HOSTILE_X, this.topPos + TARGET_BUTTON_Y)
+                .size(TARGET_BUTTON_HOSTILE_WIDTH, TARGET_BUTTON_HEIGHT)
                 .build());
-        this.addRenderableWidget(Button.builder(Component.literal("PAS"),
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.vsie.turret.passive.label"),
                         button -> ModNetworking.sendToServer(new TurretC2SPacket(pos, 2)))
-                .pos(this.leftPos + 55, this.topPos + targetButtonY)
-                .size(27, 15)
+                .pos(this.leftPos + controlOffsetX() + TARGET_BUTTON_PASSIVE_X, this.topPos + TARGET_BUTTON_Y)
+                .size(TARGET_BUTTON_PASSIVE_WIDTH, TARGET_BUTTON_HEIGHT)
                 .build());
-        this.addRenderableWidget(Button.builder(Component.literal("Player"),
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.vsie.turret.player.label"),
                         button -> ModNetworking.sendToServer(new TurretC2SPacket(pos, 3)))
-                .pos(this.leftPos + 94, this.topPos + targetButtonY)
-                .size(37, 15)
+                .pos(this.leftPos + controlOffsetX() + TARGET_BUTTON_PLAYER_X, this.topPos + TARGET_BUTTON_Y)
+                .size(TARGET_BUTTON_PLAYER_WIDTH, TARGET_BUTTON_HEIGHT)
                 .build());
-        this.addRenderableWidget(Button.builder(Component.literal("Ship"),
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.vsie.turret.ship.label"),
                         button -> ModNetworking.sendToServer(new TurretC2SPacket(pos, 4)))
-                .pos(this.leftPos + 137, this.topPos + targetButtonY)
-                .size(27, 15)
+                .pos(this.leftPos + controlOffsetX() + TARGET_BUTTON_SHIP_X, this.topPos + TARGET_BUTTON_Y)
+                .size(TARGET_BUTTON_SHIP_WIDTH, TARGET_BUTTON_HEIGHT)
                 .build());
-        this.addRenderableWidget(Button.builder(Component.literal("Save"),
+        if (be.supportsBlockDestructionToggle()) {
+            this.breakBlocksButton = this.addRenderableWidget(Button.builder(breakBlocksButtonLabel(),
+                            button -> {
+                                ModNetworking.sendToServer(new TurretC2SPacket(pos, 5));
+                                be.toggleBreaksBlocksEnabled();
+                                updateBreakBlocksButtonLabel();
+                            })
+                    .bounds(this.leftPos + BREAK_BLOCKS_BUTTON_X, this.topPos + BREAK_BLOCKS_BUTTON_Y, 20, 14)
+                    .build());
+        }
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.vsie.common.save"),
                         button -> saveAndClose())
-                .bounds(this.leftPos + 32, this.topPos + actionButtonY, 40, 16)
+                .bounds(this.leftPos + controlOffsetX() + SAVE_BUTTON_X, this.topPos + ACTION_BUTTON_Y, SAVE_BUTTON_WIDTH, ACTION_BUTTON_HEIGHT)
                 .build());
-        this.addRenderableWidget(Button.builder(Component.literal("Cancel"),
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.vsie.common.cancel"),
                         button -> this.minecraft.player.closeContainer())
-                .bounds(this.leftPos + 76, this.topPos + actionButtonY, 48, 16)
+                .bounds(this.leftPos + controlOffsetX() + CANCEL_BUTTON_X, this.topPos + ACTION_BUTTON_Y, CANCEL_BUTTON_WIDTH, ACTION_BUTTON_HEIGHT)
                 .build());
     }
 
-    private EditBox createIntEditBox(String name, int x, int y, String initialValue) {
-        EditBox box = new EditBox(this.font, x, y, 24, 10, Component.literal(name));
-        // Function: keep the default spin input compact and numeric-friendly.
+    private EditBox createIntEditBox(String name, int x, int y, int width, String initialValue) {
+        EditBox box = new EditBox(this.font, x, y, width, 10, Component.translatable("gui.vsie.turret." + name.toLowerCase() + ".tooltip"));
+        // Function: keep turret setting inputs compact and limited to small signed integers.
         box.setMaxLength(8);
         box.setValue(initialValue);
         box.setFocused(false);
@@ -181,10 +257,111 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
     private void saveAndClose() {
         int spinX = safeParseInt(editBoxSpinX.getValue(), 0);
         int spinY = safeParseInt(editBoxSpinY.getValue(), 0);
-        var be = this.menu.getBlockEntity();
+        int aimLimitMinX = safeParseInt(editBoxAimLimitMinX.getValue(), -180);
+        int aimLimitMaxX = safeParseInt(editBoxAimLimitMaxX.getValue(), 180);
+        int aimLimitMinY = safeParseInt(editBoxAimLimitMinY.getValue(), -180);
+        int aimLimitMaxY = safeParseInt(editBoxAimLimitMaxY.getValue(), 180);
+        AbstractTurretBlockEntity be = this.menu.getBlockEntity();
         be.defaultspinx = spinX;
         be.defaultspiny = spinY;
-        ModNetworking.sendToServer(new TurretDefaultSpinC2SPacket(menu.getBlockEntity().getBlockPos(), spinX, spinY));
+        be.setAimLimits(aimLimitMinX, aimLimitMaxX, aimLimitMinY, aimLimitMaxY);
+        ModNetworking.sendToServer(new TurretDefaultSpinC2SPacket(
+                menu.getBlockEntity().getBlockPos(),
+                spinX,
+                spinY,
+                aimLimitMinX,
+                aimLimitMaxX,
+                aimLimitMinY,
+                aimLimitMaxY
+        ));
         this.minecraft.player.closeContainer();
+    }
+
+    private void renderControlTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        if (this.breakBlocksButton != null
+                && GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.leftPos + BREAK_BLOCKS_LABEL_X, this.topPos + BREAK_BLOCKS_BUTTON_Y, 96, 16,
+                Component.translatable("gui.vsie.common.break_blocks.tooltip"))) {
+            return;
+        }
+        if (GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.editBoxAimLimitMinX.getX(), this.editBoxAimLimitMinX.getY(), this.editBoxAimLimitMinX.getWidth(), this.editBoxAimLimitMinX.getHeight(),
+                Component.translatable("gui.vsie.turret.aimlimitminx.tooltip"))) {
+            return;
+        }
+        if (GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.editBoxAimLimitMaxX.getX(), this.editBoxAimLimitMaxX.getY(), this.editBoxAimLimitMaxX.getWidth(), this.editBoxAimLimitMaxX.getHeight(),
+                Component.translatable("gui.vsie.turret.aimlimitmaxx.tooltip"))) {
+            return;
+        }
+        if (GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.editBoxAimLimitMinY.getX(), this.editBoxAimLimitMinY.getY(), this.editBoxAimLimitMinY.getWidth(), this.editBoxAimLimitMinY.getHeight(),
+                Component.translatable("gui.vsie.turret.aimlimitminy.tooltip"))) {
+            return;
+        }
+        if (GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.editBoxAimLimitMaxY.getX(), this.editBoxAimLimitMaxY.getY(), this.editBoxAimLimitMaxY.getWidth(), this.editBoxAimLimitMaxY.getHeight(),
+                Component.translatable("gui.vsie.turret.aimlimitmaxy.tooltip"))) {
+            return;
+        }
+        if (GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.editBoxSpinY.getX(), this.editBoxSpinY.getY(), this.editBoxSpinY.getWidth(), this.editBoxSpinY.getHeight(),
+                Component.translatable("gui.vsie.turret.spiny.tooltip"))) {
+            return;
+        }
+        if (GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.editBoxSpinX.getX(), this.editBoxSpinX.getY(), this.editBoxSpinX.getWidth(), this.editBoxSpinX.getHeight(),
+                Component.translatable("gui.vsie.turret.spinx.tooltip"))) {
+            return;
+        }
+        if (GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.leftPos + controlOffsetX() + TARGET_BUTTON_HOSTILE_X, this.topPos + TARGET_BUTTON_Y,
+                TARGET_BUTTON_HOSTILE_WIDTH, TARGET_BUTTON_HEIGHT, Component.translatable("gui.vsie.turret.hostile.tooltip"))) {
+            return;
+        }
+        if (GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.leftPos + controlOffsetX() + TARGET_BUTTON_PASSIVE_X, this.topPos + TARGET_BUTTON_Y,
+                TARGET_BUTTON_PASSIVE_WIDTH, TARGET_BUTTON_HEIGHT, Component.translatable("gui.vsie.turret.passive.tooltip"))) {
+            return;
+        }
+        if (GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.leftPos + controlOffsetX() + TARGET_BUTTON_PLAYER_X, this.topPos + TARGET_BUTTON_Y,
+                TARGET_BUTTON_PLAYER_WIDTH, TARGET_BUTTON_HEIGHT, Component.translatable("gui.vsie.turret.player.tooltip"))) {
+            return;
+        }
+        if (GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.leftPos + controlOffsetX() + TARGET_BUTTON_SHIP_X, this.topPos + TARGET_BUTTON_Y,
+                TARGET_BUTTON_SHIP_WIDTH, TARGET_BUTTON_HEIGHT, Component.translatable("gui.vsie.turret.ship.tooltip"))) {
+            return;
+        }
+        if (GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.leftPos + controlOffsetX() + SAVE_BUTTON_X, this.topPos + ACTION_BUTTON_Y,
+                SAVE_BUTTON_WIDTH, ACTION_BUTTON_HEIGHT, Component.translatable("gui.vsie.turret.save.tooltip"))) {
+            return;
+        }
+        if (GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                this.leftPos + controlOffsetX() + CANCEL_BUTTON_X, this.topPos + ACTION_BUTTON_Y,
+                CANCEL_BUTTON_WIDTH, ACTION_BUTTON_HEIGHT, Component.translatable("gui.vsie.turret.cancel.tooltip"))) {
+            return;
+        }
+        if (menu.hasAmmoSlots() && (this.hoveredSlot == null || !this.hoveredSlot.hasItem())) {
+            GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
+                    this.leftPos + 4, this.topPos + AMMO_PANEL_TOP, this.imageWidth - 8, AMMO_PANEL_BOTTOM - AMMO_PANEL_TOP,
+                    Component.translatable("gui.vsie.turret.ammo_slots.tooltip"));
+        }
+    }
+
+    private Component breakBlocksButtonLabel() {
+        return Component.literal(menu.getBlockEntity().breaksBlocksEnabled() ? "[x]" : "[ ]");
+    }
+
+    private void updateBreakBlocksButtonLabel() {
+        if (this.breakBlocksButton != null) {
+            this.breakBlocksButton.setMessage(breakBlocksButtonLabel());
+        }
+    }
+
+    private int controlOffsetX() {
+        return (this.imageWidth - BASE_SCREEN_WIDTH) / 2;
     }
 }

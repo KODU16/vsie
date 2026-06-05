@@ -1,8 +1,6 @@
 package com.kodu16.vsie.content.weapon.server;
 
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
-import com.kodu16.vsie.content.weapon.missile_launcher.block.BasicMissileLauncherBlockEntity;
-import com.kodu16.vsie.content.weapon.missile_launcher.block.VerticleLaunchingSlotCoreBlockEntity;
 import com.kodu16.vsie.registries.ModMenuTypes;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -13,46 +11,44 @@ import net.neoforged.neoforge.items.SlotItemHandler;
 
 public class WeaponContainerMenu extends AbstractContainerMenu {
     public static final int INTERNAL_SLOT_COUNT = 9;
-    public static final int INTERNAL_SLOT_X = 59;
-    public static final int INTERNAL_SLOT_Y = 64;
-    public static final int PLAYER_INV_X = 8;
-    public static final int PLAYER_INV_Y = 128;
-    public static final int HOTBAR_Y = PLAYER_INV_Y + 58;
+    public static final int INTERNAL_SLOT_X = 33;
+    public static final int INTERNAL_SLOT_Y = 118;
+    public static final int PLAYER_INVENTORY_X = 33;
+    public static final int PLAYER_INVENTORY_Y = 154;
+    public static final int PLAYER_HOTBAR_Y = 212;
+    private static final int PLAYER_INVENTORY_COLUMNS = 9;
+    private static final int PLAYER_INVENTORY_ROWS = 3;
+    private static final int PLAYER_INVENTORY_START_SLOT = 9;
+    private static final int PLAYER_HOTBAR_START_SLOT = 0;
 
     private final AbstractWeaponBlockEntity blockEntity;
-    private final boolean hasInventorySlots;
+    private final boolean hasAmmoSlots;
 
     public WeaponContainerMenu(int id, Inventory playerInv, AbstractWeaponBlockEntity be) {
         super(ModMenuTypes.WEAPON_MENU.get(), id);
         this.blockEntity = be;
-        this.hasInventorySlots = be instanceof BasicMissileLauncherBlockEntity
-                || be instanceof VerticleLaunchingSlotCoreBlockEntity;
+        this.hasAmmoSlots = be.hasAmmoInventorySlots();
 
-        if (be instanceof net.neoforged.neoforge.items.IItemHandlerModifiable missileInventory
-                && (be instanceof BasicMissileLauncherBlockEntity || be instanceof VerticleLaunchingSlotCoreBlockEntity)) {
-            // Function: missile launch weapons store launchable basic_missile items in a 3x3 buffer.
-            for (int row = 0; row < 3; row++) {
-                for (int col = 0; col < 3; col++) {
-                    int slotIndex = col + row * 3;
-                    this.addSlot(new SlotItemHandler(missileInventory, slotIndex,
-                            INTERNAL_SLOT_X + col * 18,
-                            INTERNAL_SLOT_Y + row * 18));
-                }
+        if (hasAmmoSlots) {
+            // Function: non-energy weapons expose one horizontal 9-slot ammo row in the shared weapon GUI.
+            for (int col = 0; col < INTERNAL_SLOT_COUNT; col++) {
+                this.addSlot(new SlotItemHandler(be, col, INTERNAL_SLOT_X + col * 18, INTERNAL_SLOT_Y));
             }
-            addPlayerInventory(playerInv);
+            addPlayerInventorySlots(playerInv);
         }
     }
 
-    private void addPlayerInventory(Inventory playerInv) {
-        // Function: expose player inventory for direct loading and shift-click transfers.
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 9; col++) {
-                int index = col + row * 9 + 9;
-                this.addSlot(new Slot(playerInv, index, PLAYER_INV_X + col * 18, PLAYER_INV_Y + row * 18));
+    private void addPlayerInventorySlots(Inventory playerInv) {
+        // Function: ammo-fed weapons expose the player inventory so ammo can be moved without closing the GUI.
+        for (int row = 0; row < PLAYER_INVENTORY_ROWS; row++) {
+            for (int col = 0; col < PLAYER_INVENTORY_COLUMNS; col++) {
+                this.addSlot(new Slot(playerInv, PLAYER_INVENTORY_START_SLOT + col + row * PLAYER_INVENTORY_COLUMNS,
+                        PLAYER_INVENTORY_X + col * 18, PLAYER_INVENTORY_Y + row * 18));
             }
         }
-        for (int col = 0; col < 9; col++) {
-            this.addSlot(new Slot(playerInv, col, PLAYER_INV_X + col * 18, HOTBAR_Y));
+        for (int col = 0; col < PLAYER_INVENTORY_COLUMNS; col++) {
+            this.addSlot(new Slot(playerInv, PLAYER_HOTBAR_START_SLOT + col,
+                    PLAYER_INVENTORY_X + col * 18, PLAYER_HOTBAR_Y));
         }
     }
 
@@ -65,35 +61,34 @@ public class WeaponContainerMenu extends AbstractContainerMenu {
         return blockEntity;
     }
 
-    public boolean hasInventorySlots() {
-        return hasInventorySlots;
+    public boolean hasAmmoSlots() {
+        return hasAmmoSlots;
     }
 
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
-        if (!hasInventorySlots || index < 0 || index >= this.slots.size()) {
+        if (!hasAmmoSlots || index < 0 || index >= this.slots.size()) {
             return ItemStack.EMPTY;
         }
 
-        ItemStack original = ItemStack.EMPTY;
         Slot slot = this.slots.get(index);
-        if (slot != null && slot.hasItem()) {
-            ItemStack stack = slot.getItem();
-            original = stack.copy();
+        if (slot == null || !slot.hasItem()) {
+            return ItemStack.EMPTY;
+        }
 
-            if (index < INTERNAL_SLOT_COUNT) {
-                if (!this.moveItemStackTo(stack, INTERNAL_SLOT_COUNT, this.slots.size(), true)) {
-                    return ItemStack.EMPTY;
-                }
-            } else if (!this.moveItemStackTo(stack, 0, INTERNAL_SLOT_COUNT, false)) {
+        ItemStack stack = slot.getItem();
+        ItemStack original = stack.copy();
+        if (index < INTERNAL_SLOT_COUNT) {
+            if (!moveItemStackTo(stack, INTERNAL_SLOT_COUNT, this.slots.size(), true)) {
                 return ItemStack.EMPTY;
             }
-
-            if (stack.isEmpty()) {
-                slot.set(ItemStack.EMPTY);
-            } else {
-                slot.setChanged();
-            }
+        } else if (!moveItemStackTo(stack, 0, INTERNAL_SLOT_COUNT, false)) {
+            return ItemStack.EMPTY;
+        }
+        if (stack.isEmpty()) {
+            slot.set(ItemStack.EMPTY);
+        } else {
+            slot.setChanged();
         }
         return original;
     }

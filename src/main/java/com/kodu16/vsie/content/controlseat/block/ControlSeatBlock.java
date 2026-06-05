@@ -1,5 +1,6 @@
 package com.kodu16.vsie.content.controlseat.block;
 
+import com.kodu16.vsie.content.item.IFF.iff;
 import com.kodu16.vsie.registries.vsieBlockEntities;
 import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlock;
 import com.mojang.serialization.MapCodec;
@@ -84,6 +85,10 @@ public class ControlSeatBlock extends AbstractControlSeatBlock {
         ControlSeatBlockEntity blockEntity = (ControlSeatBlockEntity) level.getBlockEntity(pos);
 
         if (player.isSecondaryUseActive()) {
+            // Function: keep IFF shift-right-click focused on friend-or-foe writing instead of opening the warp GUI.
+            if (isHoldingIff(player)) {
+                return InteractionResult.CONSUME;
+            }
             // 功能：Shift+右键时打开控制椅专用的 warp data chip 仓储 GUI，而不是只显示提示文本。
             if (player instanceof ServerPlayer serverPlayer) {
                 // 功能：NeoForge 1.21.1 使用 openMenu 并附加 BlockPos 额外数据。
@@ -111,4 +116,8 @@ public class ControlSeatBlock extends AbstractControlSeatBlock {
     }
 
 
+    private static boolean isHoldingIff(Player player) {
+        // Function: check both hands so the GUI stays suppressed regardless of which hand carries the IFF tool.
+        return player.getMainHandItem().getItem() instanceof iff || player.getOffhandItem().getItem() instanceof iff;
+    }
 }

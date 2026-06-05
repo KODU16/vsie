@@ -197,6 +197,45 @@ public class ShipAnglePainter {
     /**
      * 计算向量与三个正轴的夹角，范围 0°～360°
      */
+    public static void drawPitchLineCompact(GuiGraphics gg, double pitchDeg, int barX, int centerY, int color) {
+        pitchDeg = Math.max(-90.0, Math.min(90.0, pitchDeg));
+
+        int ticksEachSide = 8;
+        double pxPer10Deg = 2.5;
+        double fracOffset = (pitchDeg % 10.0) * (pxPer10Deg / 10.0);
+
+        int minorHalfLength = 2;
+        int majorHalfLength = 4;
+        int majorColor = 0xFF88DDFF;
+
+        // Function: compact pitch tape is half-size so it can sit outside the left status arc.
+        for (int i = -ticksEachSide; i <= ticksEachSide; i++) {
+            double angle = pitchDeg + i * 10.0;
+            if (angle < -90.0 || angle > 90.0) continue;
+
+            int yPos = centerY + (int) Math.round(i * pxPer10Deg - fracOffset);
+            DrawShape.drawThickLine(gg, barX - minorHalfLength, yPos, barX + minorHalfLength, yPos, 1, color);
+        }
+
+        int[] majorAngles = {-90, 0, 90};
+        for (int majorAngle : majorAngles) {
+            double delta = majorAngle - pitchDeg;
+            int yPos = centerY + (int) Math.round(delta * pxPer10Deg / 10.0);
+            if (Math.abs(yPos - centerY) > ticksEachSide * pxPer10Deg + 4) continue;
+
+            DrawShape.drawThickLine(gg, barX - majorHalfLength, yPos, barX + majorHalfLength, yPos, 1, majorColor);
+            drawCenteredTextScaled(gg, "搂l搂b" + majorAngle, barX - 12, yPos - 2, 0xFFCCFFFF, 0.5F);
+        }
+    }
+
+    private static void drawCenteredTextScaled(GuiGraphics gg, String text, int x, int y, int color, float scale) {
+        gg.pose().pushPose();
+        gg.pose().scale(scale, scale, 1.0F);
+        float inv = 1.0F / scale;
+        gg.drawCenteredString(Minecraft.getInstance().font, Component.literal(text), (int) (x * inv), (int) (y * inv), color);
+        gg.pose().popPose();
+    }
+
     public static double[] getDirectedAnglesToAxes(Vec3 vec) {
         if (vec.lengthSqr() < 1e-12) {
             return new double[]{0, 0, 0};

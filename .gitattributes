@@ -1,0 +1,8 @@
+# Function: keep handbook and other text resources normalized as UTF-8/LF across editors and operating systems.
+*.json  text eol=lf working-tree-encoding=UTF-8
+*.json5 text eol=lf working-tree-encoding=UTF-8
+*.mcmeta text eol=lf working-tree-encoding=UTF-8
+*.lang text eol=lf working-tree-encoding=UTF-8
+*.md    text eol=lf working-tree-encoding=UTF-8
+*.txt   text eol=lf working-tree-encoding=UTF-8
+*.toml  text eol=lf working-tree-encoding=UTF-8

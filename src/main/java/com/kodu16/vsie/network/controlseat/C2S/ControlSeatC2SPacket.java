@@ -3,6 +3,7 @@ package com.kodu16.vsie.network.controlseat.C2S;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
+import com.kodu16.vsie.content.controlseat.server.ServerShipHandler;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
@@ -25,7 +26,6 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<ControlSeatC2SPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "controlseat_c2s_controlseatc2spacket"));
     public static final StreamCodec<FriendlyByteBuf, ControlSeatC2SPacket> STREAM_CODEC = CustomPacketPayload.codec(ControlSeatC2SPacket::encode, ControlSeatC2SPacket::decode);
     private static final float CONTROL_DEADZONE = 0.025F;
-    private static final float KEY_ROLL_TORQUE_SCALE = 0.02F;
     public static final float MOUSE_TORQUE_CURVE_EXPONENT = 2.0F;
 
     public static final Logger LOGGER = LogUtils.getLogger();
@@ -103,8 +103,9 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
             int finalthrottledelta = isThrottlePressed ? 1 : (isBrakePressed ? -1 : 0);
             float yawInput = sanitizeMouseTorqueAxis(pkt.mousex);
             float pitchInput = sanitizeMouseTorqueAxis(pkt.mousey);
-            // Function: A/D roll is intentionally weaker than mouse torque so it does not snap large sublevels.
-            float rollInput = clampControlAxis(((isRollRightPressed ? 1.0F : 0.0F) - (isRollLeftPressed ? 1.0F : 0.0F)) * KEY_ROLL_TORQUE_SCALE + sanitizeControlAxis(pkt.roll));
+            float keyboardTorqueAxisScale = ServerShipHandler.getKeyboardTorqueAxisScale();
+            // Function: invert the A/D roll sign so keyboard roll direction matches the HUD-facing pilot expectation.
+            float rollInput = clampControlAxis(((isRollLeftPressed ? 1.0F : 0.0F) - (isRollRightPressed ? 1.0F : 0.0F)) * keyboardTorqueAxisScale + sanitizeControlAxis(pkt.roll));
 
             if (!Float.isFinite(pkt.mousex) || !Float.isFinite(pkt.mousey) || !Float.isFinite(pkt.roll)) {
                 sender.sendSystemMessage(Component.literal("Invalid torque input! check packet"));
@@ -113,6 +114,11 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
 
             ControlSeatServerData serverData = controlSeat.getServerData();
             serverData.isviewlocked = pkt.isViewLocked;
+            if (serverData.isAutoLevelOn) {
+                // Function: auto-level owns roll and pitch while leaving yaw and throttle inputs available.
+                rollInput = 0.0F;
+                pitchInput = 0.0F;
+            }
             if (serverData.isWarpPreparing) {
                 serverData.setTorque(new Vector3d(0, 0, 0));
                 serverData.setForce(new Vector3d(0, 0, 0));
@@ -127,7 +133,10 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
                 serverData.setThrottle(finalthrottle);
             } else {
                 // Function: unlocked view maps W/S to pitch, A/D to roll, and Z/C to yaw.
-                float pitchKeyInput = clampControlAxis((isWPressed ? 1.0F : 0.0F) - (isSPressed ? 1.0F : 0.0F));
+                float pitchKeyInput = serverData.isAutoLevelOn
+                        ? 0.0F
+                        // Function: match W/S pitch authority to the same scaled keyboard torque formula used by A/D roll.
+                        : clampControlAxis(((isWPressed ? 1.0F : 0.0F) - (isSPressed ? 1.0F : 0.0F)) * keyboardTorqueAxisScale);
                 float yawKeyInput = clampControlAxis((isControlRightPressed ? 1.0F : 0.0F) - (isControlLeftPressed ? 1.0F : 0.0F));
                 int finalthrottle = Math.max(-100, Math.min(serverData.getThrottle() + finalthrottledelta, 100));
                 serverData.setForce(new Vector3d(0, 0, 0));

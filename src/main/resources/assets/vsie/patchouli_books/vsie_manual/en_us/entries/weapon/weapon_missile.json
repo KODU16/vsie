@@ -1,0 +1,38 @@
+{
+  "name": "武器：导弹、发射器和垂发",
+  "icon": "vsie:basic_missile_launcher",
+  "category": "vsie:weapon",
+  "sortnum": 14,
+  "extra_recipe_mappings": {
+    "vsie:basic_missile": 0,
+    "vsie:basic_missile_launcher": 0,
+    "vsie:verticle_launching_slot_core": 2,
+    "vsie:verticle_launching_slot": 3
+  },
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:basic_missile_launcher",
+      "title": "导弹与导弹发射器",
+      "text": "导弹发射器的绑定和发射方法和常规武器相同，其消耗导弹作为弹药，发射的导弹会在短暂直线飞行后追踪当前锁定的敌人（详见章节：$(l:vsie:control_seat/radar)控制椅：雷达与敌我识别/$）"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:verticle_launching_slot",
+      "title": "垂发系统",
+      "text": "垂发系统不只是换一个方向的导弹发射器，它允许你同时控制很多导弹按顺序发射$(br2)垂发系统的绑定和常规武器略有区别。它是由一个与控制椅进行绑定的垂发核心，和多个与垂发核心绑定的垂发槽组成的二级系统"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:verticle_launching_slot_core",
+      "title": "垂发系统：垂发核心",
+      "text": "你可以按这一步骤来使用垂发系统。$(br2)1、将一个垂发核心与控制椅进行绑定$(br2)2、和常规武器相同，设置开火频道，并在垂发核心中加入足够数量的导弹$(br2)3、在GUI下方中输入垂发发射的间隔"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:verticle_launching_slot",
+      "title": "垂发系统：垂发槽",
+      "text": "4、清空你的linker（或者拿一个新的），shift右键垂发核心记录坐标，然后按照你希望发射的顺序，依次shift右键安装好的垂发槽来在核心中记录下槽的坐标，数量不限$(br2)5、在控制椅中发射时，武器频道激活的垂发核心得到发射指令后会自动按设定好的顺序和间隔发射内部存储的导弹"
+    }
+  ]
+}

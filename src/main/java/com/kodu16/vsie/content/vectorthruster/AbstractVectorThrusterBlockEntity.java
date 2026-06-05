@@ -32,6 +32,7 @@ import java.util.List;
 
 public abstract class AbstractVectorThrusterBlockEntity extends AbstractThrusterBlockEntity implements GeoBlockEntity {
     private static final double EPSILON = 1.0E-6D;
+    private static final float MIN_VISIBLE_FLAME_DISTANCE = 0.06F;
 
     private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
     public static final DirectionProperty FACING = BlockStateProperties.FACING;
@@ -55,7 +56,11 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
     @Override
     public void tick() {
         Level level = this.getLevel();
-        if (level == null || level.isClientSide()) {
+        if (level == null) {
+            return;
+        }
+        if (level.isClientSide()) {
+            tickClientAudio();
             return;
         }
 
@@ -98,7 +103,7 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
                 thrusterWorldPos.z() - centerOfMassWorld.z()
         );
 
-        Vector3d desiredForce = copyOrZero(thrusterData.getInputforce());
+        Vector3d desiredForce = copyOrZero(thrusterData.getInputforce()).mul(-1);
         Vector3d desiredTorque = copyOrZero(thrusterData.getInputtorque());
         Vector3d visualDemand = calculateVisualDemandForce(desiredForce, desiredTorque, leverArmWorld);
         if (visualDemand.lengthSquared() <= EPSILON) {
@@ -106,31 +111,48 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
             return;
         }
 
-        Vector3d nozzleForwardWorld = subLevel.logicalPose()
+        Vector3d installedForceAxisWorld = subLevel.logicalPose()
                 .transformNormal(thrusterData.getDirectionY(), new Vector3d());
-        if (nozzleForwardWorld.lengthSquared() <= EPSILON) {
+        if (installedForceAxisWorld.lengthSquared() <= EPSILON) {
             applyVisualState(level, state, 0.0D, 0.0D, 0.0D);
             return;
         }
-        nozzleForwardWorld.normalize();
+        installedForceAxisWorld.normalize();
 
-        // Function: solve the nozzle +Y direction from force demand, local torque leverage, and gimbal limits.
-        Vector3d aimDirectionWorld = clampToGimbalCone(visualDemand, nozzleForwardWorld);
-        double[] eulerAngle = forceTransform(aimDirectionWorld, subLevel, thrusterData.getCoordAxis());
+        // Function: directionY matches fixed thrusters and stores the installed thrust direction.
+        Vector3d installedForceDirectionWorld = new Vector3d(installedForceAxisWorld);
+        Vector3d aimForceDirectionWorld = clampToGimbalCone(visualDemand, installedForceDirectionWorld);
+        // Function: the renderer animates the nozzle's local +Y emission axis, not the produced force axis.
+        Vector3d aimNozzleDirectionWorld = new Vector3d(aimForceDirectionWorld).negate();
+        double[] eulerAngle = forceTransform(aimNozzleDirectionWorld, subLevel, thrusterData.getCoordAxis());
 
-        double availableThrust = Math.max(thrusterData.getSameFacingMaxThrustSum(), getMaxThrust());
-        double projectedDemand = Math.max(0.0D, visualDemand.dot(aimDirectionWorld));
-        double throttle = availableThrust > EPSILON ? clamp(projectedDemand / availableThrust, 0.0D, 1.0D) : 0.0D;
+        double throttle = calculateThrottleDemand(visualDemand, aimForceDirectionWorld);
         applyVisualState(level, state, eulerAngle[0], eulerAngle[1], throttle);
+    }
+
+    private double calculateThrottleDemand(Vector3d visualDemand, Vector3d aimForceDirectionWorld) {
+        double selfThrust = getForceCoefficient();
+        if (selfThrust <= EPSILON) {
+            return 0.0D;
+        }
+
+        // Function: match fixed thruster normalization so same-facing vector thrusters share one force demand.
+        double sameFacingThrust = Math.max(thrusterData.getSameFacingMaxThrustSum(), selfThrust);
+        double projectedDemand = Math.max(0.0D, visualDemand.dot(aimForceDirectionWorld));
+        return clamp(projectedDemand / sameFacingThrust, 0.0D, 1.0D);
     }
 
     private void applyVisualState(Level level, BlockState state, double yaw, double pitch, double throttle) {
         double safeThrottle = clamp(throttle, 0.0D, 1.0D);
         this.spinrad = yaw;
         this.pitchrad = pitch;
-        this.throttle = (int) (safeThrottle * 100.0D);
-        thrusterData.setThrottle(safeThrottle);
-        updateRaycastDistance(level, state, (float) (safeThrottle * getMaxFlameDistance()));
+        double effectiveThrottle = applyThrottleDemand(safeThrottle);
+        float flameDistance = (float) (effectiveThrottle * getMaxFlameDistance());
+        // Function: the vector flame renderer ignores sub-0.05 lengths, so preserve visible output for any nonzero throttle.
+        if (effectiveThrottle > 0.0D) {
+            flameDistance = Math.max(flameDistance, MIN_VISIBLE_FLAME_DISTANCE);
+        }
+        updateRaycastDistance(level, state, flameDistance);
         setAnimData(VECTOR_THRUSTER_YAW, spinrad);
         setAnimData(VECTOR_THRUSTER_PITCH, pitchrad);
     }

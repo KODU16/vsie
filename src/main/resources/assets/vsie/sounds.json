@@ -1,0 +1,128 @@
+{
+  "basic_thruster_loop": {
+    "sounds": [
+      {
+        "name": "vsie:thruster/basic_thruster_loop"
+      }
+    ]
+  },
+  "basic_thruster_boost": {
+    "sounds": [
+      {
+        "name": "vsie:thruster/basic_thruster_boost"
+      }
+    ]
+  },
+  "basic_vector_thruster_loop": {
+    "sounds": [
+      {
+        "name": "vsie:thruster/basic_vector_thruster_loop"
+      }
+    ]
+  },
+  "basic_vector_thruster_boost": {
+    "sounds": [
+      {
+        "name": "vsie:thruster/basic_vector_thruster_boost"
+      }
+    ]
+  },
+  "medium_thruster_loop": {
+    "sounds": [
+      {
+        "name": "vsie:thruster/medium_thruster_loop"
+      }
+    ]
+  },
+  "medium_thruster_boost": {
+    "sounds": [
+      {
+        "name": "vsie:thruster/medium_thruster_boost"
+      }
+    ]
+  },
+  "large_thruster_loop": {
+    "sounds": [
+      {
+        "name": "vsie:thruster/large_thruster_loop"
+      }
+    ]
+  },
+  "large_thruster_boost": {
+    "sounds": [
+      {
+        "name": "vsie:thruster/large_thruster_boost"
+      }
+    ]
+  },
+  "basic_missile_loop": {
+    "sounds": [
+      {
+        "name": "vsie:missile/missileloop"
+      }
+    ]
+  },
+  "missile_decoupler_fire": {
+    "sounds": [
+      {
+        "name": "vsie:missile/sound_missile_decoupler_fire"
+      }
+    ]
+  },
+  "bullet_explode1": {
+    "sounds": [
+      {
+        "name": "vsie:bullet/explode1"
+      }
+    ]
+  },
+  "basic_ciws_fire": {
+    "sounds": [
+      {
+        "name": "vsie:turret/ciws_fire"
+      }
+    ]
+  },
+  "arc_emitter_fire": {
+    "sounds": [
+      {
+        "name": "vsie:weapon/arc_emitter_fire"
+      }
+    ]
+  },
+  "electro_magnet_rail_cannon_fire": {
+    "sounds": [
+      {
+        "name": "vsie:weapon/electro_magnet_rail_cannon_fire"
+      }
+    ]
+  },
+  "small_laser_fire_loop": {
+    "sounds": [
+      {
+        "name": "vsie:weapon/cenix_plasma_cannon_fire"
+      }
+    ]
+  },
+  "medium_laser_fire_loop": {
+    "sounds": [
+      {
+        "name": "vsie:weapon/cenix_plasma_cannon_fire"
+      }
+    ]
+  },
+  "heavy_laser_fire_loop": {
+    "sounds": [
+      {
+        "name": "vsie:weapon/cenix_plasma_cannon_fire"
+      }
+    ]
+  },
+  "infra_knife_fire_loop": {
+    "sounds": [
+      {
+        "name": "vsie:weapon/cenix_plasma_cannon_fire"
+      }
+    ]
+  }
+}

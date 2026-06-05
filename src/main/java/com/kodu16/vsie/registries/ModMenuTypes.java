@@ -7,12 +7,14 @@ import com.kodu16.vsie.content.item.IFF.IFFContainerMenu;
 import com.kodu16.vsie.content.item.shieldtool.ShieldToolContainerMenu;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.gui.ControlSeatWarpContainerMenu;
-import com.kodu16.vsie.content.misc.electromagnet_rail.core.ElectroMagnetRailCoreBlockEntity;
-import com.kodu16.vsie.content.misc.electromagnet_rail.core.ElectroMagnetRailCoreContainerMenu;
+import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreBlockEntity;
+import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreContainerMenu;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.content.screen.server.ScreenContainerMenu;
 import com.kodu16.vsie.content.storage.ammobox.AmmoBoxBlockEntity;
 import com.kodu16.vsie.content.storage.ammobox.AmmoBoxContainerMenu;
+import com.kodu16.vsie.content.thruster.AbstractThrusterBlockEntity;
+import com.kodu16.vsie.content.thruster.ThrusterContainerMenu;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.turret.TurretContainerMenu;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
@@ -43,6 +45,13 @@ public class ModMenuTypes {
                 BlockPos pos = data.readBlockPos();
                 AbstractWeaponBlockEntity weapon = (AbstractWeaponBlockEntity) inv.player.level().getBlockEntity(pos);
                 return new WeaponContainerMenu(windowId, inv, weapon);
+            }));
+    public static final DeferredHolder<MenuType<?>, MenuType<ThrusterContainerMenu>> THRUSTER_MENU = MENUS.register("thruster_menu",
+            () -> IMenuTypeExtension.create((windowId, inv, data) -> {
+                // Function: read the clicked thruster position for the authority-limit GUI.
+                BlockPos pos = data.readBlockPos();
+                AbstractThrusterBlockEntity thruster = (AbstractThrusterBlockEntity) inv.player.level().getBlockEntity(pos);
+                return new ThrusterContainerMenu(windowId, inv, thruster);
             }));
     public static final DeferredHolder<MenuType<?>, MenuType<ScreenContainerMenu>> SCREEN_MENU = MENUS.register("screen_menu",
             () -> IMenuTypeExtension.create((windowId, inv, data) -> {

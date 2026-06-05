@@ -4,6 +4,7 @@ import com.kodu16.vsie.content.turret.AbstractTurretBlock;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.turret.TurretData;
 import com.kodu16.vsie.foundation.ServerShipUtils;
+import com.kodu16.vsie.registries.vsieBlocks;
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import dev.ryanhcode.sable.sublevel.SubLevel;
@@ -13,6 +14,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -41,6 +44,57 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
         super(typeIn, pos, state);
         // 初始化 turretData
         this.turretData = new TurretData();
+    }
+
+    @Override
+    public boolean isEnergyTurret() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsBlockDestructionToggle() {
+        return false;
+    }
+
+    @Override
+    public Item getAmmoItem() {
+        return vsieBlocks.SMALL_AMMOBOX_BLOCK.asItem();
+    }
+
+    @Override
+    protected boolean hasAmmoReady() {
+        for (int slot = 0; slot < getSlots(); slot++) {
+            if (isUsableSmallAmmoBox(getStackInSlot(slot))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    protected boolean consumeAmmoForShot() {
+        for (int slot = 0; slot < getSlots(); slot++) {
+            ItemStack stack = getStackInSlot(slot);
+            if (!isUsableSmallAmmoBox(stack)) {
+                continue;
+            }
+
+            // Function: one CIWS shot consumes one durability point from the first valid small ammobox.
+            int nextDamage = stack.getDamageValue() + 1;
+            if (nextDamage >= stack.getMaxDamage()) {
+                setStackInSlot(slot, ItemStack.EMPTY);
+            } else {
+                stack.setDamageValue(nextDamage);
+                setStackInSlot(slot, stack);
+            }
+            setChanged();
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isUsableSmallAmmoBox(ItemStack stack) {
+        return stack.is(getAmmoItem()) && stack.isDamageableItem() && stack.getDamageValue() < stack.getMaxDamage();
     }
 
     private @Nullable Entity targetprojectile = null;
@@ -339,7 +393,6 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
             );
         }
         if (aimtype == 2 && isValidTargetProjectile(targetprojectile)) {
-            LogUtils.getLogger().warn("find target projectile:"+targetprojectile.getDisplayName()+"isremoved:"+targetprojectile.isRemoved()+"speed:"+targetprojectile.getDeltaMovement().lengthSqr());
             targetPos = new Vec3(
                     targetprojectile.getX(),
                     targetprojectile.getY(),
@@ -361,6 +414,9 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
 
     private void fireWhenLocked() {
         if (!isFireCooldownReady()) {
+            return;
+        }
+        if (!consumeAmmoForShot()) {
             return;
         }
         if (aimtype == 1) {

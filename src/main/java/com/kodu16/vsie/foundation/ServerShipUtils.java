@@ -101,11 +101,6 @@ public final class ServerShipUtils {
         return Math.max(sizeX, Math.max(sizeY, sizeZ));
     }
 
-    public static Vec3 getBlockCenterWorld(Level level, BlockPos pos) {
-        // Function: convert the center of a block position into world space, avoiding corner-based 0.5 block offsets.
-        return getBlockCenterWorld(getSubLevelAtBlockPos(level, pos), pos);
-    }
-
     public static Vec3 getBlockCenterWorld(@Nullable SubLevel subLevel, BlockPos pos) {
         // Function: Sable logical poses expect sublevel-space positions, so use the block center as the local point.
         Vec3 localCenter = Vec3.atCenterOf(pos);

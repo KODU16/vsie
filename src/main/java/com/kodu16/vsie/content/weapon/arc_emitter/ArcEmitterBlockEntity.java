@@ -8,6 +8,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -26,12 +27,23 @@ public class ArcEmitterBlockEntity extends AbstractWeaponBlockEntity {
 
     @Override
     public float getmaxrange() {
-        return 512;
+        return 1024;
     }
 
     @Override
     public int getcooldown() {
         return 20;
+    }
+
+    @Override
+    public boolean isEnergyWeapon() {
+        // Function: arc emitters are instantaneous energy weapons and never accept ammo items.
+        return true;
+    }
+
+    @Override
+    public Item getAmmoItem() {
+        return null;
     }
 
     @Override
@@ -46,8 +58,9 @@ public class ArcEmitterBlockEntity extends AbstractWeaponBlockEntity {
         Vec3 hitPos = getTargetpos();
         playArcLighteningFx(firePos, hitPos);
         if (hasRaycastHit()) {
-            LogUtils.getLogger().warn("arc emitter explode at:" + hitPos);
-            destroyBlocksInRadius(serverLevel, BlockPos.containing(hitPos), BLOCK_BREAK_RADIUS);
+            if (breaksBlocksEnabled()) {
+                destroyBlocksInRadius(serverLevel, BlockPos.containing(hitPos), BLOCK_BREAK_RADIUS);
+            }
             serverLevel.explode(
                     null,
                     hitPos.x, hitPos.y, hitPos.z,
