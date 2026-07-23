@@ -34,7 +34,7 @@ AeroIE is designed to make complex spacecraft systems **reliable, interconnected
 |---|---|
 | **Ritchie's Projectile Lib** | Required |
 | **Geckolib** | Required |
-| **Create: Aeronaunics** | Required |
+| **Create: Aeronautics** | Required |
 | **Photon** | Required |
 | **Patchouli** | Optional |
 
