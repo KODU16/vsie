@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "vsie:computronic_substrate"
+    },
+    "S": {
+      "item": "vsie:silicon_carbide"
+    },
+    "F": {
+      "item": "minecraft:flint_and_steel"
+    },
+    "D": {
+      "item": "simulated:docking_connector"
+    },
+    "M": {
+      "item": "vsie:metalic_microlattice"
+    },
+    "E": {
+      "item": "create:electron_tube"
+    }
+  },
+  "pattern": [
+    "CSS",
+    "FD ",
+    "MME"
+  ],
+  "result": {
+    "id": "vsie:basic_missile_launcher"
+  },
+  "show_notification": true
+}

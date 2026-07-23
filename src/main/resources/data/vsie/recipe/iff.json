@@ -1,0 +1,16 @@
+{
+  "type": "create:mixing",
+  "ingredients": [
+    {
+      "item": "create:cardboard"
+    },
+    {
+      "item": "minecraft:writable_book"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:iff"
+    }
+  ]
+}

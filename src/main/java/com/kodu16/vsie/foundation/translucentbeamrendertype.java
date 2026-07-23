@@ -22,16 +22,16 @@ public class translucentbeamrendertype extends RenderType {
             CompositeState.builder()
                     .setShaderState(POSITION_COLOR_SHADER)
                     .setTextureState(NO_TEXTURE)
-                    .setTransparencyState(                                   // ← 关键改这里
+                    .setTransparencyState(
                             new TransparencyStateShard(
                                     "additive_transparency",
                                     () -> {
                                         RenderSystem.enableBlend();
                                         RenderSystem.blendFuncSeparate(
-                                                GlStateManager.SourceFactor.SRC_ALPHA,          // srcRGB
-                                                GlStateManager.DestFactor.ONE,            // dstRGB   ← 1.0   → 加法
-                                                GlStateManager.SourceFactor.ONE,          // srcAlpha
-                                                GlStateManager.DestFactor.ONE             // dstAlpha
+                                                GlStateManager.SourceFactor.SRC_ALPHA,
+                                                GlStateManager.DestFactor.ONE,
+                                                GlStateManager.SourceFactor.ONE,
+                                                GlStateManager.DestFactor.ONE
                                         );
                                     },
                                     () -> {

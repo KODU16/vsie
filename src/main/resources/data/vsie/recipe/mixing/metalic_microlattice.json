@@ -1,0 +1,19 @@
+{
+  "type": "create:mixing",
+  "heat_requirement": "superheated",
+  "ingredients": [
+    {
+      "item": "minecraft:iron_ingot"
+    },
+    {
+      "type": "neoforge:single",
+      "amount": 1000,
+      "fluid": "aeronautics:levitite_blend"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:metalic_microlattice"
+    }
+  ]
+}

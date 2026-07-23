@@ -1,5 +1,5 @@
 {
-  "name": "控制椅：如何连接和管理外设",
+  "name": "Control Seat: Linking Peripherals",
   "icon": "vsie:linker",
   "category": "vsie:control_seat",
   "sortnum": 1,
@@ -9,17 +9,17 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "title": "如何连接外设",
-      "text": "想要连接外设，你需要一个位于子维度上的控制椅、同子维度（未断裂，未跨任何轴承，未解除物理化的安装位置）上的 AeroIE 外设（例如基础推进器），以及一个linker。$(br2)1、确保linker处于空状态（shift右键空气可以清除旧有的任何记忆）。$(br2)2、使用 linker，shift右键控制椅，这时linker会记录下控制椅的位置。"
+      "title": "How to Link Peripherals",
+      "text": "To link a peripheral, you need a Control Seat on a subspace, an AeroIE peripheral—such as a Basic Thruster—on the same intact subspace, and a Linker. The connection must not cross a bearing, and neither block may have been detached from the physical assembly.$(br2)1. Make sure the Linker is empty. Shift-right-click the air to clear any stored position.$(br2)2. Hold the Linker and Shift-right-click the Control Seat. The Linker records the seat's position."
     },
     {
       "type": "patchouli:text",
-      "text": "3、使用 linker，shift 右键外设（对模型较大的外设，shift右键核心方块才有效），这会把控制椅和外设绑定起来。$(br2)主手持有记录有效控制椅的 linker 时，可以在该控制椅链接的所有外设位置上看到一个按外设颜色分类的方框标记，以及此外设在该类外设中的编号。$(br2)当控制椅侦测到外设失效（例如被挖掘掉、被炸掉或子维度断裂使控制椅和外设不处于同子维度）时，会自动删除这个外设"
+      "text": "3. With the Linker, Shift-right-click the peripheral. For peripherals with large models, you must click their core block. This binds the peripheral to the Control Seat.$(br2)While holding a Linker that contains a valid Control Seat, every peripheral linked to that seat is marked with a colored outline and its index within that peripheral type.$(br2)The Control Seat automatically removes a peripheral if it becomes invalid—for example, if it is mined, destroyed, or separated onto another subspace."
     },
     {
       "type": "patchouli:text",
-      "title": "小趣事",
-      "text": "1、早期的 AeroIE 开发中，曾经想过使用控制椅广播控制信息来实现外设的自动连接，无需 linker 手动绑定，但这样带来了构石一样的网络同步开销，因此作罢。"
+      "title": "Fun Fact",
+      "text": "1. Early in AeroIE's development, Control Seats were planned to broadcast control data so peripherals could connect automatically without a Linker. The resulting cobblestone-tier network synchronization overhead quickly ended that idea."
     }
   ]
 }

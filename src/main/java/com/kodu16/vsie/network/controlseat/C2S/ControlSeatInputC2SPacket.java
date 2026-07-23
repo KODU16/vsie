@@ -11,11 +11,11 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.minecraftforge.network.NetworkEvent;
 import org.slf4j.Logger;
 
+import java.util.UUID;
 import java.util.function.Supplier;
 
 public class ControlSeatInputC2SPacket implements CustomPacketPayload {
@@ -25,6 +25,7 @@ public class ControlSeatInputC2SPacket implements CustomPacketPayload {
 
     public static final Logger LOGGER = LogUtils.getLogger();
     public final BlockPos pos;
+    public final UUID seatEntityId;
     public final int keys;
     public final boolean isviewlock;
     // Function: client-side manual aim ray result used directly by server-side turret targeting.
@@ -32,8 +33,9 @@ public class ControlSeatInputC2SPacket implements CustomPacketPayload {
     public final double aimTargetY;
     public final double aimTargetZ;
 
-    public ControlSeatInputC2SPacket(BlockPos pos, int keys, boolean isviewlock, double aimTargetX, double aimTargetY, double aimTargetZ) {
+    public ControlSeatInputC2SPacket(BlockPos pos, UUID seatEntityId, int keys, boolean isviewlock, double aimTargetX, double aimTargetY, double aimTargetZ) {
         this.pos = pos;
+        this.seatEntityId = seatEntityId;
         this.keys = keys;
         this.isviewlock = isviewlock;
         this.aimTargetX = aimTargetX;
@@ -43,6 +45,7 @@ public class ControlSeatInputC2SPacket implements CustomPacketPayload {
 
     public static void encode(ControlSeatInputC2SPacket pkt, FriendlyByteBuf buf) {
         buf.writeBlockPos(pkt.pos);
+        buf.writeUUID(pkt.seatEntityId);
         buf.writeVarInt(pkt.keys);
         buf.writeBoolean(pkt.isviewlock);
         buf.writeDouble(pkt.aimTargetX);
@@ -52,12 +55,13 @@ public class ControlSeatInputC2SPacket implements CustomPacketPayload {
 
     public static ControlSeatInputC2SPacket decode(FriendlyByteBuf buf) {
         BlockPos pos = buf.readBlockPos();
+        UUID seatEntityId = buf.readUUID();
         int keys = buf.readVarInt();
         boolean isviewlock = buf.readBoolean();
         double aimTargetX = buf.readDouble();
         double aimTargetY = buf.readDouble();
         double aimTargetZ = buf.readDouble();
-        return new ControlSeatInputC2SPacket(pos, keys, isviewlock, aimTargetX, aimTargetY, aimTargetZ);
+        return new ControlSeatInputC2SPacket(pos, seatEntityId, keys, isviewlock, aimTargetX, aimTargetY, aimTargetZ);
     }
 
     // Function: NeoForge handler entry that reuses the existing Supplier<NetworkEvent.Context> path.
@@ -73,9 +77,8 @@ public class ControlSeatInputC2SPacket implements CustomPacketPayload {
             ServerLevel level = sender.serverLevel();
             BlockPos pos = pkt.pos;
             int keys = pkt.keys;
-            BlockEntity seat = level.getBlockEntity(pos);
-            if (!(seat instanceof ControlSeatBlockEntity controlSeat)) {
-                sender.sendSystemMessage(Component.literal("Invalid control seat at " + pos));
+            ControlSeatBlockEntity controlSeat = ControlSeatPacketResolver.resolve(sender, pos, pkt.seatEntityId);
+            if (controlSeat == null) {
                 return;
             }
 
@@ -122,8 +125,11 @@ public class ControlSeatInputC2SPacket implements CustomPacketPayload {
                 serverData.isantigravityon = !serverData.isantigravityon;
             }
             if ((keys & KeysInput.TOGGLEAUTOLEVEL) != 0) {
-                // Function: auto-level persists like anti-gravity so an empty seat can keep stabilizing.
-                serverData.isAutoLevelOn = !serverData.isAutoLevelOn;
+                // Function: warp alignment temporarily owns pitch/roll correction, so auto-level cannot be toggled until warp finishes.
+                if (!serverData.isWarpPreparing && !serverData.hasPendingWarpTeleport) {
+                    // Function: auto-level persists like anti-gravity so an empty seat can keep stabilizing.
+                    serverData.isAutoLevelOn = !serverData.isAutoLevelOn;
+                }
             }
 
             serverData.isviewlocked = pkt.isviewlock;

@@ -27,7 +27,7 @@ public class BasicThrusterBlockEntity extends AbstractThrusterBlockEntity {
     }
 
 
-    public float getMaxThrust() {return 200000;}
+    public float getMaxThrust() {return 20000;}
 
     @Override
     public float getflamewidth() {

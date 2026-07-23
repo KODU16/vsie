@@ -1,0 +1,77 @@
+[126月2026 13:20:07.976] [main/INFO] [cpw.mods.modlauncher.Launcher/MODLAUNCHER]: ModLauncher running: args [--launchTarget, forgedatadev, --assetIndex, 17, --assetsDir, C:\\Users\\xiong\\.gradle\\caches\\neoformruntime\\assets, --gameDir, ., --fml.fmlVersion, 4.0.42, --fml.mcVersion, 1.21.1, --fml.neoForgeVersion, 21.1.228, --fml.neoFormVersion, 20240808.144430, --mod, vsie, --all, --output, C:\Program Files (x86)\360\360PT\mc\modding\vsie\src\generated\resources, --existing, C:\Program Files (x86)\360\360PT\mc\modding\vsie\src\main\resources]
+[126月2026 13:20:07.979] [main/INFO] [cpw.mods.modlauncher.Launcher/MODLAUNCHER]: JVM identified as Oracle Corporation Java HotSpot(TM) 64-Bit Server VM 21.0.7+8-LTS-245
+[126月2026 13:20:07.980] [main/INFO] [cpw.mods.modlauncher.Launcher/MODLAUNCHER]: ModLauncher 11.0.5+main.901c6ea8 starting: java version 21.0.7 by Oracle Corporation; OS Windows 11 arch amd64 version 10.0
+[126月2026 13:20:08.105] [main/INFO] [net.neoforged.fml.loading.ImmediateWindowHandler/]: ImmediateWindowProvider not loading because launch target is forgedatadev
+[126月2026 13:20:08.170] [main/INFO] [mixin/]: SpongePowered MIXIN Subsystem Version=0.8.7 Source=union:/C:/Users/xiong/.gradle/caches/modules-2/files-2.1/net.fabricmc/sponge-mixin/0.15.2+mixin.0.8.7/2af2f021d8e02a0220dc27a7a72b4666d66d44ca/sponge-mixin-0.15.2+mixin.0.8.7.jar%23138!/ Service=ModLauncher Env=CLIENT
+[126月2026 13:20:09.218] [main/WARN] [net.neoforged.jarjar.selection.JarSelector/]: Attempted to select a dependency jar for JarJar which was passed in as source: library:mixinextras.neoforge. Using Mod File: C:\Users\xiong\.gradle\caches\modules-2\files-2.1\io.github.llamalad7\mixinextras-neoforge\0.5.0\d734b83ce6542bb70ea31755c1595b88992dbe65\mixinextras-neoforge-0.5.0.jar
+[126月2026 13:20:09.218] [main/WARN] [net.neoforged.jarjar.selection.JarSelector/]: Attempted to select a dependency jar for JarJar which was passed in as source: veil. Using Mod File: C:\Users\xiong\.gradle\caches\modules-2\files-2.1\foundry.veil\veil-neoforge-1.21.1\4.0.0\961778891f90ad917e8d8defd48600fb1d81161f\veil-neoforge-1.21.1-4.0.0.jar
+[126月2026 13:20:09.219] [main/WARN] [net.neoforged.jarjar.selection.JarSelector/]: Attempted to select a dependency jar for JarJar which was passed in as source: sablecompanion. Using Mod File: C:\Users\xiong\.gradle\caches\modules-2\files-2.1\dev.ryanhcode.sable-companion\sable-companion-common-1.21.1\1.6.0\370be7db705926176e05c0215ed676150c45daae\sable-companion-common-1.21.1-1.6.0.jar
+[126月2026 13:20:09.219] [main/INFO] [net.neoforged.fml.loading.moddiscovery.locators.JarInJarDependencyLocator/]: Found 9 dependencies adding them to mods collection
+[126月2026 13:20:09.220] [main/INFO] [net.neoforged.fml.loading.moddiscovery.ModDiscoverer/]: 
+     Mod List:
+		Name Version (Mod Id)
+
+		Create 6.0.10 (create)
+		Create Aeronautics 1.2.1 (aeronautics)
+		Create Aeronautics 1.2.1 (aeronautics_bundled)
+		Create Offroad 1.2.1 (offroad)
+		Create Simulated 1.2.1 (simulated)
+		Flywheel 1.0.6 (flywheel)
+		GeckoLib 4 4.8.3 (geckolib)
+		LowDragLib2 2.2.6 (ldlib2)
+		Minecraft 1.21.1 (minecraft)
+		NeoForge 21.1.228 (neoforge)
+		Photon 2.1.4 (photon)
+		Ponder 1.0.82+mc1.21.1 (ponder)
+		Ritchie's Projectile Library 2.1.0 (ritchiesprojectilelib)
+		Sable 1.2.1 (sable)
+		Sable Companion 1.6.0 (sablecompanion)
+		Simulated:interstellar_expansion 0.0.4 (vsie)
+		Veil 4.0.0 (veil)
+[126月2026 13:20:11.190] [main/INFO] [mixin/]: Compatibility level set to JAVA_21
+[126月2026 13:20:11.245] [main/INFO] [cpw.mods.modlauncher.LaunchServiceHandler/MODLAUNCHER]: Launching target 'forgedatadev' with arguments [--gameDir, ., --assetsDir, C:\Users\xiong\.gradle\caches\neoformruntime\assets, --assetIndex, 17, --mod, vsie, --all, --output, C:\Program Files (x86)\360\360PT\mc\modding\vsie\src\generated\resources, --existing, C:\Program Files (x86)\360\360PT\mc\modding\vsie\src\main\resources]
+[126月2026 13:20:11.544] [main/WARN] [mixin/]: Reference map 'veil.refmap.json' for veil.command.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.545] [main/WARN] [mixin/]: Reference map 'veil.refmap.json' for veil.debug.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.546] [main/WARN] [mixin/]: Reference map 'veil.refmap.json' for veil.dynamicbuffer.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.546] [main/WARN] [mixin/]: Reference map 'veil.refmap.json' for veil.fix.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.547] [main/WARN] [mixin/]: Reference map 'veil.refmap.json' for veil.framebuffer.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.548] [main/WARN] [mixin/]: Reference map 'veil.refmap.json' for veil.necromancer.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.548] [main/WARN] [mixin/]: Reference map 'veil.refmap.json' for veil.network.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.549] [main/WARN] [mixin/]: Reference map 'veil.refmap.json' for veil.performance.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.549] [main/WARN] [mixin/]: Reference map 'veil.refmap.json' for veil.perspective.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.550] [main/WARN] [mixin/]: Reference map 'veil.refmap.json' for veil.pipeline.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.550] [main/WARN] [mixin/]: Reference map 'veil.refmap.json' for veil.quasar.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.551] [main/WARN] [mixin/]: Reference map 'veil.refmap.json' for veil.registry.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.551] [main/WARN] [mixin/]: Reference map 'veil.refmap.json' for veil.rendertype.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.552] [main/WARN] [mixin/]: Reference map 'veil.refmap.json' for veil.resource.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.552] [main/WARN] [mixin/]: Reference map 'veil.refmap.json' for veil.scheduler.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.553] [main/WARN] [mixin/]: Reference map 'veil.refmap.json' for veil.shader.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.554] [main/WARN] [mixin/]: Reference map 'veil.refmap.json' for veil.neoforge.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.555] [main/WARN] [mixin/]: Reference map 'simulated.refmap.json' for simulated.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.556] [main/WARN] [mixin/]: Reference map 'geckolib.refmap.json' for geckolib.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.568] [main/WARN] [mixin/]: Reference map 'aeronautics.refmap.json' for aeronautics.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.590] [main/WARN] [mixin/]: Reference map 'ponder.refmap.json' for ponder-common.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.625] [main/INFO] [dev.ryanhcode.sable.mixin.AbstractSableMixinPlugin/]: Using Vanilla renderer mixins
+[126月2026 13:20:11.626] [main/INFO] [dev.ryanhcode.sable.mixin.AbstractSableMixinPlugin/]: Using Vanilla renderer mixins
+[126月2026 13:20:11.626] [main/WARN] [mixin/]: Reference map 'vsie.refmap.json' for vsie.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:11.639] [main/WARN] [mixin/]: Reference map 'offroad.refmap.json' for offroad.mixins.json could not be read. If this is a development environment you can ignore this message
+[126月2026 13:20:12.503] [main/WARN] [mixin/]: Error loading class: net/irisshaders/iris/pipeline/PipelineManager (java.lang.ClassNotFoundException: net.irisshaders.iris.pipeline.PipelineManager)
+[126月2026 13:20:12.504] [main/WARN] [mixin/]: @Mixin target net.irisshaders.iris.pipeline.PipelineManager was not found veil.neoforge.mixins.json:client.perspective.iris.PipelineManagerMixin from mod veil
+[126月2026 13:20:12.600] [main/WARN] [mixin/]: Error loading class: mezz/jei/library/plugins/vanilla/ingredients/ItemStackListFactory (java.lang.ClassNotFoundException: mezz.jei.library.plugins.vanilla.ingredients.ItemStackListFactory)
+[126月2026 13:20:13.579] [main/WARN] [mixin/]: Error loading class: org/jetbrains/annotations/ApiStatus$ScheduledForRemoval (java.lang.ClassNotFoundException: org.jetbrains.annotations.ApiStatus$ScheduledForRemoval)
+[126月2026 13:20:14.110] [main/INFO] [MixinExtras|Service/]: Initializing MixinExtras via com.llamalad7.mixinextras.service.MixinExtrasServiceImpl(version=0.5.0).
+[126月2026 13:20:14.257] [main/INFO] [net.neoforged.neoforge.data.loading.DatagenModLoader/]: Initializing Data Gatherer for mods [vsie]
+[126月2026 13:20:21.271] [modloading-worker-0/INFO] [Veil/]: Veil is initializing.
+[126月2026 13:20:21.277] [modloading-worker-0/INFO] [LowDragLib2/]: LowDragLib2 is initializing on platform: NeoForge
+[126月2026 13:20:21.278] [modloading-worker-0/INFO] [LowDragLib2/]: Created assets folder .\ldlib2\assets
+[126月2026 13:20:21.279] [modloading-worker-0/INFO] [LowDragLib2/]: Created ldlib2 assets folder .\ldlib2\assets
+[126月2026 13:20:21.358] [modloading-worker-0/INFO] [net.neoforged.neoforge.common.NeoForgeMod/NEOFORGE-MOD]: NeoForge mod loading, version 21.1.228, for MC 1.21.1
+[126月2026 13:20:21.621] [modloading-worker-0/INFO] [com.simibubi.create.Create/]: Create 6.0.10 initializing! Commit hash: ac0c444d9828da3453ae8cc65338e8de063286fb
+[126月2026 13:20:23.172] [modloading-worker-0/INFO] [Photon/]: Photon is initializing on platform: NeoForge
+[126月2026 13:20:23.173] [modloading-worker-0/INFO] [Photon/]: Created photon assets folder
+[126月2026 13:20:24.870] [modloading-worker-0/INFO] [dev.ryanhcode.sable.Sable/]: Sable loaded!
+[126月2026 13:20:24.893] [modloading-worker-0/WARN] [dev.ryanhcode.sable.Sable/]: NOTE: Sable is loaded with Flywheel. Sable contains extensive shader overrides and a full light-storage replacement. Expect this to cause compatibility issues. If issues arise, please report them to the Sable issue tracker (https://github.com/ryanhcode/sable/issues) instead of the Flywheel issue tracker.
+[126月2026 13:20:25.033] [modloading-worker-0/ERROR] [GeckoLib/]: Duplicate SerializableDataTicket registered! This will cause issues. Existing: vsie:screen_spin_x, New: vsie:screen_spin_x
+[126月2026 13:20:27.112] [main/WARN] [net.minecraft.server.packs.VanillaPackResourcesBuilder/]: Assets URL 'union:/C:/Program%20Files%20(x86)/360/360PT/mc/modding/vsie/build/moddev/artifacts/neoforge-21.1.228.jar%23189!/assets/.mcassetsroot' uses unexpected schema
+[126月2026 13:20:27.113] [main/WARN] [net.minecraft.server.packs.VanillaPackResourcesBuilder/]: Assets URL 'union:/C:/Program%20Files%20(x86)/360/360PT/mc/modding/vsie/build/moddev/artifacts/neoforge-21.1.228.jar%23189!/data/.mcassetsroot' uses unexpected schema
+[126月2026 13:20:27.692] [main/INFO] [net.minecraft.data.DataGenerator/]: Starting provider: Registrate Provider for vsie [Registries, Data Maps, Recipes, Advancements, Loot Tables, Tags (blocks), Tags (enchantments), Tags (items), Tags (fluids), Tags (entity_types), generic_server_provider, Blockstates, Item models, Lang (en_us/en_ud), generic_client_provider]

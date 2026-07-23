@@ -1,0 +1,44 @@
+{
+  "type": "create:mixing",
+  "heat_requirement": "heated",
+  "ingredients": [
+    {
+      "item": "vsie:basic_thruster"
+    },
+    {
+      "item": "vsie:basic_thruster"
+    },
+    {
+      "item": "vsie:basic_thruster"
+    },
+    {
+      "item": "vsie:basic_thruster"
+    },
+    {
+      "item": "vsie:basic_thruster"
+    },
+    {
+      "item": "vsie:basic_thruster"
+    },
+    {
+      "item": "vsie:basic_thruster"
+    },
+    {
+      "item": "vsie:basic_thruster"
+    },
+    {
+      "item": "vsie:basic_thruster"
+    },
+    {
+      "item": "vsie:basic_thruster"
+    },
+    {
+      "item": "create:super_glue"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:medium_thruster"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "S": {
+      "item": "vsie:silicon_carbide"
+    },
+    "M": {
+      "item": "vsie:metalic_microlattice"
+    },
+    "C": {
+      "item": "vsie:computronic_substrate"
+    },
+    "L": {
+      "item": "minecraft:lightning_rod"
+    },
+    "B": {
+      "item": "vsie:large_energy_battery"
+    },
+    "E": {
+      "item": "create:electron_tube"
+    }
+  },
+  "pattern": [
+    "SS ",
+    "MCL",
+    "BE "
+  ],
+  "result": {
+    "id": "vsie:arc_emitter"
+  },
+  "show_notification": true
+}

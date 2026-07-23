@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "S": {
+      "item": "vsie:silicon_carbide"
+    },
+    "C": {
+      "item": "create:smart_chute"
+    },
+    "M": {
+      "item": "vsie:metalic_microlattice"
+    },
+    "V": {
+      "item": "create:item_vault"
+    },
+    "A": {
+      "item": "create:mechanical_arm"
+    },
+    "P": {
+      "item": "vsie:computronic_substrate"
+    }
+  },
+  "pattern": [
+    "SCS",
+    "MVM",
+    "APA"
+  ],
+  "result": {
+    "id": "vsie:ammo_box"
+  },
+  "show_notification": true
+}

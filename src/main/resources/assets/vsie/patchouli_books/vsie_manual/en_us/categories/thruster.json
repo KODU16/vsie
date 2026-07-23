@@ -1,6 +1,6 @@
 {
-  "name": "推进器",
-  "description": "用于添加推力或姿态控制力矩值的推进组件，是飞船机动性能的基础。",
+  "name": "Thrusters",
+  "description": "Propulsion components that provide thrust or attitude-control torque, forming the basis of a ship's maneuverability.",
   "icon": "vsie:basic_thruster",
   "sortnum": 3
 }

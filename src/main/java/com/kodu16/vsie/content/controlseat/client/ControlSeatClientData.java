@@ -15,6 +15,8 @@ import java.util.UUID;
 public class ControlSeatClientData {
     public volatile long lastKeyPressTime = 0;
     public volatile boolean viewLock = false;
+    public volatile boolean hasPendingViewLockSync = false;
+    public volatile boolean pendingViewLockValue = false;
     public volatile UUID userUUID = null;
     public volatile double accumulatedmousex = 0;
     public volatile double accumulatedmousey = 0;
@@ -29,6 +31,7 @@ public class ControlSeatClientData {
     public volatile Vector3d prevShipUp = new Vector3d(0, 0, 0);
     public volatile double shipSpeed = 0.0D;
     public volatile Vector3d structureCenterWorld = new Vector3d();
+    public volatile Vector3d structureVelocityWorld = new Vector3d();
     public volatile double seatGForce = 0.0D;
     public volatile boolean mouseLpress = false;
 
@@ -74,6 +77,12 @@ public class ControlSeatClientData {
     public volatile boolean isWarpPreparing = false;
     public volatile boolean hasPendingWarpTeleport = false;
     public volatile String warpTargetName = "";
+    public volatile double warpAlignmentControlX = 0.0D;
+    public volatile double warpAlignmentControlY = 0.0D;
+    public volatile BlockPos activeSeatPos = null;
+    public volatile UUID activeSeatEntityId = null;
+    // Function: remember the last control seat that published HUD telemetry so the world HUD can stay attached after dismount.
+    public volatile BlockPos lastHudSeatPos = null;
 
     public volatile List<ActiveWeaponHudInfo> activeWeaponHudInfos = new ArrayList<>();
     public volatile List<Float> smoothWeaponCooldownRatios = new ArrayList<>();
@@ -135,16 +144,77 @@ public class ControlSeatClientData {
         userUUID = null;
     }
 
+    public void bindSeat(BlockPos pos) {
+        bindSeat(pos, null);
+    }
+
+    public void bindSeat(BlockPos pos, UUID seatEntityId) {
+        BlockPos nextSeatPos = pos == null ? null : pos.immutable();
+        if (nextSeatPos == null) {
+            clearSeatBinding();
+            return;
+        }
+        if (!nextSeatPos.equals(activeSeatPos) || (seatEntityId != null && !seatEntityId.equals(activeSeatEntityId))) {
+            // Function: switching chairs must drop the old chair's HUD and warp preparation state.
+            resetSeatScopedState();
+            activeSeatPos = nextSeatPos;
+            activeSeatEntityId = seatEntityId;
+        } else if (activeSeatEntityId == null && seatEntityId != null) {
+            activeSeatEntityId = seatEntityId;
+        }
+    }
+
+    public boolean isBoundToSeat(BlockPos pos) {
+        return pos != null && pos.equals(activeSeatPos);
+    }
+
+    public void clearSeatBinding() {
+        activeSeatPos = null;
+        activeSeatEntityId = null;
+        resetSeatScopedState();
+    }
+
+    public void rememberHudSeat(BlockPos pos) {
+        lastHudSeatPos = pos == null ? null : pos.immutable();
+    }
+
+    public BlockPos getLastHudSeatPos() {
+        return lastHudSeatPos;
+    }
+
+    public void clearLastHudSeat() {
+        lastHudSeatPos = null;
+    }
+
     public void updatelastKeyPressTime() {
         lastKeyPressTime = System.currentTimeMillis();
     }
 
     public void toggleViewLock() {
-        viewLock = !viewLock;
+        requestViewLock(!viewLock);
+    }
+
+    public void requestViewLock(boolean locked) {
+        viewLock = locked;
+        pendingViewLockValue = locked;
+        hasPendingViewLockSync = true;
+    }
+
+    public void applyServerViewLock(boolean locked) {
+        // Function: ignore stale seat-state packets until the server echoes the local Alt toggle we just sent.
+        if (hasPendingViewLockSync) {
+            if (locked != pendingViewLockValue) {
+                return;
+            }
+            hasPendingViewLockSync = false;
+        }
+        viewLock = locked;
     }
 
     public void disableViewLock() {
         viewLock = false;
+        hasPendingViewLockSync = false;
+        pendingViewLockValue = false;
     }
 
     public boolean isViewLocked() {
@@ -194,6 +264,64 @@ public class ControlSeatClientData {
         mouseAnchorSet = false;
         mouseLpress = false;
         turretHudMarkerStates.clear();
+    }
+
+    public void resetSeatScopedState() {
+        reset();
+        viewLock = false;
+        hasPendingViewLockSync = false;
+        pendingViewLockValue = false;
+        userUUID = null;
+        throttle = 0;
+        shiprot = new Quaterniond();
+        shipfacing = new Vector3d(0, 0, 0);
+        shipUp = new Vector3d(0, 0, 0);
+        prevShipfacing = new Vector3d(0, 0, 0);
+        prevShipUp = new Vector3d(0, 0, 0);
+        shipSpeed = 0.0D;
+        structureCenterWorld = new Vector3d();
+        structureVelocityWorld = new Vector3d();
+        seatGForce = 0.0D;
+        channel1 = false;
+        channel2 = false;
+        channel3 = false;
+        channel4 = false;
+        shipsData = new HashMap<>();
+        enemy = "";
+        ally = "";
+        lockedenemyslug = "";
+        energyavalible = 0;
+        energytotal = 100;
+        fuelavalible = 0;
+        fueltotal = 100;
+        e710avalible = 0;
+        warpE710CostMb = 0;
+        warpE710Insufficient = false;
+        shieldon = false;
+        shieldavalible = 0;
+        shieldtotal = 1;
+        isShieldOverloaded = false;
+        smoothEnergyRatio = 0f;
+        smoothFuelRatio = 0f;
+        smoothE710Ratio = 0f;
+        smoothWarpE710CostRatio = 0f;
+        smoothShieldRatio = 0f;
+        smoothThrottle = 0f;
+        throttleTargetRatio = 0f;
+        isflightassiston = false;
+        isforceassiston = false;
+        istorqueassiston = false;
+        isForceAssistSuppressedByAccelerator = false;
+        isantigravityon = false;
+        isAutoLevelOn = false;
+        isWarpPreparing = false;
+        hasPendingWarpTeleport = false;
+        warpTargetName = "";
+        warpAlignmentControlX = 0.0D;
+        warpAlignmentControlY = 0.0D;
+        lastHudSeatPos = null;
+        activeWeaponHudInfos = new ArrayList<>();
+        smoothWeaponCooldownRatios = new ArrayList<>();
     }
 
     public TurretHudMarkerState getTurretHudMarkerState(BlockPos turretPos) {

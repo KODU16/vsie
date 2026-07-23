@@ -17,11 +17,12 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Locale;
 
 public class shieldtool extends Item {
@@ -38,13 +39,14 @@ public class shieldtool extends Item {
         super(pProperties);
     }
 
-    /** 可选：给物品栏 tooltip 显示用 */
     @Override
-    public void appendHoverText(ItemStack stack, Item.TooltipContext context, java.util.List<Component> tooltip, net.minecraft.world.item.TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
 
         CompoundTag tag = ItemStackNbt.get(stack);
-        if (tag == null) return;
+        if (tag == null) {
+            return;
+        }
 
         int max = tag.getInt(KEY_MAX_SHIELD);
         int radius = tag.getInt(KEY_RADIUS);
@@ -70,7 +72,6 @@ public class shieldtool extends Item {
         tooltip.add(Component.translatable("gui.vsie.shield_tool.refresh_hint"));
     }
 
-    // 你原来的右键打开界面代码（保持不变）
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         if (hand != InteractionHand.MAIN_HAND) {
@@ -105,23 +106,23 @@ public class shieldtool extends Item {
         if (!(context.getPlayer() instanceof ServerPlayer player)) {
             return InteractionResult.FAIL;
         }
+
         BlockPos clickedPos = context.getClickedPos();
         ItemStack stack = context.getItemInHand();
 
         BlockEntity be = level.getBlockEntity(clickedPos);
         if (!(be instanceof ShieldGeneratorBlockEntity shieldGen)) {
-            player.displayClientMessage(Component.literal(clickedPos + " 不是有效的护盾发生器"), true);
+            player.displayClientMessage(Component.translatable("gui.vsie.shield_tool.invalid_generator", clickedPos.toShortString()), true);
             return InteractionResult.FAIL;
         }
 
         BlockEntity seatBe = level.getBlockEntity(shieldGen.linkedcontrolseatpos);
         if (!(seatBe instanceof ControlSeatBlockEntity controlSeat)) {
-            player.displayClientMessage(Component.literal("护盾发生器未绑定有效的控制座椅"), true);
+            player.displayClientMessage(Component.translatable("gui.vsie.shield_tool.no_linked_control_seat"), true);
             return InteractionResult.FAIL;
         }
 
         ControlSeatServerData data = controlSeat.getControlSeatData();
-        // 右键瞬间强制重算一次护盾参数，避免工具打开时仍显示上一拍的旧结果。
         controlSeat.updateShield();
         controlSeat.updateShieldEnergyAvalible();
 
@@ -157,5 +158,4 @@ public class shieldtool extends Item {
     private static String formatDistance(double distance) {
         return String.format(Locale.ROOT, "%.2f", distance);
     }
-
 }

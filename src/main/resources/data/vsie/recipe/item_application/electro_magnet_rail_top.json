@@ -1,0 +1,16 @@
+{
+  "type": "create:item_application",
+  "ingredients": [
+    {
+      "item": "vsie:electro_magnet_rail_core"
+    },
+    {
+      "item": "create:gearshift"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:electro_magnet_rail_top"
+    }
+  ]
+}

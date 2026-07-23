@@ -37,48 +37,47 @@ public class HeavyTurretScreen extends AbstractContainerScreen<HeavyTurretContai
     private static final int FIRE_TYPE_AUTO = 1;
     private static final int FIRE_TYPE_SMART = 2;
 
-    private static final int LEFT_PANEL_X = 12;
-    private static final int RIGHT_PANEL_X = 98;
-    private static final int SECTION_TOP_Y = 18;
-    private static final int FIELD_WIDTH = 30;
+    private static final int LEFT_PANEL_X = 16;
+    private static final int RIGHT_PANEL_X = 136;
+    private static final int FIELD_WIDTH = 36;
     private static final int FIELD_HEIGHT = 14;
-    private static final int FIELD_LEFT_X = 28;
-    private static final int FIELD_RIGHT_X = 66;
-    private static final int ROW_X_Y = 32;
-    private static final int ROW_Y_Y = 56;
-    private static final int ROW_SPIN_Y = 82;
-    private static final int CHANNEL_ICON_LEFT_X = 108;
-    private static final int CHANNEL_ICON_RIGHT_X = 140;
+    private static final int FIELD_LEFT_X = 24;
+    private static final int FIELD_RIGHT_X = 88;
+    private static final int ROW_X_Y = 38;
+    private static final int ROW_Y_Y = 68;
+    private static final int ROW_SPIN_Y = 98;
+    private static final int LABEL_GAP_Y = 10;
+    private static final int CHANNEL_ICON_LEFT_X = 142;
+    private static final int CHANNEL_ICON_RIGHT_X = 180;
     private static final int CHANNEL_TOP_ROW_Y = 30;
     private static final int CHANNEL_BOTTOM_ROW_Y = 68;
-    private static final int CHANNEL_BUTTON_LEFT_X = 100;
-    private static final int CHANNEL_BUTTON_RIGHT_X = 132;
+    private static final int CHANNEL_BUTTON_LEFT_X = 134;
+    private static final int CHANNEL_BUTTON_RIGHT_X = 172;
     private static final int CHANNEL_BUTTON_TOP_Y = 48;
     private static final int CHANNEL_BUTTON_BOTTOM_Y = 86;
     private static final int CHANNEL_BUTTON_WIDTH = 28;
-    private static final int MODE_ICON_X = 102;
-    private static final int MODE_ICON_Y = 120;
-    private static final int MODE_BUTTON_X = 126;
-    private static final int MODE_BUTTON_Y = 120;
+    private static final int MODE_LABEL_X = 128;
+    private static final int MODE_LABEL_Y = 138;
+    private static final int MODE_ICON_X = 152;
+    private static final int MODE_ICON_Y = 132;
+    private static final int MODE_BUTTON_X = 176;
+    private static final int MODE_BUTTON_Y = 134;
     private static final int MODE_BUTTON_WIDTH = 38;
-    private static final int AMMO_LABEL_Y = 152;
-    private static final int SAVE_BUTTON_X = 12;
-    private static final int CANCEL_BUTTON_X = 50;
+    private static final int AMMO_LABEL_Y = 178;
+    private static final int SAVE_BUTTON_X = 74;
+    private static final int CANCEL_BUTTON_X = 116;
     private static final int SAVE_BUTTON_WIDTH = 34;
     private static final int CANCEL_BUTTON_WIDTH = 38;
-    private static final int ACTION_BUTTON_Y = 116;
-    private static final int FOOTER_TOP_Y = 150;
-    private static final int PANEL_FILL = 0x5A101010;
-    private static final int FOOTER_FILL = 0xC0202020;
+    private static final int ACTION_BUTTON_Y = 160;
     private static final int LABEL_COLOR = 0x404040;
     private static final int NOTICE_COLOR = 0xE02020;
     private static final int SLOT_BORDER_COLOR = 0xFF8B8B8B;
     private static final int SLOT_FILL_COLOR = 0xFF373737;
-    private static final int BREAK_BLOCKS_LABEL_X = 14;
-    private static final int BREAK_BLOCKS_LABEL_Y = 186;
-    private static final int BREAK_BLOCKS_BUTTON_X = 82;
-    private static final int BREAK_BLOCKS_BUTTON_Y = 182;
-    private static final int PLAYER_INVENTORY_LABEL_Y = 208;
+    private static final int BREAK_BLOCKS_LABEL_X = 18;
+    private static final int BREAK_BLOCKS_LABEL_Y = 138;
+    private static final int BREAK_BLOCKS_BUTTON_X = 86;
+    private static final int BREAK_BLOCKS_BUTTON_Y = 134;
+    private static final int PLAYER_INVENTORY_LABEL_Y = 224;
     private static final int NOTICE_WIDTH = 144;
     private static final int HEAVY_SCREEN_WIDTH = 228;
     private static final int AMMO_SCREEN_HEIGHT = 316;
@@ -133,8 +132,7 @@ public class HeavyTurretScreen extends AbstractContainerScreen<HeavyTurretContai
                             ModNetworking.sendToServer(new HeavyTurretC2SPacket(pos, nextFireType + 100));
                             be.getData().fireType = nextFireType;
                         })
-                .pos(this.leftPos + MODE_BUTTON_X, this.topPos + MODE_BUTTON_Y)
-                .size(MODE_BUTTON_WIDTH, 16)
+                .bounds(this.leftPos + MODE_BUTTON_X, this.topPos + MODE_BUTTON_Y, MODE_BUTTON_WIDTH, 16)
                 .build());
         this.breakBlocksButton = this.addRenderableWidget(Button.builder(breakBlocksButtonLabel(),
                         button -> {
@@ -199,15 +197,15 @@ public class HeavyTurretScreen extends AbstractContainerScreen<HeavyTurretContai
         guiGraphics.drawString(this.font, Component.translatable("gui.vsie.common.break_blocks.label"),
                 BREAK_BLOCKS_LABEL_X, BREAK_BLOCKS_LABEL_Y, LABEL_COLOR, false);
         guiGraphics.drawString(this.font, Component.translatable("gui.vsie.heavy_turret.aim_limits.label"), LEFT_PANEL_X, 18, LABEL_COLOR, false);
-        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.aim_min_x.label"), 12, 36, LABEL_COLOR, false);
-        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.aim_max_x.label"), 50, 36, LABEL_COLOR, false);
-        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.aim_min_y.label"), 12, 60, LABEL_COLOR, false);
-        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.aim_max_y.label"), 50, 60, LABEL_COLOR, false);
-        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.default_yaw.label"), 12, 86, LABEL_COLOR, false);
-        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.default_pitch.label"), 50, 86, LABEL_COLOR, false);
+        drawLabelAboveBox(guiGraphics, this.editBoxAimLimitMinX, Component.translatable("gui.vsie.turret.aim_min_x.label"));
+        drawLabelAboveBox(guiGraphics, this.editBoxAimLimitMaxX, Component.translatable("gui.vsie.turret.aim_max_x.label"));
+        drawLabelAboveBox(guiGraphics, this.editBoxAimLimitMinY, Component.translatable("gui.vsie.turret.aim_min_y.label"));
+        drawLabelAboveBox(guiGraphics, this.editBoxAimLimitMaxY, Component.translatable("gui.vsie.turret.aim_max_y.label"));
+        drawLabelAboveBox(guiGraphics, this.editBoxSpinY, Component.translatable("gui.vsie.turret.default_yaw.label"));
+        drawLabelAboveBox(guiGraphics, this.editBoxSpinX, Component.translatable("gui.vsie.turret.default_pitch.label"));
 
         guiGraphics.drawString(this.font, Component.translatable("gui.vsie.heavy_turret.channels.label"), RIGHT_PANEL_X, 18, LABEL_COLOR, false);
-        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.heavy_turret.mode.label"), RIGHT_PANEL_X + 4, 104, LABEL_COLOR, false);
+        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.heavy_turret.mode.label"), MODE_LABEL_X, MODE_LABEL_Y, LABEL_COLOR, false);
         if (menu.hasAmmoSlots()) {
             guiGraphics.drawString(this.font, Component.translatable("gui.vsie.common.ammo"), 8, AMMO_LABEL_Y, LABEL_COLOR, false);
             guiGraphics.drawString(this.font, Component.translatable("container.inventory"), 8, PLAYER_INVENTORY_LABEL_Y, LABEL_COLOR, false);
@@ -379,7 +377,7 @@ public class HeavyTurretScreen extends AbstractContainerScreen<HeavyTurretContai
         }
         if (menu.hasAmmoSlots() && (this.hoveredSlot == null || !this.hoveredSlot.hasItem())) {
             GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
-                    this.leftPos + 6, this.topPos + 158, this.imageWidth - 12, 24,
+                    this.leftPos + 6, this.topPos + AMMO_LABEL_Y + 4, this.imageWidth - 12, 24,
                     Component.translatable("gui.vsie.heavy_turret.ammo_slots.tooltip"));
         }
     }
@@ -412,4 +410,14 @@ public class HeavyTurretScreen extends AbstractContainerScreen<HeavyTurretContai
             guiGraphics.drawString(this.font, lines.get(i), x, y + i * 9, color, false);
         }
     }
+
+    private void drawLabelAboveBox(GuiGraphics guiGraphics, EditBox box, Component label) {
+        if (box == null) {
+            return;
+        }
+        int labelX = box.getX() + (box.getWidth() - this.font.width(label)) / 2 - this.leftPos;
+        int labelY = box.getY() - this.topPos - LABEL_GAP_Y;
+        guiGraphics.drawString(this.font, label, labelX, labelY, LABEL_COLOR, false);
+    }
+
 }

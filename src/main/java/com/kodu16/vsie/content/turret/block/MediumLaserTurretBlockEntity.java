@@ -95,7 +95,7 @@ public class MediumLaserTurretBlockEntity extends AbstractTurretBlockEntity {
 
     @Override
     public int getenergypertick() {
-        return 10;
+        return 1;
     }
 
     @Override
@@ -113,7 +113,8 @@ public class MediumLaserTurretBlockEntity extends AbstractTurretBlockEntity {
         double projectionLength = distance;
         turretData.setDistance(projectionLength);
         performRaycast(level);
-        targetentity.hurt(level.damageSources().onFire(), 15.0F);
+        // Function: laser damage is not fire damage, so fire-immune mobs must still take beam hits.
+        targetentity.hurt(level.damageSources().generic(), 15.0F);
     }
 
     @Override

@@ -1,5 +1,5 @@
 {
-  "name": "电池",
+  "name": "Batteries",
   "icon": "vsie:small_energy_battery",
   "category": "vsie:storage",
   "sortnum": 0,
@@ -12,12 +12,12 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:small_energy_battery",
-      "title": "电池",
-      "text": "由于不同模组的电池机制不同，AeroIE不能随便绑一个装着FE的方块，因此添加了这种专属的电池，其可以被任意FE线缆充能，但能量只能被控制椅抽取，电量由控制椅统一分配消耗"
+      "title": "Batteries",
+      "text": "Because different mods implement batteries in different ways, AeroIE cannot simply bind to any block that contains FE. Its dedicated batteries can be charged by any FE cable, but only a Control Seat can extract their energy. The seat distributes that energy among all linked systems. Larger components generally consume more power, and every Control Seat system stops working when the vessel runs out of energy."
     },
     {
       "type": "patchouli:text",
-      "text": "三种电池的容量分别为：$(br2)小型；100kFE$(br2)中型；1MFE$(br2)大型；10MFE"
+      "text": "The three battery capacities are:$(br2)Small: 100 kFE$(br2)Medium: 1 MFE$(br2)Large: 10 MFE"
     }
   ]
 }

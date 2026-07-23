@@ -4,26 +4,28 @@ import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
 import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
 import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
 import com.kodu16.vsie.foundation.Vec;
-import com.kodu16.vsie.registries.vsieItems;
 import com.kodu16.vsie.vsie;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
-import dev.ryanhcode.sable.api.sublevel.ClientSubLevelContainer;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
 import dev.ryanhcode.sable.sublevel.ClientSubLevel;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
-import net.minecraft.client.renderer.entity.ItemRenderer;
-import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemDisplayContext;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -33,7 +35,10 @@ import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 
 import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -46,7 +51,11 @@ public class WorldMarkerPainter {
     private static final String UNNAMED_SUBLEVEL = "[Unnamed Sublevel]";
     private static final int HUD_MARKER_LIGHT = LightTexture.FULL_BRIGHT;
     private static final int TEXT_COLOR = 0xFFFFFFFF;
-    private static final int MAX_MARKER_DISTANCE = 4096;
+    private static final ResourceLocation TARGET_FRAME_TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/item/target_frame.png");
+    private static final ResourceLocation TARGET_FRAME_ENEMY_TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/item/target_frame_enemy.png");
+    private static final ResourceLocation TARGET_FRAME_ENEMY_LOCKED_TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/item/target_frame_enemy_locked.png");
+    private static final ResourceLocation TARGET_FRAME_ALLY_TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/item/target_frame_ally.png");
+    private static final int MAX_MARKER_DISTANCE = 1024;
     private static final float MARKER_POSITION_RESPONSE_PER_SECOND = 14.0F;
     private static final double MARKER_SMOOTHING_SNAP_DISTANCE = 256.0D;
     private static final Map<String, Vec3> smoothedMarkerPositions = new HashMap<>();
@@ -63,9 +72,18 @@ public class WorldMarkerPainter {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_WEATHER) {
             return;
         }
+        // Function: these world-space markers are part of the control-seat HUD and should hide with F1.
+        if (mc.options.hideGui) {
+            return;
+        }
 
         getRenderpos(event.getCamera().getPosition());
-        if (shipsData.isEmpty() || playerpos == null) {
+        if (playerpos == null) {
+            clearMarkerSmoothing();
+            return;
+        }
+        List<RenderedShipMarker> renderedMarkers = collectRenderedMarkers();
+        if (renderedMarkers.isEmpty()) {
             clearMarkerSmoothing();
             return;
         }
@@ -75,16 +93,10 @@ public class WorldMarkerPainter {
         Set<String> activeMarkerKeys = new HashSet<>();
 
         try {
-            for (var entry : shipsData.entrySet()) {
-                if (!(entry.getValue() instanceof Map<?, ?> rawAttr)) {
-                    continue;
-                }
-
-                @SuppressWarnings("unchecked")
-                Map<String, Object> attr = (Map<String, Object>) rawAttr;
-                String markerKey = markerKey(entry.getKey(), attr);
+            for (RenderedShipMarker renderedMarker : renderedMarkers) {
+                String markerKey = markerKey(renderedMarker.entryKey(), renderedMarker.attr());
                 activeMarkerKeys.add(markerKey);
-                renderShipMarker(event.getPoseStack(), buffers, entry.getKey(), attr, markerKey, markerAlpha);
+                renderShipMarker(event.getPoseStack(), buffers, renderedMarker, markerKey, markerAlpha);
             }
             smoothedMarkerPositions.keySet().removeIf(key -> !activeMarkerKeys.contains(key));
 
@@ -95,17 +107,11 @@ public class WorldMarkerPainter {
         }
     }
 
-    private static void renderShipMarker(PoseStack pose, MultiBufferSource buffer, String entryKey, Map<String, Object> attr,
+    private static void renderShipMarker(PoseStack pose, MultiBufferSource buffer, RenderedShipMarker renderedMarker,
                                          String markerKey, float markerAlpha) {
-        Vec3 rawTarget = new Vec3(toDouble(attr.get("x")), toDouble(attr.get("y")), toDouble(attr.get("z")));
-        Vec3 renderedTarget = resolveRenderedSubLevelCenter(entryKey);
-        boolean usesLiveSubLevelPose = renderedTarget != null;
-        rawTarget = usesLiveSubLevelPose ? renderedTarget : rawTarget;
-        Vec3 delta = rawTarget.subtract(playerpos);
-        if (delta.lengthSqr() > (double) MAX_MARKER_DISTANCE * MAX_MARKER_DISTANCE) {
-            return;
-        }
-        Vec3 target = usesLiveSubLevelPose ? rawTarget : smoothMarkerPosition(markerKey, rawTarget, markerAlpha);
+        Map<String, Object> attr = renderedMarker.attr();
+        Vec3 rawTarget = renderedMarker.renderedCenter();
+        Vec3 target = smoothMarkerPosition(markerKey, rawTarget, markerAlpha);
 
         String rawSlug = stringValue(attr.get("slug"));
         String displayName = displayName(rawSlug);
@@ -114,11 +120,10 @@ public class WorldMarkerPainter {
         double distance = Vec.Distance(playerpos, target);
         double speed = toDouble(attr.get("speed"));
 
-        ItemStack item = markerItem(targetType);
         ChatFormatting nameColor = markerNameColor(targetType);
         String indexedName = targetIndex > 0 ? "[" + targetIndex + "] " + displayName : displayName;
         Component nameText = Component.literal(indexedName).withStyle(nameColor);
-        Component statusText = Component.literal(String.format(Locale.ROOT, "距离 %.1f m  速度 %.1f m/s", distance, speed))
+        Component statusText = Component.literal(String.format(Locale.ROOT, "Distance %.1f m  Speed %.1f m/s", distance, speed))
                 .withStyle(ChatFormatting.WHITE);
 
         // Function: locked targets keep a dedicated TGT line above the ship name.
@@ -129,10 +134,8 @@ public class WorldMarkerPainter {
         // Function: ship markers use a fixed two-line layout so name and status do not crowd into one unreadable row.
         renderText(playerpos, target, mc.getEntityRenderDispatcher(), mc.font, pose, buffer, nameText, 0.003f, 18.0f);
         renderText(playerpos, target, mc.getEntityRenderDispatcher(), mc.font, pose, buffer, statusText, 0.003f, 30.0f);
-        if (rawSlug.equals(lockedenemyslug) && !rawSlug.isEmpty()) {
-            item = new ItemStack(vsieItems.TARGET_FRAME_ENEMY_LOCKED.get());
-        }
-        renderIcon(playerpos, target, mc.getEntityRenderDispatcher(), pose, buffer, item);
+        boolean lockedEnemy = rawSlug.equals(lockedenemyslug) && !rawSlug.isEmpty();
+        renderIcon(playerpos, target, mc.getEntityRenderDispatcher(), pose, markerTexture(targetType, lockedEnemy));
     }
 
     private static void getRenderpos(Vec3 cameraPos) {
@@ -152,7 +155,7 @@ public class WorldMarkerPainter {
         }
 
         ControlSeatClientData data = ClientDataManager.getClientData(player);
-        if (!(player.getVehicle() instanceof ControlSeatMountEntity)) {
+        if (!(player.getVehicle() instanceof ControlSeatMountEntity mount)) {
             // Function: leaving the control seat must clear stale ship scan markers from the previous seated session.
             data.shipsData = new HashMap<>();
             data.lockedenemyslug = "";
@@ -164,6 +167,7 @@ public class WorldMarkerPainter {
             clearMarkerSmoothing();
             return;
         }
+        data.bindSeat(mount.getBoundBlockPos());
         shipsData = data.shipsData;
         enemy = data.enemy;
         ally = data.ally;
@@ -173,8 +177,7 @@ public class WorldMarkerPainter {
     }
 
     private static void renderIcon(Vec3 camPos, Vec3 targetPos, EntityRenderDispatcher dispatcher,
-                                   PoseStack pose, MultiBufferSource buffer, ItemStack item) {
-        ItemRenderer itemRenderer = mc.getItemRenderer();
+                                   PoseStack pose, ResourceLocation texture) {
         double dist = camPos.distanceTo(targetPos);
         float finalScale = 0.1f * (float) (dist * 0.05);
         Vec3 offset = targetPos.subtract(camPos);
@@ -186,19 +189,28 @@ public class WorldMarkerPainter {
             pose.mulPose(cameraRot);
             // Function: keep item markers non-degenerate; near-zero Z scale flickers while sublevels move.
             pose.scale(finalScale * 20, finalScale * 20, finalScale * 20);
-            itemRenderer.renderStatic(
-                    item,
-                    ItemDisplayContext.FIXED,
-                    HUD_MARKER_LIGHT,
-                    OverlayTexture.NO_OVERLAY,
-                    pose,
-                    buffer,
-                    mc.level,
-                    0
-            );
+            drawSeeThroughMarkerQuad(pose.last().pose(), texture);
         } finally {
             pose.popPose();
         }
+    }
+
+    private static void drawSeeThroughMarkerQuad(Matrix4f matrix, ResourceLocation texture) {
+        // Function: draw target-frame item textures directly because ItemRenderer render types re-enable depth testing.
+        RenderSystem.setShader(GameRenderer::getPositionTexShader);
+        RenderSystem.setShaderTexture(0, texture);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
+        RenderSystem.depthMask(false);
+        RenderSystem.disableCull();
+
+        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+        buffer.addVertex(matrix, -0.5f, -0.5f, 0.0f).setUv(0.0f, 1.0f);
+        buffer.addVertex(matrix, 0.5f, -0.5f, 0.0f).setUv(1.0f, 1.0f);
+        buffer.addVertex(matrix, 0.5f, 0.5f, 0.0f).setUv(1.0f, 0.0f);
+        buffer.addVertex(matrix, -0.5f, 0.5f, 0.0f).setUv(0.0f, 0.0f);
+        BufferUploader.drawWithShader(buffer.buildOrThrow());
     }
 
     private static void renderText(Vec3 camPos, Vec3 targetPos, EntityRenderDispatcher dispatcher,
@@ -233,14 +245,17 @@ public class WorldMarkerPainter {
         }
     }
 
-    private static ItemStack markerItem(int targetType) {
+    private static ResourceLocation markerTexture(int targetType, boolean lockedEnemy) {
+        if (lockedEnemy) {
+            return TARGET_FRAME_ENEMY_LOCKED_TEXTURE;
+        }
         if (targetType == 1) {
-            return new ItemStack(vsieItems.TARGET_FRAME_ENEMY.get());
+            return TARGET_FRAME_ENEMY_TEXTURE;
         }
         if (targetType == 2) {
-            return new ItemStack(vsieItems.TARGET_FRAME_ALLY.get());
+            return TARGET_FRAME_ALLY_TEXTURE;
         }
-        return new ItemStack(vsieItems.TARGET_FRAME.get());
+        return TARGET_FRAME_TEXTURE;
     }
 
     private static ChatFormatting markerNameColor(int targetType) {
@@ -265,6 +280,7 @@ public class WorldMarkerPainter {
         RenderSystem.depthMask(true);
         RenderSystem.enableDepthTest();
         RenderSystem.enableCull();
+        RenderSystem.disableBlend();
     }
 
     public static int getPriority(String a, String b, String c) {
@@ -312,6 +328,57 @@ public class WorldMarkerPainter {
         return entryKey + "|" + slug + "|" + targetIndex;
     }
 
+    private static List<RenderedShipMarker> collectRenderedMarkers() {
+        ClientLevel level = mc.level;
+        if (level == null) {
+            return Collections.emptyList();
+        }
+
+        var container = SubLevelContainer.getContainer(level);
+        if (container == null) {
+            return Collections.emptyList();
+        }
+
+        UUID ownSubLevelId = getMountedSubLevelId(level);
+        List<RenderedShipMarker> renderedMarkers = new ArrayList<>();
+        for (ClientSubLevel subLevel : container.getAllSubLevels()) {
+            if (subLevel == null || subLevel.isRemoved()) {
+                continue;
+            }
+
+            String entryKey = stableShipKey(subLevel);
+            if (entryKey == null) {
+                continue;
+            }
+
+            UUID subLevelId = subLevel.getUniqueId();
+            if (ownSubLevelId != null && ownSubLevelId.equals(subLevelId)) {
+                continue;
+            }
+
+            Vec3 renderedCenter = resolveRenderedSubLevelCenter(subLevel);
+            if (renderedCenter == null) {
+                continue;
+            }
+            if (renderedCenter.distanceToSqr(playerpos) > (double) MAX_MARKER_DISTANCE * MAX_MARKER_DISTANCE) {
+                continue;
+            }
+
+            renderedMarkers.add(new RenderedShipMarker(entryKey, markerAttributes(entryKey), renderedCenter));
+        }
+        return renderedMarkers;
+    }
+
+    private static Map<String, Object> markerAttributes(String entryKey) {
+        Object rawAttr = shipsData.get(entryKey);
+        if (rawAttr instanceof Map<?, ?> rawMap) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> attr = (Map<String, Object>) rawMap;
+            return attr;
+        }
+        return Collections.emptyMap();
+    }
+
     private static Vec3 smoothMarkerPosition(String markerKey, Vec3 target, float alpha) {
         Vec3 current = smoothedMarkerPositions.get(markerKey);
         if (current == null || current.distanceTo(target) > MARKER_SMOOTHING_SNAP_DISTANCE) {
@@ -325,49 +392,33 @@ public class WorldMarkerPainter {
         return smoothed;
     }
 
-    private static Vec3 resolveRenderedSubLevelCenter(String entryKey) {
-        ClientLevel level = mc.level;
-        if (level == null) {
+    private static Vec3 resolveRenderedSubLevelCenter(ClientSubLevel subLevel) {
+        BoundingBox3ic bounds = subLevel.getPlot().getBoundingBox();
+        if (bounds == null || bounds.volume() <= 0) {
             return null;
         }
 
-        UUID subLevelId = parseUuid(entryKey);
-        if (subLevelId == null) {
-            return null;
-        }
-
-        ClientSubLevelContainer container = ClientSubLevelContainer.getContainer(level);
-        if (container == null) {
-            return null;
-        }
-
-        for (ClientSubLevel subLevel : container.getAllSubLevels()) {
-            if (!subLevelId.equals(subLevel.getUniqueId())) {
-                continue;
-            }
-
-            BoundingBox3ic bounds = subLevel.getPlot().getBoundingBox();
-            if (bounds == null || bounds.volume() <= 0) {
-                return null;
-            }
-
-            Vec3 localCenter = new Vec3(
-                    (bounds.minX() + bounds.maxX() + 1.0D) * 0.5D,
-                    (bounds.minY() + bounds.maxY() + 1.0D) * 0.5D,
-                    (bounds.minZ() + bounds.maxZ() + 1.0D) * 0.5D
-            );
-            // Function: marker icons must use the same partial-tick render pose as Sable's visible ship model.
-            return subLevel.renderPose().transformPosition(localCenter);
-        }
-        return null;
+        Vec3 localCenter = new Vec3(
+                (bounds.minX() + bounds.maxX() + 1.0D) * 0.5D,
+                (bounds.minY() + bounds.maxY() + 1.0D) * 0.5D,
+                (bounds.minZ() + bounds.maxZ() + 1.0D) * 0.5D
+        );
+        // Function: marker icons must use the same partial-tick render pose as Sable's visible ship model.
+        return subLevel.renderPose().transformPosition(localCenter);
     }
 
-    private static UUID parseUuid(String value) {
-        try {
-            return UUID.fromString(value);
-        } catch (IllegalArgumentException ignored) {
+    private static UUID getMountedSubLevelId(ClientLevel level) {
+        if (mc.player == null || !(mc.player.getVehicle() instanceof ControlSeatMountEntity mount)) {
             return null;
         }
+
+        var ownSubLevel = com.kodu16.vsie.foundation.ServerShipUtils.getSubLevelAtBlockPos(level, mount.getBoundBlockPos());
+        return ownSubLevel == null ? null : ownSubLevel.getUniqueId();
+    }
+
+    private static String stableShipKey(ClientSubLevel subLevel) {
+        UUID uuid = subLevel.getUniqueId();
+        return uuid == null ? null : uuid.toString();
     }
 
     private static void clearMarkerSmoothing() {
@@ -391,5 +442,8 @@ public class WorldMarkerPainter {
     private static float computeSmoothingAlpha(float deltaSeconds, float responsePerSecond) {
         // Function: convert response speed into an exponential smoothing weight.
         return Math.max(0f, Math.min(1f, 1f - (float) Math.exp(-responsePerSecond * deltaSeconds)));
+    }
+
+    private record RenderedShipMarker(String entryKey, Map<String, Object> attr, Vec3 renderedCenter) {
     }
 }

@@ -31,6 +31,14 @@ public class ThrusterFlameLayer extends GeoRenderLayer<AbstractThrusterBlockEnti
                        RenderType renderType, MultiBufferSource bufferSource, VertexConsumer buffer,
                        float partialTick, int packedLight, int packedOverlay) {
         poseStack.pushPose();
+        ThrusterTrailRenderer.render(poseStack, animatable, bufferSource);
+        poseStack.popPose();
+
+        // Function: keep the rail-acceleration trail while suppressing the separate nozzle-flame pass.
+        if (!animatable.shouldRenderFlame()) {
+            return;
+        }
+        poseStack.pushPose();
         renderflame(poseStack, animatable, bufferSource, partialTick);
         poseStack.popPose();
     }

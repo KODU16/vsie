@@ -18,13 +18,6 @@ import javax.annotation.Nullable;
 
 public final class ServerShipUtils {
 
-    /**
-     * 在 sublevel 重心施加力和力矩。
-     *
-     * @param subLevel    目标 ServerSubLevel
-     * @param worldForce  世界坐标系下的力 [N]
-     * @param worldTorque 世界坐标系下的力矩 [Nm]
-     */
     public static void applyWorldForceAndTorqueAtCenterOfMass(
             ServerSubLevel subLevel,
             Vector3dc worldImpulse,
@@ -37,17 +30,15 @@ public final class ServerShipUtils {
         }
 
         // world frame -> sublevel local frame
-        // 这里只做 orientation inverse，不建议用 transformNormalInverse，
-        // 因为 transformNormalInverse 会受 scale 影响，可能改变力的大小。
         Vector3d localForce = new Vector3d(worldImpulse);
         Vector3d localTorque = new Vector3d(worldTorqueImpulse);
 
         subLevel.logicalPose().orientation().transformInverse(localForce);
         subLevel.logicalPose().orientation().transformInverse(localTorque);
         RigidBodyHandle handle = RigidBodyHandle.of(subLevel);
-        // 作用点为重心时，不需要 r x F；直接给 linear force + torque。
         handle.applyLinearAndAngularImpulse(localForce, localTorque, true);
     }
+
     public static @Nullable Vec3 getCenterOfMassWorld(ServerSubLevel subLevel) {
         MassData massData = subLevel.getMassTracker();
 
@@ -63,12 +54,6 @@ public final class ServerShipUtils {
         return JOMLConversion.toMojang(centerOfMassWorld);
     }
 
-    /**
-     * 获取 sublevel 结构包围盒的几何中心，世界坐标系。
-     *
-     * 这里使用 bounds 的实际空间范围：
-     * [minX, maxX + 1], [minY, maxY + 1], [minZ, maxZ + 1]
-     */
     public static @Nullable Vec3 getStructureCenterWorld(SubLevel subLevel) {
         BoundingBox3ic bounds = subLevel.getPlot().getBoundingBox();
 
@@ -117,7 +102,6 @@ public final class ServerShipUtils {
             return false;
         }
 
-        // 复制当前方向，避免后续 mutation 影响
         Quaterniond currentOrientation = new Quaterniond(
                 subLevel.logicalPose().orientation()
         );

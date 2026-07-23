@@ -1,0 +1,36 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "E": {
+      "item": "vsie:medium_energy_battery"
+    },
+    "C": {
+      "item": "vsie:computronic_substrate"
+    },
+    "X": {
+      "item": "create:experience_nugget"
+    },
+    "M": {
+      "item": "vsie:metalic_microlattice"
+    },
+    "S": {
+      "item": "vsie:silicon_carbide"
+    },
+    "B": {
+      "item": "create:mechanical_bearing"
+    },
+    "V": {
+      "item": "create:content_observer"
+    }
+  },
+  "pattern": [
+    "ECX",
+    " M ",
+    "SBV"
+  ],
+  "result": {
+    "id": "vsie:particle_turret"
+  },
+  "show_notification": true
+}

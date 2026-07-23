@@ -1,5 +1,5 @@
 {
-  "name": "红石代理",
+  "name": "Redstone Relay",
   "icon": "vsie:redstone_relay",
   "category": "vsie:weapon",
   "sortnum": 15,
@@ -10,8 +10,8 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:redstone_relay",
-      "title": "红石代理",
-      "text": "红石代理是一种特殊的武器，它在GUI中可以自由修改链接的控制椅HUD中显示的名称，其不存在任何热量相关消耗与产生，在开火时，会持续在六个面输出强度为15的红石信号，供链接的其它武器（包括但不限于机械动力：火炮等）被控制椅控制开火"
+      "title": "Redstone Relay",
+      "text": "The Redstone Relay is a special weapon whose GUI lets you customize the name shown on the linked Control Seat's HUD. It generates and consumes no heat. While fired, it continuously outputs a redstone signal strength of 15 from all six faces, allowing the Control Seat to trigger connected external weapons, including systems such as Create: Big Cannons."
     }
   ]
 }

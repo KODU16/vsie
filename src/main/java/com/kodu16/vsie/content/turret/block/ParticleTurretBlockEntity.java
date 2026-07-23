@@ -77,7 +77,7 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
 
     @Override
     public int getenergypertick() {
-        return 100;
+        return 10;
     }
 
     @Override
@@ -108,6 +108,7 @@ public class ParticleTurretBlockEntity extends AbstractTurretBlockEntity {
         ParticleBulletEntity bullet = new ParticleBulletEntity(vsieEntities.PARTICLE_BULLET.get(), level);
         // Function: start behind the muzzle on the same axis, matching CBC's stable out-of-barrel launch.
         bullet.setPos(ParticleBulletEntity.spawnBehindMuzzle(firepoint, direction));
+        bullet.setLaunchSubLevel(com.kodu16.vsie.foundation.ServerShipUtils.getSubLevelAtBlockPos(level, getBlockPos()));
         bullet.setPreciseLaunchVelocity(direction);
         // Function: ship shots reuse particle bullets but enable block-breaking impact behavior.
         bullet.setExplodesOnBlockHit(explodesOnBlockHit);

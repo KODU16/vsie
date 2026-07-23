@@ -1,8 +1,8 @@
 package com.kodu16.vsie.content.weapon.missile_launcher.client;
 
-import com.kodu16.vsie.foundation.AlwaysRenderGeoBlockRenderer;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
 import com.kodu16.vsie.content.weapon.client.AbstractWeaponModel;
+import com.kodu16.vsie.foundation.AlwaysRenderGeoBlockRenderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
@@ -14,10 +14,9 @@ public class VerticleLaunchingSlotGeoRenderer extends AlwaysRenderGeoBlockRender
         super(new AbstractWeaponModel());
     }
 
-
     @Override
     public boolean shouldRenderOffScreen(AbstractWeaponBlockEntity be) {
-        return true;   // 或者 return distanceSq < 某个超大值 的平方
+        return super.shouldRenderOffScreen(be);
     }
 
     @Override
@@ -32,7 +31,6 @@ public class VerticleLaunchingSlotGeoRenderer extends AlwaysRenderGeoBlockRender
 
     @Override
     public boolean shouldRender(AbstractWeaponBlockEntity be, Vec3 cameraPos) {
-        // 自己写距离判断，比如 256 格以内都渲染
-        return true;
+        return super.shouldRender(be, cameraPos);
     }
 }

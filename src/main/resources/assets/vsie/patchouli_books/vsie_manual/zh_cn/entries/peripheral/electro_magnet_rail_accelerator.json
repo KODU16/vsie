@@ -1,0 +1,26 @@
+{
+  "name": "电磁导轨：电磁弹射",
+  "icon": "vsie:electro_magnet_rail_accelerator",
+  "category": "vsie:peripheral",
+  "sortnum": 1,
+  "extra_recipe_mappings": {
+    "vsie:electro_magnet_rail_accelerator": 0
+  },
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:electro_magnet_rail_accelerator",
+      "title": "战列舰能弹飞机，航母能安轴炮",
+      "text": "电磁导轨具有加速子维度的功能，这一功能是通过电磁导轨加速器实现的，电磁导轨加速器是一种特殊的“武器”，你可以通过子维度A上的电磁导轨加速器，在子维度B的电磁导轨上加速弹射子维度A，下文会阐明如何使用导轨加速功能"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "1、搭建一条有效的电磁导轨，详见$(l:vsie:peripheral/electro_magnet_rail)电磁导轨章节/$$(br2)2、在一个不同子维度（不允许左脚踩右脚升天）上，安装电磁导轨加速器，并设置好武器频道（建议独占）$(br2)3、控制椅按下开火键开火导轨加速器时，在电磁导轨核心周围，电磁导轨长度半径内球形范围内可以获得持续的沿着电磁导轨方向的强推力，力的大小正比于被加速的子维度质量"
+    },
+    {
+      "type": "patchouli:text",
+      "title": "注意事项",
+      "text": "1、电磁导轨加速时，将会每tick从安装导轨的子维度抽取（被加速子维度质量/kpg*1000）FE的电量，务必确保安装导轨的子维度能量储量足够完成加速$(br2)2、电磁导轨加速时会禁用反向阻尼力这一飞行辅助"
+    }
+  ]
+}

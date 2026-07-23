@@ -1,32 +1,27 @@
 package com.kodu16.vsie.network.controlseat.S2C;
 
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.network.handling.IPayloadContext;
-import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
-import com.mojang.logging.LogUtils;
+import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.minecraftforge.network.NetworkEvent;
-import net.minecraft.client.Minecraft;
+import org.joml.Vector3d;
 
-import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Supplier;
 
-import org.joml.Vector3d;
-import org.slf4j.Logger;
-
-
 public class ControlSeatS2CPacket implements CustomPacketPayload {
-    // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
     public static final CustomPacketPayload.Type<ControlSeatS2CPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "controlseat_s2c_controlseats2cpacket"));
     public static final StreamCodec<FriendlyByteBuf, ControlSeatS2CPacket> STREAM_CODEC = CustomPacketPayload.codec(ControlSeatS2CPacket::write, ControlSeatS2CPacket::decode);
 
     private final BlockPos pos;
+    private final UUID seatEntityId;
     private final Vector3d shipFacing;
     private final Vector3d shipUp;
     public String enemy;
@@ -35,13 +30,16 @@ public class ControlSeatS2CPacket implements CustomPacketPayload {
     public int throttle;
     public double shipSpeed;
     public Vector3d structureCenterWorld;
+    public Vector3d structureVelocityWorld;
     public double seatGForce;
-    // 功能：同步服务端判定的视角锁定状态，确保玩家重进世界后客户端控制态与服务端一致。
     public boolean isViewLocked;
 
-    // 构造函数
-    public ControlSeatS2CPacket(BlockPos pos, Vector3d shipFacing, Vector3d shipUp, String enemy, String ally, String lockedenemyslug, int throttle, boolean isViewLocked, double shipSpeed, Vector3d structureCenterWorld, double seatGForce) {
+    public ControlSeatS2CPacket(BlockPos pos, UUID seatEntityId, Vector3d shipFacing, Vector3d shipUp,
+                                String enemy, String ally, String lockedenemyslug, int throttle,
+                                boolean isViewLocked, double shipSpeed, Vector3d structureCenterWorld,
+                                Vector3d structureVelocityWorld, double seatGForce) {
         this.pos = pos;
+        this.seatEntityId = seatEntityId;
         this.shipFacing = shipFacing;
         this.shipUp = shipUp;
         this.enemy = enemy;
@@ -51,75 +49,64 @@ public class ControlSeatS2CPacket implements CustomPacketPayload {
         this.isViewLocked = isViewLocked;
         this.shipSpeed = shipSpeed;
         this.structureCenterWorld = structureCenterWorld;
+        this.structureVelocityWorld = structureVelocityWorld;
         this.seatGForce = seatGForce;
     }
 
-    // 编码（序列化）
     public void write(FriendlyByteBuf buf) {
         buf.writeBlockPos(pos);
+        buf.writeUUID(seatEntityId);
         buf.writeDouble(shipFacing.x);
         buf.writeDouble(shipFacing.y);
         buf.writeDouble(shipFacing.z);
         buf.writeDouble(shipUp.x);
         buf.writeDouble(shipUp.y);
         buf.writeDouble(shipUp.z);
-        buf.writeUtf(enemy, 64);   // 建议限制长度，防止恶意超长字符串
+        buf.writeUtf(enemy, 64);
         buf.writeUtf(ally, 64);
-        buf.writeUtf(lockedenemyslug,64);
+        buf.writeUtf(lockedenemyslug, 64);
         buf.writeInt(throttle);
         buf.writeBoolean(isViewLocked);
         buf.writeDouble(shipSpeed);
         buf.writeDouble(structureCenterWorld.x);
         buf.writeDouble(structureCenterWorld.y);
         buf.writeDouble(structureCenterWorld.z);
+        buf.writeDouble(structureVelocityWorld.x);
+        buf.writeDouble(structureVelocityWorld.y);
+        buf.writeDouble(structureVelocityWorld.z);
         buf.writeDouble(seatGForce);
     }
 
-    // 解码（反序列化）
     public static ControlSeatS2CPacket decode(FriendlyByteBuf buf) {
         BlockPos pos = buf.readBlockPos();
-        double facingX = buf.readDouble();
-        double facingY = buf.readDouble();
-        double facingZ = buf.readDouble();
-        double upX = buf.readDouble();
-        double upY = buf.readDouble();
-        double upZ = buf.readDouble();
+        UUID seatEntityId = buf.readUUID();
+        Vector3d shipFacing = new Vector3d(buf.readDouble(), buf.readDouble(), buf.readDouble());
+        Vector3d shipUp = new Vector3d(buf.readDouble(), buf.readDouble(), buf.readDouble());
         String enemy = buf.readUtf(64);
         String ally = buf.readUtf(64);
         String lockedenemyslug = buf.readUtf(64);
-        Vector3d shipFacing = new Vector3d(facingX, facingY, facingZ);
-        Vector3d shipUp = new Vector3d(upX, upY, upZ);
         int throttle = buf.readInt();
         boolean isViewLocked = buf.readBoolean();
         double shipSpeed = buf.readDouble();
         Vector3d structureCenterWorld = new Vector3d(buf.readDouble(), buf.readDouble(), buf.readDouble());
+        Vector3d structureVelocityWorld = new Vector3d(buf.readDouble(), buf.readDouble(), buf.readDouble());
         double seatGForce = buf.readDouble();
-        return new ControlSeatS2CPacket(pos, shipFacing, shipUp, enemy, ally, lockedenemyslug, throttle, isViewLocked, shipSpeed, structureCenterWorld, seatGForce);
+        return new ControlSeatS2CPacket(pos, seatEntityId, shipFacing, shipUp, enemy, ally, lockedenemyslug,
+                throttle, isViewLocked, shipSpeed, structureCenterWorld, structureVelocityWorld, seatGForce);
     }
 
-    // 处理客户端接收到的数据包
-    // 功能：NeoForge 1.21.1 处理器入口，复用旧版实例方法逻辑。
     public static void handle(ControlSeatS2CPacket pkt, IPayloadContext context) {
-        pkt.handle(() -> new net.minecraftforge.network.NetworkEvent.Context(context));
+        pkt.handle(() -> new NetworkEvent.Context(context));
     }
 
     public void handle(Supplier<NetworkEvent.Context> ctx) {
-        Logger LOGGER = LogUtils.getLogger();
-        //LOGGER.warn(String.valueOf(Component.literal("S2C packet created")));
         ctx.get().enqueueWork(() -> {
-                // 确保只在物理客户端执行以下代码
-
-            // 获取当前客户端的玩家
             Minecraft mc = Minecraft.getInstance();
             Player player = mc.player;
-            // 获取对应玩家的 ControlSeatClientData
-            ControlSeatClientData clientData = ClientDataManager.getClientData(player);
+            ControlSeatClientData clientData = ClientDataManager.getClientDataForSeat(player, pos, seatEntityId);
             if (clientData == null) {
-                //LogUtils.getLogger().warn("Received ControlSeatS2C but clientData is null for player {}",
-                //mc.player.getName().getString());
                 return;
             }
-            //LOGGER.warn(String.valueOf(Component.literal("writing S2C data to:"+player+" channelencode:"+channelencode)));
             clientData.updateShipVectors(shipFacing, shipUp);
             clientData.setUserUUID(player.getUUID());
 
@@ -127,16 +114,15 @@ public class ControlSeatS2CPacket implements CustomPacketPayload {
             clientData.ally = ally;
             clientData.lockedenemyslug = lockedenemyslug;
             clientData.throttle = throttle;
+            clientData.applyServerViewLock(isViewLocked);
             clientData.shipSpeed = shipSpeed;
             clientData.structureCenterWorld = new Vector3d(structureCenterWorld);
+            // Function: velocity direction is projected by the HUD as an independent world-space cue.
+            clientData.structureVelocityWorld = new Vector3d(structureVelocityWorld);
             clientData.seatGForce = seatGForce;
-            // 功能：把服务端视角锁定状态回写到客户端，解决重进后客户端锁定态丢失导致输入被清空的问题。
-            //LOGGER.warn(String.valueOf(Component.literal("S2C data:enemy:"+clientData.enemy+"ally:"+clientData.ally)));
-            // 这里可以进一步根据需要应用旋转到某个实体或者更新视角
         });
         ctx.get().setPacketHandled(true);
     }
-
 
     @Override
     public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {

@@ -13,12 +13,12 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.minecraftforge.network.NetworkEvent;
 import org.joml.Vector3d;
 import org.slf4j.Logger;
 
+import java.util.UUID;
 import java.util.function.Supplier;
 
 public class ControlSeatC2SPacket implements CustomPacketPayload {
@@ -30,6 +30,7 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
 
     public static final Logger LOGGER = LogUtils.getLogger();
     public final BlockPos pos;
+    public final UUID seatEntityId;
     public final float mousex;
     public final float mousey;
     public final float roll;
@@ -37,8 +38,9 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
     public final boolean mouseLpress;
     public final boolean isViewLocked;
 
-    public ControlSeatC2SPacket(BlockPos pos, float mousex, float mousey, float roll, int keys, boolean mouseLpress, boolean isViewLocked) {
+    public ControlSeatC2SPacket(BlockPos pos, UUID seatEntityId, float mousex, float mousey, float roll, int keys, boolean mouseLpress, boolean isViewLocked) {
         this.pos = pos;
+        this.seatEntityId = seatEntityId;
         this.mousex = mousex;
         this.mousey = mousey;
         this.roll = roll;
@@ -49,6 +51,7 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
 
     public static void encode(ControlSeatC2SPacket pkt, FriendlyByteBuf buf) {
         buf.writeBlockPos(pkt.pos);
+        buf.writeUUID(pkt.seatEntityId);
         buf.writeFloat(pkt.mousex);
         buf.writeFloat(pkt.mousey);
         buf.writeFloat(pkt.roll);
@@ -59,13 +62,14 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
 
     public static ControlSeatC2SPacket decode(FriendlyByteBuf buf) {
         BlockPos pos = buf.readBlockPos();
+        UUID seatEntityId = buf.readUUID();
         float mousex = buf.readFloat();
         float mousey = buf.readFloat();
         float roll = buf.readFloat();
         int keys = buf.readVarInt();
         boolean mouseLpress = buf.readBoolean();
         boolean isViewLocked = buf.readBoolean();
-        return new ControlSeatC2SPacket(pos, mousex, mousey, roll, keys, mouseLpress, isViewLocked);
+        return new ControlSeatC2SPacket(pos, seatEntityId, mousex, mousey, roll, keys, mouseLpress, isViewLocked);
     }
 
     // Function: NeoForge handler entry that reuses the existing Supplier<NetworkEvent.Context> path.
@@ -82,9 +86,8 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
             ServerLevel level = sender.serverLevel();
             BlockPos pos = pkt.pos;
             int keys = pkt.keys;
-            BlockEntity seat = level.getBlockEntity(pos);
-            if (!(seat instanceof ControlSeatBlockEntity controlSeat)) {
-                sender.sendSystemMessage(Component.literal("Invalid control seat at " + pos));
+            ControlSeatBlockEntity controlSeat = ControlSeatPacketResolver.resolve(sender, pos, pkt.seatEntityId);
+            if (controlSeat == null) {
                 return;
             }
             if (!(sender.getVehicle() instanceof ControlSeatMountEntity mount) || !mount.getBoundBlockPos().equals(pos)) {
@@ -108,21 +111,24 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
             float rollInput = clampControlAxis(((isRollLeftPressed ? 1.0F : 0.0F) - (isRollRightPressed ? 1.0F : 0.0F)) * keyboardTorqueAxisScale + sanitizeControlAxis(pkt.roll));
 
             if (!Float.isFinite(pkt.mousex) || !Float.isFinite(pkt.mousey) || !Float.isFinite(pkt.roll)) {
-                sender.sendSystemMessage(Component.literal("Invalid torque input! check packet"));
+                sender.sendSystemMessage(Component.translatable("message.vsie.network.invalid_torque_input"));
                 return;
             }
 
             ControlSeatServerData serverData = controlSeat.getServerData();
             serverData.isviewlocked = pkt.isViewLocked;
+            int previousThrottle = serverData.getThrottle();
+            int appliedThrottle = previousThrottle;
             if (serverData.isAutoLevelOn) {
                 // Function: auto-level owns roll and pitch while leaving yaw and throttle inputs available.
                 rollInput = 0.0F;
                 pitchInput = 0.0F;
             }
-            if (serverData.isWarpPreparing) {
+            if (serverData.isWarpPreparing || serverData.hasPendingWarpTeleport) {
                 serverData.setTorque(new Vector3d(0, 0, 0));
                 serverData.setForce(new Vector3d(0, 0, 0));
                 serverData.setThrottle(0);
+                appliedThrottle = 0;
             } else if (pkt.isViewLocked) {
                 int finalthrottle = Math.max(-100, Math.min(serverData.getThrottle() + finalthrottledelta, 100));
                 // Function: locked view uses W/S and Z/C for translation; A/D always stays roll.
@@ -131,6 +137,7 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
                 serverData.setForce(normalizeFlatTranslationInput(verticalInput, lateralInput));
                 serverData.setTorque(new Vector3d(rollInput, -yawInput, pitchInput));
                 serverData.setThrottle(finalthrottle);
+                appliedThrottle = finalthrottle;
             } else {
                 // Function: unlocked view maps W/S to pitch, A/D to roll, and Z/C to yaw.
                 float pitchKeyInput = serverData.isAutoLevelOn
@@ -142,6 +149,12 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
                 serverData.setForce(new Vector3d(0, 0, 0));
                 serverData.setTorque(new Vector3d(rollInput, -yawKeyInput, pitchKeyInput));
                 serverData.setThrottle(finalthrottle);
+                appliedThrottle = finalthrottle;
+            }
+
+            if (previousThrottle == 0 && appliedThrottle != 0) {
+                // Function: boost is a one-shot control-seat edge sound, so both forward and reverse throttle starts trigger it.
+                controlSeat.playThrottleStartBoostSounds();
             }
 
             serverData.isfiring = pkt.mouseLpress;

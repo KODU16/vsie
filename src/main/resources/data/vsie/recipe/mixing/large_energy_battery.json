@@ -1,0 +1,44 @@
+{
+  "type": "create:mixing",
+  "heat_requirement": "superheated",
+  "ingredients": [
+    {
+      "item": "vsie:medium_energy_battery"
+    },
+    {
+      "item": "vsie:medium_energy_battery"
+    },
+    {
+      "item": "vsie:medium_energy_battery"
+    },
+    {
+      "item": "vsie:medium_energy_battery"
+    },
+    {
+      "item": "vsie:medium_energy_battery"
+    },
+    {
+      "item": "vsie:medium_energy_battery"
+    },
+    {
+      "item": "vsie:medium_energy_battery"
+    },
+    {
+      "item": "vsie:medium_energy_battery"
+    },
+    {
+      "item": "vsie:medium_energy_battery"
+    },
+    {
+      "item": "vsie:medium_energy_battery"
+    },
+    {
+      "item": "simulated:honey_glue"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:large_energy_battery"
+    }
+  ]
+}

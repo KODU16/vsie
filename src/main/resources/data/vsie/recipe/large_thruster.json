@@ -1,0 +1,29 @@
+{
+  "type": "create:mixing",
+  "heat_requirement": "superheated",
+  "ingredients": [
+    {
+      "item": "vsie:medium_thruster"
+    },
+    {
+      "item": "vsie:medium_thruster"
+    },
+    {
+      "item": "vsie:medium_thruster"
+    },
+    {
+      "item": "vsie:medium_thruster"
+    },
+    {
+      "item": "vsie:medium_thruster"
+    },
+    {
+      "item": "simulated:honey_glue"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:large_thruster"
+    }
+  ]
+}

@@ -3,15 +3,14 @@ package com.kodu16.vsie.content.vectorthruster;
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlockEntity;
 import com.kodu16.vsie.content.thruster.Initialize;
 import com.kodu16.vsie.foundation.ServerShipUtils;
-import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -21,7 +20,6 @@ import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix3d;
 import org.joml.Vector3d;
-import org.slf4j.Logger;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
@@ -61,26 +59,21 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
         }
         if (level.isClientSide()) {
             tickClientAudio();
+            tickClientTrail(level);
             return;
         }
 
-        Logger logger = LogUtils.getLogger();
         if (!hasInitialized) {
-            logger.warn(String.valueOf(Component.literal("detected uninitialized vector thruster, time to sweep valkyriie's ass")));
             BlockPos pos = getBlockPos();
             BlockState state = level.getBlockState(pos);
             Initialize.initialize(level, pos, state);
             hasInitialized = true;
-            logger.warn(String.valueOf(Component.literal("vector thruster Initialize complete:" + pos)));
             return;
         }
 
         BlockState state = this.getBlockState();
         SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, this.getBlockPos());
         if (!(subLevel instanceof ServerSubLevel serverSubLevel)) {
-            if (subLevel != null) {
-                logger.warn("vector thruster sublevel is not server side");
-            }
             applyVisualState(level, state, 0.0D, 0.0D, 0.0D);
             return;
         }
@@ -111,8 +104,7 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
             return;
         }
 
-        Vector3d installedForceAxisWorld = subLevel.logicalPose()
-                .transformNormal(thrusterData.getDirectionY(), new Vector3d());
+        Vector3d installedForceAxisWorld = getInstalledForceDirectionWorld(subLevel, state);
         if (installedForceAxisWorld.lengthSquared() <= EPSILON) {
             applyVisualState(level, state, 0.0D, 0.0D, 0.0D);
             return;
@@ -128,6 +120,18 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
 
         double throttle = calculateThrottleDemand(visualDemand, aimForceDirectionWorld);
         applyVisualState(level, state, eulerAngle[0], eulerAngle[1], throttle);
+    }
+
+    private Vector3d getInstalledForceDirectionWorld(SubLevel subLevel, BlockState state) {
+        // Function: block FACING is the nozzle direction; produced thrust points the opposite way.
+        Direction facing = state.hasProperty(FACING) ? state.getValue(FACING) : Direction.NORTH;
+        Direction forceDirection = facing.getOpposite();
+        Vector3d localForceDirection = new Vector3d(
+                forceDirection.getStepX(),
+                forceDirection.getStepY(),
+                forceDirection.getStepZ()
+        );
+        return subLevel.logicalPose().transformNormal(localForceDirection, new Vector3d());
     }
 
     private double calculateThrottleDemand(Vector3d visualDemand, Vector3d aimForceDirectionWorld) {
@@ -244,6 +248,11 @@ public abstract class AbstractVectorThrusterBlockEntity extends AbstractThruster
 
     public double getPitchrad() {
         return this.pitchrad;
+    }
+
+    @Override
+    protected double getTrailOffsetLength() {
+        return getTrailVisualLength();
     }
 
     @Override

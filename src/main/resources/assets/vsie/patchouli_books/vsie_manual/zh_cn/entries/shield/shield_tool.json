@@ -1,0 +1,17 @@
+{
+  "name": "护盾：护盾工具",
+  "icon": "vsie:shield_tool",
+  "category": "vsie:shield",
+  "sortnum": 1,
+  "extra_recipe_mappings": {
+    "vsie:shield_tool": 0
+  },
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:shield_tool",
+      "title": "护盾工具",
+      "text": "护盾工具用于读取一套已绑定护盾发生器的当前参数。对已经绑定到控制椅的护盾发生器Shift右键，可以扫描并写入最大间距、最小间距、护盾值、半径、拦截消耗、回复速度和过载冷却。$(br2)之后直接右键护盾工具即可重新打开结果界面，物品提示也会显示最近一次扫描的数据。"
+    }
+  ]
+}

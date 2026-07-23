@@ -1,0 +1,14 @@
+{
+  "name": "电磁炮弹",
+  "icon": "vsie:electro_magnet_shell",
+  "category": "vsie:materials",
+  "sortnum": 3,
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:electro_magnet_shell",
+      "title": "电磁炮弹",
+      "text": "电磁炮塔和电磁轨道炮的炮弹，基本来说就是一坨真的很沉的有磁性的穿甲弹"
+    }
+  ]
+}

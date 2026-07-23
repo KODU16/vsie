@@ -1,6 +1,10 @@
 package com.kodu16.vsie.content.storage.ammobox;
 
-import com.kodu16.vsie.registries.vsieBlockEntities;
+import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
+import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
+import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
+import com.kodu16.vsie.network.storage.AmmoBoxRefillMarkerS2CPacket;
+import com.kodu16.vsie.registries.ModNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -13,33 +17,175 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemStackHandler;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class AmmoBoxBlockEntity extends BlockEntity implements MenuProvider, IItemHandlerModifiable {
+import java.util.ArrayList;
+import java.util.List;
 
-    // 27 槽位（单人箱子大小）
+public class AmmoBoxBlockEntity extends BlockEntity implements MenuProvider, IItemHandlerModifiable {
+    private static final String LINKED_CONTROL_SEAT_POS_TAG = "LinkedControlSeatPos";
+    private static final int REFILL_RETRY_INTERVAL_TICKS = 5;
+    private static final int REFILL_SUCCESS_INTERVAL_TICKS = 20;
+    private static final int REFILL_MARKER_DURATION_TICKS = 20;
+
     private final ItemStackHandler inventory = new ItemStackHandler(27) {
         @Override
         protected void onContentsChanged(int slot) {
-            setChanged(); // 标记数据变更，触发保存/同步
+            setChanged();
         }
     };
+    private @Nullable BlockPos linkedControlSeatPos;
+    private int refillCooldownTicks = 0;
+    private int refillIntervalTicks = REFILL_RETRY_INTERVAL_TICKS;
+    private int refillCursor = 0;
 
     public AmmoBoxBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
-        super(typeIn, pos, state); // 换成你的注册对象
+        super(typeIn, pos, state);
     }
 
-    // 功能：提供给 NeoForge 1.21.1 capability 注册器的物品处理器实例。
     public IItemHandlerModifiable getItemHandler() {
         return this;
     }
 
-    // ========== NBT 保存/加载 ==========
+    public void serverTick() {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        if (++refillCooldownTicks < refillIntervalTicks) {
+            return;
+        }
+        refillCooldownTicks = 0;
+        refillIntervalTicks = refillNextLinkedWeaponOrTurret() ? REFILL_SUCCESS_INTERVAL_TICKS : REFILL_RETRY_INTERVAL_TICKS;
+    }
+
+    public void setLinkedControlSeatPos(@Nullable BlockPos linkedControlSeatPos) {
+        this.linkedControlSeatPos = linkedControlSeatPos;
+        this.refillCursor = 0;
+        setChanged();
+    }
+
+    public @Nullable BlockPos getLinkedControlSeatPos() {
+        return linkedControlSeatPos;
+    }
+
+    private boolean refillNextLinkedWeaponOrTurret() {
+        AbstractControlSeatBlockEntity controlSeat = getLinkedControlSeat();
+        if (controlSeat == null) {
+            return false;
+        }
+
+        List<BlockPos> targets = new ArrayList<>();
+        targets.addAll(controlSeat.getLinkedWeaponPositionsInOrder());
+        targets.addAll(controlSeat.getLinkedTurretPositionsInOrder());
+        if (targets.isEmpty()) {
+            refillCursor = 0;
+            return false;
+        }
+
+        refillCursor = Math.floorMod(refillCursor, targets.size());
+        int targetIndex = refillCursor + 1;
+        BlockPos targetPos = targets.get(refillCursor);
+        refillCursor = (refillCursor + 1) % targets.size();
+        return tryRefillTargetAt(targetPos, targetIndex);
+    }
+
+    private @Nullable AbstractControlSeatBlockEntity getLinkedControlSeat() {
+        if (linkedControlSeatPos == null || level == null || !level.isLoaded(linkedControlSeatPos)) {
+            return null;
+        }
+        BlockEntity blockEntity = level.getBlockEntity(linkedControlSeatPos);
+        return blockEntity instanceof AbstractControlSeatBlockEntity controlSeat ? controlSeat : null;
+    }
+
+    private boolean tryRefillTargetAt(BlockPos targetPos, int targetIndex) {
+        if (level == null || !level.isLoaded(targetPos)) {
+            return false;
+        }
+
+        BlockEntity target = level.getBlockEntity(targetPos);
+        if (target instanceof AbstractWeaponBlockEntity weapon && weapon.hasAmmoInventorySlots()) {
+            return transferOneAmmoTo(weapon, targetIndex, weapon.getDisplayName().getString());
+        }
+        if (target instanceof AbstractTurretBlockEntity turret && turret.hasAmmoInventorySlots()) {
+            return transferOneAmmoTo(turret, targetIndex, turret.getDisplayName().getString());
+        }
+        return false;
+    }
+
+    private boolean transferOneAmmoTo(IItemHandlerModifiable targetInventory, int targetIndex, String targetDisplayName) {
+        for (int sourceSlot = 0; sourceSlot < inventory.getSlots(); sourceSlot++) {
+            ItemStack sourceStack = inventory.getStackInSlot(sourceSlot);
+            if (sourceStack.isEmpty()) {
+                continue;
+            }
+
+            ItemStack oneAmmo = sourceStack.copyWithCount(1);
+            int targetSlot = findEmptyTargetSlotFor(targetInventory, oneAmmo);
+            if (targetSlot < 0) {
+                continue;
+            }
+
+            int transferCount = getTransferCount(targetInventory, targetSlot, sourceStack);
+            if (transferCount <= 0) {
+                continue;
+            }
+
+            ItemStack extracted = inventory.extractItem(sourceSlot, transferCount, false);
+            if (extracted.isEmpty()) {
+                return false;
+            }
+            ItemStack markerStack = extracted.copy();
+            ItemStack remainder = targetInventory.insertItem(targetSlot, extracted, false);
+            if (!remainder.isEmpty()) {
+                inventory.insertItem(sourceSlot, remainder, false);
+                return false;
+            }
+            setChanged();
+            if (targetInventory instanceof BlockEntity targetBlockEntity) {
+                targetBlockEntity.setChanged();
+            }
+            sendRefillMarker(markerStack, targetIndex, targetDisplayName, markerStack.getCount());
+            return true;
+        }
+        return false;
+    }
+
+    private void sendRefillMarker(ItemStack ammoStack, int targetIndex, String targetDisplayName, int amount) {
+        if (ammoStack.isEmpty()) {
+            return;
+        }
+        // Function: clients render the last successful refill above this ammo box for one refill interval.
+        ModNetworking.sendToAll(new AmmoBoxRefillMarkerS2CPacket(
+                worldPosition,
+                ammoStack.copyWithCount(1),
+                amount,
+                targetIndex,
+                targetDisplayName,
+                REFILL_MARKER_DURATION_TICKS
+        ));
+    }
+
+    private int findEmptyTargetSlotFor(IItemHandlerModifiable targetInventory, ItemStack oneAmmo) {
+        for (int targetSlot = 0; targetSlot < targetInventory.getSlots(); targetSlot++) {
+            if (!targetInventory.getStackInSlot(targetSlot).isEmpty()) {
+                continue;
+            }
+            ItemStack remainder = targetInventory.insertItem(targetSlot, oneAmmo, true);
+            if (remainder.isEmpty()) {
+                return targetSlot;
+            }
+        }
+        return -1;
+    }
+
+    private int getTransferCount(IItemHandlerModifiable targetInventory, int targetSlot, ItemStack sourceStack) {
+        int slotLimit = targetInventory.getSlotLimit(targetSlot);
+        int itemLimit = sourceStack.getMaxStackSize();
+        return Math.min(sourceStack.getCount(), Math.min(slotLimit, itemLimit));
+    }
 
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
@@ -47,15 +193,33 @@ public class AmmoBoxBlockEntity extends BlockEntity implements MenuProvider, IIt
         if (tag.contains("Inventory")) {
             inventory.deserializeNBT(registries, tag.getCompound("Inventory"));
         }
+        linkedControlSeatPos = readBlockPos(tag, LINKED_CONTROL_SEAT_POS_TAG);
+        refillCursor = tag.getInt("RefillCursor");
+        refillIntervalTicks = Math.max(REFILL_RETRY_INTERVAL_TICKS, tag.getInt("RefillIntervalTicks"));
     }
 
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         tag.put("Inventory", inventory.serializeNBT(registries));
+        if (linkedControlSeatPos != null) {
+            tag.putIntArray(LINKED_CONTROL_SEAT_POS_TAG, new int[]{
+                    linkedControlSeatPos.getX(),
+                    linkedControlSeatPos.getY(),
+                    linkedControlSeatPos.getZ()
+            });
+        }
+        tag.putInt("RefillCursor", refillCursor);
+        tag.putInt("RefillIntervalTicks", refillIntervalTicks);
     }
 
-    // ========== MenuProvider ==========
+    private @Nullable BlockPos readBlockPos(CompoundTag tag, String key) {
+        if (!tag.contains(key)) {
+            return null;
+        }
+        int[] coords = tag.getIntArray(key);
+        return coords.length >= 3 ? new BlockPos(coords[0], coords[1], coords[2]) : null;
+    }
 
     @Override
     public Component getDisplayName() {
@@ -66,11 +230,8 @@ public class AmmoBoxBlockEntity extends BlockEntity implements MenuProvider, IIt
     @Nullable
     @Override
     public AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
-        // 换成你自己的菜单类
         return new AmmoBoxContainerMenu(containerId, playerInventory, this);
     }
-
-    // ========== IItemHandlerModifiable 委托给 ItemStackHandler ==========
 
     @Override
     public int getSlots() {
@@ -108,7 +269,6 @@ public class AmmoBoxBlockEntity extends BlockEntity implements MenuProvider, IIt
         setChanged();
     }
 
-    // 你可能会用到：直接拿 ItemStackHandler 做别的逻辑
     public ItemStackHandler getInventory() {
         return inventory;
     }

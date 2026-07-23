@@ -137,7 +137,7 @@ public class VerticleLaunchingSlotBlockEntity extends AbstractWeaponBlockEntity 
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("Vertical Launching Slot");
+        return Component.literal("VLSL");
     }
 
     @Override

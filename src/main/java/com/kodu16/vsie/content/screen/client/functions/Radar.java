@@ -3,11 +3,8 @@ package com.kodu16.vsie.content.screen.client.functions;
 import com.kodu16.vsie.content.controlseat.functions.WorldMarkerPainter;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
-import org.joml.Matrix4f;
 import org.joml.Vector3d;
 
 import java.util.Map;
@@ -23,32 +20,22 @@ public class Radar {
     private static final float RADAR_TARGET_MARKER_HALF_SIZE = 0.02f;
     private static final float RADAR_TEXT_SCALE = 0.005f;
     private static final float RADAR_LABEL_OFFSET_Y = 0.05f;
+    private static final float SCREEN_HALF_EXTENT = 0.5f;
     private static final String UNNAMED_SUBLEVEL = "[Unnamed Sublevel]";
 
     // Function: draw a filled square marker on the screen plane.
-    public static void drawSquare(PoseStack poseStack, MultiBufferSource bufferSource, float centerX, float centerY, float halfSize, int argb) {
-        VertexConsumer consumer = bufferSource.getBuffer(RenderType.gui());
-        Matrix4f matrix = poseStack.last().pose();
-
+    public static void drawSquare(PoseStack poseStack, float centerX, float centerY, float halfSize, int argb) {
         float minX = centerX - halfSize;
         float maxX = centerX + halfSize;
         float minY = centerY - halfSize;
         float maxY = centerY + halfSize;
 
-        int a = (argb >> 24) & 0xFF;
-        int r = (argb >> 16) & 0xFF;
-        int g = (argb >> 8) & 0xFF;
-        int b = argb & 0xFF;
-
-        consumer.addVertex(matrix, minX, minY, 0).setColor(r, g, b, a);
-        consumer.addVertex(matrix, minX, maxY, 0).setColor(r, g, b, a);
-        consumer.addVertex(matrix, maxX, maxY, 0).setColor(r, g, b, a);
-        consumer.addVertex(matrix, maxX, minY, 0).setColor(r, g, b, a);
+        ScreenShapeRenderer.drawQuad(poseStack.last().pose(), minX, minY, maxX, maxY, argb);
     }
 
     // Function: render the linked control-seat radar snapshot directly from the screen block entity.
     public static void renderRadar(PoseStack poseStack, AbstractScreenBlockEntity screen, MultiBufferSource bufferSource, Font font) {
-        drawSquare(poseStack, bufferSource, 0f, 0f, RADAR_SELF_MARKER_HALF_SIZE, RADAR_COLOR_SELF);
+        drawSquare(poseStack, 0f, 0f, RADAR_SELF_MARKER_HALF_SIZE, RADAR_COLOR_SELF);
 
         Map<String, Object> shipsData = screen.getRadarShipsData();
         if (shipsData == null || shipsData.isEmpty()) {
@@ -75,10 +62,13 @@ public class Radar {
             // Function: project the world-space XZ delta into the flat radar plane.
             float px = (float) (dx / RADAR_RANGE_METERS * 2.0);
             float py = (float) (dz / RADAR_RANGE_METERS * 2.0);
+            if (!isInsideScreenPlane(px, py)) {
+                continue;
+            }
             String slug = stringValue(shipData.get("slug"));
             int radarColor = radarColor(screen, slug);
 
-            drawSquare(poseStack, bufferSource, px, py, RADAR_TARGET_MARKER_HALF_SIZE, radarColor);
+            drawSquare(poseStack, px, py, RADAR_TARGET_MARKER_HALF_SIZE, radarColor);
             renderShipLabel(poseStack, bufferSource, font, displayName(slug), px, py + RADAR_LABEL_OFFSET_Y, radarColor);
         }
     }
@@ -98,6 +88,10 @@ public class Radar {
         return RADAR_COLOR_NEUTRAL;
     }
 
+    private static boolean isInsideScreenPlane(float x, float y) {
+        return Math.abs(x) <= SCREEN_HALF_EXTENT && Math.abs(y) <= SCREEN_HALF_EXTENT;
+    }
+
     // Function: draw a compact label below each radar point using the same font scale as server-info mode.
     private static void renderShipLabel(PoseStack poseStack, MultiBufferSource bufferSource, Font font, String label, float centerX, float centerY, int color) {
         poseStack.pushPose();
@@ -112,7 +106,7 @@ public class Radar {
                 false,
                 poseStack.last().pose(),
                 bufferSource,
-                Font.DisplayMode.NORMAL,
+                Font.DisplayMode.SEE_THROUGH,
                 0,
                 0x00F000F0
         );

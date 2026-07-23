@@ -6,7 +6,6 @@ import com.kodu16.vsie.content.turret.Initialize;
 import com.kodu16.vsie.content.turret.TurretData;
 import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.foundation.Vec;
-import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
@@ -16,6 +15,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -60,6 +60,11 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
         return currentTargetingAutomatic;
     }
 
+    protected @Nullable SubLevel getCurrentHeavyTargetShip() {
+        // Function: heavy laser impacts need the tracked ship reference to convert world hits back into body-space blocks.
+        return targetShip;
+    }
+
     public int getControlSeatEnergyCostPerTick() {
         // Function: heavy turrets now share the same per-tick control-seat upkeep model as other linked peripherals.
         return getenergypertick();
@@ -94,14 +99,15 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
 
         boolean hasTargetPos = hasHeavyTargetPos();
         if (hasTargetPos) {
-            updateTargetRot();
+            updateManualAwareTargetRot();
             this.xRot0 = closestReachableX(xRot0, getMaxSpinSpeed(), targetxrot);
             this.yRot0 = closestReachableY(yRot0, getMaxSpinSpeed(), targetyrot);
             setAnimData(TURRET_HAS_TARGET, true);
 
             boolean firingAlignmentSatisfied = xOK && yOK;
-            // Function: automatic heavy fire still waits for alignment, while manual fire can shoot along the current barrel axis.
-            if (isFireCooldownReady() && shouldFireWhenReady() && (firingAlignmentSatisfied || !currentTargetingAutomatic)) {
+            boolean automaticFireAllowedWhileAiming = currentTargetingAutomatic && canAutomaticFireWhileAiming();
+            // Function: subclasses can keep automatic fire live while their turret is still turning toward a valid target.
+            if (isFireCooldownReady() && shouldFireWhenReady() && (firingAlignmentSatisfied || automaticFireAllowedWhileAiming || !currentTargetingAutomatic)) {
                 Vec3 fireTarget = resolveCurrentFireTarget(firingAlignmentSatisfied);
                 if (fireTarget == null) {
                     return;
@@ -113,7 +119,16 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
                 fireTargetOverride = fireTarget;
                 try {
                     targetDistance = Vec.Distance(currentworldpos, fireTarget);
-                    shootship();
+                    if (currentTargetingAutomatic) {
+                        // Function: heavy auto-fire must refresh the real ship-impact block before subclasses try to break it.
+                        recordShipShotHitBlockPos(targetShip);
+                        if (isShipShotBlockedBySelfShip()) {
+                            return;
+                        }
+                        shootship();
+                    } else {
+                        shootManualTarget(fireTarget);
+                    }
                     consumeFireCooldown();
                 } finally {
                     fireTargetOverride = null;
@@ -257,6 +272,14 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
         return false;
     }
 
+    protected boolean canAutomaticFireWhileAiming() {
+        return false;
+    }
+
+    protected void shootManualTarget(Vec3 fireTarget) {
+        // Function: subclasses may implement click-fired heavy shots without reusing automatic ship-target firing.
+    }
+
     private @Nullable Vec3 resolveCurrentFireTarget(boolean firingAlignmentSatisfied) {
         if (currentTargetingAutomatic || firingAlignmentSatisfied) {
             return targetPos;
@@ -283,6 +306,12 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
 
         // Function: heavy turret projectile spawning keeps the established target-line convention.
         return origin.add(direction.normalize().scale(getcannonlength()));
+    }
+
+    @Override
+    protected @Nullable Vec3 getBarrelDirectionWorldForAngles(float pitch, float yaw) {
+        // Function: heavy turret models add PI to yaw for rendering, so remove that visual offset before rebuilding the real barrel axis.
+        return super.getBarrelDirectionWorldForAngles(pitch, yaw - Mth.PI);
     }
 
     @Override
@@ -389,11 +418,11 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
 
         if (toTargetWorld.lengthSqr() < 1e-6) return;
 
-        double localX = toTargetWorld.dot(new Vec3(worldZDirection.x, worldZDirection.y, worldZDirection.z));     // 鏈湴鍙?
-        double localY = toTargetWorld.dot(new Vec3(worldYDirection.x, worldYDirection.y, worldYDirection.z));        // 鏈湴鍚戜笂
-        double localZ = toTargetWorld.dot(new Vec3(worldXDirection.x, worldXDirection.y, worldXDirection.z));   // 鏈湴鍚戝墠
+        double localX = toTargetWorld.dot(new Vec3(worldZDirection.x, worldZDirection.y, worldZDirection.z));
+        double localY = toTargetWorld.dot(new Vec3(worldYDirection.x, worldYDirection.y, worldYDirection.z));
+        double localZ = toTargetWorld.dot(new Vec3(worldXDirection.x, worldXDirection.y, worldXDirection.z));
 
-        double yaw   = Math.atan2(localX, localZ);           // 娉ㄦ剰atan2椤哄簭
+        double yaw   = Math.atan2(localX, localZ);
         double pitch = Math.atan2(localY, Math.sqrt(localX * localX + localZ * localZ));
 
         // Function: the heavy turret's server-side forward axis is opposite this local basis, so yaw must be flipped before aiming and spawning bullets.
@@ -401,6 +430,21 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
 
         this.targetxrot = (float) pitch;
         //LogUtils.getLogger().warn("X:"+worldXDirection+"Y:"+worldYDirection+"Z:"+worldZDirection+"target:"+targetPos+"turret:"+currentworldpos +"yaw:"+yaw+"pitch:"+pitch);
+    }
+
+    private void updateManualAwareTargetRot() {
+        double[] aimAngles = computeTargetAimAngles(targetPos);
+        if (aimAngles == null) {
+            return;
+        }
+
+        if (!currentTargetingAutomatic) {
+            // Function: heavy manual and smart-manual aiming must respect the same GUI yaw/pitch windows as auto targeting.
+            aimAngles = clampAimAnglesToConfiguredWindow(aimAngles);
+        }
+
+        this.targetxrot = (float) aimAngles[0];
+        this.targetyrot = (float) aimAngles[1];
     }
 
     @Override
@@ -460,7 +504,7 @@ public abstract class AbstractHeavyTurretBlockEntity extends AbstractTurretBlock
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("Heavy Turret Screen");
+        return super.getDisplayName();
     }
 
     @Override

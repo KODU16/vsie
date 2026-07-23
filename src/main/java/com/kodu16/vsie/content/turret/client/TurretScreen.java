@@ -25,51 +25,47 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
     private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/turret_gui.png");
     private static final ResourceLocation AMMO_TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/turret_gui_ammo.png");
     private static final ResourceLocation SLOT_TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/slot.png");
-    private static final int BREAK_BLOCKS_LABEL_X = 8;
-    private static final int BREAK_BLOCKS_LABEL_Y = 114;
-    private static final int BREAK_BLOCKS_BUTTON_X = 90;
-    private static final int BREAK_BLOCKS_BUTTON_Y = 110;
+    private static final int BREAK_BLOCKS_LABEL_X = 40;
+    private static final int BREAK_BLOCKS_LABEL_Y = 124;
+    private static final int BREAK_BLOCKS_BUTTON_X = 112;
+    private static final int BREAK_BLOCKS_BUTTON_Y = 120;
     private static final int AMMO_PANEL_TOP = 154;
     private static final int AMMO_PANEL_BOTTOM = 183;
     private static final int INVENTORY_PANEL_TOP = 190;
     private static final int INVENTORY_PANEL_BOTTOM = 280;
     private static final int AMMO_SCREEN_WIDTH = 228;
     private static final int AMMO_SCREEN_HEIGHT = 288;
-    private static final int AIM_LEFT_LABEL_X = 24;
     private static final int AIM_LEFT_BOX_X = 38;
-    private static final int AIM_RIGHT_LABEL_X = 104;
-    private static final int AIM_RIGHT_BOX_X = 118;
-    private static final int AIM_TOP_ROW_Y = 21;
-    private static final int AIM_BOTTOM_ROW_Y = 37;
-    private static final int AIM_INPUT_TOP_Y = 18;
-    private static final int AIM_INPUT_BOTTOM_Y = 34;
+    private static final int AIM_RIGHT_BOX_X = 104;
+    private static final int AIM_INPUT_TOP_Y = 22;
+    private static final int AIM_INPUT_BOTTOM_Y = 44;
     private static final int AIM_INPUT_WIDTH = 34;
-    private static final int SPIN_Y_LABEL_X = 42;
-    private static final int SPIN_X_LABEL_X = 106;
-    private static final int SPIN_LABEL_Y = 53;
-    private static final int SPIN_Y_BOX_X = 62;
-    private static final int SPIN_X_BOX_X = 126;
-    private static final int SPIN_INPUT_Y = 50;
-    private static final int SPIN_INPUT_WIDTH = 24;
-    private static final int TARGET_ICON_HOSTILE_X = 30;
-    private static final int TARGET_ICON_PASSIVE_X = 69;
-    private static final int TARGET_ICON_PLAYER_X = 108;
-    private static final int TARGET_ICON_SHIP_X = 147;
-    private static final int TARGET_ICON_Y = 70;
-    private static final int TARGET_BUTTON_Y = 90;
-    private static final int TARGET_BUTTON_HOSTILE_X = 26;
-    private static final int TARGET_BUTTON_PASSIVE_X = 65;
-    private static final int TARGET_BUTTON_PLAYER_X = 94;
-    private static final int TARGET_BUTTON_SHIP_X = 143;
+    // Function: labels need a full font-height gap so they do not render into compact input boxes.
+    private static final int LABEL_GAP_Y = 10;
+    private static final int SPIN_Y_BOX_X = 38;
+    private static final int SPIN_X_BOX_X = 104;
+    private static final int SPIN_INPUT_Y = 68;
+    private static final int SPIN_INPUT_WIDTH = 34;
+    private static final int TARGET_ICON_HOSTILE_X = 20;
+    private static final int TARGET_ICON_PASSIVE_X = 59;
+    private static final int TARGET_ICON_PLAYER_X = 98;
+    private static final int TARGET_ICON_SHIP_X = 137;
+    private static final int TARGET_ICON_Y = 84;
+    private static final int TARGET_BUTTON_Y = 104;
+    private static final int TARGET_BUTTON_HOSTILE_X = 20;
+    private static final int TARGET_BUTTON_PASSIVE_X = 53;
+    private static final int TARGET_BUTTON_PLAYER_X = 86;
+    private static final int TARGET_BUTTON_SHIP_X = 129;
     private static final int TARGET_BUTTON_HOSTILE_WIDTH = 27;
     private static final int TARGET_BUTTON_PASSIVE_WIDTH = 27;
     private static final int TARGET_BUTTON_PLAYER_WIDTH = 37;
     private static final int TARGET_BUTTON_SHIP_WIDTH = 27;
     private static final int TARGET_BUTTON_HEIGHT = 15;
-    private static final int ACTION_BUTTON_Y = 110;
-    private static final int SAVE_BUTTON_X = 50;
+    // Function: action buttons sit below the break-block row while staying above the optional ammo strip.
+    private static final int ACTION_BUTTON_Y = 136;
+    private static final int SAVE_BUTTON_X = 46;
     private static final int SAVE_BUTTON_WIDTH = 34;
-    private static final int CANCEL_BUTTON_X = 92;
+    private static final int CANCEL_BUTTON_X = 88;
     private static final int CANCEL_BUTTON_WIDTH = 42;
     private static final int ACTION_BUTTON_HEIGHT = 16;
 
@@ -83,7 +79,7 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
 
     public TurretScreen(TurretContainerMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
-        // Function: ammo screens are wider so the full player inventory can sit inside the same visual frame.
+        // Function: ammo screens are wider while turret controls stay centered in the original 176 px panel.
         this.imageWidth = menu.hasAmmoSlots() ? AMMO_SCREEN_WIDTH : 176;
         this.imageHeight = menu.hasAmmoSlots() ? AMMO_SCREEN_HEIGHT : 166;
         this.inventoryLabelY = 1000;
@@ -167,14 +163,14 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
         guiGraphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0x404040, false);
         if (menu.getBlockEntity().supportsBlockDestructionToggle()) {
             guiGraphics.drawString(this.font, Component.translatable("gui.vsie.common.break_blocks.label"),
-                    BREAK_BLOCKS_LABEL_X, BREAK_BLOCKS_LABEL_Y, 0x404040, false);
+                    controlOffsetX() + BREAK_BLOCKS_LABEL_X, BREAK_BLOCKS_LABEL_Y, 0x404040, false);
         }
-        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.aim_min_x.label"), controlOffsetX() + AIM_LEFT_LABEL_X, AIM_TOP_ROW_Y, 0x404040, false);
-        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.aim_max_x.label"), controlOffsetX() + AIM_RIGHT_LABEL_X, AIM_TOP_ROW_Y, 0x404040, false);
-        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.aim_min_y.label"), controlOffsetX() + AIM_LEFT_LABEL_X, AIM_BOTTOM_ROW_Y, 0x404040, false);
-        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.aim_max_y.label"), controlOffsetX() + AIM_RIGHT_LABEL_X, AIM_BOTTOM_ROW_Y, 0x404040, false);
-        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.default_yaw.label"), controlOffsetX() + SPIN_Y_LABEL_X, SPIN_LABEL_Y, 0x404040, false);
-        guiGraphics.drawString(this.font, Component.translatable("gui.vsie.turret.default_pitch.label"), controlOffsetX() + SPIN_X_LABEL_X, SPIN_LABEL_Y, 0x404040, false);
+        drawLabelAboveBox(guiGraphics, this.editBoxAimLimitMinX, Component.translatable("gui.vsie.turret.aim_min_x.label"));
+        drawLabelAboveBox(guiGraphics, this.editBoxAimLimitMaxX, Component.translatable("gui.vsie.turret.aim_max_x.label"));
+        drawLabelAboveBox(guiGraphics, this.editBoxAimLimitMinY, Component.translatable("gui.vsie.turret.aim_min_y.label"));
+        drawLabelAboveBox(guiGraphics, this.editBoxAimLimitMaxY, Component.translatable("gui.vsie.turret.aim_max_y.label"));
+        drawLabelAboveBox(guiGraphics, this.editBoxSpinY, Component.translatable("gui.vsie.turret.default_yaw.label"));
+        drawLabelAboveBox(guiGraphics, this.editBoxSpinX, Component.translatable("gui.vsie.turret.default_pitch.label"));
         if (menu.hasAmmoSlots()) {
             guiGraphics.drawString(this.font, Component.translatable("gui.vsie.common.ammo"), 8, AMMO_PANEL_TOP, 0x404040, false);
             guiGraphics.drawString(this.font, Component.translatable("container.inventory"), 8, INVENTORY_PANEL_TOP, 0x404040, false);
@@ -220,7 +216,7 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
                                 be.toggleBreaksBlocksEnabled();
                                 updateBreakBlocksButtonLabel();
                             })
-                    .bounds(this.leftPos + BREAK_BLOCKS_BUTTON_X, this.topPos + BREAK_BLOCKS_BUTTON_Y, 20, 14)
+                    .bounds(this.leftPos + controlOffsetX() + BREAK_BLOCKS_BUTTON_X, this.topPos + BREAK_BLOCKS_BUTTON_Y, 20, 14)
                     .build());
         }
         this.addRenderableWidget(Button.builder(Component.translatable("gui.vsie.common.save"),
@@ -280,7 +276,7 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
     private void renderControlTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         if (this.breakBlocksButton != null
                 && GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
-                this.leftPos + BREAK_BLOCKS_LABEL_X, this.topPos + BREAK_BLOCKS_BUTTON_Y, 96, 16,
+                this.leftPos + controlOffsetX() + BREAK_BLOCKS_LABEL_X, this.topPos + BREAK_BLOCKS_BUTTON_Y, 96, 16,
                 Component.translatable("gui.vsie.common.break_blocks.tooltip"))) {
             return;
         }
@@ -359,6 +355,15 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
         if (this.breakBlocksButton != null) {
             this.breakBlocksButton.setMessage(breakBlocksButtonLabel());
         }
+    }
+
+    private void drawLabelAboveBox(GuiGraphics guiGraphics, EditBox box, Component label) {
+        if (box == null) {
+            return;
+        }
+        int labelX = box.getX() + (box.getWidth() - this.font.width(label)) / 2 - this.leftPos;
+        int labelY = box.getY() - this.topPos - LABEL_GAP_Y;
+        guiGraphics.drawString(this.font, label, labelX, labelY, 0x404040, false);
     }
 
     private int controlOffsetX() {

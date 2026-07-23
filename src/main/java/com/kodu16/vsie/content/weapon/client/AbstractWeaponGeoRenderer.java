@@ -1,7 +1,7 @@
 package com.kodu16.vsie.content.weapon.client;
 
-import com.kodu16.vsie.foundation.AlwaysRenderGeoBlockRenderer;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
+import com.kodu16.vsie.foundation.AlwaysRenderGeoBlockRenderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
@@ -17,34 +17,23 @@ public class AbstractWeaponGeoRenderer extends AlwaysRenderGeoBlockRenderer<Abst
     @Override
     protected void rotateBlock(Direction facing, PoseStack poseStack) {
         switch (facing) {
-            case SOUTH -> {
-                poseStack.mulPose(Axis.YP.rotationDegrees(180));
-            }
-            case WEST -> {
-                poseStack.mulPose(Axis.YP.rotationDegrees(90));
-            }
+            case SOUTH -> poseStack.mulPose(Axis.YP.rotationDegrees(180));
+            case WEST -> poseStack.mulPose(Axis.YP.rotationDegrees(90));
             case NORTH -> {
             }
-            case EAST -> {
-                poseStack.mulPose(Axis.YP.rotationDegrees(270));
-            }
-            case UP -> {
-                poseStack.mulPose(Axis.XP.rotationDegrees(90));
-            }
-            case DOWN -> {
-                poseStack.mulPose(Axis.XP.rotationDegrees(-90));
-            }
+            case EAST -> poseStack.mulPose(Axis.YP.rotationDegrees(270));
+            case UP -> poseStack.mulPose(Axis.XP.rotationDegrees(90));
+            case DOWN -> poseStack.mulPose(Axis.XP.rotationDegrees(-90));
         }
     }
 
     @Override
     public boolean shouldRenderOffScreen(AbstractWeaponBlockEntity be) {
-        return true;   // 或者 return distanceSq < 某个超大值 的平方
+        return super.shouldRenderOffScreen(be);
     }
 
     @Override
     public boolean shouldRender(AbstractWeaponBlockEntity be, Vec3 cameraPos) {
-        // 自己写距离判断，比如 256 格以内都渲染
-        return true;
+        return super.shouldRender(be, cameraPos);
     }
 }

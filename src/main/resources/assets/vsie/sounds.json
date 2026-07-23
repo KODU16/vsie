@@ -93,28 +93,51 @@
   "electro_magnet_rail_cannon_fire": {
     "sounds": [
       {
-        "name": "vsie:weapon/electro_magnet_rail_cannon_fire"
+        "name": "vsie:weapon/electro_magnet_rail_cannon_fire",
+        "attenuation_distance": 1
+      }
+    ]
+  },
+  "particle_turret_fire": {
+    "sounds": [
+      {
+        "name": "vsie:turret/particle_turret_fire"
+      }
+    ]
+  },
+  "heavy_electromagnet_turret_fire": {
+    "sounds": [
+      {
+        "name": "vsie:turret/heavy_electromagnet_turret",
+        "attenuation_distance": 200
+      }
+    ]
+  },
+  "cenix_plasma_cannon_fire": {
+    "sounds": [
+      {
+        "name": "vsie:weapon/cenix_plasma_cannon_fire"
       }
     ]
   },
   "small_laser_fire_loop": {
     "sounds": [
       {
-        "name": "vsie:weapon/cenix_plasma_cannon_fire"
+        "name": "vsie:turret/medium_laser_turret_fire"
       }
     ]
   },
   "medium_laser_fire_loop": {
     "sounds": [
       {
-        "name": "vsie:weapon/cenix_plasma_cannon_fire"
+        "name": "vsie:turret/medium_laser_turret_fire"
       }
     ]
   },
   "heavy_laser_fire_loop": {
     "sounds": [
       {
-        "name": "vsie:weapon/cenix_plasma_cannon_fire"
+        "name": "vsie:turret/heavy_laser_turret_fire"
       }
     ]
   },
@@ -122,6 +145,13 @@
     "sounds": [
       {
         "name": "vsie:weapon/cenix_plasma_cannon_fire"
+      }
+    ]
+  },
+  "infra_knife_accelerator_fire": {
+    "sounds": [
+      {
+        "name": "vsie:weapon/infra_knife_accelerator_fire"
       }
     ]
   }

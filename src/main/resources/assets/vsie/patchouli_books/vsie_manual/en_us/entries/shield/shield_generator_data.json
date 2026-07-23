@@ -1,28 +1,28 @@
 {
-  "name": "护盾：各参数计算式",
+  "name": "Shields: Parameter Formulas",
   "icon": "vsie:shield_generator",
   "category": "vsie:shield",
   "sortnum": 2,
   "pages": [
-      {
-        "type": "patchouli:text",
-        "title": "护盾系统：护盾各参数公式",
-        "text": "设护盾发生器总数为k，控制椅绑定的所有护盾发生器中，两个护盾发生器之间的最大间距为max，最小间距为min：$(br2)护盾保护球形区域的半径：0.75*max$(br2)护盾总值（护盾系统拦截弹射物时，所有绑定的护盾发生器会均摊消耗）：k*100000 FE"
-      },
-      {
-        "type": "patchouli:text",
-        "title": "护盾系统：护盾各参数公式",
-        "text": "设护盾发生器总数为k，控制椅绑定的所有护盾发生器中，两个护盾发生器之间的最大间距为max，最小间距为min：$(br2)拦截一个弹射消耗能量：(1000*k*max^2)/min，即每拦截一个弹射物，每个护盾发生器都会损失(1000*max^2)/minFE$(br2)总回复速度：max*k*500/tick，即控制椅绑定的电池电量充足时，每个容量不满的护盾发生器每tick都会抽取max*500 FE来回复自身损失的FE"
-      },
-      {
-        "type": "patchouli:text",
-        "title": "护盾系统：护盾各参数公式",
-        "text": "设护盾发生器总数为k，控制椅绑定的所有护盾发生器中，两个护盾发生器之间的最大间距为max，最小间距为min：$(br2)护盾失效冷却时间：max*50/min ticks，即护盾电量空时，需要过max*50/min ticks才能开始回复"
-      },
-      {
-        "type": "patchouli:text",
-        "title": "护盾系统：护盾各参数公式",
-        "text": "显然，在战斗中，某个护盾发生器被摧毁时，整个护盾系统虽不至于完全崩溃，但性能会发生显著变化$(br2)因此，你需要兼顾子维度的安装位置、期望的护盾性能指标和合理的鲁棒性来设计整个护盾系统的分布和安装"
-      }
+    {
+      "type": "patchouli:text",
+      "title": "Shield System: Parameter Formulas",
+      "text": "Let k be the total number of Shield Generators. Among all generators linked to the Control Seat, let max be the greatest distance between any two generators and min the smallest:$(br2)Radius of the protected sphere: 0.75*max$(br2)Total shield capacity—shared evenly among all linked generators when intercepting projectiles: k*100000 FE"
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Shield System: Parameter Formulas",
+      "text": "Let k be the total number of Shield Generators. Among all generators linked to the Control Seat, let max be the greatest distance between any two generators and min the smallest:$(br2)Energy used to intercept one projectile: (100*k*max^2)/min. In other words, every generator loses (100*max^2)/min FE per interception.$(br2)Total regeneration rate: max*k*500/tick. While linked batteries have sufficient energy, each non-full generator draws max*500 FE per tick to restore its own energy."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Shield System: Parameter Formulas",
+      "text": "Let k be the total number of Shield Generators. Among all generators linked to the Control Seat, let max be the greatest distance between any two generators and min the smallest:$(br2)Shield overload cooldown: max*50/min ticks. When shield energy reaches zero, regeneration cannot begin for max*50/min ticks."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Shield System: Parameter Formulas",
+      "text": "Clearly, destroying one Shield Generator during combat does not collapse the entire system, but it can significantly change the shield's performance.$(br2)A robust shield layout must balance mounting positions on the subspace, desired performance, and resistance to component loss."
+    }
   ]
 }

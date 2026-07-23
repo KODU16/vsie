@@ -7,17 +7,20 @@ import com.kodu16.vsie.utility.vsieFxHelper;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkEvent;
+import org.joml.Vector3f;
 
 import java.util.function.Supplier;
-public class FxEntityS2CPacket implements CustomPacketPayload
-{
-    // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
+
+public class FxEntityS2CPacket implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<FxEntityS2CPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "fx_fxentitys2cpacket"));
     public static final StreamCodec<FriendlyByteBuf, FxEntityS2CPacket> STREAM_CODEC = CustomPacketPayload.codec(FxEntityS2CPacket::encode, FxEntityS2CPacket::decode);
 
     private final ResourceLocation fx;
     private final int entityID;
     private final boolean forceDead;
+    private final boolean stop;
+    private final Vector3f offset;
+    private final Vector3f scale;
 
     public ResourceLocation getFx() {
         return fx;
@@ -35,38 +38,72 @@ public class FxEntityS2CPacket implements CustomPacketPayload
         return forceDead;
     }
 
-    public FxEntityS2CPacket(ResourceLocation fx, int entityID, Boolean forceDead)
-    {
+    public boolean isStop() {
+        return stop;
+    }
+
+    public Vector3f getOffset() {
+        return new Vector3f(offset);
+    }
+
+    public Vector3f getScale() {
+        return new Vector3f(scale);
+    }
+
+    public FxEntityS2CPacket(ResourceLocation fx, int entityID, Boolean forceDead) {
+        this(fx, entityID, forceDead, false, new Vector3f(), new Vector3f(1.0F, 1.0F, 1.0F));
+    }
+
+    public FxEntityS2CPacket(ResourceLocation fx, int entityID, Boolean forceDead, Vector3f offset, Vector3f scale) {
+        this(fx, entityID, forceDead, false, offset, scale);
+    }
+
+    private FxEntityS2CPacket(ResourceLocation fx, int entityID, boolean forceDead, boolean stop,
+                              Vector3f offset, Vector3f scale) {
         this.fx = fx;
         this.entityID = entityID;
         this.forceDead = forceDead;
+        this.stop = stop;
+        this.offset = new Vector3f(offset);
+        this.scale = new Vector3f(scale);
     }
 
-    public void encode(FriendlyByteBuf buffer)
-    {
+    // Function: stop one named FX without removing the entity it follows.
+    public static FxEntityS2CPacket stop(ResourceLocation fx, int entityID) {
+        return new FxEntityS2CPacket(fx, entityID, true, true, new Vector3f(), new Vector3f(1.0F, 1.0F, 1.0F));
+    }
+
+    public void encode(FriendlyByteBuf buffer) {
         buffer.writeResourceLocation(fx);
         buffer.writeInt(entityID);
         buffer.writeBoolean(forceDead);
+        buffer.writeBoolean(stop);
+        buffer.writeFloat(offset.x);
+        buffer.writeFloat(offset.y);
+        buffer.writeFloat(offset.z);
+        buffer.writeFloat(scale.x);
+        buffer.writeFloat(scale.y);
+        buffer.writeFloat(scale.z);
     }
 
     public static FxEntityS2CPacket decode(FriendlyByteBuf buf) {
         ResourceLocation rl = buf.readResourceLocation();
         int entityid = buf.readInt();
         boolean forcedead = buf.readBoolean();
-        return new FxEntityS2CPacket(rl,entityid,forcedead);
+        boolean stop = buf.readBoolean();
+        Vector3f offset = new Vector3f(buf.readFloat(), buf.readFloat(), buf.readFloat());
+        Vector3f scale = new Vector3f(buf.readFloat(), buf.readFloat(), buf.readFloat());
+        return new FxEntityS2CPacket(rl, entityid, forcedead, stop, offset, scale);
     }
 
-    // 功能：NeoForge 1.21.1 处理器入口，复用旧版实例方法逻辑。
     public static void handle(FxEntityS2CPacket pkt, IPayloadContext context) {
         pkt.handle(() -> new net.minecraftforge.network.NetworkEvent.Context(context));
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx)
-    {
+    public void handle(Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> vsieFxHelper.clientTriggerEntityFx(this));
         ctx.get().setPacketHandled(true);
     }
-
 
     @Override
     public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {

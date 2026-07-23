@@ -1,9 +1,7 @@
 package com.kodu16.vsie.content.controlseat;
 
-import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
@@ -20,7 +18,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
-import org.slf4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -58,8 +55,17 @@ public abstract class AbstractControlSeatBlock extends DirectionalBlock implemen
     @Override
     public void onPlace(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos, @Nonnull BlockState oldState, boolean isMoving) {
         super.onPlace(state, level, pos, oldState, isMoving);
-        Logger logger = LogUtils.getLogger();
-        logger.warn(String.valueOf(Component.literal("onPlace called, detecting!")));
+    }
+
+    @Override
+    public void onRemove(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos,
+                         @Nonnull BlockState newState, boolean isMoving) {
+        if (!isMoving && !state.is(newState.getBlock())
+                && level.getBlockEntity(pos) instanceof AbstractControlSeatBlockEntity controlSeat) {
+            // Function: actual block removal must unregister the control seat and discard its mount entities.
+            controlSeat.onRemove();
+        }
+        super.onRemove(state, level, pos, newState, isMoving);
     }
 
     @Override

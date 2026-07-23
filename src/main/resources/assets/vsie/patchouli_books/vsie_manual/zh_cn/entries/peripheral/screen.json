@@ -1,0 +1,24 @@
+{
+  "name": "屏幕",
+  "icon": "vsie:basic_screen",
+  "category": "vsie:peripheral",
+  "sortnum": 0,
+  "extra_recipe_mappings": {
+    "vsie:electro_magnet_rail_core": 1,
+    "vsie:electro_magnet_rail_top": 1,
+    "vsie:electro_magnet_rail": 2
+  },
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:basic_screen",
+      "title": "屏幕",
+      "text": "这是一块普通的屏幕，右键打开GUI，你可以调整它显示的内容、屏幕的XYZ轴旋转角度和XYZ轴平移像素数，以便安装到你认为方便的角度和位置$(br2)目前支持显示内容：雷达和信息，雷达界面会显示控制椅雷达的扫描结果，信息界面会显示服务端和客户端内存用量，以及当前的物理帧率，以便在可能的物理线程崩溃时进行预警"
+    },
+    {
+      "type": "patchouli:text",
+      "title": "小趣事",
+      "text": "1、屏幕支持任意旋转和平移，但交互位置仍然是在本体，事实证明实时让交互区域跟着模型走不是一件简单的事$(br2)2、屏幕显示物理tps的功能本来是给瓦尔基里用的，那东西的物理线程实在是太容易崩了"
+    }
+  ]
+}

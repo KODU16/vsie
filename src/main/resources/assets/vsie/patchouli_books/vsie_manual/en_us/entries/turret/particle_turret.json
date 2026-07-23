@@ -1,5 +1,5 @@
 {
-  "name": "高能粒子炮塔",
+  "name": "High-Energy Particle Turret",
   "icon": "vsie:particle_turret",
   "category": "vsie:turret",
   "sortnum": 12,
@@ -10,12 +10,12 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:particle_turret",
-      "title": "高能粒子炮塔",
-      "text": "$(br2)大型的粒子炮塔，可发射实体高能粒子弹。$(br2)仅支持在子维度上工作，射击需要消耗粒子容器。"
+      "title": "High-Energy Particle Turret",
+      "text": "$(br2)A large turret that fires physical high-energy particle projectiles.$(br2)Functions only on a subspace and consumes Particle Containers as ammunition."
     },
     {
       "type": "patchouli:text",
-      "text": "支持切换索敌模式（敌对子维度模式需绑定控制椅）。$(br2)对运动缓慢的实体和敌对子维度有效，但对运动较快的实体和子维度命中率有限。$(br2)最大索敌距离/射程：256。"
+      "text": "Supports selectable targeting modes; hostile-subspace mode requires a linked Control Seat.$(br2)Effective against slow-moving entities and hostile subspaces, but less accurate against fast-moving targets.$(br2)Maximum targeting distance/range: 256 blocks."
     }
   ]
 }

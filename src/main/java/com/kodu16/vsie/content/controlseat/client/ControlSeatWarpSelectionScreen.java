@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.controlseat.client;
 
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
+import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
 import com.kodu16.vsie.foundation.client.GuiTooltipHelper;
 import com.kodu16.vsie.content.item.warpdatachip.warp_data_chip;
 import com.kodu16.vsie.network.controlseat.C2S.ControlSeatWarpTargetC2SPacket;
@@ -18,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class ControlSeatWarpSelectionScreen extends Screen {
     private static final int MAX_VISIBLE_BUTTONS = 7;
@@ -110,8 +112,16 @@ public class ControlSeatWarpSelectionScreen extends Screen {
     }
 
     private void selectWarpTarget(int slot) {
-        ModNetworking.sendToServer(new ControlSeatWarpTargetC2SPacket(controlSeatPos, slot));
+        ModNetworking.sendToServer(new ControlSeatWarpTargetC2SPacket(controlSeatPos, currentSeatEntityId(), slot));
         onClose();
+    }
+
+    private UUID currentSeatEntityId() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player != null && minecraft.player.getVehicle() instanceof ControlSeatMountEntity mount) {
+            return mount.getUUID();
+        }
+        return new UUID(0L, 0L);
     }
 
     private int getVisibleCount() {

@@ -1,0 +1,20 @@
+{
+  "type": "create:mixing",
+  "heat_requirement": "heated",
+  "ingredients": [
+    {
+      "item": "minecraft:shield"
+    },
+    {
+      "item": "create:goggles"
+    },
+    {
+      "item": "create:super_glue"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:shield_tool"
+    }
+  ]
+}

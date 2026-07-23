@@ -43,13 +43,11 @@ public class HeavyElectroMagnetTurretGeoRenderer extends AlwaysRenderGeoBlockRen
 
     @Override
     public boolean shouldRenderOffScreen(HeavyElectroMagnetTurretBlockEntity be) {
-        // Function: keep the heavy electromagnetic turret visible while Sable moves the block entity origin.
-        return true;
+        return super.shouldRenderOffScreen(be);
     }
 
     @Override
     public boolean shouldRender(HeavyElectroMagnetTurretBlockEntity be, Vec3 cameraPos) {
-        // Function: heavy electromagnetic turrets can move far from their block origin on ships.
-        return true;
+        return super.shouldRender(be, cameraPos);
     }
 }

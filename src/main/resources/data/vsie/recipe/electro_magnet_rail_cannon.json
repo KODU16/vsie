@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "S": {
+      "item": "vsie:silicon_carbide"
+    },
+    "C": {
+      "item": "vsie:computronic_substrate"
+    },
+    "R": {
+      "item": "vsie:electro_magnet_rail"
+    },
+    "A": {
+      "item": "create:mechanical_arm"
+    },
+    "L": {
+      "item": "minecraft:lodestone"
+    },
+    "M": {
+      "item": "simulated:redstone_magnet"
+    }
+  },
+  "pattern": [
+    "SS ",
+    "CRR",
+    "ALM"
+  ],
+  "result": {
+    "id": "vsie:electro_magnet_rail_cannon"
+  },
+  "show_notification": true
+}

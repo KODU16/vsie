@@ -1,6 +1,9 @@
 {
   "parent": "builtin/entity",
   "gui_light": "side",
+  "textures": {
+    "particle": "minecraft:block/iron_block"
+  },
   "display": {
     "gui": {
       "rotation": [ 30, 225, 0 ],

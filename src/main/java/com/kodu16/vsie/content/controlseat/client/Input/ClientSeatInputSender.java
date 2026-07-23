@@ -4,6 +4,7 @@ import com.kodu16.vsie.network.controlseat.C2S.ControlSeatC2SPacket;
 import com.kodu16.vsie.network.controlseat.C2S.ControlSeatInputC2SPacket;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.registries.vsieKeyMappings;
+import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.KeyMapping;
@@ -34,6 +35,8 @@ public class ClientSeatInputSender {
         long now = System.currentTimeMillis();
         if (now - lastSendMs > 33) {
             lastSendMs = now;
+            // Function: unlocked view clears cached seat mouse state every frame, so held fire reads GLFW directly.
+            boolean liveLeftPressed = mouseLpress || GLFW.glfwGetMouseButton(mc.getWindow().getWindow(), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
             int keys = 0;
             if (vsieKeyMappings.KEY_THROTTLE.isDown()) keys |= ControlSeatC2SPacket.Keys.THROTTLE;
             if (vsieKeyMappings.KEY_BRAKE.isDown()) keys |= ControlSeatC2SPacket.Keys.BRAKE;
@@ -47,10 +50,10 @@ public class ClientSeatInputSender {
             if (mc.options.keyJump.isDown()) keys |= ControlSeatC2SPacket.Keys.SPACE;
             if (mc.options.keyShift.isDown()) keys |= ControlSeatC2SPacket.Keys.SHIFT;
             if (mc.options.keySprint.isDown()) keys |= ControlSeatC2SPacket.Keys.CTRL;
-            if (mc.mouseHandler.isLeftPressed()) keys |= ControlSeatC2SPacket.Keys.MOUSEL;
+            if (liveLeftPressed) keys |= ControlSeatC2SPacket.Keys.MOUSEL;
             if (mc.mouseHandler.isRightPressed()) keys |= ControlSeatC2SPacket.Keys.MOUSER;
             ModNetworking.sendToServer(
-                    new ControlSeatC2SPacket(pos, (float) mousex, (float) mousey, (float) roll, keys, mouseLpress, isviewlock)
+                    new ControlSeatC2SPacket(pos, currentSeatEntityId(mc), (float) mousex, (float) mousey, (float) roll, keys, liveLeftPressed, isviewlock)
             );
         }
 
@@ -59,10 +62,17 @@ public class ClientSeatInputSender {
             lastSendInputMs = now;
             ModNetworking.sendToServer(
                     // Function: upload the client-calculated manual aim point for server-side turret targeting.
-                    new ControlSeatInputC2SPacket(pos, keysInput, isviewlock,
+                    new ControlSeatInputC2SPacket(pos, currentSeatEntityId(mc), keysInput, isviewlock,
                             manualAimTargetPos.x, manualAimTargetPos.y, manualAimTargetPos.z)
             );
         }
+    }
+
+    private static UUID currentSeatEntityId(Minecraft mc) {
+        if (mc.player != null && mc.player.getVehicle() instanceof ControlSeatMountEntity mount) {
+            return mount.getUUID();
+        }
+        return new UUID(0L, 0L);
     }
 
     private static int collectToggleInput(Minecraft mc) {

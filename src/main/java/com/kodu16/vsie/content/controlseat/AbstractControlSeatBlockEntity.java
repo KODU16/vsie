@@ -2,7 +2,6 @@ package com.kodu16.vsie.content.controlseat;
 
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
 import com.kodu16.vsie.foundation.ServerShipUtils;
-import com.mojang.logging.LogUtils;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
@@ -171,7 +170,6 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         Vec3 storedOffset = findStoredLinkedOffset(linkedPeripherals, relativeOffset);
         if (storedOffset == null) {
             linkedPeripherals.add(relativeOffset);
-            LogUtils.getLogger().warn("adding linked peripheral offset to controlseat: " + relativeOffset);
             setChanged();
         } else {
             clearMissingLinkedPeripheralState(storedOffset, type);
@@ -195,6 +193,29 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         setChanged();
         // Function: keep client-side linker overlays consistent after a missing peripheral expires.
         sendData();
+    }
+
+    public boolean removeLinkedPeripheralImmediately(Vec3 pos, int type) {
+        Vec3 storedOffset = findStoredLinkedOffset(pos, type);
+        if (storedOffset == null) {
+            return false;
+        }
+
+        List<Vec3> linkedPeripherals = getLinkedPeripheralOffsets(type);
+        if (linkedPeripherals == null || !linkedPeripherals.remove(storedOffset)) {
+            return false;
+        }
+
+        clearMissingLinkedPeripheralState(storedOffset, type);
+        setChanged();
+        // Function: explicit linker unlink should propagate to client-side overlays immediately instead of waiting for missing-tick cleanup.
+        sendData();
+        return true;
+    }
+
+    public boolean hasLinkedPeripheral(Vec3 pos, int type) {
+        // Function: linker toggle logic needs to distinguish active links from stale peripheral-side saved positions.
+        return findStoredLinkedOffset(pos, type) != null;
     }
 
     public void confirmLinkedPeripheralPresent(Vec3 pos, int type) {
@@ -222,6 +243,15 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         }
         // Function: HUD weapon markers use the saved linker order as the stable external peripheral index.
         return turretPositions;
+    }
+
+    public List<BlockPos> getLinkedWeaponPositionsInOrder() {
+        List<BlockPos> weaponPositions = new ArrayList<>(linkedWeapons.size());
+        for (Vec3 relativeOffset : linkedWeapons) {
+            weaponPositions.add(BlockPos.containing(toAbsoluteLinkedPeripheralPos(relativeOffset)));
+        }
+        // Function: ammo boxes refill linked weapons in the same order saved by the linker.
+        return weaponPositions;
     }
 
     private List<Vec3> getLinkedPeripheralOffsets(int type) {

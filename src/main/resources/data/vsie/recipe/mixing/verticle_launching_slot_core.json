@@ -1,0 +1,32 @@
+{
+  "type": "create:mixing",
+  "heat_requirement": "heated",
+  "ingredients": [
+    {
+      "item": "minecraft:conduit"
+    },
+    {
+      "item": "vsie:computronic_substrate"
+    },
+    {
+      "item": "vsie:computronic_substrate"
+    },
+    {
+      "item": "vsie:silicon_carbide"
+    },
+    {
+      "item": "vsie:silicon_carbide"
+    },
+    {
+      "item": "vsie:metalic_microlattice"
+    },
+    {
+      "item": "vsie:metalic_microlattice"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:verticle_launching_slot_core"
+    }
+  ]
+}

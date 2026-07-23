@@ -1,7 +1,6 @@
 package com.kodu16.vsie.content.thruster;
 
 import com.kodu16.vsie.foundation.ServerShipUtils;
-import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import dev.ryanhcode.sable.api.physics.mass.MassData;
@@ -9,19 +8,20 @@ import dev.ryanhcode.sable.companion.math.JOMLConversion;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.Connection;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.loading.FMLEnvironment;
 import org.joml.*;
-import org.slf4j.Logger;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
@@ -29,13 +29,20 @@ import software.bernie.geckolib.animation.AnimatableManager;
 
 import javax.annotation.Nonnull;
 import java.lang.Math;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 
 @SuppressWarnings({"deprecation", "unchecked"})
 public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity implements GeoBlockEntity {
     protected static final double THROTTLE_EPSILON = 1.0E-6D;
+    private static final int TRAIL_MAX_VERTICES = 20;
+    private static final double TRAIL_FULL_ALPHA_THROTTLE = 100.0D;
+    private static final float TRAIL_MAX_ALPHA = 0.5F;
     private static final float DEFAULT_FLAME_LENGTH_CHANGE_SPEED_LIMIT = 0.1F;
-    protected static final int DEFAULT_CONTROL_SEAT_ENERGY_COST_PER_TICK = 50;
+    protected static final int DEFAULT_CONTROL_SEAT_ENERGY_COST_PER_TICK = 5;
+    private static final String LINKED_CONTROL_SEAT_POS_TAG = "LinkedControlSeatPos";
 
     private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
 
@@ -46,8 +53,11 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
     private int forceLimitPercent = 100;
     private int torqueLimitPercent = 100;
     private float flameLengthChangeSpeedLimit = DEFAULT_FLAME_LENGTH_CHANGE_SPEED_LIMIT;
+    private BlockPos linkedControlSeatPos = BlockPos.ZERO;
+    private boolean railAccelerationTrailOverride = false;
 
     private float raycastDistance = 0.0f;
+    private final Deque<Vec3> trailVertices = new ArrayDeque<>();
 
 
     public abstract float getMaxFlameDistance();
@@ -77,6 +87,15 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
 
     public abstract float getflamewidth();
 
+    public BlockPos getLinkedControlSeatPos() {
+        return linkedControlSeatPos;
+    }
+
+    public void setLinkedControlSeatPos(BlockPos linkedControlSeatPos) {
+        this.linkedControlSeatPos = linkedControlSeatPos == null ? BlockPos.ZERO : linkedControlSeatPos.immutable();
+        setChanged();
+    }
+
     public int getControlSeatEnergyCostPerTick() {
         // Function: linked thrusters consume a baseline control-seat FE upkeep even before subclasses tune it.
         return DEFAULT_CONTROL_SEAT_ENERGY_COST_PER_TICK;
@@ -92,6 +111,27 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
 
     public float getFlameLengthChangeSpeedLimit() {
         return flameLengthChangeSpeedLimit;
+    }
+
+    public boolean isRailAccelerationTrailOverride() {
+        return railAccelerationTrailOverride;
+    }
+
+    // Function: override only the client trail visual without changing physical throttle, fuel, audio, or flame length.
+    public void setRailAccelerationTrailOverride(boolean active) {
+        if (railAccelerationTrailOverride == active) {
+            return;
+        }
+        railAccelerationTrailOverride = active;
+        setChanged();
+        if (level != null && !level.isClientSide()) {
+            level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), 3);
+        }
+    }
+
+    public boolean shouldRenderFlame() {
+        // Function: rail acceleration deliberately renders a full trail without any nozzle flame.
+        return !railAccelerationTrailOverride && getRaycastDistance() > 0.0F;
     }
 
     public double getForceCoefficient() {
@@ -142,9 +182,9 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
         }
         if (level.isClientSide()) {
             tickClientAudio();
+            tickClientTrail(level);
             return;
         }
-        Logger LOGGER = LogUtils.getLogger();
         if (hasInitialized)
         {
             BlockPos pos = this.getBlockPos();
@@ -168,7 +208,6 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
 
                 Vector3d torqueFromThisThruster = new Vector3d(relativePosWorld).cross(thrustDirectionWorld);
 
-                // 瑜版帊绔撮崠鏍у閻晜鏌熼崥?
                 double torqueLength = torqueFromThisThruster.length();
                 if (torqueLength > 1e-6) {
                     torqueFromThisThruster.mul(1.0 / torqueLength);
@@ -186,7 +225,7 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
                 Vector3d normDesiredForce = desiredForceLen > 1e-6 ? new Vector3d(desiredForce).mul(-1.0 / desiredForceLen) : new Vector3d();
                 Vector3d normDesiredTorque = desiredTorqueLen > 1e-6 ? new Vector3d(desiredTorque).mul(1.0 / desiredTorqueLen) : new Vector3d();
 
-                double forceAlignment  = Math.max(0, forceContribution.dot(normDesiredForce));   // 閸欘亜鍙ц箛鍐ㄦ倱閸氭垼纭€閻?
+                double forceAlignment  = Math.max(0, forceContribution.dot(normDesiredForce));
                 double torqueAlignment = Math.max(0, torqueFromThisThruster.dot(normDesiredTorque));
 
                 double sameFacingThrust = thrusterData.getSameFacingMaxThrustSum();
@@ -216,12 +255,10 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
             performRaycast(level);
         }
         else {
-            LOGGER.warn(String.valueOf(Component.literal("detected uninitialized thruster, time to sweep valkyrie's ass")));
             BlockPos pos = getBlockPos();
             BlockState state = level.getBlockState(pos);
             Initialize.initialize(level, pos, state);
             hasInitialized = true;
-            LOGGER.warn(String.valueOf(Component.literal("thruster Initialize complete:"+pos)));
         }
     }
 
@@ -235,7 +272,6 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
     }
 
     protected void performRaycast(@Nonnull Level level) {
-        Logger LOGGER = LogUtils.getLogger();
         BlockState state = this.getBlockState();
         //LOGGER.warn(String.valueOf(Component.literal("throttle:"+thrusterData.getThrottle())));
         //LOGGER.warn(String.valueOf(Component.literal("raycastdistance:"+-thrusterData.getThrottle()*getMaxFlameDistance())));
@@ -265,7 +301,7 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
         return safeCurrentDistance + Math.signum(delta) * maxStep;
     }
 
-    public abstract int fuelconsumptionperthrottle();//濮ｅ紨ick閿涘本鐦￠惂鎯у瀻濮ｆ梹琛ラ梻銊︾Х閼版娈戝▽褰掑櫤閿涘奔绔寸粔鎺撶Х閼?0濞嗏槄绱濋崚顐ｅ瑏閼存艾锝為敍?
+    public abstract int fuelconsumptionperthrottle();
 
 
     protected static int toThrottlePercent(double throttle) {
@@ -290,6 +326,90 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
         if (FMLEnvironment.dist == Dist.CLIENT) {
             com.kodu16.vsie.content.thruster.client.ThrusterSoundManager.updateThruster(this);
         }
+    }
+
+    protected void tickClientTrail(Level level) {
+        if (!shouldRenderTrail()) {
+            trailVertices.clear();
+            return;
+        }
+
+        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, getBlockPos());
+        Vec3 worldPos = ServerShipUtils.getBlockCenterWorld(subLevel, getBlockPos());
+        trailVertices.addLast(worldPos);
+        while (trailVertices.size() > TRAIL_MAX_VERTICES) {
+            trailVertices.removeFirst();
+        }
+    }
+
+    public boolean shouldRenderTrail() {
+        return getTrailAlpha() > 0.0F;
+    }
+
+    public float getTrailAlpha() {
+        if (railAccelerationTrailOverride) {
+            return TRAIL_MAX_ALPHA;
+        }
+        // Function: below half throttle, the world-space trail fades out instead of switching off abruptly.
+        double throttlePercent = Math.abs(thrusterData.getThrottle() * 100.0D);
+        if (throttlePercent <= THROTTLE_EPSILON) {
+            return 0.0F;
+        }
+        double alphaScale = Math.min(1.0D, throttlePercent / TRAIL_FULL_ALPHA_THROTTLE);
+        return (float) (TRAIL_MAX_ALPHA * alphaScale);
+    }
+
+    public List<Vec3> getTrailVerticesSnapshot() {
+        return new ArrayList<>(trailVertices);
+    }
+
+    public Vec3 getTrailWorldOffset() {
+        Vec3 nozzleDirection = getTrailWorldDirection();
+        if (nozzleDirection.lengthSqr() <= 1.0E-6D) {
+            return Vec3.ZERO;
+        }
+        return nozzleDirection.scale(getTrailOffsetLength());
+    }
+
+    public Vec3 getTrailWorldDirection() {
+        Vector3d nozzleDirection = getTrailNozzleDirectionWorld();
+        if (nozzleDirection.lengthSquared() <= 1.0E-6D) {
+            return Vec3.ZERO;
+        }
+        nozzleDirection.normalize();
+        return new Vec3(nozzleDirection.x, nozzleDirection.y, nozzleDirection.z);
+    }
+
+    protected double getTrailOffsetLength() {
+        // Function: fixed-thruster flame layer renders 1.5 times the synchronized raycast length.
+        return getTrailVisualLength() * 1.5D;
+    }
+
+    protected float getTrailVisualLength() {
+        return railAccelerationTrailOverride ? getMaxFlameDistance() : getRaycastDistance();
+    }
+
+    protected Vector3d getTrailNozzleDirectionWorld() {
+        BlockState state = getBlockState();
+        Direction facing = state.hasProperty(BlockStateProperties.FACING)
+                ? state.getValue(BlockStateProperties.FACING)
+                : Direction.UP;
+        Direction trailDirection = facing.getOpposite();
+        Vector3d nozzleDirection = new Vector3d(
+                trailDirection.getStepX(),
+                trailDirection.getStepY(),
+                trailDirection.getStepZ()
+        );
+        Level level = getLevel();
+        if (level == null) {
+            return nozzleDirection;
+        }
+
+        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, getBlockPos());
+        if (subLevel != null) {
+            subLevel.logicalPose().transformNormal(nozzleDirection);
+        }
+        return nozzleDirection;
     }
 
     protected abstract boolean isWorking();
@@ -324,6 +444,8 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
         tag.putInt("torqueLimitPercent", this.torqueLimitPercent);
         tag.putFloat("flameLengthChangeSpeedLimit", this.flameLengthChangeSpeedLimit);
         tag.putDouble("visualThrottle", this.thrusterData.getThrottle());
+        tag.putBoolean("railAccelerationTrailOverride", this.railAccelerationTrailOverride);
+        tag.putLong(LINKED_CONTROL_SEAT_POS_TAG, this.linkedControlSeatPos.asLong());
     }
 
     @Override
@@ -350,6 +472,12 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
             this.thrusterData.setThrottle(tag.getDouble("visualThrottle"));
         } else {
             this.thrusterData.setThrottle(0.0D);
+        }
+        this.railAccelerationTrailOverride = tag.getBoolean("railAccelerationTrailOverride");
+        if (tag.contains(LINKED_CONTROL_SEAT_POS_TAG, Tag.TAG_LONG)) {
+            this.linkedControlSeatPos = BlockPos.of(tag.getLong(LINKED_CONTROL_SEAT_POS_TAG));
+        } else {
+            this.linkedControlSeatPos = BlockPos.ZERO;
         }
     }
 

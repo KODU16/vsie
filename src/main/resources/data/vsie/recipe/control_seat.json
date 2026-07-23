@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "vsie:computronic_substrate"
+    },
+    "S": {
+      "item": "vsie:silicon_carbide"
+    },
+    "T": {
+      "item": "simulated:throttle_lever"
+    },
+    "B": {
+      "item": "create:blue_seat"
+    },
+    "M": {
+      "item": "vsie:metalic_microlattice"
+    },
+    "V": {
+      "item": "create:item_vault"
+    }
+  },
+  "pattern": [
+    "CSC",
+    "TBT",
+    "MVM"
+  ],
+  "result": {
+    "id": "vsie:control_seat"
+  },
+  "show_notification": true
+}

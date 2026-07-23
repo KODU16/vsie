@@ -1,18 +1,18 @@
 {
-  "name": "为什么要有AeroIE",
+  "name": "Why Does AeroIE Exist?",
   "icon": "vsie:control_seat",
   "category": "vsie:abstract",
   "sortnum": 1,
   "pages": [
     {
       "type": "patchouli:text",
-      "title": "为什么要有AeroIE",
-      "text": "自机械动力：航空学（和其使用的sable引擎）发布后，玩家已经探索出了无数精妙的设计和有趣的结构、载具。然而，当前各种部件的集成度和信息传递能力稍显不足，原版的红石系统等在设计真正的集控、一体化、高性能载具的方面还受到制约。AeroIE希望提供一套注重用简单方法实现功能（如武器、操控）的解决方案，同时提供视效和建模来适配更多载具设计"
+      "title": "Why Does AeroIE Exist?",
+      "text": "Since Create: Aeronautics and its Sable engine were released, players have built countless clever structures and vehicles. However, individual components still offer limited integration and data exchange, while vanilla redstone constrains truly centralized, unified, high-performance vehicle control. AeroIE provides simple solutions for functions such as piloting and weapons, together with visual effects and models suited to a wider range of vehicle designs."
     },
     {
       "type": "patchouli:text",
-      "title": "小趣事",
-      "text": "KODU16在2025年10月想做一个基于cosmic horizon的太空战斗的整合包，然后发现当前的瓦尔基里附属要不喜欢在cosmic的频繁维度切换的时候玩崩溃，要不就在穿梭宇宙的同时附带随机失效功能的大惊喜，总之是没一个能满足一套真正的星际载具系统的合格要求，因此愤怒的开始学java并开发了早期版本vsie，在后来演变成为了AeroIE"
+      "title": "Behind the Project",
+      "text": "In October 2025, KODU16 wanted to build a Cosmic Horizon space-combat modpack. Existing Valkyrien Skies addons either crashed during Cosmic's frequent dimension changes or added the exciting surprise of systems failing at random while crossing the universe. None met the requirements of a true interstellar vehicle system, so an annoyed KODU16 started learning Java and created the early project, vsie, which later evolved into AeroIE."
     }
   ]
 }

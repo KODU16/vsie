@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "H": {
+      "item": "minecraft:shield"
+    },
+    "A": {
+      "item": "minecraft:anvil"
+    },
+    "M": {
+      "item": "vsie:metalic_microlattice"
+    },
+    "E": {
+      "item": "create:experience_nugget"
+    },
+    "S": {
+      "item": "vsie:silicon_carbide"
+    },
+    "C": {
+      "item": "vsie:computronic_substrate"
+    }
+  },
+  "pattern": [
+    "HAH",
+    "MEM",
+    "SCS"
+  ],
+  "result": {
+    "id": "vsie:shield_generator"
+  },
+  "show_notification": true
+}

@@ -1,25 +1,35 @@
 package com.kodu16.vsie.content.weapon.infra_knife_accelerator;
 
+import com.kodu16.vsie.content.bullet.entity.InfraKnifeBulletEntity;
 import com.kodu16.vsie.content.cooldown.FireCooldown;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
-import com.kodu16.vsie.content.weapon.infra_knife_accelerator.client.InfraKnifeSoundManager;
-import com.mojang.logging.LogUtils;
+import com.kodu16.vsie.foundation.ServerShipUtils;
+import com.kodu16.vsie.registries.vsieEntities;
+import com.kodu16.vsie.registries.vsieSounds;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3f;
+import dev.ryanhcode.sable.sublevel.SubLevel;
+import org.joml.Vector3d;
+import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.animation.Animation;
+import software.bernie.geckolib.animation.AnimationController;
+import software.bernie.geckolib.animation.PlayState;
+import software.bernie.geckolib.animation.RawAnimation;
+
+import static com.kodu16.vsie.content.weapon.AbstractWeaponBlock.FACING;
 
 public class InfraKnifeAcceleratorBlockEntity extends AbstractWeaponBlockEntity {
-    private static final DustParticleOptions RED_BEAM_PARTICLE = new DustParticleOptions(new Vector3f(1.0F, 0.02F, 0.0F), 2.0F);
+    private static final RawAnimation SHOOT_ANIMATION = RawAnimation.begin().then("shoot", Animation.LoopType.LOOP);
     private static final int MAX_COOLDOWN_VALUE = 30;
     private static final double IDLE_RECOVERY_PER_TICK = 0.5D;
+    private static final double MAX_SPREAD_RADIANS = Math.toRadians(1.0D);
 
     public InfraKnifeAcceleratorBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
@@ -28,10 +38,36 @@ public class InfraKnifeAcceleratorBlockEntity extends AbstractWeaponBlockEntity 
     @Override
     public void tick() {
         Level level = getLevel();
-        if (level != null && level.isClientSide()) {
-            InfraKnifeSoundManager.updateWeapon(this);
+        if (level == null) {
+            return;
         }
-        super.tick();
+        if (level.isClientSide()) {
+            return;
+        }
+        boolean fireRequested = needtofire();
+        tickFireCooldown(fireRequested);
+        if (!fireRequested) {
+            setFiringState(false);
+            return;
+        }
+        if (!isFireCooldownReady()) {
+            // Function: keep the looped firing animation alive between actual infra-knife shots while the trigger is held.
+            setFiringState(hasStoredFiringCharge());
+            return;
+        }
+        if (hasInitialized) {
+            BlockPos pos = getBlockPos();
+            SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, pos);
+            weaponpos = subLevel != null ? ServerShipUtils.getBlockCenterWorld(subLevel, pos) : Vec3.atCenterOf(pos);
+            consumeFireCooldown();
+            setFiringState(true);
+            fire();
+        }
+    }
+
+    private boolean hasStoredFiringCharge() {
+        FireCooldown cooldown = getFireCooldown();
+        return !cooldown.usesValue() || fireCooldownValue > 0.0D;
     }
 
     @Override
@@ -41,7 +77,7 @@ public class InfraKnifeAcceleratorBlockEntity extends AbstractWeaponBlockEntity 
 
     @Override
     public int getcooldown() {
-        return 4;
+        return 3;
     }
 
     @Override
@@ -52,7 +88,7 @@ public class InfraKnifeAcceleratorBlockEntity extends AbstractWeaponBlockEntity 
 
     @Override
     public boolean isEnergyWeapon() {
-        // Function: infra-knife shots are ray weapons, so they do not consume ammo items.
+        // Function: infra-knife shots are energy projectiles, so they do not consume ammo items.
         return true;
     }
 
@@ -64,47 +100,72 @@ public class InfraKnifeAcceleratorBlockEntity extends AbstractWeaponBlockEntity 
     @Override
     public void fire() {
         Level level = getLevel();
-        if (!(level instanceof ServerLevel serverLevel)) {
+        if (level == null || level.isClientSide()) {
             return;
         }
 
-        performRaycast(serverLevel);
-        Vec3 beamStart = getRaycastStart();
-        Vec3 beamEnd = getTargetpos();
-        spawnRedBeam(serverLevel, beamStart, beamEnd);
+        Direction weaponFacing = getBlockState().getValue(FACING);
+        Vector3d direction = directionToVector(weaponFacing);
+        Vec3 spawnPos = Vec3.atCenterOf(getBlockPos());
+        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, getBlockPos());
+        if (subLevel != null) {
+            // Function: convert the local weapon facing and muzzle center into world space before spawning the bullet.
+            direction = subLevel.logicalPose()
+                    .transformNormal(direction, new Vector3d())
+                    .normalize();
+            spawnPos = subLevel.logicalPose().transformPosition(Vec3.atCenterOf(getBlockPos()));
+        } else {
+            direction.normalize();
+        }
 
-        if (hasRaycastHit()) {
-            spawnHitParticles(serverLevel, targetpos);
-            serverLevel.explode(
-                    null,
-                    targetpos.x, targetpos.y, targetpos.z,
-                    3,
-                    true,
-                    Level.ExplosionInteraction.NONE
-            );
+        Vec3 launchDirection = new Vec3(direction.x, direction.y, direction.z).normalize();
+        Vec3 spreadDirection = applySpread(launchDirection, level);
+        InfraKnifeBulletEntity bullet = new InfraKnifeBulletEntity(vsieEntities.INFRA_KNIFE_BULLET.get(), level);
+        bullet.setPos(spawnPos.add(launchDirection.scale(1.2D)));
+        bullet.setLaunchSubLevel(subLevel);
+        bullet.setPreciseLaunchVelocity(spreadDirection);
+        bullet.setBreaksBlocksEnabled(breaksBlocksEnabled());
+        if (level.addFreshEntity(bullet)) {
+            // Function: infra-knife uses one short fire sound for each bullet entity actually spawned.
+            playFireSound(level);
         }
     }
 
-    private void spawnRedBeam(ServerLevel level, Vec3 from, Vec3 to) {
-        Vec3 delta = to.subtract(from);
-        double length = delta.length();
-        if (length < 1.0E-4D) {
-            return;
-        }
-        int samples = Math.max(2, Math.min(128, (int) (length / 4.0D)));
-        Vec3 step = delta.scale(1.0D / samples);
-        // Function: draw the instantaneous infra-knife beam on clients without relying on block animation state.
-        for (int i = 0; i <= samples; i++) {
-            Vec3 point = from.add(step.scale(i));
-            level.sendParticles(RED_BEAM_PARTICLE, point.x, point.y, point.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-        }
+    @Override
+    protected SoundEvent getFireSoundEvent() {
+        return vsieSounds.INFRA_KNIFE_ACCELERATOR_FIRE.get();
     }
 
-    private void spawnHitParticles(ServerLevel level, Vec3 hitPos) {
-        // Function: reinforce the non-destructive explosion with visible impact and flame particles at the ray hit.
-        level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, hitPos.x, hitPos.y, hitPos.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-        level.sendParticles(ParticleTypes.FLAME, hitPos.x, hitPos.y, hitPos.z, 48, 0.8D, 0.8D, 0.8D, 0.04D);
-        level.sendParticles(ParticleTypes.LARGE_SMOKE, hitPos.x, hitPos.y, hitPos.z, 24, 0.8D, 0.8D, 0.8D, 0.02D);
+    private static Vec3 applySpread(Vec3 direction, Level level) {
+        Vec3 forward = direction.normalize();
+        double angle = Math.sqrt(level.random.nextDouble()) * MAX_SPREAD_RADIANS;
+        double azimuth = level.random.nextDouble() * Math.PI * 2.0D;
+        Vec3 reference = Math.abs(forward.y) > 0.99D ? new Vec3(1.0D, 0.0D, 0.0D) : new Vec3(0.0D, 1.0D, 0.0D);
+        Vec3 right = forward.cross(reference).normalize();
+        Vec3 up = right.cross(forward).normalize();
+        // Function: infra-knife shots get a slight one-degree cone spread while preserving the muzzle axis.
+        return forward.scale(Math.cos(angle))
+                .add(right.scale(Math.cos(azimuth) * Math.sin(angle)))
+                .add(up.scale(Math.sin(azimuth) * Math.sin(angle)))
+                .normalize();
+    }
+
+    private static Vector3d directionToVector(Direction direction) {
+        return new Vector3d(direction.getStepX(), direction.getStepY(), direction.getStepZ());
+    }
+
+    @Override
+    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+        // Function: keep the authored barrel-spin loop running for every tick that the server marks this weapon as firing.
+        controllers.add(new AnimationController<>(this, "controller", 0, state -> {
+            if (!getData().isfiring) {
+                // Function: force a reset so the cannon snaps out of the loop instead of preserving the last running animation state.
+                state.getController().forceAnimationReset();
+                return PlayState.STOP;
+            }
+            state.setAnimation(SHOOT_ANIMATION);
+            return PlayState.CONTINUE;
+        }));
     }
 
     @Override

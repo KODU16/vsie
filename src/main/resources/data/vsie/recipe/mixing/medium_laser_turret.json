@@ -1,0 +1,23 @@
+{
+  "type": "create:mixing",
+  "heat_requirement": "superheated",
+  "ingredients": [
+    {
+      "item": "vsie:small_laser_turret"
+    },
+    {
+      "item": "vsie:small_laser_turret"
+    },
+    {
+      "item": "vsie:small_laser_turret"
+    },
+    {
+      "item": "simulated:honey_glue"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:medium_laser_turret"
+    }
+  ]
+}

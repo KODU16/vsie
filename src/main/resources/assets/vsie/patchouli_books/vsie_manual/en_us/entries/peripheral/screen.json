@@ -1,5 +1,5 @@
 {
-  "name": "屏幕",
+  "name": "Screen (Temporarily Unimplemented Due to Rendering Issues)",
   "icon": "vsie:basic_screen",
   "category": "vsie:peripheral",
   "sortnum": 0,
@@ -12,13 +12,13 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:basic_screen",
-      "title": "屏幕",
-      "text": "这是一块普通的屏幕，右键打开GUI，你可以调整它显示的内容、屏幕的XYZ轴旋转角度和XYZ轴平移像素数，以便安装到你认为方便的角度和位置$(br2)目前支持显示内容：雷达和信息，雷达界面会显示控制椅雷达的扫描结果，信息界面会显示服务端和客户端内存用量，以及当前的物理帧率，以便在可能的物理线程崩溃时进行预警"
+      "title": "Screen",
+      "text": "This is an ordinary display screen. Right-click it to open its GUI, where you can select the displayed content and adjust rotation around the X, Y, and Z axes as well as pixel offsets along those axes. This lets the screen fit a convenient viewing angle and position.$(br2)The available modes are Radar and Information. Radar shows the Control Seat's scan results. Information shows server and client memory use together with the current physics tick rate, providing advance warning of a possible physics thread crash."
     },
     {
       "type": "patchouli:text",
-      "title": "小趣事",
-      "text": "1、屏幕支持任意旋转和平移，但交互位置仍然是在本体，事实证明实时让交互区域跟着模型走不是一件简单的事$(br2)2、屏幕显示物理tps的功能本来是给瓦尔基里用的，那东西的物理线程实在是太容易崩了"
+      "title": "Fun Facts",
+      "text": "1. The screen model can be rotated and translated freely, but its interaction area remains at the block itself. Making an interaction area follow a moving model in real time is not simple.$(br2)2. The physics TPS display was originally intended for Valkyrien Skies, whose physics thread crashed far too easily."
     }
   ]
 }

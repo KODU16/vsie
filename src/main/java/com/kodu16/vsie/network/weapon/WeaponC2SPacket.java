@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import java.util.function.Supplier;
 
 public class WeaponC2SPacket implements CustomPacketPayload {
-    // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
     public static final CustomPacketPayload.Type<WeaponC2SPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "weapon_weaponc2spacket"));
     public static final StreamCodec<FriendlyByteBuf, WeaponC2SPacket> STREAM_CODEC = CustomPacketPayload.codec(WeaponC2SPacket::encode, WeaponC2SPacket::decode);
 
@@ -42,25 +41,22 @@ public class WeaponC2SPacket implements CustomPacketPayload {
         return new WeaponC2SPacket(pos,channelchange);
     }
 
-    // 功能：NeoForge 1.21.1 处理器入口，复用旧版 Supplier<NetworkEvent.Context> 逻辑。
     public static void handle(WeaponC2SPacket pkt, IPayloadContext context) {
         handle(pkt, () -> new net.minecraftforge.network.NetworkEvent.Context(context));
     }
 
     public static void handle(WeaponC2SPacket pkt, Supplier<NetworkEvent.Context> ctxSup) {
-        //对于主武器主要考虑的只有一个，当前数据包是想改哪个频道
         NetworkEvent.Context ctx = ctxSup.get();
         ctx.enqueueWork(() -> {
             ServerPlayer sender = ctx.getSender();
             if (sender == null) return;
-            // 读取玩家输入
             ServerLevel level = sender.serverLevel();
             BlockPos pos = pkt.pos;
             int channelchange = pkt.channelchange;
             BlockEntity BE = level.getBlockEntity(pos);
             if (!(BE instanceof AbstractWeaponBlockEntity weapon)) {
-                // Optionally log an error if the block entity is not found or is incorrect
-                sender.sendSystemMessage(Component.literal("Invalid weapon at " + pos));
+                // Function: system chat packet encoding rejects raw BlockPos translation args.
+                sender.sendSystemMessage(Component.translatable("message.vsie.network.invalid_weapon", pos.toShortString()));
                 return;
             }
             if (channelchange == 5) {
@@ -70,9 +66,8 @@ public class WeaponC2SPacket implements CustomPacketPayload {
                 weapon.modifychannel(channelchange);
                 LogUtils.getLogger().warn(String.valueOf(Component.literal("changing weapon channel"+channelchange)));
             }
-            // 可选：标记方块实体为脏以保存更改
             weapon.setChanged();
-            weapon.getLevel().sendBlockUpdated(     // 向附近玩家同步 BE
+            weapon.getLevel().sendBlockUpdated(     // 鍚戦檮杩戠帺瀹跺悓姝?BE
                     weapon.getBlockPos(),
                     weapon.getBlockState(),
                     weapon.getBlockState(),

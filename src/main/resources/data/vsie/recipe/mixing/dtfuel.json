@@ -1,0 +1,18 @@
+{
+  "type": "create:mixing",
+  "heat_requirement": "superheated",
+  "ingredients": [
+    {
+      "item": "create:dough"
+    },
+    {
+      "item": "create:turntable"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:dtfuel",
+      "amount": 1000
+    }
+  ]
+}

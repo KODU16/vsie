@@ -98,8 +98,8 @@ public abstract class AbstractWeaponBlock extends DirectionalBlock implements En
 
     @Override
     public void onRemove(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos, @Nonnull BlockState newState, boolean isMoving) {
-        // Function: drop buffered ammo from any non-energy weapon before the block entity is removed.
-        if (!state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof AbstractWeaponBlockEntity weapon) {
+        // Sable moves blocks with isMoving=true, so skip drop logic during sublevel assembly.
+        if (!isMoving && !state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof AbstractWeaponBlockEntity weapon) {
             weapon.dropStoredAmmo(level, pos);
         }
         super.onRemove(state, level, pos, newState, isMoving);
@@ -147,7 +147,8 @@ public abstract class AbstractWeaponBlock extends DirectionalBlock implements En
                 serverPlayer.openMenu(new MenuProvider() {
                     @Override
                     public Component getDisplayName() {
-                        return Component.translatable("container.vsie.weapon");
+                        // Function: weapon GUIs should show the concrete block name instead of the shared generic container title.
+                        return Component.translatable(weapon.getBlockState().getBlock().getDescriptionId());
                     }
 
                     @Override

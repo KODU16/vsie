@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.weapon.electro_magnet_rail_accelerator;
 
 import com.kodu16.vsie.content.cooldown.FireCooldown;
+import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreBlock;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreBlockEntity;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
@@ -28,6 +29,7 @@ public class ElectromagnetRailAcceleratorBlockEntity extends AbstractWeaponBlock
     private static final double FORCE_PER_MASS = 50.0D;
     private static final String LINKED_CORE_POS_TAG = "LinkedElectroMagnetRailCorePos";
     private BlockPos linkedCorePos = BlockPos.ZERO;
+    private long lastAccelerationGameTime = Long.MIN_VALUE;
 
     public ElectromagnetRailAcceleratorBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
@@ -71,19 +73,30 @@ public class ElectromagnetRailAcceleratorBlockEntity extends AbstractWeaponBlock
 
     // Function: expose whether this accelerator should hard-disable force assist for the current firing state.
     public boolean shouldSuppressForceAssist() {
-        return resolveAccelerationDirection() != null;
+        AccelerationContext context = resolveAccelerationContext();
+        return context != null && context.coreControlSeat().hasLinkedBatteryEnergy(context.energyCostFe());
+    }
+
+    // Function: expose successful force application across either block-entity tick order with one tick of tolerance.
+    public boolean wasAcceleratingRecently() {
+        Level level = getLevel();
+        return level != null && lastAccelerationGameTime != Long.MIN_VALUE
+                && level.getGameTime() - lastAccelerationGameTime <= 1L;
     }
 
     @Override
     public void fire() {
         AccelerationContext context = resolveAccelerationContext();
-        if (context == null) {
+        if (context == null || !context.coreControlSeat().consumeLinkedBatteryEnergy(context.energyCostFe())) {
             return;
         }
         Vector3d worldForceDirection = context.worldForceDirection();
         worldForceDirection.normalize().mul(context.massData().getMass() * FORCE_PER_MASS);
         // Function: apply at most one COM impulse per game tick so continuous fire does not stack faster than the server tick rate.
         ServerShipUtils.applyWorldForceAndTorqueAtCenterOfMass(context.serverSubLevel(), worldForceDirection, new Vector3d());
+        // Function: paired rail interactions must conserve momentum across the accelerator-core sublevel pair.
+        ServerShipUtils.applyWorldForceAndTorqueAtCenterOfMass(context.coreServerSubLevel(), new Vector3d(worldForceDirection).negate(), new Vector3d());
+        lastAccelerationGameTime = getLevel().getGameTime();
     }
 
     private Vector3d resolveAccelerationDirection() {
@@ -108,6 +121,9 @@ public class ElectromagnetRailAcceleratorBlockEntity extends AbstractWeaponBlock
         }
 
         SubLevel coreSubLevel = ServerShipUtils.getSubLevelAtBlockPos(level, core.getBlockPos());
+        if (!(coreSubLevel instanceof ServerSubLevel coreServerSubLevel)) {
+            return null;
+        }
         if (isSameSubLevel(selfSubLevel, coreSubLevel)) {
             return null;
         }
@@ -126,6 +142,15 @@ public class ElectromagnetRailAcceleratorBlockEntity extends AbstractWeaponBlock
             return null;
         }
 
+        ControlSeatBlockEntity coreControlSeat = resolveCoreControlSeat(level, core);
+        if (coreControlSeat == null) {
+            return null;
+        }
+        int energyCostFe = getEnergyCostFe(massData);
+        if (energyCostFe <= 0) {
+            return null;
+        }
+
         Vector3d worldForceDirection = new Vector3d(
                 core.getBlockState().getValue(ElectroMagnetRailCoreBlock.FACING).getStepX(),
                 core.getBlockState().getValue(ElectroMagnetRailCoreBlock.FACING).getStepY(),
@@ -139,7 +164,7 @@ public class ElectromagnetRailAcceleratorBlockEntity extends AbstractWeaponBlock
             return null;
         }
 
-        return new AccelerationContext(serverSubLevel, massData, worldForceDirection);
+        return new AccelerationContext(serverSubLevel, coreServerSubLevel, coreControlSeat, massData, worldForceDirection, energyCostFe);
     }
 
     private ElectroMagnetRailCoreBlockEntity resolveLinkedCore(Level level) {
@@ -161,6 +186,27 @@ public class ElectromagnetRailAcceleratorBlockEntity extends AbstractWeaponBlock
             return false;
         }
         return selfSubLevel == otherSubLevel || selfSubLevel.hashCode() == otherSubLevel.hashCode();
+    }
+
+    private ControlSeatBlockEntity resolveCoreControlSeat(Level level, ElectroMagnetRailCoreBlockEntity core) {
+        BlockPos controlSeatPos = core.getLinkedControlSeatPos();
+        if (controlSeatPos == null || controlSeatPos.equals(BlockPos.ZERO)) {
+            return null;
+        }
+        BlockEntity blockEntity = level.getBlockEntity(controlSeatPos);
+        if (!(blockEntity instanceof ControlSeatBlockEntity controlSeat)) {
+            return null;
+        }
+        return controlSeat;
+    }
+
+    private int getEnergyCostFe(MassData massData) {
+        double energyCost = massData.getMass() / 20.0D;
+        if (!Double.isFinite(energyCost) || energyCost <= 0.0D) {
+            return 0;
+        }
+        // Function: FE is integral, so even light accelerator sublevels still pay at least 1 FE per powered tick.
+        return energyCost >= Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.max(1, (int) Math.ceil(energyCost));
     }
 
     private void markBindingDirty() {
@@ -197,6 +243,8 @@ public class ElectromagnetRailAcceleratorBlockEntity extends AbstractWeaponBlock
     }
 
     // Function: caches all validated server-side acceleration inputs so fire and assist-lock use the same rules.
-    private record AccelerationContext(ServerSubLevel serverSubLevel, MassData massData, Vector3d worldForceDirection) {
+    private record AccelerationContext(ServerSubLevel serverSubLevel, ServerSubLevel coreServerSubLevel,
+                                       ControlSeatBlockEntity coreControlSeat, MassData massData,
+                                       Vector3d worldForceDirection, int energyCostFe) {
     }
 }

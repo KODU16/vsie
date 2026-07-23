@@ -1,5 +1,5 @@
 {
-  "name": "重型激光炮塔",
+  "name": "Heavy Laser Turret",
   "icon": "vsie:heavy_laser_turret",
   "category": "vsie:turret",
   "sortnum": 20,
@@ -10,12 +10,12 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:heavy_laser_turret",
-      "title": "重型激光炮塔",
-      "text": "$(br2)重型激光炮塔，可射出大范围破坏任何方块的激光。$(br2)仅支持在子维度上工作。"
+      "title": "Heavy Laser Turret",
+      "text": "$(br2)A heavy turret that fires a wide laser capable of destroying any block in its path.$(br2)Functions only on a subspace."
     },
     {
       "type": "patchouli:text",
-      "text": "由于超长距离射线检测算法的性能占用极高问题暂未解决，因此暂时只支持自动模式。$(br2)对敌对子维度非常有效。$(br2)最大索敌距离/射程：256。"
+      "text": "The severe performance cost of ultra-long-range ray tracing has not yet been solved, so this turret currently supports only Automatic mode.$(br2)Extremely effective against hostile subspaces.$(br2)Maximum targeting distance/range: 256 blocks."
     }
   ]
 }

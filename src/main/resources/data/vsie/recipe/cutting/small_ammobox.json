@@ -1,0 +1,13 @@
+{
+  "type": "create:cutting",
+  "ingredients": [
+    {
+      "item": "create:metal_girder"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:small_ammobox"
+    }
+  ]
+}

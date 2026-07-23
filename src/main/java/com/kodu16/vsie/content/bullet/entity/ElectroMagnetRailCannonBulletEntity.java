@@ -31,12 +31,12 @@ public class ElectroMagnetRailCannonBulletEntity extends HeavyElectroMagnetBulle
 
     @Override
     protected double getBlockBreakRadius() {
-        return Math.max(0.0D, getRailCount() / 10.0D);
+        return Math.max(0.0D, getRailCount() / 15.0D);
     }
 
     @Override
     protected int getPiercingDurationTicks() {
-        return Math.max(1, getRailCount() / 20);
+        return Math.max(1, getRailCount() / 10);
     }
 
     @Override

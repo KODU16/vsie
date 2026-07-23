@@ -1,45 +1,42 @@
 package com.kodu16.vsie.content.controlseat.block;
 
+import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlock;
+import com.kodu16.vsie.content.controlseat.gui.ControlSeatWarpContainerMenu;
 import com.kodu16.vsie.content.item.IFF.iff;
 import com.kodu16.vsie.registries.vsieBlockEntities;
-import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlock;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.DirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.ItemInteractionResult;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.MenuProvider;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.server.level.ServerPlayer;
-import com.kodu16.vsie.content.controlseat.gui.ControlSeatWarpContainerMenu;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-
 public class ControlSeatBlock extends AbstractControlSeatBlock {
 
-    // 功能：为 NeoForge 1.21.1 提供该方块的序列化 Codec。
     public static final MapCodec<ControlSeatBlock> CODEC = simpleCodec(ControlSeatBlock::new);
+
     public ControlSeatBlock(BlockBehaviour.Properties properties) {
         super(properties);
     }
 
     @Override
     public MapCodec<ControlSeatBlock> codec() {
-        // 功能：返回方块 Codec，确保方块状态可被数据驱动系统正确反序列化。
         return CODEC;
     }
 
@@ -55,14 +52,12 @@ public class ControlSeatBlock extends AbstractControlSeatBlock {
             return null;
         }
         if (level.isClientSide()) {
-            // 功能：客户端线程只处理输入与界面逻辑，避免在服务端线程误调 RenderSystem。
             return (world, pos, state1, blockEntity) -> {
                 if (blockEntity instanceof ControlSeatBlockEntity controlSeat) {
                     controlSeat.clientTick();
                 }
             };
         }
-        // 功能：服务端线程只执行控制椅的服务端同步与运算逻辑。
         return (world, pos, state1, blockEntity) -> {
             if (blockEntity instanceof ControlSeatBlockEntity controlSeat) {
                 controlSeat.tick();
@@ -72,52 +67,50 @@ public class ControlSeatBlock extends AbstractControlSeatBlock {
 
     @Override
     protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        // 功能：1.21.1 物品交互阶段保持回落，确保控制椅仍可执行乘坐/打开 GUI 逻辑。
+        if (stack.getItem() instanceof iff) {
+            // Function: let the IFF tool own control-seat clicks so the seat does not also mount the player or open the warp GUI.
+            return ItemInteractionResult.SUCCESS;
+        }
         return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
 
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         if (level.isClientSide()) {
-            return InteractionResult.SUCCESS; // Early exit for client-side, as no further action is needed here
+            return InteractionResult.SUCCESS;
         }
 
         ControlSeatBlockEntity blockEntity = (ControlSeatBlockEntity) level.getBlockEntity(pos);
+        if (isHoldingIff(player)) {
+            // Function: if control-seat fallback interaction still runs during an IFF click, suppress the seat action and keep the item authoritative.
+            return InteractionResult.CONSUME;
+        }
 
         if (player.isSecondaryUseActive()) {
-            // Function: keep IFF shift-right-click focused on friend-or-foe writing instead of opening the warp GUI.
-            if (isHoldingIff(player)) {
-                return InteractionResult.CONSUME;
-            }
-            // 功能：Shift+右键时打开控制椅专用的 warp data chip 仓储 GUI，而不是只显示提示文本。
             if (player instanceof ServerPlayer serverPlayer) {
-                // 功能：NeoForge 1.21.1 使用 openMenu 并附加 BlockPos 额外数据。
                 serverPlayer.openMenu(new MenuProvider() {
-                @Override
-                public Component getDisplayName() {
-                    return Component.translatable("container.vsie.control_seat_warp");
-                }
+                    @Override
+                    public Component getDisplayName() {
+                        return Component.translatable("container.vsie.control_seat_warp");
+                    }
 
-                @Override
-                public AbstractContainerMenu createMenu(int id, Inventory inv, Player p) {
-                    return new ControlSeatWarpContainerMenu(id, inv, blockEntity);
-                }
+                    @Override
+                    public AbstractContainerMenu createMenu(int id, Inventory inv, Player p) {
+                        return new ControlSeatWarpContainerMenu(id, inv, blockEntity);
+                    }
                 }, buf -> buf.writeBlockPos(pos));
             }
             return InteractionResult.CONSUME;
         }
 
-        // Ensure the correct player sits and can interact with the control seat
         if (blockEntity.sit(player, false)) {
-            return InteractionResult.CONSUME; // Return CONSUME to indicate successful interaction
-        } else {
-            return InteractionResult.PASS; // Return PASS if interaction was not successful
+            return InteractionResult.CONSUME;
         }
+        return InteractionResult.PASS;
     }
 
-
     private static boolean isHoldingIff(Player player) {
-        // Function: check both hands so the GUI stays suppressed regardless of which hand carries the IFF tool.
+        // Function: check both hands so IFF clicks never fall through to control-seat behavior.
         return player.getMainHandItem().getItem() instanceof iff || player.getOffhandItem().getItem() instanceof iff;
     }
 }

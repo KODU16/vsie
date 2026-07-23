@@ -1,0 +1,17 @@
+{
+  "type": "create:mixing",
+  "ingredients": [
+    {
+      "item": "minecraft:tnt"
+    },
+    {
+      "item": "simulated:red_portable_engine"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:basic_missile",
+      "count": 4
+    }
+  ]
+}

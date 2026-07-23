@@ -1,18 +1,18 @@
 {
-  "name": "AeroIE是什么",
+  "name": "What Is AeroIE?",
   "icon": "vsie:linker",
   "category": "vsie:abstract",
   "sortnum": 0,
   "pages": [
     {
       "type": "patchouli:text",
-      "title": "AeroIE简介",
-      "text": "AeroIE，全称Aeronaunics:InterStellar Expansion，是对航空学的控制、推进、武器和其它方面的扩展，目标是构建一套适用于星际航行和高功能驱动的简便系统。其以控制椅为核心，来实现相较原版红石系统更便利的信息传递和一体化的船只操控。$(br2)AeroIE不会拥有繁杂晦涩的调参接口和艰深难懂的零件操作，努力实现对于任何玩家都方便易懂的操控集成化、一体化"
+      "title": "About AeroIE",
+      "text": "AeroIE, short for Aeronautics: InterStellar Expansion, expands Aeronautics with integrated control, propulsion, weapons, and other systems. Its goal is to provide a straightforward platform for interstellar travel and high-performance vehicles. Centered on the Control Seat, it offers easier data transfer and unified ship control than ordinary redstone systems.$(br2)AeroIE avoids obscure configuration screens and difficult component-by-component operation. It aims to make integrated vehicle control understandable and convenient for every player."
     },
     {
       "type": "patchouli:text",
-      "title": "小趣事",
-      "text": "1、AeroIE在航空学发布前，本来是作为一个瓦尔基里附属开发的，你可以通过模组极具标志性的modid发现这一点。AeroIE转向航空学之前已经有一个功能尚不完善的，适配瓦尔基里2.4的成型版本$(br2)AeroIE开发时历经了瓦尔基里2.3→机械动力6.0→瓦尔基里2.4→航空学的多次迁移$(br2)2、AeroIE以GPL3协议开源，欢迎对KODU16构石一样的代码水平提出指正"
+      "title": "Fun Facts",
+      "text": "1. Before Aeronautics was released, AeroIE was developed as a Valkyrien Skies addon, as its distinctive mod ID still suggests. Before moving to Aeronautics, it already had a functional, though incomplete, build for Valkyrien Skies 2.4.$(br2)Development passed through several migrations: Valkyrien Skies 2.3 → Create 6.0 → Valkyrien Skies 2.4 → Aeronautics.$(br2)2. AeroIE is open source under the GPL-3.0 license. Corrections to KODU16's cobblestone-tier code are always welcome."
     }
   ]
 }

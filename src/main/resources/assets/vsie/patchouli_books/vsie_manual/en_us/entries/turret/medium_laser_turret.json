@@ -1,5 +1,5 @@
 {
-  "name": "中型激光炮塔",
+  "name": "Medium Laser Turret",
   "icon": "vsie:medium_laser_turret",
   "category": "vsie:turret",
   "sortnum": 11,
@@ -10,12 +10,12 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:medium_laser_turret",
-      "title": "中型激光炮塔",
-      "text": "$(br2)中型激光炮塔，可发射激光。$(br2)仅支持在子维度上工作，仅消耗电能，不会过热。"
+      "title": "Medium Laser Turret",
+      "text": "$(br2)A medium turret that fires lasers.$(br2)Functions only on a subspace. It consumes energy, but does not overheat."
     },
     {
       "type": "patchouli:text",
-      "text": "支持切换索敌模式（敌对子维度模式需绑定控制椅）。$(br2)对实体和较小的敌对子维度很有效。$(br2)最大索敌距离/射程：256。"
+      "text": "Supports selectable targeting modes; hostile-subspace mode requires a linked Control Seat.$(br2)Very effective against entities and smaller hostile subspaces.$(br2)Maximum targeting distance/range: 256 blocks."
     }
   ]
 }

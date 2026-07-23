@@ -1,0 +1,49 @@
+{
+  "type": "create:sequenced_assembly",
+  "ingredient": {
+    "item": "create:sturdy_sheet"
+  },
+  "loops": 3,
+  "results": [
+    {
+      "id": "vsie:computronic_substrate"
+    }
+  ],
+  "sequence": [
+    {
+      "type": "create:deploying",
+      "ingredients": [
+        {
+          "item": "create:sturdy_sheet"
+        },
+        {
+          "item": "create:electron_tube"
+        }
+      ],
+      "results": [
+        {
+          "id": "create:sturdy_sheet"
+        }
+      ]
+    },
+    {
+      "type": "create:deploying",
+      "ingredients": [
+        {
+          "item": "create:sturdy_sheet"
+        },
+        {
+          "item": "create:transmitter"
+        }
+      ],
+      "results": [
+        {
+          "id": "create:sturdy_sheet"
+        }
+      ]
+    }
+  ],
+  "transitional_item": {
+    "id": "create:sturdy_sheet"
+  }
+}

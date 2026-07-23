@@ -1,5 +1,5 @@
 {
-  "name": "炮塔：普通炮塔",
+  "name": "Turrets: Standard Turrets",
   "icon": "vsie:medium_laser_turret",
   "category": "vsie:turret",
   "sortnum": 0,
@@ -7,8 +7,8 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:medium_laser_turret",
-      "title": "普通炮塔",
-      "text": "普通炮塔指那些无法切换为手动头瞄模式的炮塔$(br2)由于先进的刀片系统，普通炮塔均无需人来操控，它们支持完全的自动索敌，目标可以是不同类型的的实体目标或敌对子维度$(br2)在GUI中除可以切换目标类型外，还可切换默认角度RX/RY（为了在子维度上摆着朝向好看）和允许索敌的角度X+/X-,Y+/Y-（为了防止背后靠墙的时候枪毙自己）$(br2)所有炮塔都以X为水平旋转，Y为竖直俯仰"
+      "title": "Standard Turrets",
+      "text": "Standard turrets are turrets that cannot switch to manual head-aim mode.$(br2)Thanks to the advanced blade system, they require no operator and support fully automatic targeting. Valid targets include several entity types and hostile subspaces.$(br2)Their GUI lets you choose target types, default Pitch/Yaw angles for a tidy resting orientation, and permitted targeting Pitch/Yaw ranges so a turret mounted against a wall does not shoot its own vessel.$(br2)All turrets use X for horizontal rotation and Y for vertical elevation."
     }
   ]
 }

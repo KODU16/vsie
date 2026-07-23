@@ -111,9 +111,31 @@ public class IFFScreen extends AbstractContainerScreen<IFFContainerMenu> {
             saveAndClose();
             return true;
         }
-        return this.editBoxA.keyPressed(keyCode, scanCode, modifiers)
-                || this.editBoxB.keyPressed(keyCode, scanCode, modifiers)
-                || super.keyPressed(keyCode, scanCode, modifiers);
+        if (this.editBoxA.keyPressed(keyCode, scanCode, modifiers)
+                || this.editBoxB.keyPressed(keyCode, scanCode, modifiers)) {
+            return true;
+        }
+        // Function: once an IFF text box is focused, swallow non-edit keybinds like inventory-close so typing stays isolated.
+        if (isEditingText()) {
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(char codePoint, int modifiers) {
+        if (this.editBoxA.charTyped(codePoint, modifiers) || this.editBoxB.charTyped(codePoint, modifiers)) {
+            return true;
+        }
+        // Function: focused IFF inputs must consume typed characters instead of letting other screen handlers see them.
+        if (isEditingText()) {
+            return true;
+        }
+        return super.charTyped(codePoint, modifiers);
+    }
+
+    private boolean isEditingText() {
+        return this.editBoxA.isFocused() || this.editBoxB.isFocused();
     }
 
     private void renderControlTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY) {

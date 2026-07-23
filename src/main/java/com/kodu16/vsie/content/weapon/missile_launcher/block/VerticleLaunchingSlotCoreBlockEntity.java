@@ -33,6 +33,8 @@ public class VerticleLaunchingSlotCoreBlockEntity extends AbstractWeaponBlockEnt
     private int burstSlotCursor = 0;
     private int burstIntervalTimer = 0;
     private boolean burstInProgress = false;
+    private boolean pendingBurstStart = false;
+    private int pendingBurstChannelEncode = 0;
     private int armedChannelEncode = 0;
     private enum LaunchAttemptResult {
         LAUNCHED,
@@ -73,7 +75,7 @@ public class VerticleLaunchingSlotCoreBlockEntity extends AbstractWeaponBlockEnt
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("VLS Core");
+        return Component.literal("VLSC");
     }
 
     @Override
@@ -83,8 +85,7 @@ public class VerticleLaunchingSlotCoreBlockEntity extends AbstractWeaponBlockEnt
             return;
         }
         boolean capActive = isActiveForChannels(armedChannelEncode);
-        boolean fireActive = needtofire();
-        tickFireCooldown(fireActive);
+        tickFireCooldown(pendingBurstStart || burstInProgress);
         syncLinkedSlotActivation(level, capActive);
 
         if (!isFireCooldownReady()) {
@@ -92,14 +93,24 @@ public class VerticleLaunchingSlotCoreBlockEntity extends AbstractWeaponBlockEnt
             return;
         }
 
-        if (!fireActive || !hasValidTarget()) {
+        if (burstInProgress && !hasValidTarget()) {
             cancelBurst();
             getData().isfiring = false;
             return;
         }
 
         if (!burstInProgress) {
+            if (!pendingBurstStart) {
+                getData().isfiring = false;
+                return;
+            }
+            if (!canFireForChannel(pendingBurstChannelEncode) || !hasValidTarget()) {
+                clearPendingBurstStart();
+                getData().isfiring = false;
+                return;
+            }
             if (linkedSlots.isEmpty() || !hasMissileAmmo()) {
+                clearPendingBurstStart();
                 getData().isfiring = false;
                 return;
             }
@@ -107,6 +118,7 @@ public class VerticleLaunchingSlotCoreBlockEntity extends AbstractWeaponBlockEnt
             burstInProgress = true;
             burstSlotCursor = 0;
             burstIntervalTimer = 0;
+            clearPendingBurstStart();
         }
 
         getData().isfiring = true;
@@ -134,6 +146,17 @@ public class VerticleLaunchingSlotCoreBlockEntity extends AbstractWeaponBlockEnt
     @Override
     public void fire() {
         // Function: vertical launch core uses its own burst scheduler instead of AbstractWeaponBlockEntity#tick.
+    }
+
+    @Override
+    public void receivechannel(int encode) {
+        int previous = getData().receivingchannel;
+        super.receivechannel(encode);
+        if (previous == 0 && encode != 0 && !burstInProgress && !pendingBurstStart) {
+            // Function: one click queues one whole VLS burst so the core finishes all linked slots autonomously.
+            pendingBurstStart = true;
+            pendingBurstChannelEncode = encode;
+        }
     }
 
     public void receiveArmedChannels(int encode) {
@@ -257,10 +280,20 @@ public class VerticleLaunchingSlotCoreBlockEntity extends AbstractWeaponBlockEnt
                 || ((encode & 8) != 0 && getData().channel4);
     }
 
+    private boolean canFireForChannel(int encode) {
+        return isActiveForChannels(encode);
+    }
+
+    private void clearPendingBurstStart() {
+        pendingBurstStart = false;
+        pendingBurstChannelEncode = 0;
+    }
+
     private void cancelBurst() {
         burstInProgress = false;
         burstSlotCursor = 0;
         burstIntervalTimer = 0;
+        clearPendingBurstStart();
     }
 
     private void finishBurst() {

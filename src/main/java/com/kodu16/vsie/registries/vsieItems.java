@@ -32,7 +32,6 @@ public class vsieItems {
     public static final ItemEntry<targetframe_enemy_locked> TARGET_FRAME_ENEMY_LOCKED = REGISTRATE.item("target_frame_enemy_locked", targetframe_enemy_locked::new).register();
     public static final ItemEntry<targetframe_ally> TARGET_FRAME_ALLY = REGISTRATE.item("target_frame_ally", targetframe_ally::new).register();
     public static final ItemEntry<screen_bg> SCREEN_BG = REGISTRATE.item("screen_bg", screen_bg::new).register();
-    // 功能：注册粒子炮弹药容器物品，供 Particle Turret 的专用 3x3 仓位与自动化输入使用。
     public static final ItemEntry<ParticleContainerItem> PARTICLE_CONTAINER = REGISTRATE.item("particle_container", ParticleContainerItem::new).register();
     // Function: basic missile ammo item consumed by the Basic Missile Launcher.
     public static final ItemEntry<Item> BASIC_MISSILE_ITEM = REGISTRATE.item("basic_missile", Item::new).register();

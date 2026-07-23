@@ -1,13 +1,11 @@
 package com.kodu16.vsie.content.screen.client;
 
-// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
-
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.vsie;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import software.bernie.geckolib.cache.object.GeoBone;
 import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.cache.object.GeoBone;
 import software.bernie.geckolib.model.DefaultedBlockGeoModel;
 
 @SuppressWarnings({"removal"})
@@ -43,9 +41,9 @@ public class AbstractScreenModel extends DefaultedBlockGeoModel<AbstractScreenBl
     @Override
     public void setCustomAnimations(AbstractScreenBlockEntity animatable, long instanceId, AnimationState<AbstractScreenBlockEntity> animationState) {
         GeoBone screen = getAnimationProcessor().getBone("screen");
-        if(screen!=null) {
-            screen.setRotX(getspinX(animatable)/(180/ Mth.PI));
-            screen.setRotY(getspinY(animatable)/(180/ Mth.PI));
+        if (screen != null) {
+            screen.setRotX(getspinX(animatable) / (180 / Mth.PI));
+            screen.setRotY(getspinY(animatable) / (180 / Mth.PI));
             screen.setPosX(getoffsetX(animatable));
             screen.setPosY(getoffsetY(animatable));
             screen.setPosZ(getoffsetZ(animatable));
@@ -54,35 +52,39 @@ public class AbstractScreenModel extends DefaultedBlockGeoModel<AbstractScreenBl
 
     private Integer getspinX(AbstractScreenBlockEntity animatable) {
         Integer x = animatable.getAnimData(AbstractScreenBlockEntity.SCREEN_SPIN_X);
-        if(x != null) {
+        if (x != null) {
             return x;
         }
         return 0;
     }
+
     private Integer getspinY(AbstractScreenBlockEntity animatable) {
         Integer y = animatable.getAnimData(AbstractScreenBlockEntity.SCREEN_SPIN_Y);
-        if(y != null) {
+        if (y != null) {
             return y;
         }
         return 0;
     }
+
     private Integer getoffsetX(AbstractScreenBlockEntity animatable) {
         Integer ox = animatable.getAnimData(AbstractScreenBlockEntity.SCREEN_OFFSET_X);
-        if(ox != null) {
+        if (ox != null) {
             return ox;
         }
         return 0;
     }
+
     private Integer getoffsetY(AbstractScreenBlockEntity animatable) {
         Integer oy = animatable.getAnimData(AbstractScreenBlockEntity.SCREEN_OFFSET_Y);
-        if(oy != null) {
+        if (oy != null) {
             return oy;
         }
         return 0;
     }
+
     private Integer getoffsetZ(AbstractScreenBlockEntity animatable) {
         Integer oz = animatable.getAnimData(AbstractScreenBlockEntity.SCREEN_OFFSET_Z);
-        if(oz != null) {
+        if (oz != null) {
             return oz;
         }
         return 0;

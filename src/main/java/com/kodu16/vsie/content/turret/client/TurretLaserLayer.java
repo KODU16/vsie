@@ -1,46 +1,36 @@
 package com.kodu16.vsie.content.turret.client;
 
-// 功能：适配 NeoForge 1.21.1 顶点提交流程，使用 addVertex/setColor 等新链式 API。
-
+import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.foundation.translucentbeamrendertype;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.cache.object.GeoBone;
-import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
 import software.bernie.geckolib.renderer.GeoRenderer;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
+import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
+import software.bernie.geckolib.util.RenderUtil;
 
-// 你的 BlockEntity 类型
-import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
-
-public class TurretLaserLayer extends GeoRenderLayer<AbstractTurretBlockEntity> {
-
-    public TurretLaserLayer(GeoRenderer<AbstractTurretBlockEntity> entityRendererIn) {
-        super(entityRendererIn);
-    }
+public class TurretLaserLayer<T extends AbstractTurretBlockEntity> extends GeoRenderLayer<T> {
     private static final int SEGMENTS = 4;
-    private static final int LENGTH_SEGMENTS = 12;
-    public double FLAME_LENGTH = 0f;
-    private static final float BASE_RADIUS = 0.25f;
-    private static final float TIP_RADIUS = 0.25f;
-    private static final String cannonname = "cannon1";
-
-    // 直接使用我们自己定义的 RenderType
+    private static final float M_2PI = (float) (Math.PI * 2);
+    private static final int FULL_BRIGHT = 0xF000F0;
     private static final RenderType FLAME_RENDER_TYPE = translucentbeamrendertype.SOLID_TRANSLUCENT_BEAM;
 
-    // 全亮光照（因为我们禁用了 lightmap）
-    private static final int FULL_BRIGHT = 0xF000F0;
+    public TurretLaserLayer(GeoRenderer<T> entityRendererIn) {
+        super(entityRendererIn);
+    }
+
     @Override
-    public void render(PoseStack poseStack, AbstractTurretBlockEntity animatable, BakedGeoModel bakedModel,
+    public void render(PoseStack poseStack, T animatable, BakedGeoModel bakedModel,
                        RenderType renderType, MultiBufferSource bufferSource, VertexConsumer bufferSourceBuffer,
                        float partialTick, int packedLight, int packedOverlay) {
-        FLAME_LENGTH = animatable.getTargetDistance();
-        if (FLAME_LENGTH < 0.1) {
+        double flameLength = animatable.getTargetDistance();
+        if (flameLength < 0.1D) {
             return;
         }
         super.render(poseStack, animatable, bakedModel, renderType, bufferSource, bufferSourceBuffer,
@@ -48,54 +38,68 @@ public class TurretLaserLayer extends GeoRenderLayer<AbstractTurretBlockEntity> 
     }
 
     @Override
-    public void renderForBone(PoseStack poseStack, AbstractTurretBlockEntity animatable, GeoBone bone,
+    public void renderForBone(PoseStack poseStack, T animatable, GeoBone bone,
                               RenderType renderType, MultiBufferSource bufferSource, VertexConsumer buffer,
                               float partialTick, int packedLight, int packedOverlay) {
-        if (!cannonname.equals(bone.getName())) {
+        if (!animatable.getLaserLayerBoneName().equals(bone.getName())) {
             super.renderForBone(poseStack, animatable, bone, renderType, bufferSource, buffer,
                     partialTick, packedLight, packedOverlay);
             return;
         }
-        // 只对 cannon bone 执行渲染
+
+        // Function: always read beam length from the current turret instance so one turret render cannot leak into another.
+        double flameLength = animatable.getTargetDistance();
+        if (flameLength < 0.1D) {
+            return;
+        }
+
         poseStack.pushPose();
-        poseStack.mulPose(Axis.YP.rotationDegrees(180));
-        poseStack.translate(0,animatable.getYAxisOffset(),0);
+        if (animatable.transformsLaserLayerFromBone()) {
+            // Function: heavy laser samples the locater bone directly, matching its server-side raycast origin.
+            RenderUtil.translateMatrixToBone(poseStack, bone);
+            RenderUtil.rotateMatrixAroundBone(poseStack, bone);
+            RenderUtil.scaleMatrixForBone(poseStack, bone);
+        }
+        if (animatable.flipsLaserLayerDirection()) {
+            poseStack.mulPose(Axis.YP.rotationDegrees(180));
+        }
+        poseStack.translate(0, animatable.getLaserLayerYOffset(), 0);
         PoseStack.Pose last = poseStack.last();
         Matrix4f pose = last.pose();
         Matrix3f normal = last.normal();
-        // 使用我们自定义的 RenderType
         VertexConsumer vc = bufferSource.getBuffer(FLAME_RENDER_TYPE);
+        float length = (float) flameLength;
+        float radius = animatable.getLaserLayerRadius();
 
-        float[][] layers = new float[LENGTH_SEGMENTS + 1][];
-
-        for (int i = 0; i <= LENGTH_SEGMENTS; i++) {
-            float t = i / (float) LENGTH_SEGMENTS;
-
-            float z = (float) (t * FLAME_LENGTH);
-            float radius = BASE_RADIUS + (TIP_RADIUS - BASE_RADIUS) * t;
-
-            float r = lerp(0.7f, 0.3f, t);
-            float g = lerp(0.4f, 0.4f, t);
-            float b = lerp(0.9f, 0.9f, t);
-            float a = lerp(0.5f, 0.5f, t);
-
-            layers[i] = new float[]{z, radius, r, g, b, a};
+        if (animatable.usesSquareLaserLayerBeam()) {
+            drawSquareBeam(animatable, vc, pose, normal, length, radius);
+        } else {
+            drawSegmentedBeam(animatable, vc, pose, normal, length, radius);
         }
 
-        // 渲染圆锥侧面
+        poseStack.popPose();
+    }
+
+    private void drawSegmentedBeam(T animatable, VertexConsumer vc, Matrix4f pose, Matrix3f normal,
+                                   float length, float radius) {
+        int lengthSegments = Math.max(1, animatable.getLaserLayerLengthSegments());
+        float[][] layers = buildLayers(animatable, length, radius, lengthSegments);
+
         for (int seg = 0; seg < SEGMENTS; seg++) {
-            float a1 = (seg) / (float) SEGMENTS * M_2PI;
+            float a1 = seg / (float) SEGMENTS * M_2PI;
             float a2 = (seg + 1f) / (float) SEGMENTS * M_2PI;
+            float cos1 = (float) Math.cos(a1);
+            float sin1 = (float) Math.sin(a1);
+            float cos2 = (float) Math.cos(a2);
+            float sin2 = (float) Math.sin(a2);
 
-            float cos1 = (float) Math.cos(a1), sin1 = (float) Math.sin(a1);
-            float cos2 = (float) Math.cos(a2), sin2 = (float) Math.sin(a2);
-
-            for (int i = 0; i < LENGTH_SEGMENTS; i++) {
+            for (int i = 0; i < lengthSegments; i++) {
                 float[] p1 = layers[i];
                 float[] p2 = layers[i + 1];
-
-                float z1 = p1[0]; float r1 = p1[1];
-                float z2 = p2[0]; float r2 = p2[1];
+                float z1 = p1[0];
+                float r1 = p1[1];
+                float z2 = p2[0];
+                float r2 = p2[1];
 
                 vertex(vc, pose, normal, r1 * cos1, r1 * sin1, z1, p1[2], p1[3], p1[4], p1[5]);
                 vertex(vc, pose, normal, r1 * cos2, r1 * sin2, z1, p1[2], p1[3], p1[4], p1[5]);
@@ -103,25 +107,63 @@ public class TurretLaserLayer extends GeoRenderLayer<AbstractTurretBlockEntity> 
                 vertex(vc, pose, normal, r2 * cos1, r2 * sin1, z2, p2[2], p2[3], p2[4], p2[5]);
             }
         }
-
-        poseStack.popPose();
     }
 
-    private static float lerp(float a, float b, float t) {
-        return a + (b - a) * t;
+    private void drawSquareBeam(T animatable, VertexConsumer vc, Matrix4f pose, Matrix3f normal,
+                                float length, float radius) {
+        int lengthSegments = Math.max(1, animatable.getLaserLayerLengthSegments());
+        float[][] layers = buildLayers(animatable, length, radius, lengthSegments);
+
+        for (int i = 0; i < lengthSegments; i++) {
+            float[] p1 = layers[i];
+            float[] p2 = layers[i + 1];
+            // Function: square beams use the declared laser radius as the half-size on both local axes.
+            quad(vc, pose, normal, -p1[1], -p1[1], p1[0], p1[1], -p1[1], p1[0],
+                    p2[1], -p2[1], p2[0], -p2[1], -p2[1], p2[0], p1, p2);
+            quad(vc, pose, normal, p1[1], -p1[1], p1[0], p1[1], p1[1], p1[0],
+                    p2[1], p2[1], p2[0], p2[1], -p2[1], p2[0], p1, p2);
+            quad(vc, pose, normal, p1[1], p1[1], p1[0], -p1[1], p1[1], p1[0],
+                    -p2[1], p2[1], p2[0], p2[1], p2[1], p2[0], p1, p2);
+            quad(vc, pose, normal, -p1[1], p1[1], p1[0], -p1[1], -p1[1], p1[0],
+                    -p2[1], -p2[1], p2[0], -p2[1], p2[1], p2[0], p1, p2);
+        }
     }
 
-    private static final float M_2PI = (float) (Math.PI * 2);
+    private float[][] buildLayers(T animatable, float length, float radius, int lengthSegments) {
+        float[][] layers = new float[lengthSegments + 1][];
+        for (int i = 0; i <= lengthSegments; i++) {
+            float t = i / (float) lengthSegments;
+            layers[i] = new float[]{
+                    t * length,
+                    radius,
+                    animatable.getLaserLayerRed(t),
+                    animatable.getLaserLayerGreen(t),
+                    animatable.getLaserLayerBlue(t),
+                    animatable.getLaserLayerAlpha(t)
+            };
+        }
+        return layers;
+    }
 
-    // 去掉 light 参数，直接写死全亮
+    private static void quad(VertexConsumer vc, Matrix4f pose, Matrix3f normal,
+                             float x1, float y1, float z1,
+                             float x2, float y2, float z2,
+                             float x3, float y3, float z3,
+                             float x4, float y4, float z4,
+                             float[] p1, float[] p2) {
+        vertex(vc, pose, normal, x1, y1, z1, p1[2], p1[3], p1[4], p1[5]);
+        vertex(vc, pose, normal, x2, y2, z2, p1[2], p1[3], p1[4], p1[5]);
+        vertex(vc, pose, normal, x3, y3, z3, p2[2], p2[3], p2[4], p2[5]);
+        vertex(vc, pose, normal, x4, y4, z4, p2[2], p2[3], p2[4], p2[5]);
+    }
+
     private static void vertex(VertexConsumer vc, Matrix4f pose, Matrix3f normal,
                                float x, float y, float z,
                                float r, float g, float b, float a) {
         vc.addVertex(pose, x, y, z)
                 .setColor(r, g, b, a)
                 .setOverlay(0)
-                .setLight(FULL_BRIGHT)                 // 全亮
-                .setNormal(0, 1, 0)          // 法线随便填，shader 不使用光照
-                ;
+                .setLight(FULL_BRIGHT)
+                .setNormal(0, 1, 0);
     }
 }

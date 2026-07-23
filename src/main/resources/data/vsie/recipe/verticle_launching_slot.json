@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "vsie:computronic_substrate"
+    },
+    "R": {
+      "item": "create:crafter_slot_cover"
+    },
+    "M": {
+      "item": "vsie:metalic_microlattice"
+    },
+    "D": {
+      "item": "simulated:docking_connector"
+    },
+    "S": {
+      "item": "vsie:silicon_carbide"
+    },
+    "F": {
+      "item": "minecraft:flint_and_steel"
+    }
+  },
+  "pattern": [
+    "CRC",
+    "MDM",
+    "SFS"
+  ],
+  "result": {
+    "id": "vsie:verticle_launching_slot"
+  },
+  "show_notification": true
+}

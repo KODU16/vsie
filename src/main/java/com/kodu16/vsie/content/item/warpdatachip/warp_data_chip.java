@@ -85,7 +85,15 @@ public class warp_data_chip extends Item {
                 tag.put(KEY_WARP_DATA, warpDataTag);
             });
 
-            player.displayClientMessage(Component.translatable("item.vsie.warp_data_chip.recorded_message", currentPos, dimensionId).withStyle(ChatFormatting.AQUA), true);
+            // Function: chat translation args must be plain text/components, not raw BlockPos or registry objects.
+            player.displayClientMessage(
+                    Component.translatable(
+                            "item.vsie.warp_data_chip.recorded_message",
+                            formatBlockPos(currentPos),
+                            dimensionId
+                    ).withStyle(ChatFormatting.AQUA),
+                    true
+            );
         }
 
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
@@ -101,7 +109,12 @@ public class warp_data_chip extends Item {
             return;
         }
 
-        tooltip.add(Component.translatable("item.vsie.warp_data_chip.pos.tooltip", storedWarpData.pos()).withStyle(ChatFormatting.AQUA));
+        tooltip.add(Component.translatable("item.vsie.warp_data_chip.pos.tooltip", formatBlockPos(storedWarpData.pos())).withStyle(ChatFormatting.AQUA));
         tooltip.add(Component.translatable("item.vsie.warp_data_chip.dimension.tooltip", storedWarpData.dimensionId()).withStyle(ChatFormatting.AQUA));
+    }
+
+    private static String formatBlockPos(BlockPos pos) {
+        // Function: keep warp-chip text serialization stable across chat messages and tooltips.
+        return pos.getX() + ", " + pos.getY() + ", " + pos.getZ();
     }
 }

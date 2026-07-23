@@ -1,5 +1,5 @@
 {
-  "name": "电子基质",
+  "name": "Computronic Substrate",
   "icon": "vsie:computronic_substrate",
   "category": "vsie:materials",
   "sortnum": 0,
@@ -7,8 +7,8 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:computronic_substrate",
-      "title": "电子基质",
-      "text": "电子基质是更为先进的 Aeronaunics 可编程物质。组成电子基质的“原子”可以模拟大多数已知元素和粒子，无论自然的还是人造的。$(br2)这项优异的性能让它得以广泛应用，是AeroIE空间站和飞船设计的基础。"
+      "title": "Computronic Substrate",
+      "text": "Computronic Substrate is a more advanced form of Aeronautics programmable matter. Its constituent \"atoms\" can simulate most known elements and particles, whether natural or artificial.$(br2)This exceptional flexibility makes it widely useful and a foundation of AeroIE space-station and spacecraft design."
     }
   ]
 }

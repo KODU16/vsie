@@ -1,0 +1,25 @@
+{
+  "name": "三联装625mm重型电磁炮塔",
+  "icon": "vsie:heavy_electromagnet_turret",
+  "category": "vsie:turret",
+  "sortnum": 21,
+  "extra_recipe_mappings": {
+    "vsie:heavy_electromagnet_turret": 0
+  },
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:heavy_electromagnet_turret",
+      "title": "三联装625mm重型电磁炮塔",
+      "text": "$(br2)三联装 625mm 重型电磁炮塔。$(br2)每次射击时会三连发电磁推进的大质量穿甲弹，仅支持在子维度上工作。"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "绑定控制椅后支持三种模式：自动（自动射击敌对子维度）、手动（若玩家视角未锁定则采用当前玩家头瞄火控，若视角锁定则待机）、智能（若玩家视角未锁定则采用当前玩家头瞄火控，若视角锁定则自动射击敌对子维度）。"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "对敌对子维度非常有效，但缺乏爆炸和范围破坏能力。$(br2)最大索敌距离/射程：256。"
+    }
+  ]
+}

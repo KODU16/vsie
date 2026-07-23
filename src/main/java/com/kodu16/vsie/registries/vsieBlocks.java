@@ -299,6 +299,15 @@ public class vsieBlocks {
             .properties(p -> p.durability(SMALL_AMMOBOX_DURABILITY))
             .build()
             .register();
+    // Function: electromagnet shell is a placeable block item so later edits can add real block behavior without replacing the ammo id.
+    public static final BlockEntry<Block> ELECTRO_MAGNET_SHELL_BLOCK = REGISTRATE.block("electro_magnet_shell", Block::new)
+            .properties(p -> p.mapColor(MapColor.METAL))
+            .properties(p -> p.requiresCorrectToolForDrops())
+            .properties(p -> p.sound(SoundType.METAL))
+            .properties(p -> p.strength(5.5f, 4.0f))
+            .properties(p -> p.noOcclusion())
+            .simpleItem()
+            .register();
     public static final BlockEntry<ElectroMagnetRailCoreBlock> ELECTRO_MAGNET_RAIL_CORE_BLOCK = REGISTRATE.block("electro_magnet_rail_core", ElectroMagnetRailCoreBlock::new)
             .properties(p -> p.mapColor(MapColor.METAL))
             .properties(p -> p.requiresCorrectToolForDrops())

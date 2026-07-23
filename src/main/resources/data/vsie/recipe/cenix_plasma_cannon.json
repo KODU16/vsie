@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "S": {
+      "item": "vsie:silicon_carbide"
+    },
+    "C": {
+      "item": "vsie:computronic_substrate"
+    },
+    "M": {
+      "item": "vsie:metalic_microlattice"
+    },
+    "E": {
+      "item": "minecraft:end_crystal"
+    },
+    "P": {
+      "item": "aeronautics:mounted_potato_cannon"
+    }
+  },
+  "pattern": [
+    "SSC",
+    "MEP",
+    "SSS"
+  ],
+  "result": {
+    "id": "vsie:cenix_plasma_cannon"
+  },
+  "show_notification": true
+}

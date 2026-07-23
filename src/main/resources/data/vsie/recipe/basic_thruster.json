@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "S": {
+      "item": "vsie:silicon_carbide"
+    },
+    "P": {
+      "item": "create:mechanical_pump"
+    },
+    "T": {
+      "item": "create:fluid_tank"
+    },
+    "E": {
+      "item": "simulated:engine_assembly"
+    },
+    "M": {
+      "item": "vsie:metalic_microlattice"
+    },
+    "C": {
+      "item": "vsie:computronic_substrate"
+    }
+  },
+  "pattern": [
+    "SPS",
+    "TET",
+    "MCM"
+  ],
+  "result": {
+    "id": "vsie:basic_thruster"
+  },
+  "show_notification": true
+}

@@ -1,14 +1,11 @@
 package com.kodu16.vsie.content.vectorthruster.client;
 
-// NeoForge 1.21.1 迁移：ResourceLocation 构造器已不可用，这里统一改用静态工厂方法创建资源ID。
-
-
 import com.kodu16.vsie.content.vectorthruster.AbstractVectorThrusterBlockEntity;
 import com.kodu16.vsie.vsie;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import software.bernie.geckolib.cache.object.GeoBone;
 import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.cache.object.GeoBone;
 import software.bernie.geckolib.model.DefaultedBlockGeoModel;
 
 import java.util.HashMap;
@@ -16,6 +13,9 @@ import java.util.Map;
 
 @SuppressWarnings({"removal"})
 public class AbstractVectorThrusterModel extends DefaultedBlockGeoModel<AbstractVectorThrusterBlockEntity> {
+
+    // Function: keep smoothing state per rendered instance so vector thrusters do not share rotation interpolation.
+    private final Map<Long, float[]> smoothStateByInstance = new HashMap<>();
 
     public AbstractVectorThrusterModel() {
         super(ResourceLocation.fromNamespaceAndPath(vsie.ID, "vector_thruster"));
@@ -45,64 +45,34 @@ public class AbstractVectorThrusterModel extends DefaultedBlockGeoModel<Abstract
         };
     }
 
-    // 功能：按实例缓存平滑插值状态，避免多个矢量推进器共享同一组插值变量导致互相串扰
-    private final Map<Long, float[]> smoothStateByInstance = new HashMap<>();
-
     @Override
     public void setCustomAnimations(AbstractVectorThrusterBlockEntity animatable, long instanceId, AnimationState<AbstractVectorThrusterBlockEntity> animationState) {
         GeoBone spinner = getAnimationProcessor().getBone("spinner");
         GeoBone nozzle = getAnimationProcessor().getBone("nozzle");
-
-        if (spinner == null || nozzle == null)
-        {
+        if (spinner == null || nozzle == null) {
             return;
         }
-        //double targetSpin = animatable.getSpinDegrees();
-        //double targetPitch = animatable.getPitchDegrees();
-        double targetSpin = getspin(animatable);
-        double targetPitch = getpitch(animatable);
-        //LogUtils.getLogger().warn("receiving spin:"+targetSpin+"pitch:"+targetPitch);
 
-        // 转换为度数进行插值（rotLerp 专门处理角度循环问题，如从359°到1°不会走长路）
-        //float targetSpinDeg = (float) Math.toDegrees(targetSpinRad);
-        //float targetPitchDeg = (float) Math.toDegrees(targetPitchRad);
-
-        // 使用 rotLerp 平滑插值（0.1F ~ 0.3F 之间调节平滑程度，值越小越平滑但越慢）
-        // 功能：每个方块实体都有独立的 lastSpin/lastPitch，修复“放下第二个后第一个也偏转”的问题
+        double targetSpin = getSpin(animatable);
+        double targetPitch = getPitch(animatable);
         float[] state = smoothStateByInstance.computeIfAbsent(instanceId, id -> new float[]{0f, 0f});
-        float smoothSpinrad = Mth.rotLerp(0.05F, state[0], (float) targetSpin);
-        float smoothPitchrad = Mth.rotLerp(0.05F, state[1], (float) targetPitch);
+        float smoothSpinRad = Mth.rotLerp(0.05F, state[0], (float) targetSpin);
+        float smoothPitchRad = Mth.rotLerp(0.05F, state[1], (float) targetPitch);
 
-        // 功能：回写当前实例的平滑状态，供下一帧该实例继续插值
-        state[0] = smoothSpinrad;
-        state[1] = smoothPitchrad;
+        state[0] = smoothSpinRad;
+        state[1] = smoothPitchRad;
 
-        // 设置回骨骼（转回弧度）
-        spinner.setRotY((float) (Math.PI+smoothSpinrad));
-        nozzle.setRotX((float) (Math.PI+smoothPitchrad));
+        spinner.setRotY((float) (Math.PI + smoothSpinRad));
+        nozzle.setRotX((float) (Math.PI + smoothPitchRad));
     }
 
-    private boolean controlling(AbstractVectorThrusterBlockEntity animatable) {
-        return true;
-    }
-
-    private float lerp(float start, float end) {
-        return Mth.rotLerp(0.1F, start * Mth.RAD_TO_DEG, end * Mth.RAD_TO_DEG) * Mth.DEG_TO_RAD;
-    }
-
-    private double getspin(AbstractVectorThrusterBlockEntity animatable) {
+    private double getSpin(AbstractVectorThrusterBlockEntity animatable) {
         Double spin = animatable.getAnimData(AbstractVectorThrusterBlockEntity.VECTOR_THRUSTER_YAW);
-        if(spin != null) {
-            return spin;
-        }
-        return 0;
+        return spin != null ? spin : 0.0D;
     }
 
-    private double getpitch(AbstractVectorThrusterBlockEntity animatable) {
+    private double getPitch(AbstractVectorThrusterBlockEntity animatable) {
         Double pitch = animatable.getAnimData(AbstractVectorThrusterBlockEntity.VECTOR_THRUSTER_PITCH);
-        if(pitch != null) {
-            return pitch;
-        }
-        return 0;
+        return pitch != null ? pitch : 0.0D;
     }
 }

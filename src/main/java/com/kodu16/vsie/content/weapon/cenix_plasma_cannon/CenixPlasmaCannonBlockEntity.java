@@ -4,6 +4,7 @@ import com.kodu16.vsie.content.bullet.entity.CenixPlasmaBulletEntity;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
 import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.registries.vsieEntities;
+import com.kodu16.vsie.registries.vsieItems;
 import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
@@ -35,13 +36,13 @@ public class CenixPlasmaCannonBlockEntity extends AbstractWeaponBlockEntity {
 
     @Override
     public boolean isEnergyWeapon() {
-        // Function: the plasma cannon uses energy-only shots and therefore hides the shared ammo inventory.
-        return true;
+        // Function: Cenix plasma consumes particle containers through the shared weapon ammo inventory.
+        return false;
     }
 
     @Override
     public Item getAmmoItem() {
-        return null;
+        return vsieItems.PARTICLE_CONTAINER.get();
     }
 
     @Override
@@ -69,6 +70,7 @@ public class CenixPlasmaCannonBlockEntity extends AbstractWeaponBlockEntity {
         CenixPlasmaBulletEntity bullet = new CenixPlasmaBulletEntity(vsieEntities.CENIX_PLASMA_BULLET.get(), level);
         // Function: sync the full launch axis so the client does not begin from vanilla-clamped velocity direction.
         bullet.setPos(spawnPos.add(launchDirection.scale(1.2D)));
+        bullet.setLaunchSubLevel(subLevel);
         bullet.setPreciseLaunchVelocity(launchDirection);
         bullet.setBreaksBlocksEnabled(breaksBlocksEnabled());
         level.addFreshEntity(bullet);

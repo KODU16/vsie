@@ -1,5 +1,5 @@
 {
-  "name": "基础导弹",
+  "name": "Basic Missile",
   "icon": "vsie:basic_missile",
   "category": "vsie:materials",
   "sortnum": 6,
@@ -7,8 +7,8 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:basic_missile",
-      "title": "基础导弹",
-      "text": "一种普通的导弹，它可以由导弹发射槽或垂发发射，持续追踪敌对子维度（详见武器：导弹、发射器和垂发章节）。它的爆炸范围比普通tnt大，对防爆方块的破坏力更强"
+      "title": "Basic Missile",
+      "text": "An ordinary guided missile that can be fired from a Missile Launcher or Vertical Launch System. It continuously tracks a hostile subspace; see Weapons: Missiles, Launchers, and VLS. Its explosion is larger than ordinary TNT and more effective against blast-resistant blocks."
     }
   ]
 }

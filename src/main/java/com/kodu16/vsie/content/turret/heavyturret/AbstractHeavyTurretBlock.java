@@ -33,7 +33,8 @@ public abstract class AbstractHeavyTurretBlock extends AbstractTurretBlock {
                 serverPlayer.openMenu(new MenuProvider() {
                     @Override
                     public Component getDisplayName() {
-                        return Component.translatable("container.vsie.heavy_turret");
+                        // Function: heavy turret GUIs should show the concrete block name instead of the generic heavy controls title.
+                        return Component.translatable(turret.getBlockState().getBlock().getDescriptionId());
                     }
 
                     @Override

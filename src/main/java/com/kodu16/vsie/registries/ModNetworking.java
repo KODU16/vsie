@@ -1,4 +1,3 @@
-// 我爱GPT5
 package com.kodu16.vsie.registries;
 
 import com.kodu16.vsie.network.IFF.IFFC2SPacket;
@@ -17,6 +16,8 @@ import com.kodu16.vsie.network.fx.FxPositionS2CPacket;
 import com.kodu16.vsie.network.rail.ElectroMagnetRailCoreDetectC2SPacket;
 import com.kodu16.vsie.network.screen.ScreenC2SPacket;
 import com.kodu16.vsie.network.screen.ScreentypeC2SPacket;
+import com.kodu16.vsie.network.sound.RailCannonFireSoundS2CPacket;
+import com.kodu16.vsie.network.storage.AmmoBoxRefillMarkerS2CPacket;
 import com.kodu16.vsie.network.thruster.ThrusterS2CPacket;
 import com.kodu16.vsie.network.thruster.ThrusterLimitC2SPacket;
 import com.kodu16.vsie.network.thruster.VectorThrusterS2CPacket;
@@ -40,12 +41,10 @@ public final class ModNetworking {
     private ModNetworking() {
     }
 
-    // 功能：在 NeoForge 1.21.1 中通过事件总线监听 RegisterPayloadHandlersEvent 来注册所有网络载荷。
     public static void register(IEventBus modBus) {
         modBus.addListener(ModNetworking::registerPayloads);
     }
 
-    // 功能：按方向注册 play 阶段 payload，替代旧版 SimpleChannel#registerMessage。
     private static void registerPayloads(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar(PROTOCOL);
 
@@ -76,19 +75,18 @@ public final class ModNetworking {
         registrar.playToClient(ThrusterS2CPacket.TYPE, ThrusterS2CPacket.STREAM_CODEC, ThrusterS2CPacket::handle);
         registrar.playToClient(VectorThrusterS2CPacket.TYPE, VectorThrusterS2CPacket.STREAM_CODEC, VectorThrusterS2CPacket::handle);
         registrar.playToClient(SyncThrusterFuelsPacket.TYPE, SyncThrusterFuelsPacket.STREAM_CODEC, SyncThrusterFuelsPacket::handle);
+        registrar.playToClient(AmmoBoxRefillMarkerS2CPacket.TYPE, AmmoBoxRefillMarkerS2CPacket.STREAM_CODEC, AmmoBoxRefillMarkerS2CPacket::handle);
+        registrar.playToClient(RailCannonFireSoundS2CPacket.TYPE, RailCannonFireSoundS2CPacket.STREAM_CODEC, RailCannonFireSoundS2CPacket::handle);
     }
 
-    // 功能：封装客户端->服务端发包，统一替换旧 CHANNEL.sendToServer。
     public static void sendToServer(CustomPacketPayload payload) {
         PacketDistributor.sendToServer(payload);
     }
 
-    // 功能：封装服务端->全体玩家发包，统一替换旧 PacketDistributor.ALL。
     public static void sendToAll(CustomPacketPayload payload) {
         PacketDistributor.sendToAllPlayers(payload);
     }
 
-    // 功能：封装服务端->指定玩家发包，统一替换旧 PacketDistributor.PLAYER。
     public static void sendToPlayer(CustomPacketPayload payload, ServerPlayer player) {
         PacketDistributor.sendToPlayer(player, payload);
     }

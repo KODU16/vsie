@@ -1,0 +1,39 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "E": {
+      "item": "vsie:medium_energy_battery"
+    },
+    "R": {
+      "item": "create:rotation_speed_controller"
+    },
+    "M": {
+      "item": "create:minecart_coupling"
+    },
+    "N": {
+      "item": "simulated:navigation_table"
+    },
+    "A": {
+      "item": "simulated:auger_cog"
+    },
+    "S": {
+      "item": "vsie:silicon_carbide"
+    },
+    "B": {
+      "item": "create:mechanical_bearing"
+    },
+    "V": {
+      "item": "create:content_observer"
+    }
+  },
+  "pattern": [
+    "ERM",
+    "NA ",
+    "SBV"
+  ],
+  "result": {
+    "id": "vsie:basic_ciws"
+  },
+  "show_notification": true
+}

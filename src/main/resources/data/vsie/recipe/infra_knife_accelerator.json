@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "S": {
+      "item": "vsie:silicon_carbide"
+    },
+    "C": {
+      "item": "vsie:computronic_substrate"
+    },
+    "M": {
+      "item": "vsie:metalic_microlattice"
+    },
+    "O": {
+      "item": "simulated:optical_sensor"
+    },
+    "E": {
+      "item": "create:electron_tube"
+    }
+  },
+  "pattern": [
+    "SSS",
+    "CMO",
+    "E  "
+  ],
+  "result": {
+    "id": "vsie:infra_knife_accelerator"
+  },
+  "show_notification": true
+}

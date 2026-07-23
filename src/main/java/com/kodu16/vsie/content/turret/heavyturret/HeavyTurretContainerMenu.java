@@ -11,10 +11,10 @@ import net.neoforged.neoforge.items.SlotItemHandler;
 public class HeavyTurretContainerMenu extends AbstractContainerMenu {
     public static final int INTERNAL_SLOT_COUNT = 9;
     public static final int INTERNAL_SLOT_X = 33;
-    public static final int INTERNAL_SLOT_Y = 164;
+    public static final int INTERNAL_SLOT_Y = 190;
     public static final int PLAYER_INVENTORY_X = 33;
-    public static final int PLAYER_INVENTORY_Y = 216;
-    public static final int PLAYER_HOTBAR_Y = 274;
+    public static final int PLAYER_INVENTORY_Y = 232;
+    public static final int PLAYER_HOTBAR_Y = 290;
     private static final int PLAYER_INVENTORY_COLUMNS = 9;
     private static final int PLAYER_INVENTORY_ROWS = 3;
     private static final int PLAYER_INVENTORY_START_SLOT = 9;

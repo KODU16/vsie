@@ -147,7 +147,8 @@ public class ElectroMagnetRailCoreBlock extends DirectionalBlock implements Enti
     @Override
     public void onRemove(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos,
                          @Nonnull BlockState newState, boolean isMoving) {
-        if (state.getBlock() != newState.getBlock() && !level.isClientSide) {
+        // Sable moves blocks with isMoving=true, so skip drop and teardown during sublevel assembly.
+        if (!isMoving && state.getBlock() != newState.getBlock() && !level.isClientSide) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof ElectroMagnetRailCoreBlockEntity coreBlockEntity) {
                 // 功能：core 被移除时，主动通知已绑定的 top 收回左右骨骼，避免 top 保持展开状态。

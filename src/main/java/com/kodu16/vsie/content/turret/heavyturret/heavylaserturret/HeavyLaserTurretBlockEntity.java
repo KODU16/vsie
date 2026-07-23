@@ -31,15 +31,18 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 import java.util.List;
 
 public class HeavyLaserTurretBlockEntity extends AbstractHeavyTurretBlockEntity {
-    private static final int SHOT_INTERVAL_TICKS = 5;
+    private static final int SHOT_INTERVAL_TICKS = 2;
+    private static final int EVERY_OTHER_SHOT_EXTRA_TICK = 1;
     private static final int COOL2_MAX_CHARGE = 10;
     private static final double COOL2_RECOVERY_PER_TICK = 0.2D;
     private static final float LASER_EXPLOSION_RADIUS = 3.0F;
+    private static final float LASER_LAYER_RADIUS = 0.8F;
     private static final float BLOCK_BREAK_TNT_CHANCE = 0.0F;
     private static final int HIT_CLEAR_RADIUS = 1;
     private static final RawAnimation SHOOT_ANIMATION = RawAnimation.begin().then("shoot", Animation.LoopType.PLAY_ONCE);
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
     private boolean recoveredChargeThisTick = false;
+    private boolean addExtraCooldownTickNextShot = false;
 
     public HeavyLaserTurretBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
@@ -59,7 +62,7 @@ public class HeavyLaserTurretBlockEntity extends AbstractHeavyTurretBlockEntity 
         }
         if (!isHeavyFireRequested()) {
             if (targetDistance > 0.0D) {
-                // Function: releasing fire input hides the persistent heavy laser beam without affecting 5-tick hit cadence.
+                // Function: releasing fire input hides the persistent heavy laser beam without affecting the alternating 2/3-tick hit cadence.
                 targetDistance = 0.0D;
                 markUpdated();
             }
@@ -86,6 +89,57 @@ public class HeavyLaserTurretBlockEntity extends AbstractHeavyTurretBlockEntity 
     @Override
     public String getturrettype() {
         return "heavy_laser";
+    }
+
+    @Override
+    public float getLaserLayerRadius() {
+        // Function: keep the heavy laser beam at its existing square-beam half-size.
+        return LASER_LAYER_RADIUS;
+    }
+
+    @Override
+    public String getLaserLayerBoneName() {
+        return "locater";
+    }
+
+    @Override
+    public boolean usesSquareLaserLayerBeam() {
+        return true;
+    }
+
+    @Override
+    public boolean transformsLaserLayerFromBone() {
+        return true;
+    }
+
+    @Override
+    public boolean flipsLaserLayerDirection() {
+        return false;
+    }
+
+    @Override
+    public int getLaserLayerLengthSegments() {
+        return 1;
+    }
+
+    @Override
+    public float getLaserLayerRed(float t) {
+        return Mth.lerp(t, 0.30F, 0.45F);
+    }
+
+    @Override
+    public float getLaserLayerGreen(float t) {
+        return Mth.lerp(t, 0.35F, 0.5F);
+    }
+
+    @Override
+    public float getLaserLayerBlue(float t) {
+        return 1.0F;
+    }
+
+    @Override
+    public float getLaserLayerAlpha(float t) {
+        return Mth.lerp(t, 0.35F, 0.75F);
     }
 
     @Override
@@ -125,6 +179,11 @@ public class HeavyLaserTurretBlockEntity extends AbstractHeavyTurretBlockEntity 
     @Override
     protected void consumeFireCooldown() {
         super.consumeFireCooldown();
+        if (addExtraCooldownTickNextShot) {
+            // Function: alternate between 2 and 3 ticks so the heavy laser averages exactly twice the old 5-tick fire rate.
+            idleTicks += EVERY_OTHER_SHOT_EXTRA_TICK;
+        }
+        addExtraCooldownTickNextShot = !addExtraCooldownTickNextShot;
         if (recoveredChargeThisTick) {
             fireCooldownValue = Math.max(0.0D, fireCooldownValue - COOL2_RECOVERY_PER_TICK);
         }
@@ -153,16 +212,28 @@ public class HeavyLaserTurretBlockEntity extends AbstractHeavyTurretBlockEntity 
     }
 
     @Override
+    protected boolean canAutomaticFireWhileAiming() {
+        // Function: heavy laser beams stay active during automatic tracking until target validity or line tracing fails.
+        return true;
+    }
+
+    @Override
     public void shootentity() {
         Level level = this.getLevel();
         if (level == null || level.isClientSide() || targetentity == null || !targetentity.isAlive() || targetentity.isRemoved()) {
             return;
         }
 
-        // Function: entity damage mirrors the medium laser hit behaviour.
-        syncVisualLaserDistance(currentworldpos.distanceTo(targetentity.position()));
+        Vec3 targetPos = targetentity.position();
+        BlockHitResult hitResult = traceHeavyLaserHit(level, targetPos);
+        syncVisualLaserDistance(resolveVisualImpactDistance(hitResult, targetPos));
         triggerAnim("controller", "shoot");
-        targetentity.hurt(level.damageSources().onFire(), 15.0F);
+        if (hitResult.getType() == HitResult.Type.BLOCK && !isBlockOnSameShipAsTurret(hitResult.getBlockPos())) {
+            applyHeavyLaserHit(level, hitResult.getBlockPos());
+            return;
+        }
+        // Function: laser damage is not fire damage, so fire-immune mobs must still take beam hits.
+        targetentity.hurt(level.damageSources().generic(), 15.0F);
     }
 
     @Override
@@ -176,25 +247,9 @@ public class HeavyLaserTurretBlockEntity extends AbstractHeavyTurretBlockEntity 
         if (hitPos.equals(BlockPos.ZERO)) {
             return;
         }
-
-        if (breaksBlocksEnabled()) {
-            for (BlockPos pos : BlockPos.betweenClosed(
-                    hitPos.offset(-1, -1, -1),
-                    hitPos.offset(1, 1, 1)
-            )) {
-                breakTurretTargetBlockAsMined(level, pos);
-            }
-        }
-
-        level.explode(
-                null,
-                hitPos.getX() + 0.5D,
-                hitPos.getY() + 0.5D,
-                hitPos.getZ() + 0.5D,
-                3.0F,
-                true,
-                Level.ExplosionInteraction.NONE
-        );
+        syncVisualLaserDistance(currentworldpos.distanceTo(Vec3.atCenterOf(hitPos)));
+        triggerAnim("controller", "shoot");
+        applyHeavyLaserHit(level, hitPos);
     }
 
     @Override
@@ -226,11 +281,6 @@ public class HeavyLaserTurretBlockEntity extends AbstractHeavyTurretBlockEntity 
         return target == null ? null : getCannonMuzzleWorld(target);
     }
 
-    private ShotTrace resolveShotTrace(Level level, Vec3 muzzle, Vec3 target) {
-        // Function: manual/smart heavy-laser firing is disabled; automatic mode mirrors medium laser target tracing.
-        return new ShotTrace(target, traceMediumLaserHit(level, currentworldpos, target));
-    }
-
     private BlockHitResult traceMediumLaserHit(Level level, Vec3 from, Vec3 target) {
         if (from.distanceToSqr(target) < 1.0E-6D) {
             return BlockHitResult.miss(from, Direction.UP, BlockPos.containing(from));
@@ -244,6 +294,20 @@ public class HeavyLaserTurretBlockEntity extends AbstractHeavyTurretBlockEntity 
                 ClipContext.Fluid.NONE,
                 CollisionContext.empty()
         );
+    }
+
+    private BlockHitResult traceHeavyLaserHit(Level level, Vec3 target) {
+        Vec3 muzzle = resolveLaserMuzzleWorld(target);
+        Vec3 traceStart = muzzle != null ? muzzle : currentworldpos;
+        // Function: heavy-laser block impacts must use the muzzle sample so the broken area matches the rendered beam.
+        return traceMediumLaserHit(level, traceStart, target);
+    }
+
+    private double resolveVisualImpactDistance(BlockHitResult hitResult, Vec3 target) {
+        Vec3 muzzle = resolveLaserMuzzleWorld(target);
+        Vec3 traceStart = muzzle != null ? muzzle : currentworldpos;
+        Vec3 impact = hitResult.getType() == HitResult.Type.BLOCK ? hitResult.getLocation() : target;
+        return traceStart.distanceTo(impact);
     }
 
     private void syncVisualLaserDistance(double distance) {
@@ -264,38 +328,41 @@ public class HeavyLaserTurretBlockEntity extends AbstractHeavyTurretBlockEntity 
         return turretShip != null && hitShip != null && hitShip.hashCode() == turretShip.hashCode();
     }
 
-    private void applyMediumLaserHit(Level level, BlockPos hitPos) {
-        if (!breaksBlocksEnabled()) {
-            level.explode(
-                    null,
-                    hitPos.getX() + 0.5D,
-                    hitPos.getY() + 0.5D,
-                    hitPos.getZ() + 0.5D,
-                    LASER_EXPLOSION_RADIUS,
-                    true,
-                    Level.ExplosionInteraction.NONE
-            );
-            return;
+    private void applyHeavyLaserHit(Level level, BlockPos hitPos) {
+        BlockPos bodyHitPos = resolveSubLevelBodyHitPos(level, hitPos);
+        // Function: heavy laser now reuses medium laser's body-hit cleanup path and only expands the cleared cube to 3x3x3.
+        if (breaksBlocksEnabled()) {
+            for (BlockPos pos : BlockPos.betweenClosed(
+                    bodyHitPos.offset(-HIT_CLEAR_RADIUS, -HIT_CLEAR_RADIUS, -HIT_CLEAR_RADIUS),
+                    bodyHitPos.offset(HIT_CLEAR_RADIUS, HIT_CLEAR_RADIUS, HIT_CLEAR_RADIUS)
+            )) {
+                breakTurretTargetBlockAsMined(level, pos);
+            }
         }
-        // Function: heavy laser must break the hit cube through the vanilla break event path so no drops are created.
-        for (BlockPos pos : BlockPos.betweenClosed(
-                hitPos.offset(-HIT_CLEAR_RADIUS, -HIT_CLEAR_RADIUS, -HIT_CLEAR_RADIUS),
-                hitPos.offset(HIT_CLEAR_RADIUS, HIT_CLEAR_RADIUS, HIT_CLEAR_RADIUS)
-        )) {
-            breakTurretTargetBlockAsMined(level, pos);
-        }
-        // Function: keep the heavy laser explosion visual-only because the actual block removal already happened above.
         level.explode(
                 null,
                 hitPos.getX() + 0.5D,
                 hitPos.getY() + 0.5D,
                 hitPos.getZ() + 0.5D,
                 LASER_EXPLOSION_RADIUS,
-                true,
+                false,
                 Level.ExplosionInteraction.NONE
         );
     }
 
-    private record ShotTrace(Vec3 target, BlockHitResult hitResult) {
+    private BlockPos resolveSubLevelBodyHitPos(Level level, BlockPos hitPos) {
+        SubLevel hitSubLevel = ServerShipUtils.getSubLevelAtBlockPos(level, hitPos);
+        if (hitSubLevel != null) {
+            return hitPos;
+        }
+
+        SubLevel targetShip = getCurrentHeavyTargetShip();
+        if (targetShip == null) {
+            return hitPos;
+        }
+
+        // Function: visual/world hit positions must be projected into the locked sublevel body coordinates before breaking ship blocks.
+        Vec3 bodyHitCenter = targetShip.logicalPose().transformPositionInverse(Vec3.atCenterOf(hitPos));
+        return BlockPos.containing(bodyHitCenter);
     }
 }

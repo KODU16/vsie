@@ -1,0 +1,14 @@
+{
+  "type": "create:emptying",
+  "ingredients": [
+    {
+      "item": "vsie:particle_container"
+    }
+  ],
+  "results": [
+    {
+      "amount": 1000,
+      "id": "vsie:charged_particles_fuel"
+    }
+  ]
+}

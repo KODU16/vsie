@@ -1,0 +1,14 @@
+{
+  "name": "金属微晶",
+  "icon": "vsie:metalic_microlattice",
+  "category": "vsie:materials",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:metalic_microlattice",
+      "title": "金属微晶",
+      "text": "金属微晶是一种由超轻金属泡沫构成的合成多孔金属材料。$(br2)它用途广泛，包括制造高性能载具中用于强化结构和进行热传导的超轻型高效部件等。"
+    }
+  ]
+}

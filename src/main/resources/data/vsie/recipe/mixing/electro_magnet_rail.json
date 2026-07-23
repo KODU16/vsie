@@ -1,0 +1,34 @@
+{
+  "type": "create:mixing",
+  "heat_requirement": "heated",
+  "ingredients": [
+    {
+      "item": "minecraft:lodestone"
+    },
+    {
+      "item": "simulated:redstone_magnet"
+    },
+    {
+      "item": "vsie:silicon_carbide"
+    },
+    {
+      "item": "vsie:silicon_carbide"
+    },
+    {
+      "item": "vsie:metalic_microlattice"
+    },
+    {
+      "item": "vsie:metalic_microlattice"
+    },
+    {
+      "type": "neoforge:single",
+      "amount": 125,
+      "fluid": "create:honey"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:electro_magnet_rail"
+    }
+  ]
+}

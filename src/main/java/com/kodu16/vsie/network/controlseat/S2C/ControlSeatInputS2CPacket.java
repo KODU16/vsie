@@ -15,6 +15,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.network.NetworkEvent;
 import org.slf4j.Logger;
 
+import java.util.UUID;
 import java.util.function.Supplier;
 
 //按键的packet必须慢发包，否则按一下按键跳三下，所以单独出来了
@@ -25,25 +26,29 @@ public class ControlSeatInputS2CPacket implements CustomPacketPayload {
     public static final StreamCodec<FriendlyByteBuf, ControlSeatInputS2CPacket> STREAM_CODEC = CustomPacketPayload.codec(ControlSeatInputS2CPacket::write, ControlSeatInputS2CPacket::decode);
 
     private final BlockPos pos;
+    private final UUID seatEntityId;
     private final int channelencode;
 
     // 构造函数
-    public ControlSeatInputS2CPacket(BlockPos pos, int channelencode) {
+    public ControlSeatInputS2CPacket(BlockPos pos, UUID seatEntityId, int channelencode) {
         this.pos = pos;
+        this.seatEntityId = seatEntityId;
         this.channelencode = channelencode;
     }
 
     // 编码（序列化）
     public void write(FriendlyByteBuf buf) {
         buf.writeBlockPos(pos);
+        buf.writeUUID(seatEntityId);
         buf.writeInt(channelencode);
     }
 
     // 解码（反序列化）
     public static ControlSeatInputS2CPacket decode(FriendlyByteBuf buf) {
         BlockPos pos = buf.readBlockPos();
+        UUID seatEntityId = buf.readUUID();
         int channelencode = buf.readInt();
-        return new ControlSeatInputS2CPacket(pos, channelencode);
+        return new ControlSeatInputS2CPacket(pos, seatEntityId, channelencode);
     }
 
     // 处理客户端接收到的数据包
@@ -62,7 +67,7 @@ public class ControlSeatInputS2CPacket implements CustomPacketPayload {
             Minecraft mc = Minecraft.getInstance();
             Player player = mc.player;
             // 获取对应玩家的 ControlSeatClientData
-            ControlSeatClientData clientData = ClientDataManager.getClientData(player);
+            ControlSeatClientData clientData = ClientDataManager.getClientDataForSeat(player, pos, seatEntityId);
             if (clientData == null) {
                 // 至少先打日志，方便定位
                 LogUtils.getLogger().warn("Received ControlSeatS2C but clientData is null for player {}",

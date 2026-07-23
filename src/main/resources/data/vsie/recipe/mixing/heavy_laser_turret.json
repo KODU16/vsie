@@ -1,0 +1,42 @@
+{
+  "type": "create:mixing",
+  "heat_requirement": "superheated",
+  "ingredients": [
+    {
+      "item": "vsie:large_energy_battery"
+    },
+    {
+      "item": "vsie:medium_laser_turret"
+    },
+    {
+      "item": "vsie:medium_laser_turret"
+    },
+    {
+      "item": "vsie:medium_laser_turret"
+    },
+    {
+      "item": "simulated:honey_glue"
+    },
+    {
+      "item": "minecraft:heavy_core"
+    },
+    {
+      "item": "simulated:laser_pointer"
+    },
+    {
+      "item": "simulated:laser_pointer"
+    },
+    {
+      "item": "simulated:laser_pointer"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:heavy_laser_turret"
+    },
+    {
+      "id": "vsie:small_energy_battery",
+      "count": 9
+    }
+  ]
+}

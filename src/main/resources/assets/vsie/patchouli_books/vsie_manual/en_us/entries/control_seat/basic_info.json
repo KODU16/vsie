@@ -1,5 +1,5 @@
 {
-  "name": "控制椅：什么是控制椅",
+  "name": "Control Seat: Overview",
   "icon": "vsie:control_seat",
   "category": "vsie:control_seat",
   "sortnum": 0,
@@ -10,17 +10,17 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:control_seat",
-      "title": "控制椅的基本信息",
-      "text": "控制椅是 AeroIE 系统的核心。它能够给子维度上的外设传递信息、能量乃至燃料，使得子维度成为一个操控整体。$(br2)故而，AeroIE 的绝大多数外设只能在连接同子维度（未断裂，未跨任何轴承，未解除物理化的安装位置）的控制椅的前提下运行"
+      "title": "Control Seat Basics",
+      "text": "The Control Seat is the core of AeroIE. It transfers information, energy, and even fuel to peripherals on a subspace, turning the entire subspace into one controllable vessel.$(br2)Most AeroIE peripherals therefore work only while linked to a Control Seat on the same intact subspace: the connection must not cross a bearing, and neither block may have been detached from the physical assembly."
     },
     {
       "type": "patchouli:text",
-      "title": "小趣事",
-      "text": "1、控制椅的方块硬度相当于一块石头，但实际上坐起来很舒服。$(br2)2、控制椅是 AeroaunicsIE 模组创建后（当时叫 vsie）编写的第一个方块"
+      "title": "Fun Facts",
+      "text": "1. The Control Seat has about the same block hardness as stone, but is actually quite comfortable.$(br2)2. The Control Seat was the first block implemented after the AeroIE project—then named vsie—was created."
     },
     {
       "type": "patchouli:text",
-      "text": "3、控制椅的模型作者是 @自动服务网络，感谢他"
+      "text": "3. The Control Seat model was created by Automatic Service Network. Many thanks to them."
     }
   ]
 }

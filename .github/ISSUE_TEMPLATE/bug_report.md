@@ -1,38 +1,64 @@
 ---
-name: Bug report
-about: Create a report to help us improve
-title: ''
+name: AeroIE bug report
+about: Report a reproducible problem caused by AeroIE
+title: '[Bug] '
 labels: bug
-assignees: 'illucc'
+assignees: ''
 
 ---
-**BEFORE REPORTING MAKE SURE:**
-- [ ] You are on the newest version of Kontraption and Valkyrien Skies.
-- [ ] You have tested it with only Kontraption, Valkyrien Skies, Mekanism and Kotlin for Forge installed.
-- [ ] The bug hasn't been reported already.
+# AeroIE Bug Report
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+> [!IMPORTANT]
+> This tracker only handles bugs caused by **AeroIE**. Issues unrelated to AeroIE, or reports submitted without the required crash report or game logs, will not be investigated and may be closed without further response.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+## Required checks
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+- [ ] I have searched the existing issues and confirmed that this bug has not already been reported.
+- [ ] I am using the latest compatible version of AeroIE and its required dependencies.
+- [ ] I have confirmed that the problem is caused by AeroIE, such as by reproducing it with AeroIE enabled and confirming that it disappears when AeroIE is removed, or by providing clear evidence that AeroIE appears in the error stack.
+- [ ] I have removed unrelated mods where practical and confirmed that the problem can still be reproduced.
+- [ ] I have attached `latest.log` and `debug.log`. If the game crashed, I have also attached the corresponding file from the `crash-reports` folder.
 
-**Screenshots/videos**
-If applicable, add screenshots to help explain your problem.
+## Describe the bug
 
-**Logs**
-The game logs (latest.log, debug.log).
+Clearly describe what happened and which AeroIE block, item, entity, screen, or system was involved.
 
-**Versions**
- - VS2 version:
- - Mekanism version:
+## Steps to reproduce
 
-**Additional context**
-Add any other context about the problem here.
+Provide exact and minimal steps that reliably reproduce the problem.
+
+1. <!-- First step -->
+2. <!-- Second step -->
+3. <!-- Third step -->
+
+## Expected behavior
+
+Describe what you expected to happen instead.
+
+## Logs and crash report
+
+Attach the files directly or provide a link to the complete, unmodified files. Do not paste only the final error line.
+
+- `logs/latest.log`:
+- `logs/debug.log`:
+- `crash-reports/<date-and-time>-server.txt` or client crash report, if applicable:
+
+## Versions
+
+- **Minecraft:**
+- **Java:**
+- **NeoForge:**
+- **AeroIE:**
+- **Create:**
+- **Sable:**
+- **Create: Aeronautics:**
+- **Patchouli, if installed:**
+- **Other installed mods and their versions:**
+
+## Screenshots or videos
+
+Attach any images or recordings that make the problem easier to understand.
+
+## Additional context
+
+Include anything else that may be relevant, such as whether the problem occurs in singleplayer, on a dedicated server, or only on an assembled Aeronautics ship.

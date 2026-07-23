@@ -1,0 +1,36 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "R": {
+      "item": "vsie:electro_magnet_rail"
+    },
+    "C": {
+      "item": "vsie:computronic_substrate"
+    },
+    "V": {
+      "item": "create:item_vault"
+    },
+    "F": {
+      "item": "create:brass_funnel"
+    },
+    "A": {
+      "item": "create:mechanical_arm"
+    },
+    "S": {
+      "item": "create:smart_chute"
+    },
+    "D": {
+      "item": "create:depot"
+    }
+  },
+  "pattern": [
+    "RRR",
+    "CVF",
+    "ASD"
+  ],
+  "result": {
+    "id": "vsie:heavy_electromagnet_turret"
+  },
+  "show_notification": true
+}

@@ -22,6 +22,7 @@ import net.minecraft.world.entity.player.Inventory;
 
 @SuppressWarnings("removal")
 public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
+    private static final int BASE_SCREEN_WIDTH = 176;
     private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/weapon_gui.png");
     private static final ResourceLocation AMMO_TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/weapon_gui_ammo.png");
     private static final ResourceLocation SLOT_TEXTURE = ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/slot.png");
@@ -31,21 +32,24 @@ public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
     private static final int AMMO_PANEL_BOTTOM = 139;
     private static final int INVENTORY_PANEL_TOP = 146;
     private static final int INVENTORY_PANEL_BOTTOM = 236;
-    private static final int VLS_PANEL_TOP = 78;
-    private static final int VLS_PANEL_BOTTOM = 106;
     private static final int BREAK_BLOCKS_LABEL_X = 12;
     private static final int BREAK_BLOCKS_LABEL_Y = 68;
     private static final int BREAK_BLOCKS_BUTTON_X = 94;
     private static final int BREAK_BLOCKS_BUTTON_Y = 64;
     private static final int AMMO_SCREEN_WIDTH = 228;
     private static final int AMMO_SCREEN_HEIGHT = 246;
+    private static final int[] CHANNEL_XS = {20, 59, 98, 137};
+    private static final int CHANNEL_ICON_Y = 20;
+    private static final int CHANNEL_BUTTON_Y = 40;
+    private static final int CHANNEL_SIZE = 20;
+    private static final int CHANNEL_BUTTON_HEIGHT = 10;
     private EditBox launchIntervalBox;
     private EditBox displayNameBox;
     private Button breakBlocksButton;
 
     public WeaponScreen(WeaponContainerMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
-        // Function: ammo screens are wider so the full player inventory does not make the GUI look cramped.
+        // Function: ammo screens are wider while channel controls stay centered in the original weapon panel.
         this.imageWidth = menu.hasAmmoSlots() ? AMMO_SCREEN_WIDTH : 176;
         this.imageHeight = menu.hasAmmoSlots() ? AMMO_SCREEN_HEIGHT : 166;
         this.inventoryLabelY = 1000;
@@ -77,11 +81,6 @@ public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
             drawAmmoSlots(guiGraphics);
             drawPlayerInventorySlots(guiGraphics);
         }
-        if (isVlsCoreScreen()) {
-            // Function: split the VLS timing controls into their own footer panel so they do not overlap the ammo row.
-            guiGraphics.fill(this.leftPos + 4, this.topPos + VLS_PANEL_TOP, this.leftPos + this.imageWidth - 4, this.topPos + VLS_PANEL_BOTTOM, 0x70505050);
-        }
-
         ResourceLocation iconChannel1 = menu.getBlockEntity().getData().channel1
                 ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel1_on.png")
                 : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel1_off.png");
@@ -95,10 +94,11 @@ public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
                 ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel4_on.png")
                 : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/weapon/channel4_off.png");
 
-        guiGraphics.blit(iconChannel1, this.leftPos + 30, this.topPos + 20, 0, 0, 20, 20, 20, 20);
-        guiGraphics.blit(iconChannel2, this.leftPos + 60, this.topPos + 20, 0, 0, 20, 20, 20, 20);
-        guiGraphics.blit(iconChannel3, this.leftPos + 90, this.topPos + 20, 0, 0, 20, 20, 20, 20);
-        guiGraphics.blit(iconChannel4, this.leftPos + 120, this.topPos + 20, 0, 0, 20, 20, 20, 20);
+        int channelOffsetX = controlOffsetX();
+        guiGraphics.blit(iconChannel1, this.leftPos + channelOffsetX + CHANNEL_XS[0], this.topPos + CHANNEL_ICON_Y, 0, 0, CHANNEL_SIZE, CHANNEL_SIZE, CHANNEL_SIZE, CHANNEL_SIZE);
+        guiGraphics.blit(iconChannel2, this.leftPos + channelOffsetX + CHANNEL_XS[1], this.topPos + CHANNEL_ICON_Y, 0, 0, CHANNEL_SIZE, CHANNEL_SIZE, CHANNEL_SIZE, CHANNEL_SIZE);
+        guiGraphics.blit(iconChannel3, this.leftPos + channelOffsetX + CHANNEL_XS[2], this.topPos + CHANNEL_ICON_Y, 0, 0, CHANNEL_SIZE, CHANNEL_SIZE, CHANNEL_SIZE, CHANNEL_SIZE);
+        guiGraphics.blit(iconChannel4, this.leftPos + channelOffsetX + CHANNEL_XS[3], this.topPos + CHANNEL_ICON_Y, 0, 0, CHANNEL_SIZE, CHANNEL_SIZE, CHANNEL_SIZE, CHANNEL_SIZE);
     }
 
     private void drawAmmoSlots(GuiGraphics guiGraphics) {
@@ -156,19 +156,19 @@ public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
         this.addRenderableWidget(Button.builder(
                 Component.translatable("gui.vsie.weapon.channel_1.label"),
                 btn -> ModNetworking.sendToServer(new WeaponC2SPacket(pos, 1))
-        ).bounds(leftPos + 30, topPos + 40, 20, 10).build());
+        ).bounds(leftPos + controlOffsetX() + CHANNEL_XS[0], topPos + CHANNEL_BUTTON_Y, CHANNEL_SIZE, CHANNEL_BUTTON_HEIGHT).build());
         this.addRenderableWidget(Button.builder(
                 Component.translatable("gui.vsie.weapon.channel_2.label"),
                 btn -> ModNetworking.sendToServer(new WeaponC2SPacket(pos, 2))
-        ).bounds(leftPos + 60, topPos + 40, 20, 10).build());
+        ).bounds(leftPos + controlOffsetX() + CHANNEL_XS[1], topPos + CHANNEL_BUTTON_Y, CHANNEL_SIZE, CHANNEL_BUTTON_HEIGHT).build());
         this.addRenderableWidget(Button.builder(
                 Component.translatable("gui.vsie.weapon.channel_3.label"),
                 btn -> ModNetworking.sendToServer(new WeaponC2SPacket(pos, 3))
-        ).bounds(leftPos + 90, topPos + 40, 20, 10).build());
+        ).bounds(leftPos + controlOffsetX() + CHANNEL_XS[2], topPos + CHANNEL_BUTTON_Y, CHANNEL_SIZE, CHANNEL_BUTTON_HEIGHT).build());
         this.addRenderableWidget(Button.builder(
                 Component.translatable("gui.vsie.weapon.channel_4.label"),
                 btn -> ModNetworking.sendToServer(new WeaponC2SPacket(pos, 4))
-        ).bounds(leftPos + 120, topPos + 40, 20, 10).build());
+        ).bounds(leftPos + controlOffsetX() + CHANNEL_XS[3], topPos + CHANNEL_BUTTON_Y, CHANNEL_SIZE, CHANNEL_BUTTON_HEIGHT).build());
         if (menu.getBlockEntity().supportsBlockDestructionToggle()) {
             this.breakBlocksButton = this.addRenderableWidget(Button.builder(
                     breakBlocksButtonLabel(),
@@ -203,10 +203,6 @@ public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
                     btn -> saveLaunchInterval()
             ).bounds(leftPos + 136, topPos + 80, 28, 14).build());
         }
-    }
-
-    private boolean isVlsCoreScreen() {
-        return menu.getBlockEntity() instanceof VerticleLaunchingSlotCoreBlockEntity;
     }
 
     private boolean isRedstoneRelayScreen() {
@@ -249,16 +245,15 @@ public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
                 Component.translatable("gui.vsie.common.break_blocks.tooltip"))) {
             return;
         }
-        int[] channelXs = {30, 60, 90, 120};
         String[] channelKeys = {
                 "gui.vsie.weapon.channel_1.tooltip",
                 "gui.vsie.weapon.channel_2.tooltip",
                 "gui.vsie.weapon.channel_3.tooltip",
                 "gui.vsie.weapon.channel_4.tooltip"
         };
-        for (int i = 0; i < channelXs.length; i++) {
+        for (int i = 0; i < CHANNEL_XS.length; i++) {
             if (GuiTooltipHelper.renderTooltipIfHovered(guiGraphics, this.font, mouseX, mouseY,
-                    this.leftPos + channelXs[i], this.topPos + 40, 20, 10,
+                    this.leftPos + controlOffsetX() + CHANNEL_XS[i], this.topPos + CHANNEL_BUTTON_Y, CHANNEL_SIZE, CHANNEL_BUTTON_HEIGHT,
                     Component.translatable(channelKeys[i]))) {
                 return;
             }
@@ -307,5 +302,9 @@ public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
         if (this.breakBlocksButton != null) {
             this.breakBlocksButton.setMessage(breakBlocksButtonLabel());
         }
+    }
+
+    private int controlOffsetX() {
+        return (this.imageWidth - BASE_SCREEN_WIDTH) / 2;
     }
 }

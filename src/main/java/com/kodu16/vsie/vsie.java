@@ -1,6 +1,7 @@
 package com.kodu16.vsie;
 
 import com.kodu16.vsie.content.screen.server.ServerInfoGetter;
+import com.kodu16.vsie.foundation.VsieModelBakeryLogFilter;
 import com.kodu16.vsie.registries.ModMenuTypes;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.registries.ModParticleTypes;
@@ -32,6 +33,7 @@ public class vsie {
     public static final boolean constDebug = false;
 
     public vsie(IEventBus modBus) {
+        VsieModelBakeryLogFilter.install();
         REGISTRATE.registerEventListeners(modBus);
 
         vsieBlocks.register();

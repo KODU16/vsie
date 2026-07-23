@@ -1,0 +1,18 @@
+{
+  "type": "create:filling",
+  "ingredients": [
+    {
+      "item": "aeronautics:end_stone_powder"
+    },
+    {
+      "type": "neoforge:single",
+      "amount": 1000,
+      "fluid": "aeronautics:levitite_blend"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:silicon_carbide"
+    }
+  ]
+}

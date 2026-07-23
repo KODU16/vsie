@@ -45,7 +45,6 @@ import com.kodu16.vsie.content.turret.client.AbstractTurretGeoRenderer;
 import com.kodu16.vsie.content.weapon.missile_launcher.block.BasicMissileLauncherBlockEntity;
 import com.kodu16.vsie.content.weapon.missile_launcher.block.VerticleLaunchingSlotBlockEntity;
 import com.kodu16.vsie.content.weapon.missile_launcher.block.VerticleLaunchingSlotCoreBlockEntity;
-import com.kodu16.vsie.content.weapon.missile_launcher.client.AbstractMissileLauncherGeoRenderer;
 
 import com.kodu16.vsie.vsie;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
@@ -146,7 +145,7 @@ public class vsieBlockEntities {
     public static final BlockEntityEntry<BasicMissileLauncherBlockEntity> BASIC_MISSILE_LAUNCHER_BLOCK_ENTITY =
             withCapability(REGISTRATE.blockEntity("basic_missile_launcher_block_entity", BasicMissileLauncherBlockEntity::new)
                     .validBlocks(vsieBlocks.BASIC_MISSILE_LAUNCHER_BLOCK)
-                    .renderer(() -> AbstractMissileLauncherGeoRenderer::new)
+                    .renderer(() -> AbstractWeaponGeoRenderer::new)
                     .register(),
                     Capabilities.ItemHandler.BLOCK,
                     (blockEntity, side) -> blockEntity.getItemHandler());

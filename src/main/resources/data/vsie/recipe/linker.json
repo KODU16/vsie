@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "minecraft:chain"
+    },
+    "P": {
+      "item": "create:clipboard"
+    }
+  },
+  "pattern": [
+    "CCC",
+    "CPC",
+    "CCC"
+  ],
+  "result": {
+    "id": "vsie:linker"
+  },
+  "show_notification": true
+}

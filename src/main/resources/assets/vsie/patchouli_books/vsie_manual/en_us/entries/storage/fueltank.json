@@ -1,5 +1,5 @@
 {
-  "name": "燃料储罐与燃料",
+  "name": "Fuel Tanks and Fuels",
   "icon": "vsie:small_fueltank",
   "category": "vsie:storage",
   "sortnum": 1,
@@ -15,18 +15,18 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:small_fueltank",
-      "title": "燃料储罐与燃料",
-      "text": "AeroIE的燃料储罐可以装载任意液体，但只有被AeroIE识别为推进燃料的流体，或用于跃迁的 E-710，才能在对应系统中被正常消耗和显示$(br2)不同的燃料拥有不同的推进器力乘数和燃料消耗倍率$(br2)AeroIE默认添加两种流体：D-T燃料和高能粒子燃料，前者力略低但消耗少，后者力略高但消耗高"
+      "title": "Fuel Tanks and Fuels",
+      "text": "AeroIE fuel tanks can hold any fluid, but only fluids registered as propulsion fuel—or E-710 used for warp—can be consumed and displayed by the corresponding systems.$(br2)Each fuel has its own thruster force multiplier and consumption multiplier.$(br2)AeroIE provides two propulsion fuels by default: D-T Fuel and High-Energy Particle Fuel. D-T Fuel produces slightly less force but is consumed more slowly; High-Energy Particle Fuel produces slightly more force but is consumed faster."
     },
     {
       "type": "patchouli:text",
-      "title": "容量",
-      "text": "三种储罐的容量分别为：$(br2)小型：100B$(br2)中型：1kB$(br2)大型：10kB"
+      "title": "Capacity",
+      "text": "The three tank capacities are:$(br2)Small: 100 B$(br2)Medium: 1 kB$(br2)Large: 10 kB"
     },
     {
       "type": "patchouli:text",
-      "title": "添加新燃料",
-      "text": "要让一种新流体被推进器识别，请在数据包或模组资源中创建 `data/vsie/thruster_fuels/<名称>.json`。$(br2)其中必须填写 `fluid`（你的流体 ID）、`thrust_multiplier`（使用此燃料时的推进器力乘数）、`consumption_multiplier`（燃料消耗倍率）"
+      "title": "Adding New Fuels",
+      "text": "To make thrusters recognize a new fluid, create `data/vsie/thruster_fuels/<name>.json` in a data pack or mod resource.$(br2)The file must define `fluid` (the fluid ID), `thrust_multiplier` (the thruster force multiplier while using it), and `consumption_multiplier` (the fuel consumption multiplier)."
     }
   ]
 }

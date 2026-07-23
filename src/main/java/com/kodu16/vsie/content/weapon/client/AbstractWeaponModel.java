@@ -26,6 +26,7 @@ public class AbstractWeaponModel extends DefaultedBlockGeoModel<AbstractWeaponBl
             // Function: redstone relay temporarily reuses an existing weapon asset route until its dedicated resources are authored.
             case "redstone_relay" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "geo/block/redstone_relay.geo.json");
             case "verticle_launching_slot" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "geo/block/verticle_launching_slot.geo.json");
+            case "basic_missile_launcher" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "geo/block/basic_missile_launcher.geo.json");
             default -> throw new IllegalStateException("Unexpected value: " + weapon.getweapontype());
         };
     }
@@ -40,6 +41,7 @@ public class AbstractWeaponModel extends DefaultedBlockGeoModel<AbstractWeaponBl
             case "electro_magnet_rail_cannon" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/block/electro_magnet_rail_cannon.png");
             case "redstone_relay" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/block/redstone_relay.png");
             case "verticle_launching_slot" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/block/verticle_launching_slot.png");
+            case "basic_missile_launcher" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/block/basic_missile_launcher.png");
             default -> throw new IllegalStateException("Unexpected value: " + weapon.getweapontype());
         };
     }
@@ -47,13 +49,15 @@ public class AbstractWeaponModel extends DefaultedBlockGeoModel<AbstractWeaponBl
     @Override
     public ResourceLocation getAnimationResource(AbstractWeaponBlockEntity weapon) {
         return switch (weapon.getweapontype()) {
-            case "infra_knife_accelerator" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/infra_knife_accelerator_anim.json");
+            // Function: infra-knife stores its Gecko animation beside the other weapon animations under block/weapon.
+            case "infra_knife_accelerator" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/weapon/infra_knife_accelerator_anim.json");
             case "electro_magnet_rail_accelerator" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/electro_magnet_rail_accelerator_anim.json");
             case "arc_emitter" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/arc_emitter_anim.json");
             case "cenix_plasma_cannon" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/cenix_plasma_cannon_anim.json");
             case "electro_magnet_rail_cannon" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/electro_magnet_rail_cannon_anim.json");
             case "redstone_relay" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/redstone_relay_anim.json");
             case "verticle_launching_slot" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/weapon/verticle_launching_slot_anim.json");
+            case "basic_missile_launcher" -> ResourceLocation.fromNamespaceAndPath(vsie.ID, "animations/block/basic_missile_launcher_anim.json");
             default -> throw new IllegalStateException("Unexpected value: " + weapon.getweapontype());
         };
     }

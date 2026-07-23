@@ -1,10 +1,8 @@
 package com.kodu16.vsie.content.controlseat.server;
 
 
-import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
 import com.kodu16.vsie.content.controlseat.functions.ScanNearByShips;
-import com.kodu16.vsie.content.warpprojectile.WarpProjecTileEntity;
 import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.foundation.Vec;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatInputS2CPacket;
@@ -17,83 +15,53 @@ import dev.ryanhcode.sable.physics.config.dimension_physics.DimensionPhysicsData
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix3dc;
-import com.kodu16.vsie.registries.vsieEntities;
-import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import org.joml.Vector3d;
 import dev.ryanhcode.sable.sublevel.SubLevel;
+import org.joml.Vector3d;
 import com.kodu16.vsie.registries.ModNetworking;
 
-import org.slf4j.Logger;
-import rbasamoyai.ritchiesprojectilelib.effects.screen_shake.ScreenShakeEffect;
-import rbasamoyai.ritchiesprojectilelib.network.ClientboundShakeScreenPacket;
-import rbasamoyai.ritchiesprojectilelib.network.RPLNetwork;
-
 import javax.annotation.Nullable;
+import java.util.UUID;
 
 
 public class ServerShipHandler {
-    private static final double KEY_CONTROL_THRUST_EQUIVALENT = 0.50D;
-    private static final double KEYBOARD_TORQUE_AXIS_SCALE_AT_TEN_PERCENT = 0.02D;
+    private static final UUID EMPTY_SEAT_ENTITY_ID = new UUID(0L, 0L);
+    private static final double KEY_CONTROL_THRUST_EQUIVALENT = 0.10D;
     private static final double FLIGHT_ASSIST_LINEAR_RESPONSE = 0.60D;
     private static final double FLIGHT_ASSIST_ANGULAR_RESPONSE = 0.45D;
+    private static final double IDLE_ANGULAR_HOLD_RESPONSE = 1.20D;
     private static final double ANTI_GRAVITY_VERTICAL_RESPONSE = 0.80D;
     private static final double FLIGHT_ASSIST_LINEAR_THRUST_FRACTION = 0.25D;
     private static final double FLIGHT_ASSIST_ANGULAR_THRUST_FRACTION = 0.18D;
+    private static final double IDLE_ANGULAR_HOLD_FULL_AUTHORITY_THRUST_PER_MASS = 0.35D;
+    private static final double IDLE_ANGULAR_HOLD_MIN_AUTHORITY_BLEND = 0.20D;
     private static final double ANTI_GRAVITY_DAMPING_THRUST_FRACTION = 0.25D;
+    private static final double ANTI_GRAVITY_IDLE_FEEDBACK_GAIN = 0.35D;
+    private static final double ANTI_GRAVITY_IDLE_MIN_THROTTLE = 0.0D;
+    private static final double ANTI_GRAVITY_IDLE_MAX_THROTTLE = 2.0D;
     private static final double CONTROL_FORCE_SCALE = 0.25D;
     private static final double CONTROL_TORQUE_SCALE = 0.12D;
     private static final double LINEAR_REFERENCE_SPEED = 10.0D;
     private static final double ANGULAR_REFERENCE_SPEED = 1.5D;
     private static final double ANGULAR_ASSIST_REST_SPEED = 0.02D;
-    private static final double MASS_PROPERTY_RESPONSE = 2.0D;
     private static final double MIN_VALID_MASS = 1.0D;
     private static final double MIN_VALID_INERTIA = 1.0D;
     private static final double CONTROL_INPUT_RESPONSE = 14.0D;
     private static final double THROTTLE_INPUT_RESPONSE = 8.0D;
     private static final double FREE_FALL_GRAVITY_IMPULSE_SCALE = 1.0D;
-    private static final double STANDARD_GRAVITY = 9.60665D;
+    private static final double STANDARD_GRAVITY = 9.0D;
     private static final double AXIS_EPSILON = 1.0E-8D;
-    private static final double WARP_ALIGNMENT_THRESHOLD_DEGREES = 1.0D;
-    private static final double WARP_ALIGNMENT_TORQUE_SCALE = 2.0D;
-    private static final double AUTO_LEVEL_ALIGNMENT_TORQUE_SCALE = 2.0D;
-    private static final double AUTO_LEVEL_ANGULAR_DAMPING = 0.70D;
-    private static final double AUTO_LEVEL_NEAR_TARGET_ANGULAR_DAMPING = 1.20D;
-    private static final double AUTO_LEVEL_FULL_TORQUE_ANGLE_RADIANS = Math.toRadians(30.0D);
-    private static final double AUTO_LEVEL_NEAR_TARGET_ANGLE_RADIANS = Math.toRadians(10.0D);
-    private static final double AUTO_LEVEL_SETTLE_ANGLE_RADIANS = Math.toRadians(2.0D);
-    private static final double AUTO_LEVEL_SETTLE_ANGULAR_SPEED = 0.05D;
-    private static final double AUTO_LEVEL_REFERENCE_MASS = 256.0D;
-    private static final double AUTO_LEVEL_MIN_ALIGNMENT_GAIN = 0.25D;
-    private static final double AUTO_LEVEL_HEAVY_MASS_DAMPING_MULTIPLIER = 1.35D;
-    private static final double AUTO_LEVEL_MAX_CONTROL = 0.60D;
-    private static final double AUTO_LEVEL_NEAR_TARGET_MAX_CONTROL = 0.20D;
-    private static final double WARP_PROJECTILE_DISTANCE_SCALE = 1.5D;
-    private static final int WARP_TELEPORT_EXTRA_DELAY_TICKS = 100;
-    private static final int WARP_COMPLETE_SCREEN_SHAKE_TICKS = 10;
-    private static final double WARP_COMPLETE_SCREEN_SHAKE_RADIUS = 96.0D;
-    private static final float WARP_COMPLETE_SCREEN_SHAKE_YAW = 5F;
-    private static final float WARP_COMPLETE_SCREEN_SHAKE_PITCH = 5F;
-    private static final float WARP_COMPLETE_SCREEN_SHAKE_ROLL = 0.25F;
-    private static final float WARP_COMPLETE_SCREEN_SHAKE_JITTER = 1F;
     private ControlSeatServerData data;
-    public static final Logger LOGGER = LogUtils.getLogger();
 
     public ServerShipHandler(ControlSeatServerData data){
         this.data = data;
-    }
-
-    // Function: expose the keyboard-only control authority so A/D strafing and unlocked-view torque keys stay tunable from one place.
-    public static double getKeyControlThrustEquivalent() {
-        return KEY_CONTROL_THRUST_EQUIVALENT;
     }
 
     public static double getTranslationThrottleEquivalent() {
@@ -101,12 +69,13 @@ public class ServerShipHandler {
     }
 
     public static float getKeyboardTorqueAxisScale() {
-        return (float) (KEYBOARD_TORQUE_AXIS_SCALE_AT_TEN_PERCENT * (KEY_CONTROL_THRUST_EQUIVALENT / 0.10D));
+        return (float) (0.2D * (KEY_CONTROL_THRUST_EQUIVALENT / 0.10D));
     }
 
     public void resetControlInput() {
         clearManualControlInput();
         hasPreviousMotionSample = false;
+        previousGForcePlayerId = null;
         data.setFinaltorque(new Vector3d());
         data.setFinalforce(new Vector3d());
         data.setThrusterVisualForce(new Vector3d());
@@ -122,8 +91,6 @@ public class ServerShipHandler {
     private long lastSendStatusMs = 0;
     private long lastSendInputMs = 0;
     private long lastScanShipsMs = 0;
-    int lastSentEncode = 0;
-    int current=0;
     private volatile Vec3 worldXDirection;
     private volatile Vec3 worldYDirection;
     private volatile Vec3 worldZDirection;
@@ -133,9 +100,9 @@ public class ServerShipHandler {
     private double smoothedThrottle = 0.0D;
     private double smoothedMass = Double.NaN;
     private double smoothedAverageInertia = Double.NaN;
-    private final Vector3d previousVelocity = new Vector3d();
-    private final Vector3d previousOmega = new Vector3d();
+    private final Vector3d previousPlayerPointVelocity = new Vector3d();
     private boolean hasPreviousMotionSample = false;
+    private UUID previousGForcePlayerId = null;
 
     public void getandsendshipdata(ServerSubLevel subLevel,BlockPos pos) {
         if (data.getDirectionForward() == null || data.getDirectionUp() == null || data.getDirectionRight() == null) {
@@ -153,7 +120,7 @@ public class ServerShipHandler {
             // Function: automatic heavy turrets still need fresh enemy ship targets when no player is seated.
             refreshNearbyShips(pos, level);
             if (data.getPlayer() != null) {
-                ModNetworking.sendToPlayer(new NearbyShipsS2CPacket(data.shipsData), (ServerPlayer) data.getPlayer());
+                ModNetworking.sendToPlayer(new NearbyShipsS2CPacket(pos, getCurrentSeatEntityId(), data.shipsData), (ServerPlayer) data.getPlayer());
             }
         }
         if (data.getPlayer() != null) {
@@ -161,6 +128,7 @@ public class ServerShipHandler {
                 lastSendMs = now;
                 ControlSeatS2CPacket packet = new ControlSeatS2CPacket(
                         pos,
+                        getCurrentSeatEntityId(),
                         Vec.toVector3d(ForwardDirection),
                         Vec.toVector3d(UpDirection),
                         data.enemy,
@@ -170,6 +138,7 @@ public class ServerShipHandler {
                         data.isviewlocked,
                         data.shipSpeed,
                         new Vector3d(data.structureCenterWorld),
+                        new Vector3d(data.structureVelocityWorld),
                         data.seatGForce
                 );
                 ModNetworking.sendToPlayer(packet, (ServerPlayer) data.getPlayer());
@@ -178,7 +147,7 @@ public class ServerShipHandler {
             if(now - lastSendStatusMs > 250) {
                 lastSendStatusMs = now;
                 boolean shieldOverloaded = data.isshieldon && data.shieldcooldowntime > 0.0D;
-                ControlSeatStatusS2CPacket packetstatus = new ControlSeatStatusS2CPacket(pos,
+                ControlSeatStatusS2CPacket packetstatus = new ControlSeatStatusS2CPacket(pos, getCurrentSeatEntityId(),
                         data.avalibleenergy,data.totalenergystorage,
                         data.avaliblefuel,data.totalfuelstorage,
                         data.avalibleE710, data.warpE710CostMb, data.warpE710Insufficient,
@@ -186,6 +155,7 @@ public class ServerShipHandler {
                         data.isforceassiston, data.istorqueassiston, data.isForceAssistSuppressedByAccelerator,
                         data.isantigravityon, data.isAutoLevelOn,
                         data.isWarpPreparing, data.hasPendingWarpTeleport, data.warpTargetName,
+                        data.warpAlignmentControlX, data.warpAlignmentControlY,
                         data.activeWeaponHudInfos);
                 //LogUtils.getLogger().warn("shieldtotal:"+data.totalshield+"avalible:"+data.avalibleshield);
                 ModNetworking.sendToPlayer(packetstatus, (ServerPlayer) data.getPlayer());
@@ -194,10 +164,18 @@ public class ServerShipHandler {
             if(now - lastSendInputMs > 250) {
 
                 lastSendInputMs = now;
-                ControlSeatInputS2CPacket packet = new ControlSeatInputS2CPacket(pos, data.channelencode);
+                ControlSeatInputS2CPacket packet = new ControlSeatInputS2CPacket(pos, getCurrentSeatEntityId(), data.channelencode);
                 ModNetworking.sendToPlayer(packet, (ServerPlayer) data.getPlayer());
             }
         }
+    }
+
+    private UUID getCurrentSeatEntityId() {
+        Player player = data.getPlayer();
+        if (player != null && player.getVehicle() instanceof ControlSeatMountEntity mount) {
+            return mount.getUUID();
+        }
+        return EMPTY_SEAT_ENTITY_ID;
     }
 
     private void refreshNearbyShips(BlockPos pos, Level level) {
@@ -237,7 +215,7 @@ public class ServerShipHandler {
     }
 
     public void applyForceAndTorque(ServerSubLevel subLevel, BlockPos pos, double timeStep) {
-        processPendingWarpTeleport(subLevel);
+        WarpUtils.processPendingWarpTeleport(data, subLevel);
         boolean hasControlAxes = data.getDirectionForward() != null && data.getDirectionUp() != null && data.getDirectionRight() != null;
 
         Player player = data.getPlayer();
@@ -288,7 +266,6 @@ public class ServerShipHandler {
             resetControlInput();
             return;
         }
-
         double totalForceThrust = Math.max(0.0D, data.thruster_force_strength);
         double totalTorqueThrust = Math.max(0.0D, data.thruster_torque_strength);
         if (totalForceThrust <= AXIS_EPSILON && totalTorqueThrust <= AXIS_EPSILON) {
@@ -315,6 +292,12 @@ public class ServerShipHandler {
                 FLIGHT_ASSIST_ANGULAR_RESPONSE,
                 timeStep
         );
+        if (isIdleTorqueHoldActive(controlling)) {
+            angularDampingAlpha = Math.max(
+                    angularDampingAlpha,
+                    idleAngularHoldDampingAlpha(totalTorqueThrust, mass, omega.length(), timeStep)
+            );
+        }
         Vector3d invtorque = calculateFlightAssistTorque(
                 subLevel,
                 momentOfInertia,
@@ -330,51 +313,63 @@ public class ServerShipHandler {
         boolean hasWorldControlAxes = updateWorldControlAxes(subLevel);
         Vector3d finaltorque = new Vector3d(0,0,0);
         Vector3d finalforce  = new Vector3d(0,0,0);
+        Vector3d nonAntiGravityLinearImpulse = new Vector3d(0,0,0);
+        boolean hasManualLinearInput = controlling && hasManualLinearInput(data.getForce(), data.getThrottle());
 
         if (data.istorqueassiston) {
+            // Function: torque assist remains active during auto-level, so yaw damping is still preserved.
             finaltorque.add(invtorque);
         }
         if (data.isforceassiston) {
             finalforce.add(invforce);
+            nonAntiGravityLinearImpulse.add(invforce);
         }
         if (data.isantigravityon) {
-            Vector3d gravity = DimensionPhysicsData.getGravity(
+            double gravityLength = DimensionPhysicsData.getGravity(
                     subLevel.getLevel(),
                     subLevel.logicalPose().position(),
                     new Vector3d()
-            );
-            double gravityLength = gravity.length();
+            ).length();
             if (gravityLength > 1.0E-6D) {
-                Vector3d gravityDirection = gravity.normalize(new Vector3d());
-                // Function: use the same conservative mass basis as damping so anti-gravity does not accumulate a net upward bias.
-                finalforce.fma(-mass * timeStep * FREE_FALL_GRAVITY_IMPULSE_SCALE, gravity);
+                // Function: gravity/up direction is fixed to world Y so nonstandard dimensions cannot tilt seat assists.
+                Vector3d gravityDirection = new Vector3d(0.0D, -1.0D, 0.0D);
+                Vector3d gravity = new Vector3d(0.0D, -gravityLength, 0.0D);
+                double antiGravityThrottle = updateAntiGravityIdleThrottle(velocity, hasManualLinearInput, timeStep);
+                // Function: idle anti-gravity trims the gravity-cancel impulse from world-Y velocity instead of staying fixed.
+                finalforce.fma(-mass * timeStep * FREE_FALL_GRAVITY_IMPULSE_SCALE * antiGravityThrottle, gravity);
 
                 double verticalVelocity = velocity.dot(gravityDirection);
-                double verticalDampingAlpha = authorityDampingAlpha(
-                        totalForceThrust * ANTI_GRAVITY_DAMPING_THRUST_FRACTION,
-                        mass,
-                        Math.abs(verticalVelocity),
-                        LINEAR_REFERENCE_SPEED,
-                        ANTI_GRAVITY_VERTICAL_RESPONSE,
-                        timeStep
-                );
-                finalforce.fma(-mass * verticalVelocity * verticalDampingAlpha, gravityDirection);
+                if (verticalVelocity > 0.0D) {
+                    double verticalDampingAlpha = authorityDampingAlpha(
+                            totalForceThrust * ANTI_GRAVITY_DAMPING_THRUST_FRACTION,
+                            mass,
+                            verticalVelocity,
+                            LINEAR_REFERENCE_SPEED,
+                            ANTI_GRAVITY_VERTICAL_RESPONSE,
+                            timeStep
+                    );
+                    // Function: anti-gravity damps falling drift only, leaving active thrust against gravity unchanged.
+                    finalforce.fma(-mass * verticalVelocity * verticalDampingAlpha, gravityDirection);
+                }
             }
         }
-        if (data.isAutoLevelOn && hasWorldControlAxes && deltaOmegaScale > 0.0D) {
-            // Function: auto-level adds pitch/roll correction even when the seat is empty.
-            Vec3 autoLevelTorque = calculateAutoLevelTorque(subLevel, omega);
-            Vector3d autoLevelDeltaOmega = Vec.toVector3d(autoLevelTorque).mul(deltaOmegaScale);
-            Vec3 autoLevelImpulse = calculateWorldAngularImpulseForControl(
+        if (hasWorldControlAxes) {
+            Vec3 autoLevelImpulse = AutoLevelUtils.calculateWorldAngularImpulse(
+                    data,
                     subLevel,
                     momentOfInertia,
-                    autoLevelDeltaOmega,
+                    omega,
+                    worldXDirection,
+                    worldYDirection,
+                    worldZDirection,
                     rawAverageInertia,
-                    averageInertia
+                    averageInertia,
+                    deltaOmegaScale
             );
             finaltorque.add(Vec.toVector3d(autoLevelImpulse));
         }
-        Vector3d thrusterVisualForce = calculateVisualForceFromPhysicsForce(subLevel, finalforce);
+        // Function: anti-gravity is not a thruster demand, so keep it out of visual throttle and fuel budgeting.
+        Vector3d thrusterVisualForce = calculateVisualForceFromPhysicsForce(subLevel, nonAntiGravityLinearImpulse);
 
         double torqueAlpha = smoothingAlpha(CONTROL_INPUT_RESPONSE, timeStep);
         double throttleAlpha = smoothingAlpha(THROTTLE_INPUT_RESPONSE, timeStep);
@@ -388,26 +383,41 @@ public class ServerShipHandler {
                 return;
             }
 
-            Vec3 steeringTorque = data.isWarpPreparing ? calculateWarpPreparationTorque(subLevel,pos) : torque;
+            // Function: block FACING points at the seat back, so warp aims the pilot-facing front/right axes.
+            Vec3 warpForwardDirection = worldXDirection.scale(-1.0D);
+            Vec3 warpRightDirection = worldZDirection.scale(-1.0D);
+            Vec3 warpSeatControl = data.isWarpPreparing
+                    ? WarpUtils.calculatePreparationSeatControl(data, subLevel, warpForwardDirection, worldYDirection, warpRightDirection, worldXDirection, worldYDirection, worldZDirection)
+                    : Vec3.ZERO;
+            if (data.isWarpPreparing) {
+                // Function: brake using actual seat-local angular velocity so warp can settle instead of orbiting the target.
+                warpSeatControl = warpSeatControl.subtract(calculateSeatLocalAngularVelocity(omega));
+            }
+            updateWarpAlignmentHudControl(data.isWarpPreparing ? warpSeatControl : Vec3.ZERO);
+            Vec3 steeringTorque = data.isWarpPreparing ? Vec3.ZERO : torque;
             Vec3 translationInput = data.getForce();
-            if (data.hasPendingWarpTeleport && !data.isWarpPreparing) {
+            if (data.isWarpPreparing || data.hasPendingWarpTeleport) {
                 smoothedControlTorque.set(0.0D, 0.0D, 0.0D);
             } else {
                 smoothVector(smoothedControlTorque, steeringTorque.x, steeringTorque.y, steeringTorque.z, torqueAlpha);
             }
             smoothVector(smoothedTranslationInput, translationInput.x, translationInput.y, translationInput.z, torqueAlpha);
             smoothedThrottle += ((data.getThrottle() / 100.0D) - smoothedThrottle) * throttleAlpha;
-            if (data.isAutoLevelOn) {
+            if (AutoLevelUtils.isEffective(data)) {
                 // Function: stale roll/pitch smoothing must not bleed through after auto-level takes over leveling axes.
                 smoothedControlTorque.x = 0.0D;
                 smoothedControlTorque.z = 0.0D;
             }
-            Vector3d controlDeltaOmega = new Vector3d(smoothedControlTorque).mul(deltaOmegaScale);
+            double activeDeltaOmegaScale = data.isWarpPreparing
+                    ? Math.min(deltaOmegaScale, WarpUtils.WARP_SETTLE_ANGULAR_SPEED)
+                    : deltaOmegaScale;
+            Vector3d controlDeltaOmega = data.isWarpPreparing
+                    ? Vec.toVector3d(warpSeatControl).mul(activeDeltaOmegaScale)
+                    : new Vector3d(smoothedControlTorque).mul(deltaOmegaScale);
 
             if (data.isWarpPreparing) {
 
-                LogUtils.getLogger().warn("preparing warp...");
-                tryLaunchWarpProjectile(subLevel);
+                WarpUtils.tryLaunchWarpProjectile(data, subLevel, omega, warpForwardDirection, worldYDirection, warpRightDirection);
             }
 
             Vec3 Invarianttorque = calculateWorldAngularImpulseForControl(
@@ -433,6 +443,8 @@ public class ServerShipHandler {
             finaltorque.add(Vec.toVector3d(Invarianttorque));
             finalforce.add(Vec.toVector3d(Invariantforce));
             finalforce.add(Vec.toVector3d(translationForce));
+            nonAntiGravityLinearImpulse.add(Vec.toVector3d(Invariantforce));
+            nonAntiGravityLinearImpulse.add(Vec.toVector3d(translationForce));
             thrusterVisualForce.add(Vec.toVector3d(visualThrottleForce));
             thrusterVisualForce.add(Vec.toVector3d(visualTranslationForce));
             //LogUtils.getLogger().warn("finaltorque:"+finaltorque+"inverttorque:"+invtorque+"origin:"+Invarianttorque);
@@ -443,7 +455,7 @@ public class ServerShipHandler {
         data.setFinaltorque(finaltorque);
         data.setFinalforce(finalforce);
         data.setThrusterVisualForce(thrusterVisualForce);
-        updateMotionTelemetry(subLevel, pos, velocity, omega, timeStep, rawMass, finalforce);
+        updateMotionTelemetry(subLevel, pos, player, velocity, omega, timeStep);
 
         ServerShipUtils.applyWorldForceAndTorqueAtCenterOfMass(subLevel,finalforce,finaltorque);
     }
@@ -461,6 +473,49 @@ public class ServerShipHandler {
         double effectiveSpeed = Math.sqrt(speed * speed + referenceSpeed * referenceSpeed);
         double dampingRate = (authority / inertia) * response / effectiveSpeed;
         return smoothingAlpha(dampingRate, timeStep);
+    }
+
+    private boolean isIdleTorqueHoldActive(boolean controlling) {
+        if (!data.istorqueassiston || data.isWarpPreparing || data.hasPendingWarpTeleport) {
+            return false;
+        }
+        if (!controlling) {
+            return true;
+        }
+        Vec3 torqueInput = data.getTorque();
+        return torqueInput == null || torqueInput.lengthSqr() <= AXIS_EPSILON;
+    }
+
+    private boolean hasManualLinearInput(Vec3 translationInput, int throttleInput) {
+        return Math.abs(throttleInput) > 0
+                || (translationInput != null && translationInput.lengthSqr() > AXIS_EPSILON);
+    }
+
+    private double updateAntiGravityIdleThrottle(Vector3d worldVelocity, boolean hasManualLinearInput, double timeStep) {
+        if (!hasManualLinearInput && worldVelocity != null && Double.isFinite(worldVelocity.y) && timeStep > 0.0D) {
+            double worldYVelocity = Math.abs(worldVelocity.y) <= 0.01 ? 0.0D : worldVelocity.y;
+            data.antiGravityIdleThrottle = Mth.clamp(
+                    data.antiGravityIdleThrottle - worldYVelocity * ANTI_GRAVITY_IDLE_FEEDBACK_GAIN * timeStep,
+                    ANTI_GRAVITY_IDLE_MIN_THROTTLE,
+                    ANTI_GRAVITY_IDLE_MAX_THROTTLE
+            );
+        }
+        return data.antiGravityIdleThrottle;
+    }
+
+    private static double idleAngularHoldDampingAlpha(double totalTorqueThrust, double mass, double angularSpeed, double timeStep) {
+        if (totalTorqueThrust <= AXIS_EPSILON || mass <= AXIS_EPSILON || angularSpeed < ANGULAR_ASSIST_REST_SPEED || timeStep <= 0.0D) {
+            return 0.0D;
+        }
+
+        double thrustPerMass = totalTorqueThrust / Math.max(mass, MIN_VALID_MASS);
+        double authorityBlend = Mth.clamp(
+                thrustPerMass / IDLE_ANGULAR_HOLD_FULL_AUTHORITY_THRUST_PER_MASS,
+                IDLE_ANGULAR_HOLD_MIN_AUTHORITY_BLEND,
+                1.0D
+        );
+        // Function: idle hold damps angular velocity by response time so large inertia does not make orientation drift.
+        return smoothingAlpha(IDLE_ANGULAR_HOLD_RESPONSE * authorityBlend, timeStep);
     }
 
     private static double averageInertia(Matrix3dc inertia) {
@@ -500,46 +555,53 @@ public class ServerShipHandler {
                 : new Vector3d(center.x, center.y, center.z);
     }
 
-    private void updateMotionTelemetry(ServerSubLevel subLevel, BlockPos seatPos, Vector3d velocity, Vector3d omega, double timeStep, double mass, Vector3d appliedLinearImpulse) {
+    private void updateMotionTelemetry(ServerSubLevel subLevel, BlockPos seatPos, @Nullable Player player, Vector3d velocity, Vector3d omega, double timeStep) {
         data.shipSpeed = velocity.length();
-        if (timeStep <= AXIS_EPSILON || mass <= AXIS_EPSILON) {
+        data.structureVelocityWorld = new Vector3d(velocity);
+        if (timeStep <= AXIS_EPSILON) {
             data.seatGForce = 0.0D;
             return;
         }
 
-        Vector3d linearAcceleration = new Vector3d();
-        if (isFiniteVector(appliedLinearImpulse)) {
-            // Function: HUD G uses the current non-gravity ship impulse so natural gravity alone does not produce G load.
-            linearAcceleration.set(appliedLinearImpulse).div(mass * timeStep);
-        }
-
-        Vector3d angularAcceleration = new Vector3d();
-        if (!hasPreviousMotionSample) {
-            previousVelocity.set(velocity);
-            previousOmega.set(omega);
-            hasPreviousMotionSample = true;
-        } else {
-            angularAcceleration.set(omega).sub(previousOmega).div(timeStep);
-            previousVelocity.set(velocity);
-            previousOmega.set(omega);
-        }
-
         Vec3 centerOfMassWorld = ServerShipUtils.getCenterOfMassWorld(subLevel);
         if (centerOfMassWorld == null) {
-            data.seatGForce = Math.max(0.0D, linearAcceleration.length() / STANDARD_GRAVITY);
+            data.seatGForce = 0.0D;
             return;
         }
 
-        Vector3d seatWorldPos = subLevel.logicalPose().transformPosition(new Vector3d(
-                seatPos.getX() + 0.5D,
-                seatPos.getY() + 0.5D,
-                seatPos.getZ() + 0.5D
-        ));
-        Vector3d leverArm = seatWorldPos.sub(new Vector3d(centerOfMassWorld.x, centerOfMassWorld.y, centerOfMassWorld.z), new Vector3d());
-        Vector3d tangentialAcceleration = new Vector3d(angularAcceleration).cross(leverArm);
-        Vector3d centripetalAcceleration = new Vector3d(omega).cross(new Vector3d(omega).cross(leverArm));
-        Vector3d seatAcceleration = linearAcceleration.add(tangentialAcceleration).add(centripetalAcceleration);
-        data.seatGForce = Math.max(0.0D, seatAcceleration.length() / STANDARD_GRAVITY);
+        UUID currentPlayerId = player == null ? null : player.getUUID();
+        if ((currentPlayerId == null && previousGForcePlayerId != null)
+                || (currentPlayerId != null && !currentPlayerId.equals(previousGForcePlayerId))) {
+            hasPreviousMotionSample = false;
+            previousGForcePlayerId = currentPlayerId;
+        }
+
+        Vector3d sampleWorldPos = player != null
+                ? new Vector3d(player.getX(), player.getY(), player.getZ())
+                : subLevel.logicalPose().transformPosition(new Vector3d(
+                        seatPos.getX() + 0.5D,
+                        seatPos.getY() + 0.5D,
+                        seatPos.getZ() + 0.5D
+                ));
+        Vector3d leverArm = sampleWorldPos.sub(new Vector3d(centerOfMassWorld.x, centerOfMassWorld.y, centerOfMassWorld.z), new Vector3d());
+        Vector3d pointVelocity = new Vector3d(velocity).add(new Vector3d(omega).cross(leverArm));
+        if (!hasPreviousMotionSample) {
+            previousPlayerPointVelocity.set(pointVelocity);
+            hasPreviousMotionSample = true;
+            data.seatGForce = 0.0D;
+            return;
+        }
+
+        Vector3d pointAcceleration = pointVelocity.sub(previousPlayerPointVelocity, new Vector3d()).div(timeStep);
+        previousPlayerPointVelocity.set(pointVelocity);
+        Vector3d gravityAcceleration = DimensionPhysicsData.getGravity(
+                subLevel.getLevel(),
+                sampleWorldPos,
+                new Vector3d()
+        );
+        // Function: HUD G is the player's local proper acceleration, so natural free-fall gravity is subtracted.
+        Vector3d nonGravityAcceleration = pointAcceleration.sub(gravityAcceleration);
+        data.seatGForce = Math.max(0.0D, nonGravityAcceleration.length() / STANDARD_GRAVITY);
     }
 
     private Vector3d calculateVisualForceFromPhysicsForce(ServerSubLevel subLevel, Vector3d physicsForce) {
@@ -624,7 +686,7 @@ public class ServerShipHandler {
     }
 
     private void updateSmoothedMassProperties(double mass, double averageInertia, double timeStep) {
-        double alpha = smoothingAlpha(MASS_PROPERTY_RESPONSE, timeStep);
+        double alpha = smoothingAlpha(2, timeStep);
         smoothedMass = smoothPositiveMetric(smoothedMass, mass, alpha);
         smoothedAverageInertia = smoothPositiveMetric(smoothedAverageInertia, averageInertia, alpha);
     }
@@ -696,9 +758,25 @@ public class ServerShipHandler {
             double rawAverageInertia,
             double effectiveAverageInertia
     ) {
-        // Function: mouse/warp input asks for angular velocity around the control-seat axes; inertia maps that to the COM angular impulse.
+        // Function: pilot input asks for angular velocity around the control-seat axes; inertia maps that to the COM angular impulse.
         Vec3 worldDeltaOmegaVec = calculateWorldTorque(controlDeltaOmega, worldXDirection, worldYDirection, worldZDirection);
-        Vector3d localDeltaOmega = Vec.toVector3d(worldDeltaOmegaVec);
+        return calculateWorldAngularImpulseForWorldDeltaOmega(
+                subLevel,
+                inertia,
+                Vec.toVector3d(worldDeltaOmegaVec),
+                rawAverageInertia,
+                effectiveAverageInertia
+        );
+    }
+
+    private Vec3 calculateWorldAngularImpulseForWorldDeltaOmega(
+            ServerSubLevel subLevel,
+            Matrix3dc inertia,
+            Vector3d worldDeltaOmega,
+            double rawAverageInertia,
+            double effectiveAverageInertia
+    ) {
+        Vector3d localDeltaOmega = new Vector3d(worldDeltaOmega);
         subLevel.logicalPose().orientation().transformInverse(localDeltaOmega);
         if (!isFiniteVector(localDeltaOmega)) {
             return Vec3.ZERO;
@@ -728,6 +806,28 @@ public class ServerShipHandler {
         current.x += (targetX - current.x) * alpha;
         current.y += (targetY - current.y) * alpha;
         current.z += (targetZ - current.z) * alpha;
+    }
+
+    private void updateWarpAlignmentHudControl(Vec3 seatControl) {
+        if (!isUsableAxis(seatControl)) {
+            data.clearWarpAlignmentControl();
+            return;
+        }
+
+        // Function: mirror mouse input mapping: screen X is yaw around seat-up, screen Y is pitch around seat-right.
+        data.warpAlignmentControlX = -seatControl.y;
+        data.warpAlignmentControlY = seatControl.z;
+    }
+
+    private Vec3 calculateSeatLocalAngularVelocity(Vector3d worldAngularVelocity) {
+        if (worldAngularVelocity == null || !isFiniteVector(worldAngularVelocity)) {
+            return Vec3.ZERO;
+        }
+        return new Vec3(
+                dotWorldVector(worldAngularVelocity, worldXDirection),
+                dotWorldVector(worldAngularVelocity, worldYDirection),
+                dotWorldVector(worldAngularVelocity, worldZDirection)
+        );
     }
 
     private boolean updateWorldControlAxes(ServerSubLevel subLevel) {
@@ -776,252 +876,8 @@ public class ServerShipHandler {
                 && axis.lengthSqr() >= AXIS_EPSILON;
     }
 
-    private Vec3 calculateWarpPreparationTorque(ServerSubLevel subLevel,BlockPos pos) {
-        if (data.warpTargetName == null || data.warpTargetName.isEmpty() || data.warpTargetPos == null || data.warpTargetPos.equals(BlockPos.ZERO)) {
-            return new Vec3(0, 0, 0);
-        }
-
-        Vec3 targetDirection = getNormalizedWarpTargetDirection(pos);
-        if (targetDirection == null) {
-            return new Vec3(0, 0, 0);
-        }
-
-        Vec3 currentForward = worldXDirection.normalize();
-
-        Vec3 rotationAxisWorld = targetDirection.cross(currentForward);
-        if (rotationAxisWorld.lengthSqr() < 1.0E-6) {
-            return new Vec3(0, 0, 0);
-        }
-
-        double alignment = Mth.clamp(currentForward.dot(targetDirection), -1.0D, 1.0D);
-        double angleStrength = Mth.clamp((1.0D - alignment) * 2.0D, 0.0D, 1.0D);
-        rotationAxisWorld.normalize();
-        rotationAxisWorld.scale(angleStrength);
-        double factor = subLevel.getMassTracker().getMass();
-
-        double localYawTorque = Mth.clamp(rotationAxisWorld.dot(worldYDirection) * WARP_ALIGNMENT_TORQUE_SCALE, -factor, factor);
-        double localPitchTorque = Mth.clamp(rotationAxisWorld.dot(worldZDirection) * WARP_ALIGNMENT_TORQUE_SCALE, -factor, factor);
-        return new Vec3(0, localYawTorque, localPitchTorque);
-    }
-
-
-    private Vec3 calculateAutoLevelTorque(ServerSubLevel subLevel, Vector3d omega) {
-        Vec3 currentUp = worldYDirection.normalize();
-        Vec3 targetUp = new Vec3(0.0D, 1.0D, 0.0D);
-        // Function: rotate the current seat-up vector toward world +Y so auto-level cannot settle upside-down.
-        Vec3 rotationAxisWorld = currentUp.cross(targetUp);
-        double alignment = Mth.clamp(currentUp.dot(targetUp), -1.0D, 1.0D);
-        if (rotationAxisWorld.lengthSqr() < 1.0E-6D) {
-            // Function: an upside-down seat has no cross-product axis, so pick the local forward axis to recover.
-            rotationAxisWorld = alignment < 0.0D ? worldXDirection.normalize() : Vec3.ZERO;
-        }
-        if (rotationAxisWorld.lengthSqr() < 1.0E-6D) {
-            return Vec3.ZERO;
-        }
-
-        double angleRadians = Math.acos(alignment);
-        double rollRate = dotWorldVector(omega, worldXDirection);
-        double pitchRate = dotWorldVector(omega, worldZDirection);
-        if (angleRadians <= AUTO_LEVEL_SETTLE_ANGLE_RADIANS
-                && Math.abs(rollRate) <= AUTO_LEVEL_SETTLE_ANGULAR_SPEED
-                && Math.abs(pitchRate) <= AUTO_LEVEL_SETTLE_ANGULAR_SPEED) {
-            // Function: near-perfect alignment enters a small rest zone so light ships do not hunt around level.
-            return Vec3.ZERO;
-        }
-
-        double angleStrength = Mth.clamp(angleRadians / AUTO_LEVEL_FULL_TORQUE_ANGLE_RADIANS, 0.0D, 1.0D);
-        angleStrength *= angleStrength;
-        double nearTargetBlend = 1.0D - Mth.clamp(angleRadians / AUTO_LEVEL_NEAR_TARGET_ANGLE_RADIANS, 0.0D, 1.0D);
-        MassData massData = subLevel.getMassTracker();
-        double mass = massData == null || massData.isInvalid()
-                ? MIN_VALID_MASS
-                : Math.max(massData.getMass(), MIN_VALID_MASS);
-        // Function: large ships need less proportional correction and more damping to avoid roll/pitch hunting.
-        double massAlignmentGain = Mth.clamp(Math.sqrt(AUTO_LEVEL_REFERENCE_MASS / mass), AUTO_LEVEL_MIN_ALIGNMENT_GAIN, 1.0D);
-        double heavyMassDampingMultiplier = Mth.lerp(massAlignmentGain, AUTO_LEVEL_HEAVY_MASS_DAMPING_MULTIPLIER, 1.0D);
-        double dampingGain = Mth.lerp(nearTargetBlend, AUTO_LEVEL_ANGULAR_DAMPING, AUTO_LEVEL_NEAR_TARGET_ANGULAR_DAMPING)
-                * heavyMassDampingMultiplier;
-        double controlLimit = Mth.lerp(nearTargetBlend, AUTO_LEVEL_MAX_CONTROL, AUTO_LEVEL_NEAR_TARGET_MAX_CONTROL);
-        rotationAxisWorld = rotationAxisWorld.normalize().scale(angleStrength);
-        double localRollTorque = rotationAxisWorld.dot(worldXDirection) * AUTO_LEVEL_ALIGNMENT_TORQUE_SCALE * massAlignmentGain
-                - rollRate * dampingGain;
-        double localPitchTorque = rotationAxisWorld.dot(worldZDirection) * AUTO_LEVEL_ALIGNMENT_TORQUE_SCALE * massAlignmentGain
-                - pitchRate * dampingGain;
-
-        return new Vec3(
-                Mth.clamp(localRollTorque, -controlLimit, controlLimit),
-                0.0D,
-                Mth.clamp(localPitchTorque, -controlLimit, controlLimit)
-        );
-    }
-
     private static double dotWorldVector(Vector3d vector, Vec3 axis) {
         return vector.x * axis.x + vector.y * axis.y + vector.z * axis.z;
-    }
-
-    private void tryLaunchWarpProjectile(ServerSubLevel subLevel) {
-        if (data.hasPendingWarpTeleport) {
-            return;
-        }
-        if (data.warpTargetPos == null || data.warpTargetPos.equals(BlockPos.ZERO)) {
-            return;
-        }
-
-        Vec3 launchDirection = getNormalizedWarpTargetDirection(data.controlSeatPos);
-        if (launchDirection == null) {
-            return;
-        }
-
-        double alignment = Mth.clamp(worldXDirection.dot(launchDirection), -1.0D, 1.0D);
-        double angleDegrees = Math.toDegrees(Math.acos(alignment));
-        if (Math.abs(angleDegrees-180) >= WARP_ALIGNMENT_THRESHOLD_DEGREES) {
-            return;
-        }
-        Level level = data.level;
-        Vec3 shipPos = ServerShipUtils.getStructureCenterWorld(subLevel);
-        if (level == null || shipPos == null) {
-            return;
-        }
-
-        double structureMaxDimension = ServerShipUtils.getStructureMaxDimension(subLevel);
-        if (structureMaxDimension <= 0.0D) {
-            return;
-        }
-        double projectileTravelDistance = structureMaxDimension * WARP_PROJECTILE_DISTANCE_SCALE;
-
-        ControlSeatBlockEntity controlSeat = getControlSeatBlockEntity();
-        if (controlSeat == null) {
-            return;
-        }
-        int e710Cost = data.warpE710CostMb > 0 ? data.warpE710CostMb : controlSeat.calculateWarpE710CostMb(data.warpTargetPos);
-        // Function: consume E-710 at the actual jump launch so refueling or draining during alignment is respected.
-        if (!controlSeat.consumeE710ForWarp(e710Cost)) {
-            data.rejectWarpForInsufficientE710(e710Cost);
-            syncWarpPreparationState();
-            return;
-        }
-
-        Vec3 targetWorldPos = new Vec3(
-                data.warpTargetPos.getX() + 0.5D,
-                data.warpTargetPos.getY() + 0.5D,
-                data.warpTargetPos.getZ() + 0.5D
-        );
-        spawnWarpProjectile(level, shipPos, launchDirection, projectileTravelDistance, structureMaxDimension);
-        // Function: mirror the launch visual at the warp destination with the same velocity direction.
-        spawnWarpProjectile(level, targetWorldPos, launchDirection, projectileTravelDistance, structureMaxDimension);
-
-        // Function: teleport only after the projectile has flown the full bounds-derived distance.
-        long executeGameTime = level.getGameTime()
-                + WarpProjecTileEntity.lifeTicksForDistance(projectileTravelDistance)
-                + WARP_TELEPORT_EXTRA_DELAY_TICKS;
-        data.schedulePendingWarpTeleport(new Vector3d(targetWorldPos.x, targetWorldPos.y, targetWorldPos.z), executeGameTime);
-        data.clearWarpPreparation();
-        syncWarpPreparationState();
-    }
-
-    private void spawnWarpProjectile(Level level, Vec3 position, Vec3 launchDirection, double projectileTravelDistance, double structureMaxDimension) {
-        WarpProjecTileEntity warpProjectile = new WarpProjecTileEntity(vsieEntities.WARP_PROJECTILE.get(), level);
-        // Function: keep projectile flight range and FX scale identical for source and target-side launch visuals.
-        warpProjectile.setPos(position.x, position.y, position.z);
-        warpProjectile.configureLaunch(launchDirection, projectileTravelDistance, structureMaxDimension);
-        level.addFreshEntity(warpProjectile);
-    }
-
-
-    private void processPendingWarpTeleport(ServerSubLevel subLevel) {
-        Level level = data.level;
-        if (level == null || level.isClientSide() || !data.hasPendingWarpTeleport) {
-            return;
-        }
-        if (level.getGameTime() < data.pendingWarpTeleportGameTime) {
-            return;
-        }
-        // Function: copy the pending target before clearing state, otherwise clearPendingWarpTeleport resets it to zero.
-        Vector3d pendingTeleportPos = new Vector3d(data.pendingWarpTeleportPos);
-        Vec3 completionCenter = calculateWarpCompletionCenter(subLevel, pendingTeleportPos);
-        if (ServerShipUtils.teleportKeepOrientation(subLevel, pendingTeleportPos)) {
-            shakeScreenAtWarpCompletion(completionCenter);
-            data.clearPendingWarpTeleport();
-        }
-    }
-
-    private Vec3 calculateWarpCompletionCenter(ServerSubLevel subLevel, Vector3d targetPoseWorld) {
-        Vec3 targetPose = new Vec3(targetPoseWorld.x, targetPoseWorld.y, targetPoseWorld.z);
-        Vec3 currentCenter = ServerShipUtils.getStructureCenterWorld(subLevel);
-        if (currentCenter == null) {
-            return targetPose;
-        }
-
-        var currentPose = subLevel.logicalPose().position();
-        Vec3 currentPoseWorld = new Vec3(currentPose.x(), currentPose.y(), currentPose.z());
-        // Function: teleport moves the sublevel pose, so preserve the model-center offset from that pose.
-        return targetPose.add(currentCenter.subtract(currentPoseWorld));
-    }
-
-
-    private void shakeScreenAtWarpCompletion(Vec3 centerWorldPos) {
-        if (!(data.level instanceof ServerLevel serverLevel) || centerWorldPos == null) {
-            return;
-        }
-
-        double radiusSqr = WARP_COMPLETE_SCREEN_SHAKE_RADIUS * WARP_COMPLETE_SCREEN_SHAKE_RADIUS;
-        for (ServerPlayer player : serverLevel.players()) {
-            double distanceSqr = player.distanceToSqr(centerWorldPos);
-            if (distanceSqr > radiusSqr) {
-                continue;
-            }
-
-            double distanceFactor = 1.0D - Math.sqrt(distanceSqr) / WARP_COMPLETE_SCREEN_SHAKE_RADIUS;
-            float scale = (float) Math.max(0.15D, distanceFactor);
-            // Function: use the same shake parameters and attenuation rule as heavy_electromagnet_turret firing.
-            ScreenShakeEffect effect = new ScreenShakeEffect(
-                    WARP_COMPLETE_SCREEN_SHAKE_TICKS,
-                    WARP_COMPLETE_SCREEN_SHAKE_YAW * scale,
-                    WARP_COMPLETE_SCREEN_SHAKE_PITCH * scale,
-                    WARP_COMPLETE_SCREEN_SHAKE_ROLL * scale,
-                    WARP_COMPLETE_SCREEN_SHAKE_JITTER * scale,
-                    WARP_COMPLETE_SCREEN_SHAKE_JITTER * scale,
-                    WARP_COMPLETE_SCREEN_SHAKE_JITTER * scale,
-                    centerWorldPos.x,
-                    centerWorldPos.y,
-                    centerWorldPos.z
-            );
-            RPLNetwork.sendToClientPlayer(new ClientboundShakeScreenPacket(effect), player);
-        }
-    }
-
-    private Vec3 getNormalizedWarpTargetDirection(BlockPos pos) {
-        SubLevel sublevel = ServerShipUtils.getSubLevelAtBlockPos(data.level,pos);
-        Vec3 seatWorldPos = ServerShipUtils.getBlockCenterWorld(sublevel, pos);
-        Vec3 targetDirection = new Vec3(
-                data.warpTargetPos.getX() + 0.5 - seatWorldPos.x,
-                data.warpTargetPos.getY() + 0.5 - seatWorldPos.y,
-                data.warpTargetPos.getZ() + 0.5 - seatWorldPos.z
-        );
-        if (targetDirection.lengthSqr() < 1.0E-6D) {
-            return null;
-        }
-        return targetDirection.normalize();
-    }
-
-
-    private void syncWarpPreparationState() {
-        ControlSeatBlockEntity controlSeat = getControlSeatBlockEntity();
-        if (controlSeat == null) {
-            return;
-        }
-        controlSeat.setChanged();
-    }
-
-    @Nullable
-    private ControlSeatBlockEntity getControlSeatBlockEntity() {
-        if (data.level == null || data.controlSeatPos == null) {
-            return null;
-        }
-        if (data.level.getBlockEntity(data.controlSeatPos) instanceof ControlSeatBlockEntity controlSeat) {
-            return controlSeat;
-        }
-        return null;
     }
 
     public static Vec3 calculateWorldTorque(Vector3d localTorque, Vec3 worldDirectionX, Vec3 worldDirectionY, Vec3 worldDirectionZ) {

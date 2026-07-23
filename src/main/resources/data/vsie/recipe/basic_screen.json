@@ -1,0 +1,26 @@
+{
+  "type": "create:mixing",
+  "heat_requirement": "heated",
+  "ingredients": [
+    {
+      "item": "simulated:swivel_bearing"
+    },
+    {
+      "item": "minecraft:map"
+    },
+    {
+      "item": "create:content_observer"
+    },
+    {
+      "item": "create:display_board"
+    },
+    {
+      "item": "create:super_glue"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:basic_screen"
+    }
+  ]
+}

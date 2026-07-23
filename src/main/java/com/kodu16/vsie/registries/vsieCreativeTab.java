@@ -36,53 +36,31 @@ public class vsieCreativeTab {
 
         @Override
         public void accept(@Nonnull ItemDisplayParameters parameters, @Nonnull Output output) {
-            output.accept(vsieItems.TEST_ITEM);
-            output.accept(vsieItems.LINKER);
-            output.accept(vsieItems.IFF);
-            output.accept(vsieItems.SHIELD_TOOL);
-            output.accept(vsieItems.PARTICLE_CONTAINER);
-            output.accept(vsieItems.BASIC_MISSILE_ITEM);
-            output.accept(vsieItems.WARP_DATA_CHIP);
+            // Function: creative tab groups items by progression and station role for faster browsing.
             output.accept(vsieItems.SOLID_E710);
             output.accept(vsieItems.COMPUTRONIC_SUBSTRATE);
             output.accept(vsieItems.METALIC_MICROLATTICE);
             output.accept(vsieItems.SILICON_CARBIDE);
 
-
-            output.accept(vsieBlocks.BASIC_SCREEN_BLOCK);
             output.accept(vsieFluids.DTFUEL.getBucket().get());
             output.accept(vsieFluids.CHARGED_PARTICLES_FUEL.getBucket().get());
             output.accept(vsieFluids.E710.getBucket().get());
+
+            output.accept(vsieItems.PARTICLE_CONTAINER);
+            output.accept(vsieItems.BASIC_MISSILE_ITEM);
+            output.accept(vsieBlocks.SMALL_AMMOBOX_BLOCK);
+            output.accept(vsieBlocks.ELECTRO_MAGNET_SHELL_BLOCK);
+
             output.accept(vsieBlocks.CONTROL_SEAT_BLOCK);
 
-            output.accept(vsieBlocks.BASIC_THRUSTER_BLOCK);
-            output.accept(vsieBlocks.MEDIUM_THRUSTER_BLOCK);
-            output.accept(vsieBlocks.LARGE_THRUSTER_BLOCK);
-
-            output.accept(vsieBlocks.MEDIUM_LASER_TURRET_BLOCK);
-            output.accept(vsieBlocks.PARTICLE_TURRET_BLOCK);
-            output.accept(vsieBlocks.HEAVY_ELECTROMAGNET_TURRET_BLOCK);
-            output.accept(vsieBlocks.HEAVY_LASER_TURRET_BLOCK);
-            output.accept(vsieBlocks.BASIC_CIWS_BLOCK);
-
+            output.accept(vsieItems.LINKER);
+            output.accept(vsieItems.IFF);
+            output.accept(vsieItems.SHIELD_TOOL);
+            output.accept(vsieItems.WARP_DATA_CHIP);
+            //output.accept(vsieBlocks.BASIC_SCREEN_BLOCK);
+            output.accept(vsieBlocks.REDSTONE_RELAY_BLOCK);
             output.accept(vsieBlocks.SHIELD_GENERATOR_BLOCK);
             output.accept(vsieBlocks.AMMO_BOX_BLOCK);
-            output.accept(vsieBlocks.SMALL_AMMOBOX_BLOCK);
-            output.accept(vsieBlocks.BASIC_VECTOR_THRUSTER_BLOCK);
-
-            output.accept(vsieBlocks.INFRA_KNIFE_ACCELERATOR_BLOCK);
-            output.accept(vsieBlocks.BASIC_MISSILE_LAUNCHER_BLOCK);
-            output.accept(vsieBlocks.VERTICLE_LAUNCHING_SLOT_BLOCK);
-            output.accept(vsieBlocks.VERTICLE_LAUNCHING_SLOT_CORE_BLOCK);
-            output.accept(vsieBlocks.ARC_EMITTER_BLOCK);
-            output.accept(vsieBlocks.CENIX_PLASMA_CANNON_BLOCK);
-            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_CANNON_BLOCK);
-            output.accept(vsieBlocks.REDSTONE_RELAY_BLOCK);
-
-            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_TOP_BLOCK);
-            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_CORE_BLOCK);
-            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_BLOCK);
-            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_ACCELERATOR_BLOCK);
 
             output.accept(vsieBlocks.SMALL_ENERGY_BATTERY_BLOCK);
             output.accept(vsieBlocks.MEDIUM_ENERGY_BATTERY_BLOCK);
@@ -90,6 +68,33 @@ public class vsieCreativeTab {
             output.accept(vsieBlocks.SMALL_FUELTANK_BLOCK);
             output.accept(vsieBlocks.MEDIUM_FUELTANK_BLOCK);
             output.accept(vsieBlocks.LARGE_FUELTANK_BLOCK);
+
+            output.accept(vsieBlocks.BASIC_THRUSTER_BLOCK);
+            output.accept(vsieBlocks.BASIC_VECTOR_THRUSTER_BLOCK);
+            output.accept(vsieBlocks.MEDIUM_THRUSTER_BLOCK);
+            output.accept(vsieBlocks.LARGE_THRUSTER_BLOCK);
+
+            output.accept(vsieBlocks.SMALL_LASER_TURRET_BLOCK);
+            output.accept(vsieBlocks.MEDIUM_LASER_TURRET_BLOCK);
+            output.accept(vsieBlocks.PARTICLE_TURRET_BLOCK);
+            output.accept(vsieBlocks.BASIC_CIWS_BLOCK);
+            output.accept(vsieBlocks.HEAVY_ELECTROMAGNET_TURRET_BLOCK);
+            output.accept(vsieBlocks.HEAVY_LASER_TURRET_BLOCK);
+
+            output.accept(vsieBlocks.BASIC_MISSILE_LAUNCHER_BLOCK);
+            output.accept(vsieBlocks.VERTICLE_LAUNCHING_SLOT_BLOCK);
+            output.accept(vsieBlocks.VERTICLE_LAUNCHING_SLOT_CORE_BLOCK);
+            output.accept(vsieBlocks.ARC_EMITTER_BLOCK);
+            output.accept(vsieBlocks.CENIX_PLASMA_CANNON_BLOCK);
+            output.accept(vsieBlocks.INFRA_KNIFE_ACCELERATOR_BLOCK);
+            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_CANNON_BLOCK);
+
+            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_CORE_BLOCK);
+            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_TOP_BLOCK);
+            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_BLOCK);
+            output.accept(vsieBlocks.ELECTRO_MAGNET_RAIL_ACCELERATOR_BLOCK);
+
+            output.accept(vsieItems.TEST_ITEM);
         }
     }
 }

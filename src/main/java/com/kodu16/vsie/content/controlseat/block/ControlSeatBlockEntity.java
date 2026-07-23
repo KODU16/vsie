@@ -13,11 +13,14 @@ import com.kodu16.vsie.content.controlseat.client.Input.ClientMouseHandler;
 import com.kodu16.vsie.content.controlseat.server.SeatRegistry;
 import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.network.fx.FxPositionS2CPacket;
+import com.kodu16.vsie.network.fx.FxEntityS2CPacket;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.registries.vsieEntities;
 import com.kodu16.vsie.registries.vsieItems;
+import com.kodu16.vsie.registries.vsieSounds;
 import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
+import com.kodu16.vsie.content.shield.ShieldInterception;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.content.storage.energybattery.AbstractEnergyBatteryBlockEntity;
 import com.kodu16.vsie.content.storage.fueltank.AbstractFuelTankBlockEntity;
@@ -39,10 +42,12 @@ import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -74,11 +79,19 @@ import java.util.List;
 public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity implements BlockEntitySubLevelActor {
     private static final ResourceLocation SHIELD_OPEN_FX = ResourceLocation.fromNamespaceAndPath("vsie", "shield_open");
     private static final ResourceLocation SHIELD_HIT_FX = ResourceLocation.fromNamespaceAndPath("vsie", "shield_hit");
+    private static final ResourceLocation RAIL_ACCELERATION_FX = ResourceLocation.fromNamespaceAndPath("vsie", "cenix_plasma_bullet");
+    private static final int RAIL_ACCELERATION_FX_REFRESH_TICKS = 20;
     private static final float SHIELD_OPEN_DEFAULT_RADIUS = 8.0F;
+    private static final String ANTI_GRAVITY_IDLE_THROTTLE_TAG = "AntiGravityIdleThrottle";
+    // Function: preserve the softer one-shot boost transient while moving its trigger to the control seat.
+    private static final float THRUSTER_BOOST_VOLUME_SCALE = 0.6F;
     //private final ControlSeatServerData serverData = new ControlSeatServerData();
     public volatile boolean ride = false;
     private boolean hasInitialized = false;
     private boolean shieldOpenFxPlayed = false;
+    private int railAccelerationFxEntityId = -1;
+    private int railAccelerationFxRefreshTicks = 0;
+    private boolean railAccelerationTrailOverrideActive = false;
     private boolean hasThrusterFuelThisTick = false;
     public boolean previousfirestatus = false;
     private HolderLookup.Provider nbtRegistries;
@@ -113,6 +126,9 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
     @Override
     public void sable$tick(ServerSubLevel subLevel) {
+        if (!validateSingleControlSeatForSubLevel(subLevel)) {
+            return;
+        }
         controlseatData.serverShip = subLevel;
         controlseatData.level = level;
         serverShipHandler.getandsendshipdata(subLevel, getBlockPos());
@@ -120,6 +136,9 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
     @Override
     public void sable$physicsTick(ServerSubLevel subLevel, RigidBodyHandle handle, double timeStep) {
+        if (!validateSingleControlSeatForSubLevel(subLevel)) {
+            return;
+        }
         controlseatData.serverShip = subLevel;
         controlseatData.level = level;
         serverShipHandler.applyForceAndTorque(subLevel, getBlockPos(), timeStep);
@@ -140,9 +159,14 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
     public void clientTick() {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer lp = mc.player;
+        if (!(lp != null && lp.getVehicle() instanceof ControlSeatMountEntity mount)) {
+            return;
+        }
         BlockPos pos = getBlockPos();
-
-
+        if (!pos.equals(mount.getBoundBlockPos())) {
+            return;
+        }
+        // Function: only the actually ridden control seat should run per-frame mouse input handling on the client.
         ClientMouseHandler.handle(lp, pos);
     }
 
@@ -173,10 +197,20 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         tag.putString("WarpTargetName", controlseatData.warpTargetName);
 
         tag.putBoolean("IsWarpPreparing", controlseatData.isWarpPreparing);
+        // Function: persisted warp preparation must keep the original start-to-target aim vector after a world reload.
+        tag.putBoolean("HasWarpStartSnapshot", controlseatData.hasWarpStartSnapshot);
+        tag.putDouble("WarpStartWorldX", controlseatData.warpStartSubLevelWorldPos.x);
+        tag.putDouble("WarpStartWorldY", controlseatData.warpStartSubLevelWorldPos.y);
+        tag.putDouble("WarpStartWorldZ", controlseatData.warpStartSubLevelWorldPos.z);
+        tag.putDouble("WarpLaunchDirectionX", controlseatData.warpLaunchDirection.x);
+        tag.putDouble("WarpLaunchDirectionY", controlseatData.warpLaunchDirection.y);
+        tag.putDouble("WarpLaunchDirectionZ", controlseatData.warpLaunchDirection.z);
 
         tag.putBoolean("IsViewLocked", controlseatData.isviewlocked);
         // Function: auto-level is a ship mode like anti-gravity and should survive block reloads.
         tag.putBoolean("IsAutoLevelOn", controlseatData.isAutoLevelOn);
+        // Function: idle anti-gravity learns a trim value and should resume from the last stable world load.
+        tag.putDouble(ANTI_GRAVITY_IDLE_THROTTLE_TAG, controlseatData.antiGravityIdleThrottle);
         controlseatData.refreshWeaponChannelEncode();
         // Function: weapon channel toggles must survive world reloads, not just the live S2C HUD sync.
         tag.putInt("WeaponChannelEncode", controlseatData.channelencode);
@@ -194,8 +228,28 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         controlseatData.warpTargetDimension = tag.getString("WarpTargetDimension");
         controlseatData.warpTargetName = tag.getString("WarpTargetName");
         controlseatData.isWarpPreparing = tag.getBoolean("IsWarpPreparing");
+        if (tag.contains("HasWarpStartSnapshot")) {
+            controlseatData.hasWarpStartSnapshot = tag.getBoolean("HasWarpStartSnapshot");
+            controlseatData.warpStartSubLevelWorldPos.set(
+                    tag.getDouble("WarpStartWorldX"),
+                    tag.getDouble("WarpStartWorldY"),
+                    tag.getDouble("WarpStartWorldZ")
+            );
+            controlseatData.warpLaunchDirection.set(
+                    tag.getDouble("WarpLaunchDirectionX"),
+                    tag.getDouble("WarpLaunchDirectionY"),
+                    tag.getDouble("WarpLaunchDirectionZ")
+            );
+        } else {
+            controlseatData.clearWarpAlignmentSnapshot();
+        }
         controlseatData.isviewlocked = tag.getBoolean("IsViewLocked");
         controlseatData.isAutoLevelOn = tag.getBoolean("IsAutoLevelOn");
+        if (tag.contains(ANTI_GRAVITY_IDLE_THROTTLE_TAG)) {
+            controlseatData.antiGravityIdleThrottle = Mth.clamp(tag.getDouble(ANTI_GRAVITY_IDLE_THROTTLE_TAG), 0.0D, 2.0D);
+        } else {
+            controlseatData.antiGravityIdleThrottle = 1.0D;
+        }
         if (tag.contains("WeaponChannelEncode")) {
             controlseatData.setWeaponChannelEncode(tag.getInt("WeaponChannelEncode"));
         } else {
@@ -212,6 +266,9 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         Logger LOGGER = LogUtils.getLogger();
         if (level.isClientSide)
             return;
+        if (!validateSingleControlSeatForSubLevel()) {
+            return;
+        }
         if (hasInitialized) {
             refreshSeatOccupancyFromWorld();
 
@@ -236,36 +293,34 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
             updateEnergy();
             this.linkedBatteryPowerAvailableThisTick = this.totalenergyavalible > 0;
-            if (!this.linkedBatteryPowerAvailableThisTick) {
+            if (this.linkedBatteryPowerAvailableThisTick) {
+                updateThruster();
+                updateWeapon();
+                updateTurret();
+                updateShield();
+                this.capacitorenergy = -this.energyspendpertick;
+                this.totalenergy =100;
+                this.totalenergyavalible = 0;
+                updateEnergy();
+                if(this.capacitorenergy < 0) {
+                    this.capacitorenergy = 0;
+                    disableLinkedPeripheralsForNoPower();
+                }
+            } else {
+                // Function: no battery power disables only powered peripherals; resource and HUD updates still continue.
                 disableLinkedPeripheralsForNoPower();
-                updateFuel();
-                return;
             }
 
-            updateThruster();
-            updateWeapon();
-            updateTurret();
-            updateShield();
-            this.capacitorenergy = -this.energyspendpertick;
             this.capacitorfuel = -this.fuelspendcurrenttick;
-            //LogUtils.getLogger().warn("current energy cost per tick:"+this.energyspendpertick);
-            this.totalenergy =100;
-            this.totalenergyavalible = 0;
-            updateEnergy();
             updateFuel();
             updateScreen();
 
-            if(this.capacitorenergy < 0) {
-                this.capacitorenergy = 0;
-                disableThrusterOutput();
-                return;
-            }
             this.capacitorenergy = 0;
 
-            if(this.capacitorfuel < 0 || !this.hasThrusterFuelThisTick) {
+            // Function: missing thruster fuel is a flight-only failure, so shields and screens keep ticking.
+            if(this.fuelspendcurrenttick > 0 && (this.capacitorfuel < 0 || !this.hasThrusterFuelThisTick)) {
                 this.capacitorfuel = 0;
                 disableThrusterOutput();
-                return;
             }
         }
         else {
@@ -308,32 +363,20 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                 if (!shieldOpenFxPlayed) {
                     shieldOpenFxPlayed = playShieldOpenFx(sublevel, center);
                 }
-                AABB searchBox = new AABB(this.getBlockPos()).inflate(controlseatData.shieldradius + 3.0);
+                AABB searchBox = ShieldInterception.searchBox(center, controlseatData.shieldradius);
                 Vec3 finalCenter = center;
                 int shieldCost = Math.max(0, (int) Math.ceil(controlseatData.shieldcostperprojectile));
                 final int[] remainingShieldEnergy = {(int) Math.max(0.0D, controlseatData.avalibleshield)};
                 final boolean[] overloadTriggered = {false};
-                level.getEntitiesOfClass(Entity.class, searchBox, entity -> {
-                    if (entity.isRemoved() || entity instanceof LivingEntity)
-                        return false;
-
-                    double speed = entity.getDeltaMovement().length();
-                    if (speed < 0.25) return false;
-
-                    Vec3 toEntity = entity.position().subtract(finalCenter);
-                    double dot = entity.getDeltaMovement().normalize().dot(toEntity.normalize());
-                    return dot < -0.3;
-                }).forEach(entity -> {
-
-                    Vec3 toEntity = entity.position().subtract(finalCenter);
-                    double distSq = toEntity.lengthSqr();
+                level.getEntitiesOfClass(Entity.class, searchBox, ShieldInterception::isCandidate).forEach(entity -> {
 
                     if (overloadTriggered[0]) return;
-                    if (distSq > controlseatData.shieldradius * controlseatData.shieldradius || distSq < 0.25) return;
+                    ShieldInterception.Hit shieldHit = ShieldInterception.findHit(entity, finalCenter, controlseatData.shieldradius);
+                    if (shieldHit == null) return;
 
                     entity.discard();
-                    Vec3 hitDir = toEntity.normalize();
-                    Vec3 hitPoint = finalCenter.add(hitDir.scale(controlseatData.shieldradius));
+                    Vec3 hitDir = shieldHit.normal();
+                    Vec3 hitPoint = shieldHit.point();
                     playShieldHitFx(hitPoint, hitDir);
 
                     level.playSound(null, hitPoint.x, hitPoint.y, hitPoint.z,
@@ -401,6 +444,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         double[] torqueStrengthSum = new double[1];
 
         List<AbstractThrusterBlockEntity> activeThrusters = new ArrayList<>();
+        List<BlockPos> activeThrusterPositions = new ArrayList<>();
         this.forEachLinkedPeripheral(pos -> {
             BlockPos blockPos = BlockPos.containing(pos);
             BlockEntity be = level.getBlockEntity(blockPos);
@@ -423,6 +467,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                 }
 
                 activeThrusters.add(thruster);
+                activeThrusterPositions.add(blockPos.immutable());
+                thruster.setRailAccelerationTrailOverride(railAccelerationTrailOverrideActive);
                 this.fuelspendcurrenttick += thruster.fuelconsumptionperthrottle()*thruster.getFuelThrottle();
             } else {
 
@@ -442,6 +488,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         controlseatData.thruster_torque_strength = (float) torqueStrengthSum[0];
 
         controlseatData.facingMaxThrustSum = facingMaxThrustSum;
+        // Function: ship trail emitters use the current linked thruster block positions in server ship handling.
+        controlseatData.thrusterpositionslist = activeThrusterPositions;
 
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 0);
@@ -475,6 +523,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         List<Vec3> toRemove = new ArrayList<>();
         // Function: remember whether any active rail accelerator is currently forcing counter-force assist off.
         final boolean[] forceAssistSuppressedByAccelerator = {false};
+        final boolean[] railAccelerationActive = {false};
         int finalActiveSeatChannelEncode = activeSeatChannelEncode;
         SubLevel lockedEnemySubLevel = resolveLockedEnemySubLevel();
         this.forEachLinkedPeripheral(pos -> {
@@ -497,7 +546,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                             weapon.getDisplayName().getString(),
                             weapon.getCooldownHudValue(),
                             weapon.getCooldownHudMax(),
-                            weapon.isCooldownHudRemaining()
+                            weapon.isCooldownHudRemaining(),
+                            weapon.isHudFireReady()
                     ));
                 }
 
@@ -513,6 +563,12 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                         && accelerator.shouldSuppressForceAssist()) {
                     forceAssistSuppressedByAccelerator[0] = true;
                 }
+                if (controlseatData.isfiring
+                        && activeForSeat
+                        && weapon instanceof ElectromagnetRailAcceleratorBlockEntity accelerator
+                        && accelerator.wasAcceleratingRecently()) {
+                    railAccelerationActive[0] = true;
+                }
             } else {
 
                 toRemove.add(pos);
@@ -526,11 +582,67 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         if (forceAssistSuppressedByAccelerator[0]) {
             controlseatData.isforceassiston = false;
         }
+        syncRailAccelerationFx(railAccelerationActive[0]);
 
 
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 1);
         }
+    }
+
+    // Function: attach the rail glow to the accelerated ship's occupied control-seat entity for exactly the active interval.
+    private void syncRailAccelerationFx(boolean accelerating) {
+        if (level == null || level.isClientSide()) {
+            return;
+        }
+        setRailAccelerationTrailOverrideActive(accelerating);
+
+        Player player = controlseatData.getPlayer();
+        ControlSeatMountEntity mount = player != null && player.getVehicle() instanceof ControlSeatMountEntity seat
+                && seat.getBoundBlockPos().equals(getBlockPos()) ? seat : null;
+        int currentEntityId = mount == null ? -1 : mount.getId();
+
+        if (!accelerating || currentEntityId < 0) {
+            stopRailAccelerationFx();
+            return;
+        }
+
+        if (railAccelerationFxEntityId != currentEntityId) {
+            stopRailAccelerationFx();
+            railAccelerationFxEntityId = currentEntityId;
+            railAccelerationFxRefreshTicks = 0;
+            ModNetworking.sendToAll(new FxEntityS2CPacket(RAIL_ACCELERATION_FX, currentEntityId, false));
+            return;
+        }
+
+        railAccelerationFxRefreshTicks++;
+        if (railAccelerationFxRefreshTicks >= RAIL_ACCELERATION_FX_REFRESH_TICKS) {
+            railAccelerationFxRefreshTicks = 0;
+            // Function: refresh packets let clients that begin tracking mid-acceleration acquire the persistent effect.
+            ModNetworking.sendToAll(new FxEntityS2CPacket(RAIL_ACCELERATION_FX, currentEntityId, false));
+        }
+    }
+
+    // Function: propagate rail-acceleration trail state immediately to every linked thruster on state edges.
+    private void setRailAccelerationTrailOverrideActive(boolean active) {
+        if (railAccelerationTrailOverrideActive == active) {
+            return;
+        }
+        railAccelerationTrailOverrideActive = active;
+        this.forEachLinkedPeripheral(pos -> {
+            BlockEntity blockEntity = level.getBlockEntity(BlockPos.containing(pos));
+            if (blockEntity instanceof AbstractThrusterBlockEntity thruster) {
+                thruster.setRailAccelerationTrailOverride(active);
+            }
+        }, 0);
+    }
+
+    private void stopRailAccelerationFx() {
+        if (railAccelerationFxEntityId >= 0) {
+            ModNetworking.sendToAll(FxEntityS2CPacket.stop(RAIL_ACCELERATION_FX, railAccelerationFxEntityId));
+        }
+        railAccelerationFxEntityId = -1;
+        railAccelerationFxRefreshTicks = 0;
     }
 
 
@@ -595,8 +707,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         controlseatData.shieldmin = min;
         controlseatData.shieldradius = 0.75*max;
         controlseatData.totalshield = 100000 * linkedShields.size();
-        controlseatData.shieldcostperprojectile = ((max*(max/min)*linkedShields.size()))*1000;
-        controlseatData.shieldregeneratepertick = ((max*linkedShields.size()))*500;
+        controlseatData.shieldcostperprojectile = ((max*(max/min)*linkedShields.size()))*100;
+        controlseatData.shieldregeneratepertick = ((max*linkedShields.size()))*50;
         controlseatData.shieldmaxcooldowntime = (max/min)*50;
     }
 
@@ -790,6 +902,52 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             removeLinkedPeripheral(pos, 4);
         }
         return drained[0];
+    }
+
+    public boolean hasLinkedBatteryEnergy(int energy) {
+        if (energy <= 0) {
+            return true;
+        }
+        // Function: accelerator power checks must read the live linked-battery pool instead of cached HUD values.
+        return getCurrentLinkedBatteryEnergyAvailable() >= energy;
+    }
+
+    public boolean consumeLinkedBatteryEnergy(int energy) {
+        if (energy <= 0) {
+            return true;
+        }
+        if (!hasLinkedBatteryEnergy(energy)) {
+            return false;
+        }
+        int drained = drainLinkedBatteriesForShield(energy);
+        if (drained < energy) {
+            refundLinkedBatteriesFromShield(drained);
+            return false;
+        }
+        int remainingEnergy = getCurrentLinkedBatteryEnergyAvailable();
+        totalenergyavalible = remainingEnergy;
+        controlseatData.avalibleenergy = remainingEnergy;
+        setChanged();
+        return true;
+    }
+
+    private int getCurrentLinkedBatteryEnergyAvailable() {
+        int[] available = {0};
+        List<Vec3> toRemove = new ArrayList<>();
+        this.forEachLinkedPeripheral(pos -> {
+            BlockPos blockPos = BlockPos.containing(pos);
+            BlockEntity be = level.getBlockEntity(blockPos);
+            if (be instanceof AbstractEnergyBatteryBlockEntity battery) {
+                confirmLinkedPeripheralPresent(pos, 4);
+                available[0] += battery.getEnergy().getEnergyStored();
+            } else {
+                toRemove.add(pos);
+            }
+        }, 4);
+        for (Vec3 pos : toRemove) {
+            removeLinkedPeripheral(pos, 4);
+        }
+        return available[0];
     }
 
     private void refundLinkedBatteriesFromShield(int energy) {
@@ -1001,7 +1159,8 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
                                 heavyturret.getDisplayName().getString(),
                                 heavyturret.getCooldownHudValue(),
                                 heavyturret.getCooldownHudMax(),
-                                heavyturret.isCooldownHudRemaining()
+                                heavyturret.isCooldownHudRemaining(),
+                                heavyturret.isHudFireReady()
                         ));
                     }
                 } else {
@@ -1207,6 +1366,51 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
     public ControlSeatServerData getServerData() { return controlseatData; }
 
+    public void playThrottleStartBoostSounds() {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+
+        this.forEachLinkedPeripheral(pos -> {
+            BlockPos blockPos = BlockPos.containing(pos);
+            BlockEntity be = level.getBlockEntity(blockPos);
+            if (!(be instanceof AbstractThrusterBlockEntity thruster)) {
+                return;
+            }
+
+            ThrusterBoostSoundProfile profile = ThrusterBoostSoundProfile.fromThrusterType(thruster.getthrustertype());
+            if (profile == null) {
+                return;
+            }
+
+            SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, thruster.getBlockPos());
+            Vec3 worldPos = ServerShipUtils.getBlockCenterWorld(subLevel, thruster.getBlockPos());
+            level.playSound(
+                    null,
+                    worldPos.x,
+                    worldPos.y,
+                    worldPos.z,
+                    profile.soundEvent(),
+                    SoundSource.BLOCKS,
+                    profile.volume() * THRUSTER_BOOST_VOLUME_SCALE,
+                    profile.pitch()
+            );
+        }, 0);
+    }
+
+    private record ThrusterBoostSoundProfile(SoundEvent soundEvent, float volume, float pitch) {
+        private static ThrusterBoostSoundProfile fromThrusterType(String thrusterType) {
+            return switch (thrusterType) {
+                // Function: mirror the original per-thruster boost transient tuning at the new server-side trigger point.
+                case "basic" -> new ThrusterBoostSoundProfile(vsieSounds.BASIC_THRUSTER_BOOST.get(), 0.78F, 1.08F);
+                case "basic_vector" -> new ThrusterBoostSoundProfile(vsieSounds.BASIC_VECTOR_THRUSTER_BOOST.get(), 0.85F, 1.04F);
+                case "medium" -> new ThrusterBoostSoundProfile(vsieSounds.MEDIUM_THRUSTER_BOOST.get(), 1.02F, 0.96F);
+                case "large" -> new ThrusterBoostSoundProfile(vsieSounds.LARGE_THRUSTER_BOOST.get(), 1.20F, 0.90F);
+                default -> null;
+            };
+        }
+    }
+
     public void clearControlInput() {
         controlseatData.reset();
         serverShipHandler.resetControlInput();
@@ -1237,8 +1441,12 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
     @Override
     public void onRemove() {
+        // Function: block removal must detach any player-bound ship trail before seat runtime state is cleared.
+        setRailAccelerationTrailOverrideActive(false);
+        serverShipHandler.resetControlInput();
         controlseatData.reset();
         if (level != null && !level.isClientSide()) {
+            SeatRegistry.unregisterControlSeat(level, getBlockPos());
             for (ControlSeatMountEntity seat : seats) {
                 SeatRegistry.SEAT_TO_CONTROLSEAT.remove(seat.getUUID());
                 seat.discard();
@@ -1247,6 +1455,43 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         }
 
         super.setRemoved();
+    }
+
+    private boolean validateSingleControlSeatForSubLevel() {
+        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, getBlockPos());
+        return validateSingleControlSeatForSubLevel(subLevel);
+    }
+
+    private boolean validateSingleControlSeatForSubLevel(SubLevel subLevel) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return true;
+        }
+        if (subLevel == null) {
+            SeatRegistry.unregisterControlSeat(level, getBlockPos());
+            return true;
+        }
+        if (SeatRegistry.registerOrUpdateControlSeat(level, getBlockPos(), subLevel)) {
+            return true;
+        }
+
+        // Function: a sublevel may only keep one control seat, so a duplicate destroys itself immediately.
+        destroyDuplicateControlSeat(serverLevel);
+        return false;
+    }
+
+    private void destroyDuplicateControlSeat(ServerLevel serverLevel) {
+        Vec3 explosionCenter = Vec3.atCenterOf(getBlockPos());
+        SeatRegistry.unregisterControlSeat(level, getBlockPos());
+        level.destroyBlock(getBlockPos(), false);
+        serverLevel.explode(
+                null,
+                explosionCenter.x,
+                explosionCenter.y,
+                explosionCenter.z,
+                4.0F,
+                true,
+                Level.ExplosionInteraction.TNT
+        );
     }
 
 
@@ -1399,9 +1644,13 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         if (massData == null || massData.isInvalid()) {
             return Integer.MAX_VALUE;
         }
-        Vec3 seatWorldPos = ServerShipUtils.getBlockCenterWorld(subLevel, getBlockPos());
+        Vec3 startWorldPos = ServerShipUtils.getStructureCenterWorld(subLevel);
+        if (startWorldPos == null) {
+            return Integer.MAX_VALUE;
+        }
         Vec3 targetWorldPos = Vec3.atCenterOf(targetPos);
-        double required = massData.getMass() * seatWorldPos.distanceTo(targetWorldPos) * 10.0D;
+        // Function: warp E-710 cost uses the same structure-center start point as alignment and launch.
+        double required = massData.getMass() * startWorldPos.distanceTo(targetWorldPos) * 0.1D;
         if (!Double.isFinite(required) || required < 0.0D) {
             return Integer.MAX_VALUE;
         }

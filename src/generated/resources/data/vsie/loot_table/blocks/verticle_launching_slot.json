@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "vsie:verticle_launching_slot"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "vsie:blocks/verticle_launching_slot"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "存储部件",
+  "description": "给舰船提供能量、燃料或其它战斗物资储备能力的部件。",
+  "icon": "vsie:small_energy_battery",
+  "sortnum": 2
+}

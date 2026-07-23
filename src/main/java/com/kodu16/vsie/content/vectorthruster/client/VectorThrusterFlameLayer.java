@@ -2,6 +2,7 @@ package com.kodu16.vsie.content.vectorthruster.client;
 
 import com.kodu16.vsie.content.vectorthruster.AbstractVectorThrusterBlockEntity;
 import com.kodu16.vsie.content.thruster.client.FlameColorJitter;
+import com.kodu16.vsie.content.thruster.client.trailflame.ThrusterTrailRenderer;
 import com.kodu16.vsie.foundation.translucentbeamrendertype;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -34,7 +35,8 @@ public class VectorThrusterFlameLayer extends GeoRenderLayer<AbstractVectorThrus
                        RenderType renderType, MultiBufferSource bufferSource, VertexConsumer buffer,
                        float partialTick, int packedLight, int packedOverlay) {
         float flameLength = animatable.getRaycastDistance();
-        if (flameLength < 0.05f) {
+        // Function: zero-throttle vector thrusters still enter the bone layer when rail acceleration requests a trail.
+        if (flameLength < 0.05f && !animatable.shouldRenderTrail()) {
             return;
         }
 
@@ -54,6 +56,11 @@ public class VectorThrusterFlameLayer extends GeoRenderLayer<AbstractVectorThrus
         }
 
         float flameLength = animatable.getRaycastDistance();
+        ThrusterTrailRenderer.render(poseStack, animatable, bufferSource);
+        // Function: the rail override ends after the trail pass so no vector-thruster flame is emitted.
+        if (!animatable.shouldRenderFlame()) {
+            return;
+        }
         VertexConsumer vc = bufferSource.getBuffer(FLAME_RENDER_TYPE);
         float[][] layers = new float[LENGTH_SEGMENTS + 1][];
         float baseRadius = animatable.getflamewidth();

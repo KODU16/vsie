@@ -18,10 +18,12 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 
 public class HeavyElectroMagnetBulletEntity extends AbstractBulletEntity {
-    public static final double SPEED = 7.0D;
+    public static final double SPEED = 21.0D;
     private static final float BLOCK_BREAK_TNT_CHANCE = 0.0F;
     private static final int PIERCING_DURATION_TICKS = 10;
     private static final double BLOCK_BREAK_RADIUS = 5.0D;
+    private int configuredMaxLifeTimeTicks = -1;
+    private boolean lifetimeExpireExplosionEnabled = true;
     private boolean piercingStarted = false;
     private int piercingTicks = 5;
 
@@ -59,6 +61,16 @@ public class HeavyElectroMagnetBulletEntity extends AbstractBulletEntity {
 
     protected int getPiercingDurationTicks() {
         return PIERCING_DURATION_TICKS;
+    }
+
+    public void configureMaxLifeTimeTicks(int maxLifeTimeTicks) {
+        // Function: heavy-turret shots can override the shared bullet lifetime to prevent long-lived misses from piling up.
+        this.configuredMaxLifeTimeTicks = maxLifeTimeTicks > 0 ? maxLifeTimeTicks : -1;
+    }
+
+    public void configureLifetimeExpireExplosion(boolean enabled) {
+        // Function: timeout explosions are optional so cleanup can stay cheap when a weapon emits many rounds.
+        this.lifetimeExpireExplosionEnabled = enabled;
     }
 
     protected boolean isPiercingStarted() {
@@ -113,6 +125,20 @@ public class HeavyElectroMagnetBulletEntity extends AbstractBulletEntity {
     }
 
     @Override
+    protected int getMaxLifeTime() {
+        return configuredMaxLifeTimeTicks > 0 ? configuredMaxLifeTimeTicks : super.getMaxLifeTime();
+    }
+
+    @Override
+    protected void explodeAndDiscardAfterLifetime() {
+        if (!lifetimeExpireExplosionEnabled) {
+            this.discard();
+            return;
+        }
+        super.explodeAndDiscardAfterLifetime();
+    }
+
+    @Override
     protected void startLifecycleFx(FX fx) {
         var effect = new EntityEffectExecutor(fx, this.level(), this, EntityEffectExecutor.AutoRotate.NONE);
         Vec3 velocity = this.getDeltaMovement();
@@ -138,6 +164,8 @@ public class HeavyElectroMagnetBulletEntity extends AbstractBulletEntity {
     @Override
     protected void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
+        tag.putInt("ConfiguredMaxLifeTimeTicks", this.configuredMaxLifeTimeTicks);
+        tag.putBoolean("LifetimeExpireExplosionEnabled", this.lifetimeExpireExplosionEnabled);
         tag.putBoolean("PiercingStarted", this.piercingStarted);
         tag.putInt("PiercingTicks", this.piercingTicks);
     }
@@ -145,6 +173,12 @@ public class HeavyElectroMagnetBulletEntity extends AbstractBulletEntity {
     @Override
     protected void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
+        if (tag.contains("ConfiguredMaxLifeTimeTicks")) {
+            this.configuredMaxLifeTimeTicks = tag.getInt("ConfiguredMaxLifeTimeTicks");
+        }
+        if (tag.contains("LifetimeExpireExplosionEnabled")) {
+            this.lifetimeExpireExplosionEnabled = tag.getBoolean("LifetimeExpireExplosionEnabled");
+        }
         if (tag.contains("PiercingStarted")) {
             this.piercingStarted = tag.getBoolean("PiercingStarted");
         }

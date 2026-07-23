@@ -1,0 +1,36 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "E": {
+      "item": "vsie:small_energy_battery"
+    },
+    "C": {
+      "item": "vsie:computronic_substrate"
+    },
+    "O": {
+      "item": "simulated:optical_sensor"
+    },
+    "M": {
+      "item": "vsie:metalic_microlattice"
+    },
+    "S": {
+      "item": "vsie:silicon_carbide"
+    },
+    "B": {
+      "item": "create:mechanical_bearing"
+    },
+    "V": {
+      "item": "create:content_observer"
+    }
+  },
+  "pattern": [
+    "ECO",
+    " M ",
+    "SBV"
+  ],
+  "result": {
+    "id": "vsie:small_laser_turret"
+  },
+  "show_notification": true
+}

@@ -1,0 +1,14 @@
+{
+  "name": "Electromagnetic Shell",
+  "icon": "vsie:electro_magnet_shell",
+  "category": "vsie:materials",
+  "sortnum": 3,
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:electro_magnet_shell",
+      "title": "Electromagnetic Shell",
+      "text": "A shell used by electromagnetic turrets and rail cannons. In simple terms, it is an extremely heavy, magnetic, armor-piercing projectile."
+    }
+  ]
+}

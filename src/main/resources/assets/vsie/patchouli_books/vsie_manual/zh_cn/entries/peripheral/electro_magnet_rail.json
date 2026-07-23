@@ -1,0 +1,29 @@
+{
+  "name": "电磁导轨",
+  "icon": "vsie:electro_magnet_rail_core",
+  "category": "vsie:peripheral",
+  "sortnum": 0,
+  "extra_recipe_mappings": {
+    "vsie:electro_magnet_rail_core": 1,
+    "vsie:electro_magnet_rail_top": 1,
+    "vsie:electro_magnet_rail": 2
+  },
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:electro_magnet_rail_core",
+      "title": "电磁导轨",
+      "text": "虽然AeroIE不会添加多方块设备，但仍然允许不同外设之间互相组合链接$(br2)电磁导轨可用于弹射子维度，或是用电磁力加速炮弹构成一种威力强大的电磁轨道炮$(br2)下文将讲解如何搭建一条可工作的电磁导轨"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:electro_magnet_rail_core",
+      "text": "1、将电磁导轨核心放置在子维度上，其接口（蓝灰色纹理面）对向电磁导轨延伸的方向$(br2)2、右键打开核心的GUI，在内部放入数量大于等于你希望搭建的导轨长度数量的电磁导轨方块，最大数量为4*64=256$(br2)3、将电磁导轨末端头部放置在正对电磁导轨的，你希望导轨长度数量方块之外，确保其开口对向电磁导轨延伸的方向"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:electro_magnet_rail",
+      "text": "4、在电磁导轨核心中点击检查结构，若结构正常，则会提示绿色的连接成功，此时核心与末端头部之间的导轨会自动建立$(br2)若失败，则会用红色字体提示失败原因$(br2)5、若你有一个电磁轨道炮，你可以将其放置在已连接完成的电磁导轨核心的接口面，朝向电磁导轨的延伸方向，其作为武器可发射电磁驱动的穿甲弹，穿透能力正比于电磁导轨已成型的长度"
+    }
+  ]
+}

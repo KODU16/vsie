@@ -77,6 +77,7 @@ public class ControlSeatServerData {
     public volatile boolean istorqueassiston = true;// Function: toggles automatic counter-torque damping.
     public volatile boolean isForceAssistSuppressedByAccelerator = false;// Function: rail acceleration hard-disables force assist while active.
     public volatile boolean isAutoLevelOn = false;
+    public volatile double antiGravityIdleThrottle = 1.0D;
     public volatile double shieldmin = 0;
     public volatile double shieldmax = 0;
 
@@ -90,6 +91,13 @@ public class ControlSeatServerData {
     public volatile String warpTargetName = "";
 
     public volatile boolean isWarpPreparing = false;
+    // Function: screen-space warp alignment control mirrors the mouse control line while the server owns aiming.
+    public volatile double warpAlignmentControlX = 0.0D;
+    public volatile double warpAlignmentControlY = 0.0D;
+
+    public volatile boolean hasWarpStartSnapshot = false;
+    public volatile Vector3d warpStartSubLevelWorldPos = new Vector3d();
+    public volatile Vector3d warpLaunchDirection = new Vector3d();
 
     public volatile boolean hasPendingWarpTeleport = false;
 
@@ -113,6 +121,7 @@ public class ControlSeatServerData {
     public volatile Vector3d thrusterVisualForce = new Vector3d(0,0,0);
     public volatile double shipSpeed = 0.0D;
     public volatile Vector3d structureCenterWorld = new Vector3d();
+    public volatile Vector3d structureVelocityWorld = new Vector3d();
     public volatile double seatGForce = 0.0D;
 
     public Vec3 getForce() {
@@ -144,7 +153,8 @@ public class ControlSeatServerData {
     }
 
     public void setThrottle(int throttle) {
-        this.throttle = throttle;
+        // Function: keep every caller inside the control seat's advertised full reverse/full forward range.
+        this.throttle = Math.max(-100, Math.min(throttle, 100));
     }
 
     public Player getPlayer() {
@@ -245,7 +255,9 @@ public class ControlSeatServerData {
 
     public void startWarpPreparation() {
         this.isWarpPreparing = true;
+        clearWarpAlignmentControl();
         this.warpE710Insufficient = false;
+        clearWarpAlignmentSnapshot();
         clearPendingWarpTeleport();
         this.torque = new Vec3(0, 0, 0);
         this.throttle = 0;
@@ -254,6 +266,7 @@ public class ControlSeatServerData {
     public void rejectWarpForInsufficientE710(int requiredMb) {
         this.isWarpPreparing = false;
         this.hasPendingWarpTeleport = false;
+        clearWarpAlignmentControl();
         this.warpE710CostMb = Math.max(0, requiredMb);
         this.warpE710Insufficient = true;
         this.torque = new Vec3(0, 0, 0);
@@ -262,11 +275,26 @@ public class ControlSeatServerData {
 
     public void clearWarpPreparation() {
         this.isWarpPreparing = false;
+        clearWarpAlignmentControl();
         this.warpTargetPos = BlockPos.ZERO;
         this.warpTargetDimension = "";
         this.warpTargetName = "";
         this.warpE710CostMb = 0;
         this.warpE710Insufficient = false;
+        clearWarpAlignmentSnapshot();
+        this.torque = new Vec3(0, 0, 0);
+        this.throttle = 0;
+    }
+
+    public void transitionWarpPreparationToPendingTeleport() {
+        // Function: keep the current jump's E-710 cost visible on the HUD until the pending teleport actually finishes.
+        this.isWarpPreparing = false;
+        clearWarpAlignmentControl();
+        this.warpTargetPos = BlockPos.ZERO;
+        this.warpTargetDimension = "";
+        this.warpTargetName = "";
+        this.warpE710Insufficient = false;
+        clearWarpAlignmentSnapshot();
         this.torque = new Vec3(0, 0, 0);
         this.throttle = 0;
     }
@@ -283,5 +311,32 @@ public class ControlSeatServerData {
         this.hasPendingWarpTeleport = false;
         this.pendingWarpTeleportPos = new Vector3d();
         this.pendingWarpTeleportGameTime = -1L;
+        this.warpE710CostMb = 0;
+        this.warpE710Insufficient = false;
+    }
+
+    public void clearWarpAlignmentSnapshot() {
+        // Function: warp aim direction must be captured once at preparation start, not recomputed while the ship rotates.
+        this.hasWarpStartSnapshot = false;
+        this.warpStartSubLevelWorldPos = new Vector3d();
+        this.warpLaunchDirection = new Vector3d();
+    }
+
+    public void clearWarpAlignmentControl() {
+        this.warpAlignmentControlX = 0.0D;
+        this.warpAlignmentControlY = 0.0D;
+    }
+
+    public boolean setWarpAlignmentSnapshot(Vec3 startWorldPos, Vec3 targetWorldPos) {
+        Vec3 direction = targetWorldPos.subtract(startWorldPos);
+        if (direction.lengthSqr() < 1.0E-6D) {
+            clearWarpAlignmentSnapshot();
+            return false;
+        }
+        this.hasWarpStartSnapshot = true;
+        this.warpStartSubLevelWorldPos = new Vector3d(startWorldPos.x, startWorldPos.y, startWorldPos.z);
+        Vec3 normalizedDirection = direction.normalize();
+        this.warpLaunchDirection = new Vector3d(normalizedDirection.x, normalizedDirection.y, normalizedDirection.z);
+        return true;
     }
 }

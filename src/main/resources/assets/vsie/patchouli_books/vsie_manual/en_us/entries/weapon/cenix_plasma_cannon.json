@@ -1,5 +1,5 @@
 {
-  "name": "磁流体炮",
+  "name": "Cenix Plasma Cannon",
   "icon": "vsie:infra_knife_accelerator",
   "category": "vsie:weapon",
   "sortnum": 12,
@@ -10,12 +10,12 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:cenix_plasma_cannon",
-      "title": "“塞尼克斯”磁流体炮",
-      "text": "护卫舰级别的武器，通过电磁推进特殊的磁流体弹药形成射流弹，对子维度很有效，但弹速偏慢，且穿透能力不强"
+      "title": "\"Cenix\" Plasma Cannon",
+      "text": "A frigate-class weapon that electromagnetically accelerates specialized magnetofluid ammunition into a jet projectile. It is effective against subspaces, but its projectiles are relatively slow and have limited penetration."
     },
     {
       "type": "patchouli:text",
-      "text": "最大射程：256。"
+      "text": "Maximum range: 256 blocks."
     }
   ]
 }

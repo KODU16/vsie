@@ -1,5 +1,5 @@
 {
-  "name": "炮塔：近防炮塔",
+  "name": "Turrets: Point Defense",
   "icon": "vsie:basic_ciws",
   "category": "vsie:turret",
   "sortnum": 2,
@@ -7,12 +7,12 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:basic_ciws",
-      "title": "近防炮塔",
-      "text": "近防炮塔指那些专精攻击实体和防御弹射物的炮塔$(br2)由于其高射速，近防炮塔对生物会比普通炮塔更有效，但弹药的消耗量很大$(br2)近防炮塔无法攻击敌对子维度，其第四个瞄准功能被切换为了防御模式$(br2)该模式下，近防炮塔会瞄准其射程范围内朝着当前子维度飞来的所有弹射物，并进行射击拦截"
+      "title": "Point-Defense Turrets",
+      "text": "Point-defense turrets specialize in attacking entities and intercepting projectiles.$(br2)Their high rate of fire makes them more effective against mobs than ordinary turrets, but they consume ammunition very quickly.$(br2)They cannot attack hostile subspaces. Their fourth targeting option is replaced by Defense mode.$(br2)In Defense mode, they target and fire at projectiles within range that are traveling toward their own subspace."
     },
     {
       "type": "patchouli:text",
-      "text": "对从自身子维度飞出的弹射物，近防炮塔不会拦截，这避免了拦截自身发射的射弹"
+      "text": "Point-defense turrets ignore projectiles launched from their own subspace, preventing them from intercepting friendly fire."
     }
   ]
 }

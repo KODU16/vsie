@@ -1,5 +1,5 @@
 {
-  "name": "碳化硅",
+  "name": "Silicon Carbide",
   "icon": "vsie:silicon_carbide",
   "category": "vsie:materials",
   "sortnum": 2,
@@ -7,8 +7,8 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:silicon_carbide",
-      "title": "碳化硅",
-      "text": "碳化硅是由碳和硅组成的半导体。可以用于制造非常耐用的坚固陶瓷。$(br2)它的电气性能使它能适用于各种高温高压的情况。因此碳化硅是用于制造诸如飞船引擎、武器等设备的关键材料。"
+      "title": "Silicon Carbide",
+      "text": "Silicon carbide is a semiconductor composed of carbon and silicon. It can be used to manufacture exceptionally durable structural ceramics.$(br2)Its electrical properties suit high-temperature, high-voltage environments, making it a key material for spacecraft engines, weapons, and similar equipment."
     }
   ]
 }

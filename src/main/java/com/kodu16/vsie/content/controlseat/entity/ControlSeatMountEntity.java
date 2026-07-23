@@ -19,6 +19,8 @@ import net.minecraft.world.phys.Vec3;
 
 public class ControlSeatMountEntity extends Entity {
     private static final EntityDataAccessor<BlockPos> BOUND_BLOCK_POS = SynchedEntityData.defineId(ControlSeatMountEntity.class, EntityDataSerializers.BLOCK_POS);
+    private static final double SEAT_MOUNT_Y_OFFSET = -0.15D;
+    private static final double DEFAULT_MOUNT_Y_OFFSET = -0.25D;
 
     public ControlSeatMountEntity(EntityType<?> type, Level level) {
         super(type, level);
@@ -42,11 +44,12 @@ public class ControlSeatMountEntity extends Entity {
     public static Vec3 getSeatMountPosition(BlockPos pos, BlockState state) {
         Direction facing = getFacing(state);
         return switch (facing) {
-            case NORTH -> new Vec3(pos.getX() + 0.5D, pos.getY() + 0.35D, pos.getZ());
-            case SOUTH -> new Vec3(pos.getX() + 0.5D, pos.getY() + 0.35D, pos.getZ() + 1.0D);
-            case EAST -> new Vec3(pos.getX() + 1.0D, pos.getY() + 0.35D, pos.getZ() + 0.5D);
-            case WEST -> new Vec3(pos.getX(), pos.getY() + 0.35D, pos.getZ() + 0.5D);
-            default -> Vec3.atCenterOf(pos).add(0.0D, -0.15D, 0.0D);
+            case NORTH -> new Vec3(pos.getX() + 0.5D, pos.getY() + SEAT_MOUNT_Y_OFFSET, pos.getZ());
+            case SOUTH -> new Vec3(pos.getX() + 0.5D, pos.getY() + SEAT_MOUNT_Y_OFFSET, pos.getZ() + 1.0D);
+            case EAST -> new Vec3(pos.getX() + 1.0D, pos.getY() + SEAT_MOUNT_Y_OFFSET, pos.getZ() + 0.5D);
+            case WEST -> new Vec3(pos.getX(), pos.getY() + SEAT_MOUNT_Y_OFFSET, pos.getZ() + 0.5D);
+            // Function: keep the fallback mount point aligned with the normal seat lift when facing data is unavailable.
+            default -> Vec3.atCenterOf(pos).add(0.0D, DEFAULT_MOUNT_Y_OFFSET, 0.0D);
         };
     }
 

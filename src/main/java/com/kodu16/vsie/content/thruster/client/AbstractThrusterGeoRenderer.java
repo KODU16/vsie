@@ -1,8 +1,8 @@
 package com.kodu16.vsie.content.thruster.client;
 
-import com.kodu16.vsie.foundation.AlwaysRenderGeoBlockRenderer;
 import com.kodu16.vsie.content.thruster.AbstractThrusterBlockEntity;
 import com.kodu16.vsie.content.thruster.client.trailflame.ThrusterFlameLayer;
+import com.kodu16.vsie.foundation.AlwaysRenderGeoBlockRenderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
@@ -39,15 +39,12 @@ public class AbstractThrusterGeoRenderer extends AlwaysRenderGeoBlockRenderer<Ab
                 poseStack.mulPose(Axis.ZP.rotationDegrees(180));
             }
             case DOWN -> {
-
             }
         }
     }
 
     @Override
     public boolean shouldRenderOffScreen(AbstractThrusterBlockEntity be) {
-        return true;   // 或者 return distanceSq < 某个超大值 的平方
+        return super.shouldRenderOffScreen(be);
     }
-
-
 }

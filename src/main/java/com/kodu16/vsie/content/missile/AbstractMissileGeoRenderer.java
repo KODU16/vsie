@@ -1,5 +1,6 @@
 package com.kodu16.vsie.content.missile;
 
+import com.kodu16.vsie.content.missile.client.BasicMissileFlameLayer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.world.phys.Vec3;
@@ -10,6 +11,8 @@ import software.bernie.geckolib.renderer.GeoEntityRenderer;
 public class AbstractMissileGeoRenderer extends GeoEntityRenderer<AbstractMissileEntity> {
     public AbstractMissileGeoRenderer(EntityRendererProvider.Context context){
         super(context, new AbstractMissileModel());
+        // Function: basic missile exhaust is rendered from the nozzle bone as a separate translucent layer.
+        this.addRenderLayer(new BasicMissileFlameLayer(this));
     }
 
     @Override

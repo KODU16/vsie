@@ -1,0 +1,78 @@
+{
+  "type": "create:sequenced_assembly",
+  "ingredient": {
+    "item": "vsie:computronic_substrate"
+  },
+  "loops": 3,
+  "results": [
+    {
+      "id": "vsie:small_energy_battery"
+    }
+  ],
+  "sequence": [
+    {
+      "type": "create:deploying",
+      "ingredients": [
+        {
+          "item": "vsie:computronic_substrate"
+        },
+        {
+          "item": "vsie:metalic_microlattice"
+        }
+      ],
+      "results": [
+        {
+          "id": "vsie:computronic_substrate"
+        }
+      ]
+    },
+    {
+      "type": "create:deploying",
+      "ingredients": [
+        {
+          "item": "vsie:computronic_substrate"
+        },
+        {
+          "item": "simulated:redstone_inductor"
+        }
+      ],
+      "results": [
+        {
+          "id": "vsie:computronic_substrate"
+        }
+      ]
+    },
+    {
+      "type": "create:deploying",
+      "ingredients": [
+        {
+          "item": "vsie:computronic_substrate"
+        },
+        {
+          "item": "create:item_drain"
+        }
+      ],
+      "results": [
+        {
+          "id": "vsie:computronic_substrate"
+        }
+      ]
+    },
+    {
+      "type": "create:pressing",
+      "ingredients": [
+        {
+          "item": "vsie:computronic_substrate"
+        }
+      ],
+      "results": [
+        {
+          "id": "vsie:computronic_substrate"
+        }
+      ]
+    }
+  ],
+  "transitional_item": {
+    "id": "vsie:computronic_substrate"
+  }
+}

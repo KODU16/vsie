@@ -1,5 +1,5 @@
 {
-  "name": "武器：概述",
+  "name": "Weapons: Overview",
   "icon": "vsie:infra_knife_accelerator",
   "category": "vsie:weapon",
   "sortnum": 0,
@@ -7,13 +7,13 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:infra_knife_accelerator",
-      "title": "武器简介",
-      "text": "AeroIE武器是任何固定方向安装，无法自由旋转的攻击部件的总称，连接控制椅后，可以通过频道切换哪些武器激活，并在按下左键时朝安装方向开火$(br2)非能量武器需要消耗弹药，GUI中也带有弹药储存槽，可以手动或通过任何自动化物流手段输入"
+      "title": "Weapons",
+      "text": "In AeroIE, a weapon is any offensive component fixed in one direction that cannot rotate freely. Once linked to a Control Seat, weapon channels determine which weapons are active. Press the fire control to fire every active weapon along its mounting direction.$(br2)Non-energy weapons consume ammunition. Their GUIs include ammunition slots that can be filled manually or through any automated logistics system."
     },
     {
       "type": "patchouli:text",
-      "title": "小趣事",
-      "text": "第一个武器是由推进器修改而来的"
+      "title": "Fun Fact",
+      "text": "The first weapon was created by modifying a thruster."
     }
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "name": "控制椅：跃迁",
+  "name": "Control Seat: Warp",
   "icon": "vsie:warp_data_chip",
   "category": "vsie:control_seat",
   "sortnum": 6,
@@ -10,16 +10,16 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:warp_data_chip",
-      "title": "如何进行跃迁",
-      "text": "控制椅提供便捷的跃迁功能，你可以记录一个位置，此后通过跃迁功能从同维度的其它位置跃迁到这里$(br2)1、想要跃迁，你需要足够的E-710燃料。通过击杀子维度上（不在子维度上而在世界中则无效）的节肢动物（蜘蛛、苦力怕）可以获取浓缩E-710物品，通过分液获得E-710燃料"
+      "title": "How to Warp",
+      "text": "The Control Seat provides convenient warp travel. Record a position, then warp back to it from another location in the same dimension.$(br2)1. Obtain enough E-710 fuel. Arthropods killed while standing on a subspace—not merely in the world—can drop Concentrated Solid E-710. Processing one piece through Create's draining system produces 1000 mB of E-710 fuel."
     },
     {
       "type": "patchouli:text",
-      "text": "2、将E-710燃料装入链接到控制椅的燃料储罐中，需要注意，燃料储罐中仅能装入一种燃料，E-710罐与普通推进燃料罐需要分开$(br2)3、到达你希望跃迁到的坐标，使用跃迁位置记录芯片shift右键记录当前的位置作为跃迁目的地$(br2)3、空手shift右键控制椅，打开控制椅的存储（此存储仅支持放入记录好坐标的跃迁位置记录芯片）$(br2)3、空手shift右键控制椅，打开控制椅的存储（此存储仅支持放入记录好坐标的跃迁位置记录芯片）"
+      "text": "2. Put E-710 into a fuel tank linked to the Control Seat. A fuel tank can hold only one fluid, so E-710 and ordinary propulsion fuel must use separate tanks.$(br2)3. Travel to the desired destination and Shift-right-click with a Warp Position Chip to record the current position.$(br2)4. Shift-right-click the Control Seat with an empty hand to open its inventory. This inventory accepts only Warp Position Chips that already contain coordinates."
     },
     {
       "type": "patchouli:text",
-      "text": "4、在控制椅中，按下warp键（默认为P）打开跃迁界面，这里可以选择你已经放入的所有跃迁位置记录芯片的位置$(br2)5、选好位置后进入跃迁准备，跃迁需要消耗子维度质量（kpg）*跃迁距离（m）mb E-710，若链接的燃料罐中E-710不足则无法进行跃迁$(br2)6、等待子维度自动操控，对齐跃迁方向，完成跃迁$(br2)将控制椅前向提前对准跃迁方向可以减少对齐的等待时间$(br2)关于子维度质量，大多数方块质量为1kpg，佩戴飞行员护目镜时可以查看物品栏中方块物品对应的质量"
+      "text": "5. While seated, press the warp key—P by default—to open the warp screen and select one of the stored Warp Position Chips.$(br2)6. After selecting a destination, warp preparation begins. The approximate E-710 cost is subspace mass (kpg) * warp distance (m) / 10 mB, rounded up. Warp cannot begin if linked tanks contain too little E-710.$(br2)7. Wait for the subspace to align itself with the warp direction and complete the jump. Pointing the Control Seat toward the destination beforehand reduces alignment time.$(br2)Most blocks have a mass of 1 kpg. Wear Pilot Goggles to view the mass of block items in your inventory."
     }
   ]
 }

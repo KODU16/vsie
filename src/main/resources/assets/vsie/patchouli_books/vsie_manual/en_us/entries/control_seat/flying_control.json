@@ -1,26 +1,26 @@
 {
-  "name": "控制椅：飞行控制",
+  "name": "Control Seat: Flight Controls",
   "icon": "vsie:control_seat",
   "category": "vsie:control_seat",
   "sortnum": 3,
   "pages": [
     {
       "type": "patchouli:text",
-      "title": "如何控制飞行",
-      "text": "不要信那些把飞控炒的很高端很复杂的人，控制其实非常简单$(br2)提示：所有控制按键都可以在按键设置中更改$(br2)首先，右键登上控制椅时是不开启视角锁定的，这时你可以自由移动视角观察景色或者什么你爱看的东西，按WS俯仰，按AD滚转，按Tab增大油门，按Ctrl减小油门，油门正数为前进，负数为后退"
+      "title": "How to Fly",
+      "text": "Do not believe anyone who makes flight control sound impossibly advanced. The controls are actually quite simple.$(br2)Tip: every control can be rebound in the key settings.$(br2)When you first right-click to sit in the Control Seat, view lock is disabled, so you can look around freely. Use W/S to pitch, A/D to roll, Tab to increase throttle, and Ctrl to decrease it. Positive throttle moves forward; negative throttle moves backward."
     },
     {
       "type": "patchouli:text",
-      "text": "按左alt可以开启/关闭视角锁，开启视角锁时，你的视角会自动与控制椅朝向同向，且暂时禁止使用鼠标转动，这时，鼠标的上下移动对应俯仰，左右移动对应偏航，AD仍然对应滚转，但WS改为对应向上/向下平移，油门的控制没有变化，仍然是Tab和Ctrl$(br2)如果你要离开控制椅，需要先把视角锁关闭，再按shift"
+      "text": "Press Left Alt to toggle view lock. When enabled, your view aligns with the Control Seat and ordinary mouse-look is disabled. Moving the mouse vertically controls pitch and moving it horizontally controls yaw. A/D still controls roll, while W/S now translates the vessel upward or downward. Tab and Ctrl continue to control throttle.$(br2)To leave the Control Seat, disable view lock first, then press Shift."
     },
     {
       "type": "patchouli:text",
-      "title": "其它按键",
-      "text": "你也许会注意到，控制椅会自动施加反向的力和力矩来产生阻尼，这是为了防止你一不小心把自己转成大旋风或者一飞冲天然后卡死在地底下而设计的，如果你是个高手，或者单纯就是很讨厌这两个飞行辅助，你可以分别按B和H切换它们的开关状态$(br2)注意，AeroIE不对任何由此造成的子维度丢失、内存爆炸、存档损坏或晕车症状负责"
+      "title": "Other Controls",
+      "text": "You may notice that the Control Seat automatically applies opposing force and torque as damping. This keeps an accidental input from spinning you into a cyclone or launching you into the sky before burying you underground. Experienced pilots—or anyone who simply dislikes assistance—can toggle linear and angular damping with B and H respectively.$(br2)AeroIE accepts no responsibility for lost subspaces, memory explosions, corrupted worlds, or motion sickness caused by disabling these aids."
     },
     {
       "type": "patchouli:text",
-      "text": "按G可以切换反重力的开关，反重力可以使得你不用必须飞的很快，或者必须安一个大气球才能产生升力$(br2)按L可以切换自动水平的开关，开启时会禁用你的俯仰和滚转控制，并施加力矩让子维度始终保持正向水平，如果你玩过Eureka Airships的船舵，应该很熟悉$(br2)按V、P可以切换护盾和跃迁，按1/2/3/4可以切换对应武器频道的开关，具体会在相关章节中讲解"
+      "text": "Press G to toggle antigravity. It lets you remain airborne without flying at high speed or attaching a huge balloon. Small inaccuracies in Aeronautics physics may cause a slight upward drift, so disable antigravity before leaving a vessel unattended.$(br2)Press L to toggle auto-level. While active, it disables pitch and roll input and applies torque to keep the subspace upright and level. Players familiar with the Eureka Airships helm should recognize the behavior.$(br2)Press V to toggle shields, P to open warp controls, and 1/2/3/4 to toggle the corresponding weapon channels. These systems are explained in their respective chapters."
     }
   ]
 }

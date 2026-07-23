@@ -1,0 +1,44 @@
+{
+  "type": "create:mixing",
+  "heat_requirement": "superheated",
+  "ingredients": [
+    {
+      "item": "vsie:small_fueltank"
+    },
+    {
+      "item": "vsie:small_fueltank"
+    },
+    {
+      "item": "vsie:small_fueltank"
+    },
+    {
+      "item": "vsie:small_fueltank"
+    },
+    {
+      "item": "vsie:small_fueltank"
+    },
+    {
+      "item": "vsie:small_fueltank"
+    },
+    {
+      "item": "vsie:small_fueltank"
+    },
+    {
+      "item": "vsie:small_fueltank"
+    },
+    {
+      "item": "vsie:small_fueltank"
+    },
+    {
+      "item": "vsie:small_fueltank"
+    },
+    {
+      "item": "simulated:honey_glue"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:large_fueltank"
+    }
+  ]
+}

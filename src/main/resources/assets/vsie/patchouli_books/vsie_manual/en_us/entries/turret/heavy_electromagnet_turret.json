@@ -1,5 +1,5 @@
 {
-  "name": "三联装625mm重型电磁炮塔",
+  "name": "Triple 625 mm Heavy Electromagnetic Turret",
   "icon": "vsie:heavy_electromagnet_turret",
   "category": "vsie:turret",
   "sortnum": 21,
@@ -10,16 +10,16 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:heavy_electromagnet_turret",
-      "title": "三联装625mm重型电磁炮塔",
-      "text": "$(br2)三联装 625mm 重型电磁炮塔。$(br2)每次射击时会三连发电磁推进的大质量穿甲弹，仅支持在子维度上工作。"
+      "title": "Triple 625 mm Heavy Electromagnetic Turret",
+      "text": "$(br2)A triple-barreled 625 mm heavy electromagnetic turret.$(br2)Each attack fires a three-round burst of massive, electromagnetically propelled armor-piercing shells. Functions only on a subspace."
     },
     {
       "type": "patchouli:text",
-      "text": "绑定控制椅后支持三种模式：自动（自动射击敌对子维度）、手动（若玩家视角未锁定则采用当前玩家头瞄火控，若视角锁定则待机）、智能（若玩家视角未锁定则采用当前玩家头瞄火控，若视角锁定则自动射击敌对子维度）。"
+      "text": "Once linked to a Control Seat, it supports three modes: Automatic fires at hostile subspaces; Manual uses head-aim control while the player's view is unlocked and waits while view lock is enabled; Smart uses head-aim control while view is unlocked and automatically fires at hostile subspaces while view lock is enabled."
     },
     {
       "type": "patchouli:text",
-      "text": "对敌对子维度非常有效，但缺乏爆炸和范围破坏能力。$(br2)最大索敌距离/射程：256。"
+      "text": "Extremely effective against hostile subspaces, but lacks explosive or area-destruction capability.$(br2)Maximum targeting distance/range: 256 blocks."
     }
   ]
 }

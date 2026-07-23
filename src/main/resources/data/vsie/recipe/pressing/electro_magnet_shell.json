@@ -1,0 +1,13 @@
+{
+  "type": "create:pressing",
+  "ingredients": [
+    {
+      "item": "simulated:redstone_magnet"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:electro_magnet_shell"
+    }
+  ]
+}

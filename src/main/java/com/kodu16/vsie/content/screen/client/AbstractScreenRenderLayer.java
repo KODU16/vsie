@@ -1,28 +1,31 @@
 package com.kodu16.vsie.content.screen.client;
 
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
+import com.kodu16.vsie.content.screen.AbstractScreenBlock;
 import com.kodu16.vsie.content.screen.client.functions.Radar;
 import com.kodu16.vsie.content.screen.client.functions.ServerInfo;
-import com.kodu16.vsie.registries.vsieItems;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.entity.ItemRenderer;
-import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.world.item.ItemDisplayContext;
-import net.minecraft.world.level.ItemLike;
+import net.minecraft.core.Direction;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 
 import software.bernie.geckolib.cache.object.GeoBone;
 import software.bernie.geckolib.renderer.GeoRenderer;
 import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
 
 public class AbstractScreenRenderLayer extends GeoRenderLayer<AbstractScreenBlockEntity> {
+    private static final float HUD_SURFACE_OFFSET = -0.065F;
 
     public AbstractScreenRenderLayer(GeoRenderer<AbstractScreenBlockEntity> entityRendererIn) {
         super(entityRendererIn);
@@ -30,9 +33,8 @@ public class AbstractScreenRenderLayer extends GeoRenderLayer<AbstractScreenBloc
 
     private static final String NOZZLE_BONE_NAME = "screen";
 
-    private static Minecraft mc = Minecraft.getInstance();
-    ItemRenderer itemRenderer = mc.getItemRenderer();
-    Font font = mc.font;
+    private static final Minecraft mc = Minecraft.getInstance();
+    private final Font font = mc.font;
 
     @Override
     public void render(PoseStack poseStack, AbstractScreenBlockEntity animatable,
@@ -57,26 +59,70 @@ public class AbstractScreenRenderLayer extends GeoRenderLayer<AbstractScreenBloc
         if (level == null) return;
 
         poseStack.pushPose();
-        // 旋转以平躺于表面（针对顶部面）
-        poseStack.mulPose(Axis.XP.rotationDegrees(-270.0f));  // 对于其他面，使用 Axis.YP 等旋转
-        //poseStack.mulPose(Axis.YP.rotationDegrees(180.0f));  // 对于其他面，使用 Axis.YP 等旋转
-        poseStack.translate(0, 0, -0.05f);  // 调整为目标面，例如 NORTH: translate(0.5, 0.5, 1.0)
-        poseStack.scale(0.99f,0.99f,0.99f);
-        // Function: render the screen surface directly because renderStack is not populated by the current screen data flow.
-        itemRenderer.renderStatic(new net.minecraft.world.item.ItemStack((ItemLike) vsieItems.SCREEN_BG), ItemDisplayContext.FIXED,
-                LightTexture.FULL_BRIGHT,
-                OverlayTexture.NO_OVERLAY, poseStack, bufferSource,
-                level, 0);
-        //poseStack.scale(0.15f, 0.15f, 0.15f);
-        poseStack.translate(0, 0, -0.035f);  // 调整为目标面，例如 NORTH: translate(0.5, 0.5, 1.0)
-        // 功能：根据 screentype 切换显示内容；0 显示雷达，1 显示服务器信息文本。
-        if (animatable.displaytype == 0) {
-            Radar.renderRadar(poseStack, animatable, bufferSource, font);
-        } else if (animatable.displaytype == 1) {
-            poseStack.scale(0.005f, 0.005f, 0.005f);
-            ServerInfo.renderServerInfo(poseStack, animatable, bufferSource, font);
+        poseStack.mulPose(Axis.XP.rotationDegrees(-270.0f));
+        // Function: orient the HUD upright on the screen bone without changing its anchor point.
+        poseStack.mulPose(Axis.ZP.rotationDegrees(180.0f));
+        // Function: float the backgroundless HUD slightly in front of the physical screen to avoid surface overlap.
+        poseStack.translate(0, 0, HUD_SURFACE_OFFSET);
+        beginScreenContentRender();
+        try {
+            if (animatable.displaytype == 0) {
+                Radar.renderRadar(poseStack, animatable, bufferSource, font);
+            } else if (animatable.displaytype == 1) {
+                poseStack.scale(0.005f, 0.005f, 0.005f);
+                ServerInfo.renderServerInfo(poseStack, animatable, bufferSource, font);
+            }
+            // Function: flush all screen text inside the same render-state scope used by the control-seat HUD.
+            if (bufferSource instanceof MultiBufferSource.BufferSource source) {
+                source.endBatch();
+            }
+        } finally {
+            endScreenContentRender();
         }
         poseStack.popPose();
+    }
+
+    // Function: reject the rear side and screens hidden by another block before using HUD-style rendering.
+    private static boolean isVisibleFromScreenFront(AbstractScreenBlockEntity screen, Level level) {
+        Entity cameraEntity = mc.getCameraEntity();
+        if (cameraEntity == null || !screen.getBlockState().hasProperty(AbstractScreenBlock.FACING)) {
+            return false;
+        }
+
+        Vec3 cameraPos = mc.gameRenderer.getMainCamera().getPosition();
+        Vec3 screenCenter = Vec3.atCenterOf(screen.getBlockPos());
+        Direction facing = screen.getBlockState().getValue(AbstractScreenBlock.FACING);
+        Vec3 cameraOffset = cameraPos.subtract(screenCenter);
+        double frontSide = cameraOffset.x * facing.getStepX()
+                + cameraOffset.y * facing.getStepY()
+                + cameraOffset.z * facing.getStepZ();
+        if (frontSide <= 0.0D) {
+            return false;
+        }
+
+        BlockHitResult hit = level.clip(new ClipContext(
+                cameraPos,
+                screenCenter,
+                ClipContext.Block.OUTLINE,
+                ClipContext.Fluid.NONE,
+                cameraEntity
+        ));
+        return hit.getType() == HitResult.Type.BLOCK && hit.getBlockPos().equals(screen.getBlockPos());
+    }
+
+    private static void beginScreenContentRender() {
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
+        RenderSystem.depthMask(false);
+        RenderSystem.disableCull();
+    }
+
+    private static void endScreenContentRender() {
+        RenderSystem.depthMask(true);
+        RenderSystem.enableDepthTest();
+        RenderSystem.enableCull();
+        RenderSystem.disableBlend();
     }
 
 }

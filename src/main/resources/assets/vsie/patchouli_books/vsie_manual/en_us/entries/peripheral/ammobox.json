@@ -1,0 +1,31 @@
+{
+  "name": "Ammo Box",
+  "icon": "vsie:ammo_box",
+  "category": "vsie:peripheral",
+  "sortnum": 2,
+  "extra_recipe_mappings": {
+    "vsie:ammo_box": 0
+  },
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:ammo_box",
+      "title": "Ammo Box",
+      "text": "The Ammo Box is a peripheral that automatically resupplies ship-mounted weapons and turrets. Once linked to a Control Seat, it reads the weapons and turrets connected to that seat and attempts to transfer suitable ammunition from its inventory.$(br2)It supports non-energy weapons and turrets that consume physical ammunition. Pure energy weapons instead draw power directly from batteries through the Control Seat."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "1. Place an Ammo Box and fill it with the ammunition required by the intended weapons.$(br2)2. With a Linker, record the Control Seat first, then right-click the Ammo Box to link it as a peripheral. See $(l:vsie:control_seat/how_to_connect)Control Seat: Linking Peripherals/$ for the general procedure.$(br2)3. If any linked weapon or turret accepts ammunition and is not full, the Ammo Box checks targets in peripheral-link order and attempts to resupply them."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Resupply Rules",
+      "text": "1. The Ammo Box checks one target at a time, cycling through weapons and turrets in their Control Seat link order.$(br2)2. If the current target cannot be resupplied—for example, it is an energy weapon, is already full, has no available slot, or the box lacks matching ammunition—the box moves to the next target more quickly.$(br2)3. After a successful transfer, the ammunition icon and amount briefly appear above the Ammo Box together with the target's index and name."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Notes",
+      "text": "1. The Ammo Box transfers only ammunition accepted by the target, so separate supply plans are recommended for different weapon types.$(br2)2. To prioritize a weapon group, adjust the order in which those weapons are linked to the Control Seat."
+    }
+  ]
+}

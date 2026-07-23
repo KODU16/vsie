@@ -44,6 +44,7 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
     private static final int MAX_LIFETIME_TICKS = 20 * 10;
     private static final float MISSILE_EXPLOSION_POWER = 16.0F;
     private static final double IMPACT_BLOCK_BREAK_RADIUS = 5.0D;
+    private static final double TARGET_PROXIMITY_FUSE_RADIUS = 1.5D;
     private static final ResourceLocation MISSILE_SWITCH_TRACK_FX = ResourceLocation.fromNamespaceAndPath("vsie", "missile_switchtrack");
     private static final ResourceLocation MISSILE_TRAIL_FX = ResourceLocation.fromNamespaceAndPath("vsie", "missile_trail");
 
@@ -124,6 +125,9 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
                 maintainLaunchDirection();
             } else {
                 setSpeed(DEFAULT_SPEED);
+                if (tryDetonateAtTargetPoint()) {
+                    return;
+                }
                 updateGuidance();
             }
         } else {
@@ -214,6 +218,20 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
         return java.util.Optional.ofNullable(center);
     }
 
+    private boolean tryDetonateAtTargetPoint() {
+        return getTargetPosition()
+                .filter(targetPos -> {
+                    double fuseRadius = Math.max(TARGET_PROXIMITY_FUSE_RADIUS, this.getDeltaMovement().length());
+                    // Function: detonate once the missile can reach the target point within this tick so hollow targets cannot trap it in an orbit.
+                    return this.position().distanceToSqr(targetPos) <= fuseRadius * fuseRadius;
+                })
+                .map(targetPos -> {
+                    detonateAt(targetPos);
+                    return true;
+                })
+                .orElse(false);
+    }
+
     private Vec3 limitTurnRate(Vec3 current, Vec3 ideal, float maxTurnRate) {
         double dotProduct = Mth.clamp(current.dot(ideal), -1.0D, 1.0D);
         double angle = Math.acos(dotProduct);
@@ -239,6 +257,10 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
     @Override
     protected void onHitBlock(BlockHitResult result) {
         if (!this.level().isClientSide) {
+            if (isLaunchSubLevelBlock(result.getBlockPos())) {
+                // Function: missiles pass through their own launch ship without detonation or block damage.
+                return;
+            }
             if (!isGuidanceActive()) {
                 // Function: during the straight launch phase, missiles ignore block hits so VLS cells cannot self-detonate them.
                 return;
@@ -297,6 +319,14 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
             return true;
         }
         return !launchSubLevelId.equals(hitSubLevel.getUniqueId());
+    }
+
+    private boolean isLaunchSubLevelBlock(BlockPos pos) {
+        if (launchSubLevelId == null) {
+            return false;
+        }
+        SubLevel hitSubLevel = ServerShipUtils.getSubLevelAtBlockPos(this.level(), pos);
+        return hitSubLevel != null && launchSubLevelId.equals(hitSubLevel.getUniqueId());
     }
 
     protected void destroyBlocksInSphere(ServerLevel level, Vec3 impactPoint, double radius) {

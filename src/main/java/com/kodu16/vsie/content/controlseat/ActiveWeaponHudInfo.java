@@ -5,16 +5,22 @@ public class ActiveWeaponHudInfo {
     public final int currentTick;
     public final int maxCooldown;
     public final boolean remainingCooldown;
+    public final boolean fireReady;
 
     public ActiveWeaponHudInfo(String displayName, int currentTick, int maxCooldown) {
         this(displayName, currentTick, maxCooldown, false);
     }
 
     public ActiveWeaponHudInfo(String displayName, int currentTick, int maxCooldown, boolean remainingCooldown) {
+        this(displayName, currentTick, maxCooldown, remainingCooldown, true);
+    }
+
+    public ActiveWeaponHudInfo(String displayName, int currentTick, int maxCooldown, boolean remainingCooldown, boolean fireReady) {
         // Function: remainingCooldown marks values that count down after firing, such as heavy turret idleTicks.
         this.displayName = displayName;
         this.currentTick = currentTick;
         this.maxCooldown = maxCooldown;
         this.remainingCooldown = remainingCooldown;
+        this.fireReady = fireReady;
     }
 }

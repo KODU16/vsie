@@ -1,0 +1,18 @@
+{
+  "type": "create:mixing",
+  "heat_requirement": "heated",
+  "ingredients": [
+    {
+      "item": "minecraft:tnt"
+    },
+    {
+      "item": "create:experience_nugget"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:particle_container",
+      "count": 2
+    }
+  ]
+}

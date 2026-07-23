@@ -1,0 +1,16 @@
+{
+  "type": "create:mixing",
+  "ingredients": [
+    {
+      "item": "vsie:basic_thruster"
+    },
+    {
+      "item": "simulated:gyroscopic_mechanism"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:basic_vector_thruster"
+    }
+  ]
+}

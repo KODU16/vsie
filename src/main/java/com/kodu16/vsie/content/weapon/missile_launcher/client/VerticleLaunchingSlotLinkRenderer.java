@@ -9,14 +9,17 @@ import com.kodu16.vsie.vsie;
 import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -99,14 +102,12 @@ public class VerticleLaunchingSlotLinkRenderer {
         RenderSystem.disableDepthTest();
         RenderSystem.depthMask(false);
         try {
-            // Function: use the vanilla line render type because this overlay only needs stable world-space outlines.
-            VertexConsumer lineConsumer = buffers.getBuffer(RenderType.lines());
             for (int i = 0; i < slots.size(); i++) {
                 BlockPos slotPos = slots.get(i);
                 if (MC.level == null || !(MC.level.getBlockEntity(slotPos) instanceof VerticleLaunchingSlotBlockEntity)) {
                     continue;
                 }
-                renderOutline(pose, lineConsumer, slotPos, cameraPos, 1.0F, 0.82F, 0.18F);
+                renderOutline(pose, slotPos, cameraPos, 1.0F, 0.82F, 0.18F);
                 renderText(pose, buffers, slotPos, cameraPos, i + 1, TEXT_COLOR);
             }
             buffers.endBatch();
@@ -133,13 +134,11 @@ public class VerticleLaunchingSlotLinkRenderer {
         RenderSystem.disableDepthTest();
         RenderSystem.depthMask(false);
         try {
-            // Function: use the vanilla line render type because this overlay only needs stable world-space outlines.
-            VertexConsumer lineConsumer = buffers.getBuffer(RenderType.lines());
             for (LinkMarker marker : markers) {
                 if (MC.level == null || MC.level.getBlockEntity(marker.pos()) == null) {
                     continue;
                 }
-                renderOutline(pose, lineConsumer, marker.pos(), cameraPos, marker.style().red(), marker.style().green(), marker.style().blue());
+                renderOutline(pose, marker.pos(), cameraPos, marker.style().red(), marker.style().green(), marker.style().blue());
                 renderText(pose, buffers, marker.pos(), cameraPos, marker.index(), marker.style().textColor());
             }
             buffers.endBatch();
@@ -160,8 +159,7 @@ public class VerticleLaunchingSlotLinkRenderer {
         }
     }
 
-    private static void renderOutline(PoseStack pose, VertexConsumer lineConsumer, BlockPos slotPos, Vec3 cameraPos,
-                                      float red, float green, float blue) {
+    private static void renderOutline(PoseStack pose, BlockPos slotPos, Vec3 cameraPos, float red, float green, float blue) {
         pose.pushPose();
         try {
             Vec3 worldCenter = getSlotWorldPosition(slotPos, 0.5D);
@@ -171,10 +169,38 @@ public class VerticleLaunchingSlotLinkRenderer {
                     worldCenter.subtract(SLOT_MARKER_HALF_SIZE, SLOT_MARKER_HALF_SIZE, SLOT_MARKER_HALF_SIZE),
                     worldCenter.add(SLOT_MARKER_HALF_SIZE, SLOT_MARKER_HALF_SIZE, SLOT_MARKER_HALF_SIZE)
             ).inflate(0.01D);
-            LevelRenderer.renderLineBox(pose, lineConsumer, box, red, green, blue, 1.0F);
+            renderLineBoxImmediate(pose.last().pose(), box, red, green, blue, 1.0F);
         } finally {
             pose.popPose();
         }
+    }
+
+    private static void renderLineBoxImmediate(Matrix4f matrix, AABB box, float red, float green, float blue, float alpha) {
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        // Function: keep outline drawing independent from Minecraft's shared level buffer to avoid stale RenderType.lines state.
+        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+        addBoxLine(buffer, matrix, box.minX, box.minY, box.minZ, box.maxX, box.minY, box.minZ, red, green, blue, alpha);
+        addBoxLine(buffer, matrix, box.maxX, box.minY, box.minZ, box.maxX, box.minY, box.maxZ, red, green, blue, alpha);
+        addBoxLine(buffer, matrix, box.maxX, box.minY, box.maxZ, box.minX, box.minY, box.maxZ, red, green, blue, alpha);
+        addBoxLine(buffer, matrix, box.minX, box.minY, box.maxZ, box.minX, box.minY, box.minZ, red, green, blue, alpha);
+
+        addBoxLine(buffer, matrix, box.minX, box.maxY, box.minZ, box.maxX, box.maxY, box.minZ, red, green, blue, alpha);
+        addBoxLine(buffer, matrix, box.maxX, box.maxY, box.minZ, box.maxX, box.maxY, box.maxZ, red, green, blue, alpha);
+        addBoxLine(buffer, matrix, box.maxX, box.maxY, box.maxZ, box.minX, box.maxY, box.maxZ, red, green, blue, alpha);
+        addBoxLine(buffer, matrix, box.minX, box.maxY, box.maxZ, box.minX, box.maxY, box.minZ, red, green, blue, alpha);
+
+        addBoxLine(buffer, matrix, box.minX, box.minY, box.minZ, box.minX, box.maxY, box.minZ, red, green, blue, alpha);
+        addBoxLine(buffer, matrix, box.maxX, box.minY, box.minZ, box.maxX, box.maxY, box.minZ, red, green, blue, alpha);
+        addBoxLine(buffer, matrix, box.maxX, box.minY, box.maxZ, box.maxX, box.maxY, box.maxZ, red, green, blue, alpha);
+        addBoxLine(buffer, matrix, box.minX, box.minY, box.maxZ, box.minX, box.maxY, box.maxZ, red, green, blue, alpha);
+        BufferUploader.drawWithShader(buffer.buildOrThrow());
+    }
+
+    private static void addBoxLine(BufferBuilder buffer, Matrix4f matrix,
+                                   double x0, double y0, double z0, double x1, double y1, double z1,
+                                   float red, float green, float blue, float alpha) {
+        buffer.addVertex(matrix, (float) x0, (float) y0, (float) z0).setColor(red, green, blue, alpha);
+        buffer.addVertex(matrix, (float) x1, (float) y1, (float) z1).setColor(red, green, blue, alpha);
     }
 
     private static void renderText(PoseStack pose, MultiBufferSource buffer, BlockPos slotPos, Vec3 cameraPos, int index, int textColor) {

@@ -20,7 +20,6 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 
 public class TurretC2SPacket implements CustomPacketPayload {
-    // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
     public static final CustomPacketPayload.Type<TurretC2SPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "turret_turretc2spacket"));
     public static final StreamCodec<FriendlyByteBuf, TurretC2SPacket> STREAM_CODEC = CustomPacketPayload.codec(TurretC2SPacket::encode, TurretC2SPacket::decode);
 
@@ -44,32 +43,27 @@ public class TurretC2SPacket implements CustomPacketPayload {
         return new TurretC2SPacket(pos,changetype);
     }
 
-    // 功能：NeoForge 1.21.1 处理器入口，复用旧版 Supplier<NetworkEvent.Context> 逻辑。
     public static void handle(TurretC2SPacket pkt, IPayloadContext context) {
         handle(pkt, () -> new net.minecraftforge.network.NetworkEvent.Context(context));
     }
 
     public static void handle(TurretC2SPacket pkt, Supplier<NetworkEvent.Context> ctxSup) {
-        //对于炮塔主要考虑的只有一个，当前数据包改了哪个数值
         NetworkEvent.Context ctx = ctxSup.get();
         ctx.enqueueWork(() -> {
             ServerPlayer sender = ctx.getSender();
             if (sender == null) return;
-            // 读取玩家输入
             ServerLevel level = sender.serverLevel();
             BlockPos pos = pkt.pos;
             int changetype = pkt.changetype;
             BlockEntity BE = level.getBlockEntity(pos);
             if (!(BE instanceof AbstractTurretBlockEntity turret)) {
-                // Optionally log an error if the block entity is not found or is incorrect
-                sender.sendSystemMessage(Component.literal("Invalid turret at " + pos));
+                // Function: system chat packet encoding rejects raw BlockPos translation args.
+                sender.sendSystemMessage(Component.translatable("message.vsie.network.invalid_turret", pos.toShortString()));
                 return;
             }
-            // 功能：普通炮塔数据包显式忽略重型炮塔，避免两类炮塔编码串线。
             if (turret instanceof AbstractHeavyTurretBlockEntity) {
                 return;
             }
-            // 功能：普通炮塔只允许 1~4（敌对/被动/玩家/舰船）目标编码，忽略其它编码。
             if (changetype < 1 || changetype > 5) {
                 return;
             }
@@ -79,7 +73,6 @@ public class TurretC2SPacket implements CustomPacketPayload {
                 return;
             }
             turret.modifyTargetType(pkt.changetype);
-            // 功能：目标配置改变后立即下发客户端，保证按钮状态与图标实时刷新。
             turret.markUpdated();
         });
         ctx.setPacketHandled(true);

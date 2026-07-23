@@ -80,7 +80,10 @@ public class ScreenScreen extends AbstractContainerScreen<ScreenContainerMenu> {
         this.modeButton = this.addRenderableWidget(Button.builder(
                         getModeLabel(menu.getBlockEntity().displaytype),
                         button -> {
-                            int nextMode = (menu.getBlockEntity().displaytype + 1) % 2;
+                            AbstractScreenBlockEntity screen = menu.getBlockEntity();
+                            int nextMode = (screen.displaytype + 1) % 2;
+                            // Function: update the client copy optimistically so every click advances from the latest selected mode.
+                            screen.setscreendisplaytype(nextMode);
                             ModNetworking.sendToServer(new ScreentypeC2SPacket(pos, nextMode));
                             button.setMessage(getModeLabel(nextMode));
                         })

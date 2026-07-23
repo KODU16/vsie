@@ -1,18 +1,18 @@
 {
-  "name": "AeroIE的特点",
+  "name": "What Sets AeroIE Apart",
   "icon": "vsie:iff",
   "category": "vsie:abstract",
   "sortnum": 2,
   "pages": [
     {
       "type": "patchouli:text",
-      "title": "AeroIE有哪些特点",
-      "text": "1、结合前置RPLlib的代码（和好朋友@巨型咸鱼对离散控制学的了解），AeroIE对实体运动和射线检测做出了一些改进。AeroIE添加的所有子弹均支持以较低的性能占用，采用较高的速度在未加载区块中飞行（但无法碰撞地形）、渲染和准确命中，同时拥有相比原版更高效的长距离射线检测系统（未加载区块中不碰撞地形）$(br2)2、结合多方块结构在物理化组装和维度切换方面的兼容性问题，AeroIE不添加多方块结构，仅用单方块结构扩大模型，最大程度兼顾了大型结构外设的可靠性$(br2)3、AeroIE简化了玩家操控的操作和载具搭建时的困难。例如，推进器无需精确校准放置位置和朝向，无需考虑重心偏移和气压问题等"
+      "title": "What Sets AeroIE Apart",
+      "text": "1. By combining code from the RPLlib dependency with Giant Salted Fish's knowledge of discrete control systems, AeroIE improves entity motion and ray tracing. Its projectiles can travel at high speed through unloaded chunks with low performance cost, remain visible, and hit accurately, although they cannot collide with terrain there. AeroIE also provides more efficient long-range ray tracing with the same unloaded-terrain limitation.$(br2)2. Because multiblock structures often have compatibility problems during physical assembly and dimension changes, AeroIE uses enlarged single-block models instead. This makes large peripherals far more reliable.$(br2)3. AeroIE simplifies piloting and vehicle construction. Thrusters, for example, need no precise position or orientation calibration, and builders do not need to account for center-of-mass offsets or air pressure."
     },
     {
       "type": "patchouli:text",
-      "title": "小趣事",
-      "text": "很遗憾，KODU16不会写真正的区块缓存，如果你会的话欢迎提交pull request，解决这个未加载区块中没法判定地形的问题"
+      "title": "Fun Fact",
+      "text": "Unfortunately, KODU16 does not know how to implement a true chunk cache. If you do, pull requests that solve terrain collision in unloaded chunks are welcome."
     }
   ]
 }

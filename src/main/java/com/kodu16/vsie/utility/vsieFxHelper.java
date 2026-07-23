@@ -34,13 +34,40 @@ public final class vsieFxHelper {
         if (level != null) {
             Entity entity = level.getEntity(triggerPacket.getEntityID());
             if (entity != null) {
+                if (triggerPacket.isStop()) {
+                    stopEntityFx(entity, triggerPacket.getFx());
+                    return;
+                }
                 FX fx = FXHelper.getFX(triggerPacket.getFx());
                 if (fx != null) {
                     var effect = new EntityEffectExecutor(fx, level, entity, EntityEffectExecutor.AutoRotate.NONE);
+                    // Function: entity FX can be attached away from the entity origin for large ship-scale effects.
+                    effect.setOffset(triggerPacket.getOffset());
+                    effect.setScale(triggerPacket.getScale());
                     effect.setForcedDeath(triggerPacket.isForceDead());
                     effect.start();
                 }
             }
+        }
+    }
+
+    // Function: terminate only matching FX instances attached to this entity.
+    private static void stopEntityFx(Entity entity, net.minecraft.resources.ResourceLocation fxLocation) {
+        var effects = EntityEffectExecutor.CACHE.get(entity);
+        if (effects == null) {
+            return;
+        }
+        effects.removeIf(effect -> {
+            if (!fxLocation.equals(effect.getFx().getFxLocation())) {
+                return false;
+            }
+            if (effect.getRuntime() != null) {
+                effect.getRuntime().destroy(true);
+            }
+            return true;
+        });
+        if (effects.isEmpty()) {
+            EntityEffectExecutor.CACHE.remove(entity);
         }
     }
 

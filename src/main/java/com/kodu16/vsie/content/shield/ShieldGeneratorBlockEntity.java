@@ -2,14 +2,11 @@ package com.kodu16.vsie.content.shield;
 
 import com.kodu16.vsie.network.fx.FxPositionS2CPacket;
 import com.kodu16.vsie.registries.ModNetworking;
-import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.Connection;
@@ -20,8 +17,6 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -29,27 +24,28 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.energy.EnergyStorage;
 import net.neoforged.neoforge.energy.IEnergyStorage;
-import org.joml.Vector3f;
 import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.List;
 
 public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
     private static final ResourceLocation SHIELD_HIT_FX = ResourceLocation.fromNamespaceAndPath("vsie", "shield_hit");
     public SmartFluidTankBehaviour tank;
+    public BlockPos linkedcontrolseatpos = new BlockPos(0,0,0);
+    double RADIUS = 3;
+    public int maxreceiverate = 100;
+    public EnergyStorage energyStorage = new ShieldEnergyStorage();
+
     public ShieldGeneratorBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
     }
+
     @Override
     public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
         tank = SmartFluidTankBehaviour.single(this, 200);
         behaviours.add(tank);
     }
-
-    public BlockPos linkedcontrolseatpos = new BlockPos(0,0,0);
-    double RADIUS = 3;
-    public int maxreceiverate = 100;
-    public EnergyStorage energyStorage = new ShieldEnergyStorage();
 
     private class ShieldEnergyStorage extends EnergyStorage {
         private ShieldEnergyStorage() {
@@ -73,37 +69,18 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
         if (level.isClientSide || level.getGameTime() % 2 != 0) return;
 
         Vec3 center = Vec3.atCenterOf(pos);
-        AABB searchBox = new AABB(this.getBlockPos()).inflate(RADIUS + 6.0); // 澶氭悳涓€鐐癸紝闃叉楂橀€熷疄浣撲竴甯х┛杩囧幓
-
-        // 鏍稿績锛氬彧绛涢€夆€滄病鏈夌敓鍛藉€?+ 閫熷害澶熷揩 + 涓嶆槸鐜╁涔熶笉鏄洈鐢叉灦鈥濅箣绫荤殑瀹炰綋
-        level.getEntitiesOfClass(Entity.class, searchBox, entity -> {
-            if (entity.isRemoved() || entity instanceof LivingEntity)
-                return false;
-
-            // 閫熷害闃堝€硷紝鍙皟锛堝崟浣嶏細鏂瑰潡/鍒伙級
-            double speed = entity.getDeltaMovement().length();
-            if (speed < 0.25) return false;
-
-            Vec3 toEntity = entity.position().subtract(center);
-            double dot = entity.getDeltaMovement().normalize().dot(toEntity.normalize());
-            return dot < -0.3;
-        }).forEach(entity -> {
-
-            Vec3 toEntity = entity.position().subtract(center);
-            double distSq = toEntity.lengthSqr();
-
-            if (distSq > RADIUS * RADIUS || distSq < 0.25) return;
+        AABB searchBox = ShieldInterception.searchBox(center, RADIUS);
+        level.getEntitiesOfClass(Entity.class, searchBox, ShieldInterception::isCandidate).forEach(entity -> {
+            ShieldInterception.Hit shieldHit = ShieldInterception.findHit(entity, center, RADIUS);
+            if (shieldHit == null) return;
 
             if(getEnergy().getEnergyStored()>20000)
             {
-                // 鎷︽埅锛?
-                entity.discard(); // 鐩存帴鍒犻櫎锛屽吋瀹?99% 鐨勬ā缁勫疄浣?
-                // 绮掑瓙浜ょ偣
-                Vec3 hitDir = toEntity.normalize();
-                Vec3 hitPoint = center.add(hitDir.scale(RADIUS));
+                entity.discard();
+                Vec3 hitDir = shieldHit.normal();
+                Vec3 hitPoint = shieldHit.point();
                 playShieldHitFx((ServerLevel) level, hitPoint, hitDir);
 
-                // 鍙€夛細鎾斁闊虫晥
                 level.playSound(null, hitPoint.x, hitPoint.y, hitPoint.z,
                         SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), SoundSource.BLOCKS,
                         1.0f, 1.2f + level.random.nextFloat() * 0.4f);
@@ -133,7 +110,6 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
         ));
     }
 
-    // 鍔熻兘锛氭彁渚涚粰 NeoForge 1.21.1 capability 娉ㄥ唽鍣ㄧ殑 FE 鍌ㄨ兘鎺ュ彛瀹炰緥銆?
     public IEnergyStorage getEnergyCapability() {
         return energyStorage;
     }
@@ -172,12 +148,10 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
         read(tag, registries, true);
     }
 
-    // 鏂逛究澶栭儴鐩存帴璋冪敤锛堜緥濡?tick銆丟UI銆乄aila 绛夛級
     public EnergyStorage getEnergyStorage() {
         return energyStorage;
     }
 
-    // 鎴栫洿鎺ヨ繑鍥?IEnergyStorage 鎺ュ彛
     public IEnergyStorage getEnergy() {
         return energyStorage;
     }
@@ -191,14 +165,11 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
     }
 
     private void readVec3(CompoundTag nbt, String key) {
-        // 鍔熻兘锛氭寜 CompoundTag 缁撴瀯璇诲彇鎺у埗搴ф爣锛岄伩鍏嶅洜绫诲瀷涓嶅尮閰嶅鑷磋仈鍔ㄤ綅缃涪澶便€?
         if (!nbt.contains(key, Tag.TAG_COMPOUND)) return;
         CompoundTag vecTag = nbt.getCompound(key);
         int x = vecTag.getInt("x");
         int y = vecTag.getInt("y");
         int z = vecTag.getInt("z");
         this.linkedcontrolseatpos = new BlockPos(x, y, z);
-        LogUtils.getLogger().warn("shield linked controlseat pos:"+this.linkedcontrolseatpos);
     }
-
 }

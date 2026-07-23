@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "T": {
+      "item": "create:fluid_tank"
+    },
+    "S": {
+      "item": "vsie:silicon_carbide"
+    },
+    "P": {
+      "item": "create:fluid_pipe"
+    },
+    "M": {
+      "item": "vsie:metalic_microlattice"
+    }
+  },
+  "pattern": [
+    "TST",
+    "TST",
+    "PMP"
+  ],
+  "result": {
+    "id": "vsie:small_fueltank"
+  },
+  "show_notification": true
+}

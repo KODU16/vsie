@@ -1,6 +1,6 @@
 {
-  "name": "护盾",
-  "description": "护盾系统的概述以及使用方法",
+  "name": "Shields",
+  "description": "An overview of the shield system and how to use it.",
   "icon": "vsie:shield_generator",
   "sortnum": 7
 }

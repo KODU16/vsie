@@ -82,7 +82,8 @@ public abstract class AbstractTurretBlock extends DirectionalBlock implements En
                 serverPlayer.openMenu(new MenuProvider() {
                     @Override
                     public Component getDisplayName() {
-                        return Component.translatable("container.vsie.turret");
+                        // Function: turret GUIs should show the concrete block name instead of the shared generic controls title.
+                        return Component.translatable(turret.getBlockState().getBlock().getDescriptionId());
                     }
 
                     @Override
@@ -122,7 +123,8 @@ public abstract class AbstractTurretBlock extends DirectionalBlock implements En
     @Override
     public void onRemove(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos, @Nonnull BlockState newState, boolean isMoving) {
         // 功能：当炮塔方块被替换/破坏时，先将粒子炮弹药仓内容物掉落到世界中。
-        if (!state.is(newState.getBlock())) {
+        // Sable moves blocks with isMoving=true, so skip drop logic during sublevel assembly.
+        if (!isMoving && !state.is(newState.getBlock())) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof AbstractTurretBlockEntity turret) {
                 turret.dropStoredAmmo(level, pos);

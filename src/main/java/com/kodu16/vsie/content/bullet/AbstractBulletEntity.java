@@ -1,11 +1,13 @@
 package com.kodu16.vsie.content.bullet;
 
+import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.registries.vsieSounds;
 import com.kodu16.vsie.utility.FxData;
 import com.kodu16.vsie.utility.vsieFxHelper;
 import com.lowdragmc.photon.client.fx.EntityEffectExecutor;
 import com.lowdragmc.photon.client.fx.FX;
 import com.lowdragmc.photon.client.fx.FXHelper;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.SectionPos;
@@ -21,19 +23,26 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import rbasamoyai.ritchiesprojectilelib.RPLTags;
+import rbasamoyai.ritchiesprojectilelib.RitchiesProjectileLib;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public abstract class AbstractBulletEntity extends Projectile {
+    private record PortalTraceContext(Level level, Vec3 from, Vec3 to) {
+    }
 
     private static final EntityDataAccessor<Float> DATA_LAUNCH_DIR_X =
             SynchedEntityData.defineId(AbstractBulletEntity.class, EntityDataSerializers.FLOAT);
@@ -42,8 +51,8 @@ public abstract class AbstractBulletEntity extends Projectile {
     private static final EntityDataAccessor<Float> DATA_LAUNCH_DIR_Z =
             SynchedEntityData.defineId(AbstractBulletEntity.class, EntityDataSerializers.FLOAT);
 
-    private static final int DEFAULT_MAX_LIFETIME_TICKS = 15 * 20;
-    private static final float LIFETIME_EXPIRE_EXPLOSION_POWER = 2.0F;
+    private static final int DEFAULT_MAX_LIFETIME_TICKS = 80;
+    private static final int MAX_UNLOADED_CHUNK_WAIT_TICKS = 20;
     private static final double CHUNK_EDGE_EPSILON = 1.0E-6D;
     private static final double CLIENT_HARD_SNAP_DISTANCE_SQR = 48.0D * 48.0D;
     private static final double CLIENT_POSITION_PULL = 0.18D;
@@ -51,7 +60,7 @@ public abstract class AbstractBulletEntity extends Projectile {
     private static final double CLIENT_MAX_CORRECTION_SPEED_FACTOR = 0.45D;
 
     private int lifeTime = 0;
-    private int unloadedChunkCollisionSkipTicks = 0;
+    private int unloadedChunkWaitTicks = 0;
     private boolean clientMotionFilterReady = false;
     private boolean localVelocityUpdate = false;
     private int clientTicksSincePreciseSync = 0;
@@ -67,6 +76,7 @@ public abstract class AbstractBulletEntity extends Projectile {
     private BulletData dataBase = BulletData.createParticleBulletDefault();
     // Function: weapons/turrets can disable terrain damage per shot while preserving entity-hit behaviour.
     private boolean breaksBlocks = true;
+    private UUID launchSubLevelId = null;
 
     public BulletData getDataBase() {
         return dataBase;
@@ -84,6 +94,17 @@ public abstract class AbstractBulletEntity extends Projectile {
         super(type, level);
         this.noPhysics = true;
         this.setNoGravity(true);
+    }
+
+    public void setLaunchSubLevel(SubLevel subLevel) {
+        // Function: bullets pass through blocks belonging to their launch ship without block damage or motion changes.
+        this.launchSubLevelId = subLevel == null ? null : subLevel.getUniqueId();
+    }
+
+    @Override
+    public boolean canUsePortal(boolean allowPassengers) {
+        // Function: bullet subclasses handle nether portals as breakable blocks instead of dimension travel.
+        return false;
     }
 
     @Override
@@ -114,6 +135,7 @@ public abstract class AbstractBulletEntity extends Projectile {
         boolean enteredUnloadedChunk = loadedEndT < 1.0D;
         Vec3 collisionEnd = start.lerp(end, enteredUnloadedChunk ? Math.max(0.0D, loadedEndT - CHUNK_EDGE_EPSILON) : 1.0D);
         Vec3 collisionMovement = collisionEnd.subtract(start);
+        Vec3 serverMoveEnd = enteredUnloadedChunk ? collisionEnd : end;
 
 
         Vec3 originalMovement = this.getDeltaMovement();
@@ -126,15 +148,20 @@ public abstract class AbstractBulletEntity extends Projectile {
                 : missAt(start, start.subtract(movement));
         this.setDeltaMovement(originalMovement);
 
+        if (hitResult.getType() == HitResult.Type.BLOCK && isLaunchSubLevelBlock(((BlockHitResult) hitResult).getBlockPos())) {
+            hitResult = BlockHitResult.miss(collisionEnd, Direction.getNearest(movement.x, movement.y, movement.z), BlockPos.containing(collisionEnd));
+        }
 
         if (hitResult.getType() == HitResult.Type.MISS) {
 
             List<Entity> entities = this.level().getEntities(
                     this,
-                    this.getBoundingBox().expandTowards(collisionMovement)
+                    // Function: match TACZ's swept lookup margin so high-speed bullets still find entities near the path edge.
+                    this.getBoundingBox().expandTowards(collisionMovement).inflate(1.0D)
             );
 
             Entity closest = null;
+            Vec3 closestIntercept = null;
             double closestDistSq = Double.MAX_VALUE;
 
             for (Entity entity : entities) {
@@ -150,13 +177,19 @@ public abstract class AbstractBulletEntity extends Projectile {
                     if (distSq < closestDistSq) {
                         closestDistSq = distSq;
                         closest = entity;
+                        closestIntercept = intercept.get();
                     }
                 }
             }
 
             if (closest != null) {
-                hitResult = new EntityHitResult(closest);
+                hitResult = new EntityHitResult(closest, closestIntercept);
             }
+        }
+
+        BlockHitResult portalHit = findFirstNetherPortalHit(start, collisionEnd);
+        if (portalHit != null && !isLaunchSubLevelBlock(portalHit.getBlockPos()) && isCloserHit(start, portalHit, hitResult)) {
+            hitResult = portalHit;
         }
 
 
@@ -169,25 +202,42 @@ public abstract class AbstractBulletEntity extends Projectile {
             }
 
         } else if (hitResult.getType() == HitResult.Type.BLOCK) {
-            if (!breaksBlocksEnabled()) {
-                this.discard();
-                return;
-            }
+            if (isNetherPortalHit((BlockHitResult) hitResult)) {
+                destroyNetherPortalBlock((BlockHitResult) hitResult);
+                if (breaksBlocksEnabled()) {
+                    this.onHitBlock((BlockHitResult) hitResult);
+                }
+                if (!breaksBlocksEnabled() || shouldDiscardAfterBlockHit((BlockHitResult) hitResult)) {
+                    this.discard();
+                    return;
+                }
+            } else {
+                if (!breaksBlocksEnabled()) {
+                    this.discard();
+                    return;
+                }
 
-            this.onHitBlock((BlockHitResult) hitResult);
-            if (shouldDiscardAfterBlockHit((BlockHitResult) hitResult)) {
-                this.discard();
-                return;
+                this.onHitBlock((BlockHitResult) hitResult);
+                if (shouldDiscardAfterBlockHit((BlockHitResult) hitResult)) {
+                    this.discard();
+                    return;
+                }
             }
         }
 
-
-        this.setPos(end);
-        if (enteredUnloadedChunk || !isChunkColumnLoaded(this.level(), end)) {
-            scheduleUnloadedChunkCheck(end, movement);
+        requestPreciseMotionChunkLoading(start, end);
+        if (enteredUnloadedChunk) {
+            // Function: keep bullets in entity-ticking chunks until RPL's batched force loader catches up.
+            unloadedChunkWaitTicks++;
+            if (unloadedChunkWaitTicks >= MAX_UNLOADED_CHUNK_WAIT_TICKS) {
+                this.discard();
+                return;
+            }
+        } else {
+            unloadedChunkWaitTicks = 0;
         }
-
-        finishServerBulletMove(hitResult, isChunkColumnLoaded(this.level(), end));
+        this.setPos(serverMoveEnd);
+        finishServerBulletMove(hitResult, true);
     }
 
     protected boolean shouldDiscardAfterEntityHit(EntityHitResult result) {
@@ -204,6 +254,66 @@ public abstract class AbstractBulletEntity extends Projectile {
 
     protected boolean canBulletBreakBlock(Level level, BlockPos pos, BlockState state) {
         return level.isLoaded(pos) && !state.isAir() && state.getDestroySpeed(level, pos) >= 0.0F;
+    }
+
+    private BlockHitResult findFirstNetherPortalHit(Vec3 from, Vec3 to) {
+        if (from.equals(to)) {
+            return null;
+        }
+        PortalTraceContext context = new PortalTraceContext(this.level(), from, to);
+        return BlockGetter.traverseBlocks(from, to, context, (traceContext, pos) -> {
+            Level traceLevel = traceContext.level();
+            if (!traceLevel.isLoaded(pos)) {
+                return null;
+            }
+            BlockState state = traceLevel.getBlockState(pos);
+            if (!state.is(Blocks.NETHER_PORTAL)) {
+                return null;
+            }
+            BlockHitResult shapeHit = state.getShape(traceLevel, pos).clip(traceContext.from(), traceContext.to(), pos);
+            if (shapeHit != null) {
+                return shapeHit;
+            }
+            Vec3 direction = traceContext.to().subtract(traceContext.from());
+            return new BlockHitResult(Vec3.atCenterOf(pos), Direction.getNearest(direction.x, direction.y, direction.z), pos.immutable(), false);
+        }, traceContext -> null);
+    }
+
+    private boolean isCloserHit(Vec3 from, BlockHitResult candidate, HitResult current) {
+        if (current.getType() == HitResult.Type.MISS) {
+            return true;
+        }
+        return from.distanceToSqr(candidate.getLocation()) < from.distanceToSqr(current.getLocation());
+    }
+
+    private boolean isLaunchSubLevelBlock(BlockPos pos) {
+        if (launchSubLevelId == null || this.level() == null) {
+            return false;
+        }
+        SubLevel hitSubLevel = ServerShipUtils.getSubLevelAtBlockPos(this.level(), pos);
+        return hitSubLevel != null && launchSubLevelId.equals(hitSubLevel.getUniqueId());
+    }
+
+    private boolean isNetherPortalHit(BlockHitResult result) {
+        return this.level().isLoaded(result.getBlockPos())
+                && this.level().getBlockState(result.getBlockPos()).is(Blocks.NETHER_PORTAL);
+    }
+
+    private void destroyNetherPortalBlock(BlockHitResult result) {
+        if (!(this.level() instanceof ServerLevel level)) {
+            return;
+        }
+        BlockPos pos = result.getBlockPos();
+        if (!level.isLoaded(pos)) {
+            return;
+        }
+        BlockState state = level.getBlockState(pos);
+        if (!state.is(Blocks.NETHER_PORTAL)) {
+            return;
+        }
+        // Function: bullets destroy nether portal blocks on contact so vanilla portal ticking never teleports them.
+        level.levelEvent(2001, pos, Block.getId(state));
+        level.destroyBlock(pos, false, this);
     }
 
     protected float getBlockBreakTntChance() {
@@ -284,7 +394,7 @@ public abstract class AbstractBulletEntity extends Projectile {
     }
 
     protected int getMaxLifeTime() {
-        // Function: bullets self-destruct after 20 seconds so missed shots cannot accumulate forever.
+        // Function: short-lived bullets must clear quickly so missed shots cannot pile up near chunk boundaries.
         return DEFAULT_MAX_LIFETIME_TICKS;
     }
 
@@ -439,15 +549,6 @@ public abstract class AbstractBulletEntity extends Projectile {
         );
     }
 
-    private void moveWithoutCollisionUntilNextChunkCheck(Vec3 movement, Vec3 end) {
-        this.setPos(end);
-        unloadedChunkCollisionSkipTicks--;
-        if (unloadedChunkCollisionSkipTicks <= 0 && !isChunkColumnLoaded(this.level(), end)) {
-            scheduleUnloadedChunkCheck(end, movement);
-        }
-        finishServerBulletMove(missAt(end, end.subtract(movement)), false);
-    }
-
     private void finishServerBulletMove(HitResult hitResult, boolean allowAfterMove) {
         lifeTime++;
         if (allowAfterMove) {
@@ -462,13 +563,71 @@ public abstract class AbstractBulletEntity extends Projectile {
         }
     }
 
+    private void requestPreciseMotionChunkLoading(Vec3 from, Vec3 to) {
+        if (!(this.level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        if (!this.getType().is(RPLTags.PRECISE_MOTION)) {
+            return;
+        }
+        if (from.distanceToSqr(to) < 1.0E-10D) {
+            return;
+        }
+
+        // Function: precise-motion bullets must queue every crossed chunk before the next server tick so long shots keep aging and colliding.
+        queueChunksAlongPath(serverLevel, from, to);
+    }
+
+    private void queueChunksAlongPath(ServerLevel level, Vec3 from, Vec3 to) {
+        double dx = to.x - from.x;
+        double dz = to.z - from.z;
+        int chunkX = SectionPos.blockToSectionCoord(Mth.floor(from.x));
+        int chunkZ = SectionPos.blockToSectionCoord(Mth.floor(from.z));
+        int endChunkX = SectionPos.blockToSectionCoord(Mth.floor(to.x));
+        int endChunkZ = SectionPos.blockToSectionCoord(Mth.floor(to.z));
+
+        queueChunk(level, chunkX, chunkZ);
+        if (chunkX == endChunkX && chunkZ == endChunkZ) {
+            return;
+        }
+        if (Math.abs(dx) < 1.0E-10D && Math.abs(dz) < 1.0E-10D) {
+            queueChunk(level, endChunkX, endChunkZ);
+            return;
+        }
+
+        int stepX = Integer.compare(endChunkX, chunkX);
+        int stepZ = Integer.compare(endChunkZ, chunkZ);
+        double nextX = stepX == 0 ? Double.POSITIVE_INFINITY : firstChunkBoundaryT(from.x, dx, chunkX, stepX);
+        double nextZ = stepZ == 0 ? Double.POSITIVE_INFINITY : firstChunkBoundaryT(from.z, dz, chunkZ, stepZ);
+        double deltaX = stepX == 0 ? Double.POSITIVE_INFINITY : 16.0D / Math.abs(dx);
+        double deltaZ = stepZ == 0 ? Double.POSITIVE_INFINITY : 16.0D / Math.abs(dz);
+
+        while (chunkX != endChunkX || chunkZ != endChunkZ) {
+            boolean advanceX = nextX <= nextZ;
+            boolean advanceZ = nextZ <= nextX;
+            if (advanceX) {
+                chunkX += stepX;
+                nextX += deltaX;
+            }
+            if (advanceZ) {
+                chunkZ += stepZ;
+                nextZ += deltaZ;
+            }
+            queueChunk(level, chunkX, chunkZ);
+        }
+    }
+
+    private void queueChunk(ServerLevel level, int chunkX, int chunkZ) {
+        RitchiesProjectileLib.queueForceLoad(level, chunkX, chunkZ);
+    }
+
     private double findFirstUnloadedChunkT(Level level, Vec3 from, Vec3 to) {
         double dx = to.x - from.x;
         double dz = to.z - from.z;
         int chunkX = SectionPos.blockToSectionCoord(Mth.floor(from.x));
         int chunkZ = SectionPos.blockToSectionCoord(Mth.floor(from.z));
 
-        if (!level.getChunkSource().hasChunk(chunkX, chunkZ)) {
+        if (!isChunkEntityTicking(level, chunkX, chunkZ)) {
             return 0.0D;
         }
         if (Math.abs(dx) < 1.0E-10D && Math.abs(dz) < 1.0E-10D) {
@@ -501,7 +660,7 @@ public abstract class AbstractBulletEntity extends Projectile {
             }
 
             segmentStart = segmentEnd;
-            if (!level.getChunkSource().hasChunk(chunkX, chunkZ)) {
+            if (!isChunkEntityTicking(level, chunkX, chunkZ)) {
                 return segmentStart;
             }
         }
@@ -509,38 +668,16 @@ public abstract class AbstractBulletEntity extends Projectile {
         return 1.0D;
     }
 
-    private void scheduleUnloadedChunkCheck(Vec3 position, Vec3 movement) {
-        if (isChunkColumnLoaded(this.level(), position) || movement.lengthSqr() < 1.0E-10D) {
-            unloadedChunkCollisionSkipTicks = 0;
-            return;
+    private boolean isChunkEntityTicking(Level level, int chunkX, int chunkZ) {
+        if (!level.getChunkSource().hasChunk(chunkX, chunkZ)) {
+            return false;
         }
-
-        double ticksToBoundary = Math.min(
-                ticksToNextAxisChunkBoundary(position.x, movement.x),
-                ticksToNextAxisChunkBoundary(position.z, movement.z)
-        );
-        int ticks = Double.isFinite(ticksToBoundary) && ticksToBoundary > 0.0D
-                ? (int) Math.ceil(ticksToBoundary)
-                : 1;
-        // Function: unloaded chunk columns are treated as empty until the projectile reaches a chunk edge.
-        unloadedChunkCollisionSkipTicks = Math.max(1, ticks);
-    }
-
-    private double ticksToNextAxisChunkBoundary(double position, double velocity) {
-        if (Math.abs(velocity) < 1.0E-10D) {
-            return Double.POSITIVE_INFINITY;
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return true;
         }
-
-        int chunk = SectionPos.blockToSectionCoord(Mth.floor(position));
-        double boundary = velocity > 0.0D ? (chunk + 1) * 16.0D : chunk * 16.0D;
-        double ticks = (boundary - position) / velocity;
-        return ticks <= CHUNK_EDGE_EPSILON ? 1.0D : ticks;
-    }
-
-    private boolean isChunkColumnLoaded(Level level, Vec3 position) {
-        int chunkX = SectionPos.blockToSectionCoord(Mth.floor(position.x));
-        int chunkZ = SectionPos.blockToSectionCoord(Mth.floor(position.z));
-        return level.getChunkSource().hasChunk(chunkX, chunkZ);
+        BlockPos chunkOrigin = new BlockPos(SectionPos.sectionToBlockCoord(chunkX), 0, SectionPos.sectionToBlockCoord(chunkZ));
+        // Function: bullets must only move into chunks where the entity itself will keep ticking.
+        return serverLevel.isPositionEntityTicking(chunkOrigin);
     }
 
     private double firstChunkBoundaryT(double start, double delta, int chunk, int step) {
@@ -554,11 +691,7 @@ public abstract class AbstractBulletEntity extends Projectile {
     }
 
     protected void explodeAndDiscardAfterLifetime() {
-        if (this.level() instanceof ServerLevel serverLevel) {
-            // Function: timeout explosions are visual/knockback cleanup only and do not destroy terrain.
-            serverLevel.explode(this, this.getX(), this.getY(), this.getZ(),
-                    LIFETIME_EXPIRE_EXPLOSION_POWER, false, Level.ExplosionInteraction.NONE);
-        }
+        // Function: bullets must be hard-cleared on timeout so missed shots cannot linger or trigger extra cleanup work.
         this.discard();
     }
 
@@ -602,6 +735,22 @@ public abstract class AbstractBulletEntity extends Projectile {
 
     // Function: subclasses own bullet speed; the base class only enforces constant velocity along current direction.
     public abstract double getSpeed();
+
+    public int getRenderColor() {
+        return 0xC080C080;
+    }
+
+    public float getRenderLength() {
+        return 4.0F;
+    }
+
+    public float getRenderWidth() {
+        return 1.0F;
+    }
+
+    public int getRenderStartTick() {
+        return 10;
+    }
 
     private Vec3 applyConstantSpeed() {
         Vec3 movement = this.getDeltaMovement();
@@ -661,11 +810,14 @@ public abstract class AbstractBulletEntity extends Projectile {
     protected void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         tag.putBoolean("BreaksBlocks", this.breaksBlocks);
-        tag.putInt("UnloadedChunkCollisionSkipTicks", this.unloadedChunkCollisionSkipTicks);
+        tag.putInt("LifeTime", this.lifeTime);
         Vec3 launchDirection = getSyncedLaunchDirection();
         tag.putDouble("LaunchDirX", launchDirection.x);
         tag.putDouble("LaunchDirY", launchDirection.y);
         tag.putDouble("LaunchDirZ", launchDirection.z);
+        if (launchSubLevelId != null) {
+            tag.putUUID("LaunchSubLevelId", launchSubLevelId);
+        }
     }
 
     @Override
@@ -674,8 +826,8 @@ public abstract class AbstractBulletEntity extends Projectile {
         if (tag.contains("BreaksBlocks")) {
             this.breaksBlocks = tag.getBoolean("BreaksBlocks");
         }
-        if (tag.contains("UnloadedChunkCollisionSkipTicks")) {
-            this.unloadedChunkCollisionSkipTicks = tag.getInt("UnloadedChunkCollisionSkipTicks");
+        if (tag.contains("LifeTime")) {
+            this.lifeTime = tag.getInt("LifeTime");
         }
         if (tag.contains("LaunchDirX") && tag.contains("LaunchDirY") && tag.contains("LaunchDirZ")) {
             setPreciseLaunchDirection(new Vec3(
@@ -684,5 +836,6 @@ public abstract class AbstractBulletEntity extends Projectile {
                     tag.getDouble("LaunchDirZ")
             ));
         }
+        launchSubLevelId = tag.hasUUID("LaunchSubLevelId") ? tag.getUUID("LaunchSubLevelId") : null;
     }
 }

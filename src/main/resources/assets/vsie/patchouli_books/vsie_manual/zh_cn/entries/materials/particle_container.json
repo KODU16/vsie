@@ -1,0 +1,14 @@
+{
+  "name": "粒子容器",
+  "icon": "vsie:particle_container",
+  "category": "vsie:materials",
+  "sortnum": 5,
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "vsie:particle_container",
+      "title": "粒子容器",
+      "text": "装有一团高能粒子的磁容器，一般是从含有极高能量的物品中提炼的，通过不同的激发方式可以转化为推进器燃料或作为不同类型武器和炮塔的弹药"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
-  "name": "控制椅",
-  "description": "用于链接外设，操控子维度飞行、切换目标、控制通道与协同武器的核心操作平台。",
+  "name": "Control Seat",
+  "description": "The central command station for linking peripherals, flying subspaces, selecting targets, switching channels, and coordinating weapons.",
   "icon": "vsie:control_seat",
   "sortnum": 1
 }

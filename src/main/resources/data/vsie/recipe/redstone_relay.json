@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "S": {
+      "item": "vsie:silicon_carbide"
+    },
+    "C": {
+      "item": "vsie:computronic_substrate"
+    },
+    "R": {
+      "item": "create:redstone_link"
+    },
+    "E": {
+      "item": "create:electron_tube"
+    }
+  },
+  "pattern": [
+    "SCS",
+    "RER",
+    "SCS"
+  ],
+  "result": {
+    "id": "vsie:redstone_relay"
+  },
+  "show_notification": true
+}

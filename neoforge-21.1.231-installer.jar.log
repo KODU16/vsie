@@ -1,0 +1,34 @@
+JVM info: Oracle Corporation - 21.0.7 - 21.0.7+8-LTS-245
+java.net.preferIPv4Stack=true
+Current Time: 22/06/2026 11:27:22
+Option                                  Description                             
+------                                  -----------                             
+--debug                                 Run in debug mode -- don't delete any   
+                                          files                                 
+--fat, --fat-installer, --generate-fat  Generate a fat installer jar (default:  
+  [File]                                  C:                                    
+                                          \Users\xiong\AppData\Local\Temp\neoforge-
+                                          21.1.231-upgrade\neoforge-21.1.231-   
+                                          installer-fat.jar)                    
+--fat-include-installer-libs            Include the installer libraries in the  
+                                          fat installer                         
+--fat-include-minecraft                 Include the Minecraft client / server   
+                                          jar in the fat installer              
+--fat-include-minecraft-libs            Include the Minecraft libraries in the  
+                                          fat installer                         
+--fat-offline, --gen-offline, --        Generate an online fat installer        
+  generate-offline, --gf                                                        
+-h, --help                              Help with this installer                
+--install-client, --installClient       Install a client to the specified       
+  [File]                                  directory, defaulting to the MC       
+                                          installation directory (default: C:   
+                                          \Users\xiong\AppData\Roaming\.        
+                                          minecraft)                            
+--install-server, --installServer       Install a server to the current         
+  [File]                                  directory (default: .)                
+--mirror <URL>                          Use a specific mirror URL               
+--offline                               Don't attempt any network calls         
+--server-jar, --server-starter, --      Download the server starter jar for     
+  server.jar                              arg-free executable launches          
+--skip-hash-check                       Skips the hash check when verifying     
+                                          outputs                               

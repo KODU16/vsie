@@ -1,5 +1,5 @@
 {
-  "name": "推进器",
+  "name": "Thrusters",
   "icon": "vsie:basic_thruster",
   "category": "vsie:thruster",
   "sortnum": 0,
@@ -13,33 +13,33 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:basic_thruster",
-      "title": "什么是推进器",
-      "text": "推进器是控制椅的外设，其可以给控制椅提供力和力矩的推进值，控制椅链接的推进器推进值越高，其总灵活性越大$(br2)推进器本质不是加力部件，无需考虑放置位置方向，堆叠你认为的足够数量即可"
+      "title": "What Are Thrusters?",
+      "text": "Thrusters are Control Seat peripherals that contribute force and torque thrust ratings. The greater the total rating of all linked thrusters, the more maneuverable the vessel becomes.$(br2)A thruster is not a conventional force block: its physical position and orientation do not matter. Simply install as many as your vessel requires."
     },
     {
       "type": "patchouli:text",
-      "text": "控制椅会自动分配每个推进器的油门大小，推进器会消耗正比于油门大小的燃料，当控制椅链接的燃料罐中不存在有效燃料时，无法施加任何力和力矩（详见$(l:vsie:control_seat/flying_control)控制椅：飞行控制章节/$）$(br2)推进器右键可以打开GUI，调整其能提供的力和力矩推进值百分比，供精确调节操控的灵活性，但这不影响其燃料消耗速率$(br2)后文给出推进值和力的计算公式，及各种推进器的数据$(br2)若在阅读时出现注意力衰退、昏睡、认知受阻等症状，请及时退出"
+      "text": "The Control Seat automatically assigns a throttle level to every thruster. Fuel consumption is proportional to throttle, and no force or torque can be applied when linked fuel tanks contain no valid fuel. See $(l:vsie:control_seat/flying_control)Control Seat: Flight Controls/$.$(br2)Right-click a thruster to open its GUI and adjust the percentage of its rating allocated to force and torque. This allows precise handling adjustments without changing its fuel consumption rate.$(br2)The following pages list the formulas and specifications for each thruster.$(br2)If you experience loss of attention, drowsiness, or impaired cognition while reading, please exit immediately."
     },
     {
       "type": "patchouli:text",
-      "title": "推进器推进值和力的计算公式",
-      "text": "设某个推进器的最大推进值为T，GUI中设置的力输出百分比为F%，力矩输出百分比为M%。$(br2)该推进器提供的力推进值为T*F%/100，力矩推进值为T*M%/100。控制椅会把所有已连接推进器的力推进值相加为总力推进值，把力矩推进值相加为总力矩推进值。"
+      "title": "Thrust Rating and Force",
+      "text": "Let a thruster's maximum thrust rating be T, its GUI force output setting be F%, and its torque output setting be M%.$(br2)The thruster contributes a force rating of T*F%/100 and a torque rating of T*M%/100. The Control Seat adds the force ratings of all linked thrusters into the total force rating, and likewise adds their torque ratings into the total torque rating."
     },
     {
       "type": "patchouli:text",
-      "title": "推进器油门和燃料",
-      "text": "飞行控制、反向阻尼、反重力、自动水平等功能都会在总推进值范围内分配推进器油门。常规前后油门的物理力约为：油门比例*总力推进值*0.25*物理tick步长；视角锁平移按10%等效油门参与。$(br2)单个推进器每tick的基础燃料消耗为：基础消耗*当前油门百分比。实际抽取流体时还会乘以燃料的消耗倍率。"
+      "title": "Throttle and Fuel",
+      "text": "Flight input, damping, antigravity, and auto-level all allocate throttle within the vessel's total thrust rating. Approximate physical force from ordinary forward or reverse throttle is: throttle ratio * total force rating * 0.25 * physics tick step. Translation under view lock contributes at 10% equivalent throttle.$(br2)A thruster's base fuel use per tick is: base consumption * current throttle percentage. Actual fluid extraction is also multiplied by the selected fuel's consumption multiplier."
     },
     {
       "type": "patchouli:text",
-      "title": "各推进器的数据",
-      "text": "基础推进器：最大推进值200000，基础燃料消耗1。$(br2)中型推进器：最大推进值2000000，基础燃料消耗8。$(br2)大型推进器：最大推进值1000000，基础燃料消耗60。"
+      "title": "Thruster Specifications",
+      "text": "Basic Thruster: maximum rating 20,000; base fuel consumption 1.$(br2)Medium Thruster: maximum rating 200,000; base fuel consumption 8.$(br2)Large Thruster: maximum rating 1,000,000; base fuel consumption 60."
     },
     {
       "type": "patchouli:spotlight",
       "item": "vsie:basic_vector_thruster",
-      "title": "基础矢量推进器",
-      "text": "基础矢量推进器的最大推进值为200000，基础燃料消耗为1。$(br2)它的喷口会在安装方向周围偏转，最大偏转角为30度，用于更直观地响应控制椅分配的姿态和位移需求。$(br2)虽然这东西做起来很麻烦，但AeroIE在开发更多类似的好玩物品"
+      "title": "Basic Vector Thruster",
+      "text": "The Basic Vector Thruster has a maximum rating of 20,000 and base fuel consumption of 1.$(br2)Its nozzle pivots around the mounting direction by up to 30 degrees, giving a more visible response to the attitude and translation demands assigned by the Control Seat.$(br2)It was rather troublesome to implement, but AeroIE is developing more entertaining components like it."
     }
   ]
 }

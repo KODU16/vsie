@@ -25,6 +25,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.sounds.SoundEvent;
@@ -53,7 +54,8 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity implements GeoBlockEntity, MenuProvider, IItemHandlerModifiable {
     // Constants
     private static final String AMMO_INVENTORY_TAG = "AmmoInventory";
-    protected static final int DEFAULT_CONTROL_SEAT_ENERGY_COST_PER_TICK = 50;
+    private static final String LINKED_CONTROL_SEAT_POS_TAG = "LinkedControlSeatPos";
+    protected static final int DEFAULT_CONTROL_SEAT_ENERGY_COST_PER_TICK = 5;
 
     //variables
     private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
@@ -64,12 +66,14 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
     public Vec3 weaponpos;
     protected Vec3 raycastStart = Vec3.ZERO;
     protected Vec3 raycastEnd = Vec3.ZERO;
+    protected BlockPos raycastHitBlockPos = BlockPos.ZERO;
     private boolean raycastHit = false;
     private float lastSyncedRaycastDistance = Float.NaN;
     private boolean lastSyncedRaycastHit = false;
     public int currentTick = -1;
     protected double fireCooldownValue = -1.0D;
     public String weapontype = "";
+    private BlockPos linkedControlSeatPos = BlockPos.ZERO;
     // Function: every ordinary weapon gets a shared 9-slot ammo buffer; energy weapons reject all inserts.
     private final ItemStackHandler ammoInventory = new ItemStackHandler(9) {
         @Override
@@ -93,6 +97,10 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
 
     public boolean hasRaycastHit() {
         return raycastHit;
+    }
+
+    public BlockPos getRaycastHitBlockPos() {
+        return raycastHitBlockPos;
     }
 
     public boolean supportsBlockDestructionToggle() {
@@ -132,6 +140,15 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         return DEFAULT_CONTROL_SEAT_ENERGY_COST_PER_TICK;
     }
 
+    public BlockPos getLinkedControlSeatPos() {
+        return linkedControlSeatPos;
+    }
+
+    public void setLinkedControlSeatPos(BlockPos linkedControlSeatPos) {
+        this.linkedControlSeatPos = linkedControlSeatPos == null ? BlockPos.ZERO : linkedControlSeatPos.immutable();
+        setChanged();
+    }
+
     public String getweapontype() {
         return null;
     }
@@ -159,11 +176,13 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
             return;
         }
         if(!fireRequested) {
-            getData().isfiring = false;
+            setFiringState(false);
             clearRaycastVisualState(level);
             return;
         }
         if (!isFireCooldownReady()) {
+            // Function: sustained-fire clients must see the exact tick where the weapon stops emitting due to cooldown gating.
+            setFiringState(false);
             clearRaycastVisualState(level);
             return;
         }
@@ -178,14 +197,27 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
                 weaponpos = Vec3.atCenterOf(pos);
             }
             if (!consumeAmmoForShot()) {
-                getData().isfiring = false;
+                setFiringState(false);
                 clearRaycastVisualState(level);
                 return;
             }
             consumeFireCooldown();
-            getData().isfiring = true;
+            setFiringState(true);
             playFireSound(level);
             fire();
+        }
+    }
+
+    protected void setFiringState(boolean firing) {
+        WeaponData data = getData();
+        if (data.isfiring == firing) {
+            return;
+        }
+        data.isfiring = firing;
+        if (level != null && !level.isClientSide) {
+            // Function: only sync on firing-state edges so looped client animation and audio stop without extra per-tick traffic.
+            setChanged();
+            level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), 3);
         }
     }
 
@@ -195,6 +227,7 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         this.raycastStart = Vec3.ZERO;
         this.raycastEnd = Vec3.ZERO;
         this.targetpos = Vec3.ZERO;
+        this.raycastHitBlockPos = BlockPos.ZERO;
         this.raycastHit = false;
         syncRaycastStateIfChanged(level, state);
     }
@@ -231,6 +264,7 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         return switch (getweapontype()) {
             case "arc_emitter" -> vsieSounds.ARC_EMITTER_FIRE.get();
             case "electro_magnet_rail_cannon" -> vsieSounds.ELECTRO_MAGNET_RAIL_CANNON_FIRE.get();
+            case "cenix_plasma_cannon" -> vsieSounds.CENIX_PLASMA_CANNON_FIRE.get();
             default -> null;
         };
     }
@@ -301,6 +335,11 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         FireCooldown cooldown = getFireCooldown();
         ensureFireCooldownValue(cooldown);
         return currentTick >= cooldown.intervalTicks() && (!cooldown.usesValue() || fireCooldownValue > 0);
+    }
+
+    public boolean isHudFireReady() {
+        // Function: HUD warning state only covers heat/cooldown and ammo availability, not target or trigger state.
+        return isFireCooldownReady() && hasAmmoReady();
     }
 
     protected void consumeFireCooldown() {
@@ -429,6 +468,7 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         this.targetpos = worldTo;
         // Function: misses still use the max-range endpoint; this flag separates visual target from real block hit.
         this.raycastHit = false;
+        this.raycastHitBlockPos = BlockPos.ZERO;
 
         // Perform raycast using world coordinates
         ClipContext.Fluid clipFluid = ClipContext.Fluid.ANY;
@@ -444,6 +484,7 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         if (hit.getType() == HitResult.Type.BLOCK) {
             Vec3 hitPos = hit.getLocation();
             this.raycastHit = true;
+            this.raycastHitBlockPos = hit.getBlockPos();
             float distance = (float)worldFrom.distanceTo(hitPos);
             this.raycastDistance = Math.min(distance, effectiveMaxDistance);
             this.targetpos = hitPos;
@@ -499,6 +540,19 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
 
     public Vec3 getRaycastStart() {
         return raycastStart;
+    }
+
+    protected boolean breakWeaponTargetBlockAsMined(ServerLevel level, BlockPos pos) {
+        if (!level.isLoaded(pos)) {
+            return false;
+        }
+        BlockState state = level.getBlockState(pos);
+        if (state.isAir() || state.getDestroySpeed(level, pos) < 0.0F) {
+            return false;
+        }
+        // Function: weapon terrain hits use the vanilla break particles while suppressing item drops.
+        level.levelEvent(2001, pos, Block.getId(state));
+        return level.destroyBlock(pos, false);
     }
 
     public Vec3 getWeaponPos() {
@@ -570,6 +624,7 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         // Function: sync firing state so client-only loop sounds can stop on the same tick as the server.
         tag.putBoolean("isfiring", weaponData.isfiring);
         tag.putDouble("fireCooldownValue", this.fireCooldownValue);
+        tag.putLong(LINKED_CONTROL_SEAT_POS_TAG, this.linkedControlSeatPos.asLong());
     }
 
     @Override
@@ -590,6 +645,11 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         if (tag.contains("breaksBlocks")) {weaponData.setBreaksBlocks(tag.getBoolean("breaksBlocks"));}
         if (tag.contains("isfiring")) {weaponData.isfiring = tag.getBoolean("isfiring");}
         if (tag.contains("fireCooldownValue")) {this.fireCooldownValue = tag.getDouble("fireCooldownValue");}
+        if (tag.contains(LINKED_CONTROL_SEAT_POS_TAG, Tag.TAG_LONG)) {
+            this.linkedControlSeatPos = BlockPos.of(tag.getLong(LINKED_CONTROL_SEAT_POS_TAG));
+        } else {
+            this.linkedControlSeatPos = BlockPos.ZERO;
+        }
     }
 
     //geckolib

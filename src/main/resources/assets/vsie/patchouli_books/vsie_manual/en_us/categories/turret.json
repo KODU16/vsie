@@ -1,6 +1,6 @@
 {
-  "name": "炮塔",
-  "description": "能按轴转动，必须安装在子维度上的各类自动炮塔、近防和定向能量攻击性部件。",
+  "name": "Turrets",
+  "description": "Axis-mounted automated turrets, point-defense systems, and directed-energy weapons that must be installed on a subspace.",
   "icon": "vsie:medium_laser_turret",
   "sortnum": 4
 }

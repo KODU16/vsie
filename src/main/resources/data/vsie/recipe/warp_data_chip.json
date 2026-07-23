@@ -1,0 +1,18 @@
+{
+  "type": "create:filling",
+  "ingredients": [
+    {
+      "item": "minecraft:book"
+    },
+    {
+      "type": "neoforge:single",
+      "amount": 1000,
+      "fluid": "aeronautics:levitite_blend"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:warp_data_chip"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "vsie:cenix_plasma_cannon"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "vsie:blocks/cenix_plasma_cannon"
+}

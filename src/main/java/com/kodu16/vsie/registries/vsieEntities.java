@@ -4,6 +4,7 @@ import com.kodu16.vsie.content.bullet.BulletRenderer;
 import com.kodu16.vsie.content.bullet.entity.CenixPlasmaBulletEntity;
 import com.kodu16.vsie.content.bullet.entity.ElectroMagnetRailCannonBulletEntity;
 import com.kodu16.vsie.content.bullet.entity.HeavyElectroMagnetBulletEntity;
+import com.kodu16.vsie.content.bullet.entity.InfraKnifeBulletEntity;
 import com.kodu16.vsie.content.bullet.entity.ParticleBulletEntity;
 import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
 import com.kodu16.vsie.content.missile.entity.BasicMissileEntity;
@@ -54,8 +55,17 @@ public class vsieEntities {
                     .renderer(() -> BulletRenderer::new)
                     .tag(RPLTags.PRECISE_MOTION)
                     .register();
+    public static final EntityEntry<InfraKnifeBulletEntity> INFRA_KNIFE_BULLET =
+            REGISTRATE.entity("infra_knife_bullet", InfraKnifeBulletEntity::new, MobCategory.MISC)
+                    // Function: infra-knife uses a 0.3 block collision cross-section; renderer stretches it along velocity.
+                    .properties(builder -> builder.sized(0.3F, 0.3F).clientTrackingRange(256).updateInterval(1))
+                    .renderer(() -> BulletRenderer::new)
+                    .tag(RPLTags.PRECISE_MOTION)
+                    .register();
     public static final EntityEntry<WarpProjecTileEntity> WARP_PROJECTILE =
             REGISTRATE.entity("warp_projectile", WarpProjecTileEntity::new, MobCategory.MISC)
+                    // Function: warp projectile FX must remain client-side even when the ship-target span is far beyond normal projectile range.
+                    .properties(builder -> builder.sized(0.35F, 0.35F).clientTrackingRange(2048).updateInterval(1))
                     .tag(RPLTags.PRECISE_MOTION)
                     .register();
     public static final EntityEntry<ControlSeatMountEntity> CONTROL_SEAT_MOUNT_ENTITY =

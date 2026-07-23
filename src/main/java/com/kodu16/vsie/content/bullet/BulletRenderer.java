@@ -37,28 +37,33 @@ public class BulletRenderer<T extends AbstractBulletEntity> extends EntityRender
 
     @Override
     public void render(T pEntity, float pEntityYaw, float pPartialTick, PoseStack pPoseStack, MultiBufferSource pBuffer, int pPackedLight) {
-        if (pEntity.tickCount <= 10) {
+        if (pEntity.tickCount <= pEntity.getRenderStartTick()) {
             return;
         }
         pPoseStack.pushPose();
         pPoseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(pPartialTick, pEntity.yRotO, pEntity.getYRot()) - 90.0F));
         pPoseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(pPartialTick, pEntity.xRotO, pEntity.getXRot())));
 
-        pPoseStack.scale(0.25F, 0.25F, 0.25F);
+        pPoseStack.scale(
+                pEntity.getRenderLength() / 16.0F,
+                pEntity.getRenderWidth() / 4.0F,
+                pEntity.getRenderWidth() / 4.0F
+        );
         VertexConsumer vertexconsumer = pBuffer.getBuffer(translucentbeamrendertype.SOLID_TRANSLUCENT_BEAM);
         PoseStack.Pose pose = pPoseStack.last();
         Matrix4f matrix4f = pose.pose();
         Matrix3f matrix3f = pose.normal();
+        int renderColor = pEntity.getRenderColor();
 
         for (int i = 0; i < 4; i++) {
-            longFace(matrix4f, matrix3f, vertexconsumer, pPackedLight);
+            longFace(matrix4f, matrix3f, vertexconsumer, pPackedLight, renderColor);
             pPoseStack.translate(0F, 2F, -2F);
             pPoseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
         }
         pPoseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
         pPoseStack.translate(-8F, 0F, -2F);
         for (int i = 0; i < 2; i++) {
-            shortFace(matrix4f, matrix3f, vertexconsumer, pPackedLight);
+            shortFace(matrix4f, matrix3f, vertexconsumer, pPackedLight, renderColor);
             pPoseStack.translate(16F, 0F, 0F);
             pPoseStack.mulPose(Axis.ZP.rotationDegrees(180.0F));
         }
@@ -109,22 +114,26 @@ public class BulletRenderer<T extends AbstractBulletEntity> extends EntityRender
         return new int[]{r, g, b, a};
     }
 
-    private void shortFace(Matrix4f matrix4f, Matrix3f matrix3f, VertexConsumer vertexconsumer, int pPackedLight) {
-        this.vertex(matrix4f, matrix3f, vertexconsumer, 0, -2, -2, 0.0F, 0.0F, 0, -1, 0, pPackedLight);
-        this.vertex(matrix4f, matrix3f, vertexconsumer, 0, -2, 2, 0.125F, 0.0F, 0, -1, 0, pPackedLight);
-        this.vertex(matrix4f, matrix3f, vertexconsumer, 0, 2, 2, 0.125F, 0.125F, 0, -1, 0, pPackedLight);
-        this.vertex(matrix4f, matrix3f, vertexconsumer, 0, 2, -2, 0.0F, 0.125F, 0, -1, 0, pPackedLight);
+    private void shortFace(Matrix4f matrix4f, Matrix3f matrix3f, VertexConsumer vertexconsumer, int pPackedLight, int renderColor) {
+        this.vertex(matrix4f, matrix3f, vertexconsumer, 0, -2, -2, 0.0F, 0.0F, 0, -1, 0, pPackedLight, renderColor);
+        this.vertex(matrix4f, matrix3f, vertexconsumer, 0, -2, 2, 0.125F, 0.0F, 0, -1, 0, pPackedLight, renderColor);
+        this.vertex(matrix4f, matrix3f, vertexconsumer, 0, 2, 2, 0.125F, 0.125F, 0, -1, 0, pPackedLight, renderColor);
+        this.vertex(matrix4f, matrix3f, vertexconsumer, 0, 2, -2, 0.0F, 0.125F, 0, -1, 0, pPackedLight, renderColor);
     }
 
-    private void longFace(Matrix4f matrix4f, Matrix3f matrix3f, VertexConsumer vertexconsumer, int pPackedLight) {
-        this.vertex(matrix4f, matrix3f, vertexconsumer, -8, 0, -2, 0.0F, 0.0F, 0, -1, 0, pPackedLight);
-        this.vertex(matrix4f, matrix3f, vertexconsumer, 8, 0, -2, 0.375F, 0.0F, 0, -1, 0, pPackedLight);
-        this.vertex(matrix4f, matrix3f, vertexconsumer, 8, 0, 2, 0.375F, 0.125F, 0, -1, 0, pPackedLight);
-        this.vertex(matrix4f, matrix3f, vertexconsumer, -8, 0, 2, 0.0F, 0.125F, 0, -1, 0, pPackedLight);
+    private void longFace(Matrix4f matrix4f, Matrix3f matrix3f, VertexConsumer vertexconsumer, int pPackedLight, int renderColor) {
+        this.vertex(matrix4f, matrix3f, vertexconsumer, -8, 0, -2, 0.0F, 0.0F, 0, -1, 0, pPackedLight, renderColor);
+        this.vertex(matrix4f, matrix3f, vertexconsumer, 8, 0, -2, 0.375F, 0.0F, 0, -1, 0, pPackedLight, renderColor);
+        this.vertex(matrix4f, matrix3f, vertexconsumer, 8, 0, 2, 0.375F, 0.125F, 0, -1, 0, pPackedLight, renderColor);
+        this.vertex(matrix4f, matrix3f, vertexconsumer, -8, 0, 2, 0.0F, 0.125F, 0, -1, 0, pPackedLight, renderColor);
     }
 
-    public void vertex(Matrix4f pMatrix, Matrix3f pNormal, VertexConsumer pConsumer, int pX, int pY, int pZ, float pU, float pV, int pNormalX, int pNormalZ, int pNormalY, int pPackedLight) {
-        pConsumer.addVertex(pMatrix, pX, pY, pZ).setColor(128, 192, 128, 192).setUv(pU, pV).setOverlay(OverlayTexture.NO_OVERLAY).setLight(pPackedLight).setNormal((float) pNormalX, (float) pNormalY, (float) pNormalZ);
+    public void vertex(Matrix4f pMatrix, Matrix3f pNormal, VertexConsumer pConsumer, int pX, int pY, int pZ, float pU, float pV, int pNormalX, int pNormalZ, int pNormalY, int pPackedLight, int renderColor) {
+        int alpha = renderColor >>> 24 & 0xFF;
+        int red = renderColor >>> 16 & 0xFF;
+        int green = renderColor >>> 8 & 0xFF;
+        int blue = renderColor & 0xFF;
+        pConsumer.addVertex(pMatrix, pX, pY, pZ).setColor(red, green, blue, alpha).setUv(pU, pV).setOverlay(OverlayTexture.NO_OVERLAY).setLight(pPackedLight).setNormal((float) pNormalX, (float) pNormalY, (float) pNormalZ);
     }
 
     private void vertex(Matrix4f pMatrix, Matrix3f pNormal, VertexConsumer pConsumer, float pX, float pY, float pZ, int[] rgba, int pPackedLight) {

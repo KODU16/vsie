@@ -1,0 +1,44 @@
+{
+  "type": "create:mixing",
+  "heat_requirement": "heated",
+  "ingredients": [
+    {
+      "item": "vsie:small_energy_battery"
+    },
+    {
+      "item": "vsie:small_energy_battery"
+    },
+    {
+      "item": "vsie:small_energy_battery"
+    },
+    {
+      "item": "vsie:small_energy_battery"
+    },
+    {
+      "item": "vsie:small_energy_battery"
+    },
+    {
+      "item": "vsie:small_energy_battery"
+    },
+    {
+      "item": "vsie:small_energy_battery"
+    },
+    {
+      "item": "vsie:small_energy_battery"
+    },
+    {
+      "item": "vsie:small_energy_battery"
+    },
+    {
+      "item": "vsie:small_energy_battery"
+    },
+    {
+      "item": "create:super_glue"
+    }
+  ],
+  "results": [
+    {
+      "id": "vsie:medium_energy_battery"
+    }
+  ]
+}

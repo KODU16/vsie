@@ -1,5 +1,5 @@
 {
-  "name": "炮塔：重型炮塔",
+  "name": "Turrets: Heavy Turrets",
   "icon": "vsie:heavy_laser_turret",
   "category": "vsie:turret",
   "sortnum": 1,
@@ -7,16 +7,16 @@
     {
       "type": "patchouli:spotlight",
       "item": "vsie:heavy_laser_turret",
-      "title": "重型炮塔",
-      "text": "重型炮塔指那些只支持索敌敌对子维度或使用手动头瞄模式的炮塔$(br2)AeroIE不希望你手忙脚乱导致无法单人发挥武器系统的全部潜能，但仍然支持你必要时手动操作一些真正的大家伙"
+      "title": "Heavy Turrets",
+      "text": "Heavy turrets target only hostile subspaces or use manual head-aim control.$(br2)AeroIE does not want a solo pilot to lose access to the full potential of a weapon system through frantic micromanagement, but it still lets you manually operate the truly big guns when necessary."
     },
     {
       "type": "patchouli:text",
-      "text": "重型炮塔有着和武器相同的武器频道（详见$(l:vsie:weapon/weapon_channel)“武器：频道”章节/$），自动模式会自动瞄准敌对子维度，若其武器频道被激活，则自动射击$(br2)手动模式会采用连接的控制椅上玩家的头瞄火控，也即始终瞄准玩家正在看的位置，这时若其武器频道被激活，则可以按左键开火"
+      "text": "Heavy turrets use the same weapon channels as fixed weapons; see $(l:vsie:weapon/weapon_channel)Weapons: Channels/$. In automatic mode, a turret aims at a hostile subspace and fires whenever its channel is active.$(br2)In manual mode, it follows the view direction of the player in its linked Control Seat. While the channel is active, press the fire control to shoot."
     },
     {
       "type": "patchouli:text",
-      "text": "GUI中支持切换三种模式：自动（自动射击敌对子维度）、手动（若玩家视角未锁定则采用当前玩家头瞄火控，若视角锁定则待机）、智能（若玩家视角未锁定则手动模式，若视角锁定则自动模式），除此之外，GUI中也能像常规炮塔一样设置默认角度"
+      "text": "The GUI provides three modes: Automatic fires at hostile subspaces; Manual uses head-aim control while the player's view is unlocked and waits while view lock is enabled; Smart uses Manual while view is unlocked and Automatic while view lock is enabled. The GUI also provides the same default-angle settings as a standard turret."
     }
   ]
 }

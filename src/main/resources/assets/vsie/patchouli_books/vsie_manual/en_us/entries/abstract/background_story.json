@@ -1,37 +1,37 @@
 {
-  "name": "（胡扯的）AeroIE背景故事",
+  "name": "AeroIE's (Entirely Serious) Backstory",
   "icon": "vsie:control_seat",
   "category": "vsie:abstract",
   "sortnum": 3,
   "pages": [
     {
       "type": "patchouli:text",
-      "title": "1、瓦尔基里时代",
-      "text": "在瓦尔基里技术大规模演进后，太空航行和开拓进入了新的纪元。这其中尤以星际探索公会的伊甸计划（Project Eden AeroSpace，EAS）最为宏大，其将现在看来控制、引擎和武器技术均十分粗糙的轻型探索舰伊甸级大量生产并派出探索者从无数个角度进行随机的航行，以寻找新的宜居星球并记录下坐标供后续公会的开拓。这一行径大幅扩展了已知星系和宜居星球的疆域宽度，但即使升级四次，居高不下的伊甸级损毁率（包括但不限于坠毁、失踪和局部物理崩溃（physics thread crash/PTC，物理线程崩溃，一种无法挽救、不可逆的永久冻结一片空间所有船只的事件））让伊甸计划的进行遇到了极大困难。"
+      "title": "1. The Valkyrien Era",
+      "text": "Following the rapid development of Valkyrien technology, space travel and colonization entered a new age. The Interstellar Exploration Guild's most ambitious undertaking was Project Eden AeroSpace (EAS). It mass-produced the Eden-class light exploration vessel—primitive by modern standards in control, propulsion, and weaponry—and sent explorers on random trajectories to find habitable worlds and record coordinates for later settlement. The project greatly expanded the known galaxy, but even after four upgrades the Eden class suffered an alarming loss rate from crashes, disappearances, and localized physics thread crashes (PTCs): irreversible events that permanently froze every ship in an area. Project Eden soon faced severe difficulties."
     },
     {
       "type": "patchouli:text",
-      "title": "2、新控制系统",
-      "text": "公会的科研部门在尽可能升级伊甸级提升稳定性的同时，也在试着从根本上拓宽新技术。然而，由于瓦尔基里技术本身依赖强烈不稳定的漫游石这种极度危险的反重力物质，早期技术不完善时甚至开采原矿都会造成小范围PTC，即使在后期提炼和采掘技术成熟后仍然被划分为时空危害性最高危险等级，对其性能的改善遇到了瓶颈，甚至产生了多次超大范围PTC的恶性事件。公会不得不转而求其次，仅开发一套能尽量规避PTC的新控制系统，也即AeroIE的前身vsie。"
+      "title": "2. A New Control System",
+      "text": "While upgrading the Eden class for greater stability, the Guild's research division also pursued fundamentally new technologies. Valkyrien technology, however, depended on the extremely unstable and dangerous antigravity substance known as Wanderlite. In the early days, even mining raw ore could trigger small PTCs. Despite later advances in extraction and refining, Wanderlite retained the highest spacetime hazard classification. Performance improvements reached a dead end, and several catastrophic, wide-area PTCs followed. The Guild settled for developing a new control system designed to avoid PTCs wherever possible: vsie, the predecessor of AeroIE."
     },
     {
       "type": "patchouli:text",
-      "title": "3、古老技术的浮现与复兴",
-      "text": "由于超大范围PTC的影响过于恶劣，公会不得不暂停伊甸计划直至vsie开发完成。转机就在vsie各项研发接近完成之际，一项古老的技术突然进入了公众视野：航空学（Aeroaunics）技术。这一技术实际上是基于历史悠久的机械动力和当下无人在意的末地石相结合，在组装船只和物理效果方面非常类似瓦尔基里，但不同的是这项技术非常稳定，其引发PTC的概率比瓦尔基里低数个数量级，利用瓦尔基里技术的船只数十个接近就会出现强烈的冻结感（PTC前兆），而航空学的数百个船只即使互相接触都能安然无事。"
+      "title": "3. An Ancient Technology Returns",
+      "text": "The damage caused by large-scale PTCs forced the Guild to suspend Project Eden until vsie was complete. Just as its research neared completion, an ancient technology suddenly returned to public attention: Aeronautics. Built by combining the venerable Create technology with long-overlooked End Stone, it resembled Valkyrien technology in ship assembly and physics, but was vastly more stable. A few dozen Valkyrien ships in proximity could produce the heavy freezing that preceded a PTC, while hundreds of Aeronautics vessels could safely make contact."
     },
     {
       "type": "patchouli:text",
-      "title": "4、航空学与融会贯通",
-      "text": "机械动力技术有着悠久的历史，航空学的发现本质上是考古的结果。正当公众惊叹于古人利用航空学技术建造的巨大飞艇和船舰，同时疑惑航空学为何沉寂甚久现在才重见天日时，公会发现了vsie这套未完成的控制系统向航空学系统移植的潜力，于是立刻放弃对已有雏形的瓦尔基里侧的继续开发，全力向航空学进行迁移，最终推出的产品即为AeroIE。"
+      "title": "4. Aeronautics, Integrated",
+      "text": "Create technology has a long history, and the rediscovery of Aeronautics was essentially an archaeological achievement. As the public marveled at enormous ancient airships and warships—and wondered why the technology had vanished for so long—the Guild recognized that its unfinished vsie control system could be ported to Aeronautics. It immediately abandoned the Valkyrien prototype, redirected all development toward Aeronautics, and ultimately released AeroIE."
     },
     {
       "type": "patchouli:text",
-      "title": "5、新的前景与挑战",
-      "text": "AeroIE的初版虽然仅包含较少的内容，但也将航空学的认知从“用来复原古人造物的玩具”转变成了“可利用的星际探索技术”，利用航空学和AeroIE建造的新一代船只以其高度的稳定性和可靠性，很快成为了探索和扩张的主力"
+      "title": "5. New Prospects and Challenges",
+      "text": "Although the first AeroIE release contained relatively little, it changed the perception of Aeronautics from \"a toy for recreating ancient machines\" into \"practical interstellar exploration technology.\" A new generation of vessels built with Aeronautics and AeroIE soon became the backbone of exploration and expansion thanks to their exceptional stability and reliability."
     },
     {
       "type": "patchouli:text",
-      "text": "然而，由于利益的纷至沓来，原先的星际探索公会虽仍以“伊甸计划（EAS）”的名义进行探索和开拓，但实际则已失去了公会的多方联合共进的特点，逐渐变为由掌控AeroIE的分部门一家独大的星际巨企，谁也不知道这在将来会造成什么影响..."
+      "text": "Yet opportunity brought competing interests. The former Interstellar Exploration Guild continued its expeditions and colonization under the name Project Eden (EAS), but gradually lost its cooperative character. It became an interstellar megacorporation dominated by the division that controlled AeroIE—and no one knows what consequences that may bring..."
     }
   ]
 }

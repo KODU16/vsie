@@ -1,5 +1,6 @@
 package com.kodu16.vsie.content.turret.heavyturret.heavylaserturret;
 
+import com.kodu16.vsie.content.turret.client.TurretLaserLayer;
 import com.kodu16.vsie.foundation.AlwaysRenderGeoBlockRenderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
@@ -11,7 +12,7 @@ public class HeavyLaserTurretGeoRenderer extends AlwaysRenderGeoBlockRenderer<He
     public HeavyLaserTurretGeoRenderer(BlockEntityRendererProvider.Context context) {
         super(new HeavyLaserTurretModel());
         this.addRenderLayer(new HeavyLaserTurretFirePointLayer(this));
-        this.addRenderLayer(new HeavyLaserTurretBeamLayer(this));
+        this.addRenderLayer(new TurretLaserLayer<>(this));
     }
 
     @Override
@@ -44,11 +45,11 @@ public class HeavyLaserTurretGeoRenderer extends AlwaysRenderGeoBlockRenderer<He
 
     @Override
     public boolean shouldRenderOffScreen(HeavyLaserTurretBlockEntity be) {
-        return true;
+        return super.shouldRenderOffScreen(be);
     }
 
     @Override
     public boolean shouldRender(HeavyLaserTurretBlockEntity be, Vec3 cameraPos) {
-        return true;
+        return super.shouldRender(be, cameraPos);
     }
 }

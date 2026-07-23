@@ -2,8 +2,7 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.140' // 功能：启用 NeoForge ModDevGradle 插件，替代旧 ForgeGradle 工作流。
-    // 功能：NeoForge 1.21.1 + ModDevGradle 不再应用 MixinGradle，避免其强依赖 ForgeGradle 的 minecraft/patcher 扩展导致报错。
+    id 'net.neoforged.moddev' version '2.0.140'
 }
 
 def configureModSubprojects(String modName) {
@@ -33,15 +32,30 @@ reobf {
 tasks.jarJar.finalizedBy('reobfJarJar')*/
 
 base {
-    archivesName = mod_id
+    // Function: keep the public artifact name independent from the internal mod ID.
+    archivesName = mod_archive_name
 }
 
-// 功能：1.21.1 NeoForge 开发环境统一使用 Java 21。
+tasks.named('jar', Jar).configure {
+    // Function: make the release artifact path and filename explicit for IDEA and Gradle builds.
+    archiveFileName.set("${mod_archive_name}-${mod_version}.jar")
+    destinationDirectory.set(layout.buildDirectory.dir('libs'))
+    // Function: refresh the distributable JAR even when IDEA considers compilation inputs unchanged.
+    outputs.upToDateWhen { false }
+    doLast {
+        logger.lifecycle("AeroIE release artifact: ${archiveFile.get().asFile}")
+    }
+}
+
+tasks.named('classes').configure {
+    // Function: IDEA delegates Build Project to classes, so package the distributable JAR afterward.
+    finalizedBy(tasks.named('jar'))
+}
+
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
 
 neoForge {
-    // 功能：将加载器从 1.20.1 Forge 迁移为 1.21.1 NeoForge。
     version = neo_version
 
     parchment {
@@ -119,8 +133,7 @@ repositories {
         url = "https://maven.realrobotix.me/master/"
     }
     maven {
-        // 功能：切换到 LDLib2 在 1.21.1 NeoForge 常用的快照仓库地址。
-        name "firstdarkdev"
+        name = "firstdarkdev"
         url "https://maven.firstdark.dev/snapshots"
     }
     maven {
@@ -153,23 +166,22 @@ repositories {
 }
 
 dependencies {
-    // 功能：使用 NeoForge 对应的 Sable 主依赖，确保 1.21.1 运行时可加载。
+    // Function: shared ship framework required by VSIE and Aeronautics.
     implementation("dev.ryanhcode.sable:sable-neoforge-${minecraft_version}:${sable_version}")
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
     implementation fileTree(dir: 'lib', includes: ['*.jar'], excludes: ['create-*.jar'])
-    // 功能：NeoForge 1.21.1 的核心加载器依赖。
     implementation "net.neoforged:neoforge:${neo_version}"
-    // 功能：通过注解处理器启用 Mixin 编译期处理（含 refmap 生成），替代旧 MixinGradle 插件流程。
     annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.5.0"))
-    // 功能：将 MixinExtras 从 Forge 变体切换为 NeoForge 变体，匹配 1.21.1 运行环境。
     implementation(jarJar("io.github.llamalad7:mixinextras-neoforge:0.5.0")) {
     }
     implementation "com.fasterxml.jackson.core:jackson-annotations:2.13.3"
-    // Create
+    // Function: Aeronautics 1.2.1 requires Create 6.0.10+ on 1.21.1.
     implementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
     implementation("net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}")
+    // Function: bundled Create Aeronautics artifact for recipe and runtime integration.
+    implementation("maven.modrinth:oWaK0Q19:${aeronautics_version}")
     compileOnly("dev.engine-room.flywheel:flywheel-neoforge-api-${minecraft_version}:${flywheel_version}")
     runtimeOnly("dev.engine-room.flywheel:flywheel-neoforge-${minecraft_version}:${flywheel_version}")
     implementation("com.tterrag.registrate:Registrate:${registrate_version}")
@@ -177,9 +189,7 @@ dependencies {
     //// RUNTIME ////
 
     // photon
-    // 功能：将 LDLib 依赖切换为 NeoForge 命名变体（LDLib2）。
     implementation("com.lowdragmc.ldlib2:ldlib2-neoforge-${minecraft_version}:${ldlib_version}:all")
-    // 功能：与 LDLib2 保持一致，Photon 也使用 NeoForge 命名变体。
     implementation("com.lowdragmc.photon:photon-neoforge-${minecraft_version}:${photon_version}") { transitive = false }
 
     implementation "software.bernie.geckolib:geckolib-neoforge-${minecraft_version}:${geckolib_version}"
@@ -188,10 +198,10 @@ dependencies {
 tasks.named('processResources', ProcessResources).configure {
     var replaceProperties = [
             minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
-            neo_version: neo_version, neo_version_range: neo_version_range, // 功能：将资源模板变量从 Forge 字段切换到 NeoForge 字段。
+            neo_version: neo_version, neo_version_range: neo_version_range,
             loader_version_range: loader_version_range,
             mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
-            mod_authors: mod_authors, mod_description: mod_description,
+            mod_authors: mod_authors, mod_homepage: mod_homepage, mod_description: mod_description,
     ]
     inputs.properties replaceProperties
 
