@@ -1,4 +1,4 @@
-# ![banner](https://cdn.modrinth.com/data/cached_images/153177a4191976f449f9b1fd7785558fb7d3b884_0.webp)Aeronautics: InterStellar Expansion
+# ![banner](https://cdn.modrinth.com/data/cached_images/153177a4191976f449f9b1fd7785558fb7d3b884_0.webp)Aeronaunics: InterStellar Expansion
 
 > **Build a starship, Link its systems. Command it as one block.**
 
