@@ -32,10 +32,16 @@ public record RailCannonFireSoundS2CPacket(double x, double y, double z, float r
     }
 
     public static void handle(RailCannonFireSoundS2CPacket packet, IPayloadContext context) {
-        // Function: sound playback is queued on the client thread after the payload is decoded.
-        context.enqueueWork(() -> RailCannonFireSoundManager.play(
-                packet.x, packet.y, packet.z, packet.range
-        ));
+        ClientHandler.handle(packet, context);
+    }
+
+    // Keep sound engine classes out of the payload class loaded by dedicated servers.
+    private static final class ClientHandler {
+        private static void handle(RailCannonFireSoundS2CPacket packet, IPayloadContext context) {
+            context.enqueueWork(() -> RailCannonFireSoundManager.play(
+                    packet.x, packet.y, packet.z, packet.range
+            ));
+        }
     }
 
     @Override

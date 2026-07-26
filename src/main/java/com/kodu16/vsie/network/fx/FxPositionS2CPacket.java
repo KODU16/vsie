@@ -6,11 +6,9 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
-import net.minecraftforge.network.NetworkEvent;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
-import java.util.function.Supplier;
 
 public class FxPositionS2CPacket implements CustomPacketPayload {
     // Plays a Photon FX at an exact world position with transform data.
@@ -139,12 +137,14 @@ public class FxPositionS2CPacket implements CustomPacketPayload {
 
     // NeoForge 1.21.1 client payload entry point.
     public static void handle(FxPositionS2CPacket pkt, IPayloadContext context) {
-        pkt.handle(() -> new NetworkEvent.Context(context));
+        ClientHandler.handle(pkt, context);
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> vsieFxHelper.clientTriggerPositionEffectFx(this));
-        ctx.get().setPacketHandled(true);
+    // Keep Photon client classes out of the payload class loaded by dedicated servers.
+    private static final class ClientHandler {
+        private static void handle(FxPositionS2CPacket pkt, IPayloadContext context) {
+            context.enqueueWork(() -> vsieFxHelper.clientTriggerPositionEffectFx(pkt));
+        }
     }
 
     @Override

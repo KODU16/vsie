@@ -1,12 +1,10 @@
 package com.kodu16.vsie.network.thruster;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public class VectorThrusterS2CPacket implements CustomPacketPayload {
@@ -39,10 +37,7 @@ public class VectorThrusterS2CPacket implements CustomPacketPayload {
     }
 
     public static void handle(VectorThrusterS2CPacket pkt, IPayloadContext context) {
-        context.enqueueWork(() -> {
-            Minecraft mc = Minecraft.getInstance();
-            Player player = mc.player;
-        });
+        // Reserved payload: decoding it currently requires no client-side state update.
     }
 
     @Override

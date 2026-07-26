@@ -10,11 +10,9 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
-import net.minecraftforge.network.NetworkEvent;
 import org.joml.Vector3d;
 
 import java.util.UUID;
-import java.util.function.Supplier;
 
 public class ControlSeatS2CPacket implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<ControlSeatS2CPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "controlseat_s2c_controlseats2cpacket"));
@@ -96,32 +94,35 @@ public class ControlSeatS2CPacket implements CustomPacketPayload {
     }
 
     public static void handle(ControlSeatS2CPacket pkt, IPayloadContext context) {
-        pkt.handle(() -> new NetworkEvent.Context(context));
+        ClientHandler.handle(pkt, context);
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            Minecraft mc = Minecraft.getInstance();
-            Player player = mc.player;
-            ControlSeatClientData clientData = ClientDataManager.getClientDataForSeat(player, pos, seatEntityId);
-            if (clientData == null) {
-                return;
-            }
-            clientData.updateShipVectors(shipFacing, shipUp);
-            clientData.setUserUUID(player.getUUID());
+    // Keep client-only classes in a separate class file so dedicated servers can load the payload.
+    private static final class ClientHandler {
+        private static void handle(ControlSeatS2CPacket pkt, IPayloadContext context) {
+            context.enqueueWork(() -> {
+                Minecraft mc = Minecraft.getInstance();
+                Player player = mc.player;
+                ControlSeatClientData clientData =
+                        ClientDataManager.getClientDataForSeat(player, pkt.pos, pkt.seatEntityId);
+                if (clientData == null) {
+                    return;
+                }
+                clientData.updateShipVectors(pkt.shipFacing, pkt.shipUp);
+                clientData.setUserUUID(player.getUUID());
 
-            clientData.enemy = enemy;
-            clientData.ally = ally;
-            clientData.lockedenemyslug = lockedenemyslug;
-            clientData.throttle = throttle;
-            clientData.applyServerViewLock(isViewLocked);
-            clientData.shipSpeed = shipSpeed;
-            clientData.structureCenterWorld = new Vector3d(structureCenterWorld);
-            // Function: velocity direction is projected by the HUD as an independent world-space cue.
-            clientData.structureVelocityWorld = new Vector3d(structureVelocityWorld);
-            clientData.seatGForce = seatGForce;
-        });
-        ctx.get().setPacketHandled(true);
+                clientData.enemy = pkt.enemy;
+                clientData.ally = pkt.ally;
+                clientData.lockedenemyslug = pkt.lockedenemyslug;
+                clientData.throttle = pkt.throttle;
+                clientData.applyServerViewLock(pkt.isViewLocked);
+                clientData.shipSpeed = pkt.shipSpeed;
+                clientData.structureCenterWorld = new Vector3d(pkt.structureCenterWorld);
+                // Velocity is projected by the HUD as an independent world-space cue.
+                clientData.structureVelocityWorld = new Vector3d(pkt.structureVelocityWorld);
+                clientData.seatGForce = pkt.seatGForce;
+            });
+        }
     }
 
     @Override

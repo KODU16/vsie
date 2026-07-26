@@ -66,14 +66,21 @@ public class AmmoBoxRefillMarkerS2CPacket implements CustomPacketPayload {
     }
 
     public static void handle(AmmoBoxRefillMarkerS2CPacket pkt, IPayloadContext context) {
-        context.enqueueWork(() -> AmmoBoxRefillMarkerRenderer.showMarker(
-                pkt.ammoBoxPos,
-                pkt.ammoStack,
-                pkt.amount,
-                pkt.targetIndex,
-                pkt.targetDisplayName,
-                pkt.durationTicks
-        ));
+        ClientHandler.handle(pkt, context);
+    }
+
+    // Keep renderer classes out of the payload class loaded by dedicated servers.
+    private static final class ClientHandler {
+        private static void handle(AmmoBoxRefillMarkerS2CPacket pkt, IPayloadContext context) {
+            context.enqueueWork(() -> AmmoBoxRefillMarkerRenderer.showMarker(
+                    pkt.ammoBoxPos,
+                    pkt.ammoStack,
+                    pkt.amount,
+                    pkt.targetIndex,
+                    pkt.targetDisplayName,
+                    pkt.durationTicks
+            ));
+        }
     }
 
     @Override

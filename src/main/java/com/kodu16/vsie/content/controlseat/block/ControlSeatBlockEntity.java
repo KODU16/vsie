@@ -157,17 +157,23 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
 
     public void clientTick() {
-        Minecraft mc = Minecraft.getInstance();
-        LocalPlayer lp = mc.player;
-        if (!(lp != null && lp.getVehicle() instanceof ControlSeatMountEntity mount)) {
-            return;
+        ClientTicker.tick(this);
+    }
+
+    // Keep client input types out of the block entity class loaded by dedicated servers.
+    private static final class ClientTicker {
+        private static void tick(ControlSeatBlockEntity controlSeat) {
+            Minecraft mc = Minecraft.getInstance();
+            LocalPlayer player = mc.player;
+            if (!(player != null && player.getVehicle() instanceof ControlSeatMountEntity mount)) {
+                return;
+            }
+            BlockPos pos = controlSeat.getBlockPos();
+            if (!pos.equals(mount.getBoundBlockPos())) {
+                return;
+            }
+            ClientMouseHandler.handle(player, pos);
         }
-        BlockPos pos = getBlockPos();
-        if (!pos.equals(mount.getBoundBlockPos())) {
-            return;
-        }
-        // Function: only the actually ridden control seat should run per-frame mouse input handling on the client.
-        ClientMouseHandler.handle(lp, pos);
     }
 
     private HolderLookup.Provider currentNbtRegistries() {

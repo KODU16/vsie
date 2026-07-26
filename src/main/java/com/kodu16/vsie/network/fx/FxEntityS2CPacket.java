@@ -6,10 +6,8 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.kodu16.vsie.utility.vsieFxHelper;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkEvent;
 import org.joml.Vector3f;
 
-import java.util.function.Supplier;
 
 public class FxEntityS2CPacket implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<FxEntityS2CPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "fx_fxentitys2cpacket"));
@@ -97,12 +95,14 @@ public class FxEntityS2CPacket implements CustomPacketPayload {
     }
 
     public static void handle(FxEntityS2CPacket pkt, IPayloadContext context) {
-        pkt.handle(() -> new net.minecraftforge.network.NetworkEvent.Context(context));
+        ClientHandler.handle(pkt, context);
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> vsieFxHelper.clientTriggerEntityFx(this));
-        ctx.get().setPacketHandled(true);
+    // Keep Photon client classes out of the payload class loaded by dedicated servers.
+    private static final class ClientHandler {
+        private static void handle(FxEntityS2CPacket pkt, IPayloadContext context) {
+            context.enqueueWork(() -> vsieFxHelper.clientTriggerEntityFx(pkt));
+        }
     }
 
     @Override

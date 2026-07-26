@@ -34,7 +34,7 @@ public class vsieDataTickets {
 
         //screen
         AbstractScreenBlockEntity.SCREEN_SPIN_X = addInt("screen_spin_x");
-        AbstractScreenBlockEntity.SCREEN_SPIN_Y = addInt("screen_spin_x");
+        AbstractScreenBlockEntity.SCREEN_SPIN_Y = addInt("screen_spin_y");
         AbstractScreenBlockEntity.SCREEN_OFFSET_X = addInt("screen_offset_x");
         AbstractScreenBlockEntity.SCREEN_OFFSET_Y = addInt("screen_offset_y");
         AbstractScreenBlockEntity.SCREEN_OFFSET_Z = addInt("screen_offset_z");

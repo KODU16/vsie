@@ -10,13 +10,11 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
-import net.minecraftforge.network.NetworkEvent;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Supplier;
 
 public class NearbyShipsS2CPacket implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<NearbyShipsS2CPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "controlseat_s2c_nearbyshipss2cpacket"));
@@ -79,23 +77,28 @@ public class NearbyShipsS2CPacket implements CustomPacketPayload {
     }
 
     public static void handle(NearbyShipsS2CPacket pkt, IPayloadContext context) {
-        pkt.handle(() -> new NetworkEvent.Context(context));
+        ClientHandler.handle(pkt, context);
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            Minecraft mc = Minecraft.getInstance();
-            Player player = mc.player;
-            if (player == null) return;
+    // Keep client-only classes in a separate class file so dedicated servers can load the payload.
+    private static final class ClientHandler {
+        private static void handle(NearbyShipsS2CPacket pkt, IPayloadContext context) {
+            context.enqueueWork(() -> {
+                Minecraft mc = Minecraft.getInstance();
+                Player player = mc.player;
+                if (player == null) {
+                    return;
+                }
 
-            ControlSeatClientData clientData = ClientDataManager.getClientDataForSeat(player, pos, seatEntityId);
-            if (clientData == null) {
-                return;
-            }
+                ControlSeatClientData clientData =
+                        ClientDataManager.getClientDataForSeat(player, pkt.pos, pkt.seatEntityId);
+                if (clientData == null) {
+                    return;
+                }
 
-            clientData.shipsData = shipsData;
-        });
-        ctx.get().setPacketHandled(true);
+                clientData.shipsData = pkt.shipsData;
+            });
+        }
     }
 
     @Override

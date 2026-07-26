@@ -11,12 +11,10 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
-import net.minecraftforge.network.NetworkEvent;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Supplier;
 
 public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<ControlSeatStatusS2CPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("vsie", "controlseat_s2c_controlseatstatuss2cpacket"));
@@ -155,44 +153,47 @@ public class ControlSeatStatusS2CPacket implements CustomPacketPayload {
     }
 
     public static void handle(ControlSeatStatusS2CPacket pkt, IPayloadContext context) {
-        pkt.handle(() -> new NetworkEvent.Context(context));
+        ClientHandler.handle(pkt, context);
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            Minecraft mc = Minecraft.getInstance();
-            Player player = mc.player;
-            ControlSeatClientData clientData = ClientDataManager.getClientDataForSeat(player, pos, seatEntityId);
-            if (clientData == null) {
-                return;
-            }
-            clientData.energyavalible = energyavalible;
-            clientData.energytotal = energytotal;
+    // Keep client-only classes in a separate class file so dedicated servers can load the payload.
+    private static final class ClientHandler {
+        private static void handle(ControlSeatStatusS2CPacket pkt, IPayloadContext context) {
+            context.enqueueWork(() -> {
+                Minecraft mc = Minecraft.getInstance();
+                Player player = mc.player;
+                ControlSeatClientData clientData =
+                        ClientDataManager.getClientDataForSeat(player, pkt.pos, pkt.seatEntityId);
+                if (clientData == null) {
+                    return;
+                }
+                clientData.energyavalible = pkt.energyavalible;
+                clientData.energytotal = pkt.energytotal;
 
-            clientData.fuelavalible = fuelavalible;
-            clientData.fueltotal = fueltotal;
-            clientData.e710avalible = e710avalible;
-            clientData.warpE710CostMb = warpE710CostMb;
-            clientData.warpE710Insufficient = warpE710Insufficient;
+                clientData.fuelavalible = pkt.fuelavalible;
+                clientData.fueltotal = pkt.fueltotal;
+                clientData.e710avalible = pkt.e710avalible;
+                clientData.warpE710CostMb = pkt.warpE710CostMb;
+                clientData.warpE710Insufficient = pkt.warpE710Insufficient;
 
-            clientData.shieldon = shieldon;
-            clientData.shieldavalible = shieldavalible;
-            clientData.shieldtotal = shieldtotal;
-            clientData.isShieldOverloaded = shieldOverloaded;
+                clientData.shieldon = pkt.shieldon;
+                clientData.shieldavalible = pkt.shieldavalible;
+                clientData.shieldtotal = pkt.shieldtotal;
+                clientData.isShieldOverloaded = pkt.shieldOverloaded;
 
-            clientData.isforceassiston = forceassiston;
-            clientData.istorqueassiston = torqueassiston;
-            clientData.isForceAssistSuppressedByAccelerator = forceAssistSuppressedByAccelerator;
-            clientData.isantigravityon = antigravityon;
-            clientData.isAutoLevelOn = autoLevelOn;
-            clientData.isWarpPreparing = warpPreparing;
-            clientData.hasPendingWarpTeleport = pendingWarpTeleport;
-            clientData.warpTargetName = warpTargetName;
-            clientData.warpAlignmentControlX = warpAlignmentControlX;
-            clientData.warpAlignmentControlY = warpAlignmentControlY;
-            clientData.activeWeaponHudInfos = new ArrayList<>(activeWeaponHudInfos);
-        });
-        ctx.get().setPacketHandled(true);
+                clientData.isforceassiston = pkt.forceassiston;
+                clientData.istorqueassiston = pkt.torqueassiston;
+                clientData.isForceAssistSuppressedByAccelerator = pkt.forceAssistSuppressedByAccelerator;
+                clientData.isantigravityon = pkt.antigravityon;
+                clientData.isAutoLevelOn = pkt.autoLevelOn;
+                clientData.isWarpPreparing = pkt.warpPreparing;
+                clientData.hasPendingWarpTeleport = pkt.pendingWarpTeleport;
+                clientData.warpTargetName = pkt.warpTargetName;
+                clientData.warpAlignmentControlX = pkt.warpAlignmentControlX;
+                clientData.warpAlignmentControlY = pkt.warpAlignmentControlY;
+                clientData.activeWeaponHudInfos = new ArrayList<>(pkt.activeWeaponHudInfos);
+            });
+        }
     }
 
     @Override

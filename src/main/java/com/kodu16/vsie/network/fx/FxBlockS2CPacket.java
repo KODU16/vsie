@@ -8,9 +8,6 @@ import com.kodu16.vsie.utility.vsieFxHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkEvent;
-
-import java.util.function.Supplier;
 public class FxBlockS2CPacket implements CustomPacketPayload
 {
     // 功能：NeoForge 1.21.1 payload 类型标识与编解码器注册入口。
@@ -59,13 +56,14 @@ public class FxBlockS2CPacket implements CustomPacketPayload
 
     // 功能：NeoForge 1.21.1 处理器入口，复用旧版实例方法逻辑。
     public static void handle(FxBlockS2CPacket pkt, IPayloadContext context) {
-        pkt.handle(() -> new net.minecraftforge.network.NetworkEvent.Context(context));
+        ClientHandler.handle(pkt, context);
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx)
-    {
-        ctx.get().enqueueWork(() -> vsieFxHelper.clientTriggerBlockEffectFx(this));
-        ctx.get().setPacketHandled(true);
+    // Keep Photon client classes out of the payload class loaded by dedicated servers.
+    private static final class ClientHandler {
+        private static void handle(FxBlockS2CPacket pkt, IPayloadContext context) {
+            context.enqueueWork(() -> vsieFxHelper.clientTriggerBlockEffectFx(pkt));
+        }
     }
 
 

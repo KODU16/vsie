@@ -56,6 +56,13 @@ versionRange = "[0,)"
 ordering = "AFTER"
 side = "BOTH"
 
+[[dependencies.${mod_id}]]
+modId = "photon"
+type = "required"
+versionRange = "${photon_version_range}"
+ordering = "AFTER"
+side = "BOTH"
+
 [[mod.natives]]
 module = "lwjgl-sdl"
 os = "WINDOWS"
