@@ -7,6 +7,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity;
+import com.kodu16.vsie.content.custom_turret.CustomTurretBlockEntity;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
@@ -62,6 +63,14 @@ public class TurretC2SPacket implements CustomPacketPayload {
                 return;
             }
             if (turret instanceof AbstractHeavyTurretBlockEntity) {
+                return;
+            }
+            if (turret instanceof CustomTurretBlockEntity customTurret && customTurret.usesHeavyControlSemantics()) {
+                if (changetype >= 6 && changetype <= 9) {
+                    customTurret.modifyHeavyChannel(changetype - 5);
+                } else if (changetype >= 100 && changetype <= 102) {
+                    customTurret.modifyHeavyFireType(changetype - 100);
+                }
                 return;
             }
             if (changetype < 1 || changetype > 5) {

@@ -1,5 +1,6 @@
 package com.kodu16.vsie.content.controlseat;
 
+import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
@@ -61,7 +62,7 @@ public abstract class AbstractControlSeatBlock extends DirectionalBlock implemen
     public void onRemove(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos,
                          @Nonnull BlockState newState, boolean isMoving) {
         if (!isMoving && !state.is(newState.getBlock())
-                && level.getBlockEntity(pos) instanceof AbstractControlSeatBlockEntity controlSeat) {
+                && level.getBlockEntity(pos) instanceof ControlSeatBlockEntity controlSeat) {
             // Function: actual block removal must unregister the control seat and discard its mount entities.
             controlSeat.onRemove();
         }

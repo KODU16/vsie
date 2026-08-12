@@ -28,7 +28,7 @@ public class shieldtoolScreen extends AbstractContainerScreen<ShieldToolContaine
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        // Function: the container parent owns the single background render pass.
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         this.renderTooltip(guiGraphics, mouseX, mouseY);
         renderLineTooltips(guiGraphics, mouseX, mouseY);

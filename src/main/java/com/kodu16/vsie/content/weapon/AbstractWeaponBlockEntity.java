@@ -3,6 +3,7 @@ package com.kodu16.vsie.content.weapon;
 import com.kodu16.vsie.content.cooldown.FireCooldown;
 import com.kodu16.vsie.content.weapon.server.WeaponContainerMenu;
 import com.kodu16.vsie.foundation.LoadedChunkRaycast;
+import com.kodu16.vsie.foundation.RelativeBlockPosNbt;
 import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.logging.LogUtils;
@@ -624,7 +625,7 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         // Function: sync firing state so client-only loop sounds can stop on the same tick as the server.
         tag.putBoolean("isfiring", weaponData.isfiring);
         tag.putDouble("fireCooldownValue", this.fireCooldownValue);
-        tag.putLong(LINKED_CONTROL_SEAT_POS_TAG, this.linkedControlSeatPos.asLong());
+        RelativeBlockPosNbt.write(tag, LINKED_CONTROL_SEAT_POS_TAG, getBlockPos(), this.linkedControlSeatPos);
     }
 
     @Override
@@ -645,11 +646,7 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         if (tag.contains("breaksBlocks")) {weaponData.setBreaksBlocks(tag.getBoolean("breaksBlocks"));}
         if (tag.contains("isfiring")) {weaponData.isfiring = tag.getBoolean("isfiring");}
         if (tag.contains("fireCooldownValue")) {this.fireCooldownValue = tag.getDouble("fireCooldownValue");}
-        if (tag.contains(LINKED_CONTROL_SEAT_POS_TAG, Tag.TAG_LONG)) {
-            this.linkedControlSeatPos = BlockPos.of(tag.getLong(LINKED_CONTROL_SEAT_POS_TAG));
-        } else {
-            this.linkedControlSeatPos = BlockPos.ZERO;
-        }
+        this.linkedControlSeatPos = RelativeBlockPosNbt.read(tag, LINKED_CONTROL_SEAT_POS_TAG, getBlockPos(), false);
     }
 
     //geckolib

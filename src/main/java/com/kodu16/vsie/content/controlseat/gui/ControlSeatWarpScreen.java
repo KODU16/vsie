@@ -37,7 +37,7 @@ public class ControlSeatWarpScreen extends AbstractContainerScreen<ControlSeatWa
 
     @Override
     public void render(GuiGraphics gg, int mouseX, int mouseY, float partialTicks) {
-        this.renderBackground(gg, mouseX, mouseY, partialTicks);
+        // Function: AbstractContainerScreen renders its background once before widgets and slots.
         super.render(gg, mouseX, mouseY, partialTicks);
         this.renderTooltip(gg, mouseX, mouseY);
         renderControlTooltips(gg, mouseX, mouseY);

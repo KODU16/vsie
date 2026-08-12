@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.shield;
 
+import com.kodu16.vsie.foundation.RelativeBlockPosNbt;
+
 import com.kodu16.vsie.network.fx.FxPositionS2CPacket;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
@@ -118,7 +120,7 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
     protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientpacket) {
         super.write(tag, registries, clientpacket);
         tag.putInt("Energy", getEnergy().getEnergyStored());
-        writeVec3(tag, "controlpos", linkedcontrolseatpos);
+        RelativeBlockPosNbt.write(tag, "controlpos", getBlockPos(), linkedcontrolseatpos);
     }
 
     @Override
@@ -127,7 +129,7 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
         if (tag.contains("Energy")) {
             ((ShieldEnergyStorage) energyStorage).setEnergyStored(tag.getInt("Energy"));
         }
-        readVec3(tag, "controlpos");
+        linkedcontrolseatpos = RelativeBlockPosNbt.read(tag, "controlpos", getBlockPos(), false);
     }
 
     @Override
@@ -156,20 +158,4 @@ public class ShieldGeneratorBlockEntity extends SmartBlockEntity {
         return energyStorage;
     }
 
-    private void writeVec3(CompoundTag nbt, String key, BlockPos position) {
-        CompoundTag vecTag = new CompoundTag();
-        vecTag.putInt("x", position.getX());
-        vecTag.putInt("y", position.getY());
-        vecTag.putInt("z", position.getZ());
-        nbt.put(key, vecTag);
-    }
-
-    private void readVec3(CompoundTag nbt, String key) {
-        if (!nbt.contains(key, Tag.TAG_COMPOUND)) return;
-        CompoundTag vecTag = nbt.getCompound(key);
-        int x = vecTag.getInt("x");
-        int y = vecTag.getInt("y");
-        int z = vecTag.getInt("z");
-        this.linkedcontrolseatpos = new BlockPos(x, y, z);
-    }
 }

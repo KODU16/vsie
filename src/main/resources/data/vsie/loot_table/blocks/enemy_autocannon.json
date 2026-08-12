@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:block",
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "createbigcannons"
+    }
+  ],
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "conditions": [
+        {"condition": "minecraft:survives_explosion"}
+      ],
+      "entries": [
+        {"type": "minecraft:item", "name": "vsie:enemy_autocannon"}
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "vsie:blocks/enemy_autocannon"
+}

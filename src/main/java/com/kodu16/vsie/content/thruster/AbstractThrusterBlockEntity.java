@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.thruster;
 
 import com.kodu16.vsie.foundation.ServerShipUtils;
+import com.kodu16.vsie.foundation.RelativeBlockPosNbt;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import dev.ryanhcode.sable.api.physics.mass.MassData;
@@ -445,7 +446,7 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
         tag.putFloat("flameLengthChangeSpeedLimit", this.flameLengthChangeSpeedLimit);
         tag.putDouble("visualThrottle", this.thrusterData.getThrottle());
         tag.putBoolean("railAccelerationTrailOverride", this.railAccelerationTrailOverride);
-        tag.putLong(LINKED_CONTROL_SEAT_POS_TAG, this.linkedControlSeatPos.asLong());
+        RelativeBlockPosNbt.write(tag, LINKED_CONTROL_SEAT_POS_TAG, getBlockPos(), this.linkedControlSeatPos);
     }
 
     @Override
@@ -474,11 +475,7 @@ public abstract class AbstractThrusterBlockEntity extends SmartBlockEntity imple
             this.thrusterData.setThrottle(0.0D);
         }
         this.railAccelerationTrailOverride = tag.getBoolean("railAccelerationTrailOverride");
-        if (tag.contains(LINKED_CONTROL_SEAT_POS_TAG, Tag.TAG_LONG)) {
-            this.linkedControlSeatPos = BlockPos.of(tag.getLong(LINKED_CONTROL_SEAT_POS_TAG));
-        } else {
-            this.linkedControlSeatPos = BlockPos.ZERO;
-        }
+        this.linkedControlSeatPos = RelativeBlockPosNbt.read(tag, LINKED_CONTROL_SEAT_POS_TAG, getBlockPos(), false);
     }
 
     public abstract String getthrustertype();

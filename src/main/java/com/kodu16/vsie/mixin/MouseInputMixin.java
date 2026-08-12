@@ -1,7 +1,6 @@
 package com.kodu16.vsie.mixin;
 
 import com.kodu16.vsie.content.controlseat.client.ControlSeatClientData;
-import com.kodu16.vsie.content.controlseat.client.ControlSeatWarpSelectionScreen;
 import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
 import com.kodu16.vsie.content.controlseat.client.Input.ClientMouseHandler;
 import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
@@ -20,12 +19,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MouseInputMixin {
     @Inject(method = "onMove(JDD)V", at = @At("HEAD"), cancellable = true, remap = false)
     private void onMouseMove(long window, double xpos, double ypos, CallbackInfo ci) {
+        if (shouldYieldToOpenScreen()) {
+            return;
+        }
         LocalPlayer player = Minecraft.getInstance().player;
         ControlSeatClientData data = getCurrentSeatData(player);
         if (data != null && data.isViewLocked()) {
-            if (Minecraft.getInstance().screen instanceof ControlSeatWarpSelectionScreen) {
-                return;
-            }
             // Function: only the active chair's view lock may capture mouse movement.
             ci.cancel();
             if (!data.isMouseAnchorSet()) {
@@ -49,9 +48,12 @@ public class MouseInputMixin {
 
     @Inject(method = "onPress(JIII)V", at = @At("HEAD"), cancellable = true, remap = false)
     private void onMouseButton(long window, int button, int action, int mods, CallbackInfo ci) {
+        if (shouldYieldToOpenScreen()) {
+            return;
+        }
         LocalPlayer player = Minecraft.getInstance().player;
         ControlSeatClientData data = getCurrentSeatData(player);
-        if (data == null || Minecraft.getInstance().screen instanceof ControlSeatWarpSelectionScreen) return;
+        if (data == null) return;
         if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return;
 
         // Function: seated left click drives weapon input and must not fall through to vanilla block-destroy handling.
@@ -65,15 +67,24 @@ public class MouseInputMixin {
 
     @Inject(method = "onScroll(JDD)V", at = @At("HEAD"), cancellable = true, remap = false)
     private void onMouseScroll(long window, double xoffset, double yoffset, CallbackInfo ci) {
+        if (shouldYieldToOpenScreen()) {
+            ClientMouseHandler.LOGGER.info(
+                    "[VSIE-MOUSE] phase=YIELD_TO_SCREEN input=SCROLL screen={} deltaX={} deltaY={}",
+                    Minecraft.getInstance().screen.getClass().getName(), xoffset, yoffset
+            );
+            return;
+        }
         LocalPlayer player = Minecraft.getInstance().player;
         ControlSeatClientData data = getCurrentSeatData(player);
         if (data != null && data.isViewLocked()) {
-            if (Minecraft.getInstance().screen instanceof ControlSeatWarpSelectionScreen) {
-                return;
-            }
             // Function: only the active chair's view lock may capture scroll input.
             ci.cancel();
         }
+    }
+
+    /** Open GUIs, including the ESC pause menu, always own mouse movement, buttons, and scroll. */
+    private static boolean shouldYieldToOpenScreen() {
+        return Minecraft.getInstance().screen != null;
     }
 
     private static ControlSeatClientData getCurrentSeatData(LocalPlayer player) {

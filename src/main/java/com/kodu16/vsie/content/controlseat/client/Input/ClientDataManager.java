@@ -22,7 +22,10 @@ public class ClientDataManager {
             return null;
         }
         UUID playerId = player.getUUID();
-        return playerDataMap.computeIfAbsent(playerId, id -> new ControlSeatClientData());
+        ControlSeatClientData data = playerDataMap.computeIfAbsent(playerId, id -> new ControlSeatClientData());
+        // Dimension observation preserves the same UUID-keyed client state across LocalPlayer replacement.
+        data.observeDimension(player.level().dimension());
+        return data;
     }
 
     public static ControlSeatClientData getClientDataForSeat(Player player, BlockPos seatPos) {

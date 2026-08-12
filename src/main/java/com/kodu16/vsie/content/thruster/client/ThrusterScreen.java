@@ -25,7 +25,7 @@ public class ThrusterScreen extends AbstractContainerScreen<ThrusterContainerMen
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTicks);
+        // Function: avoid a second container background pass that softens the finished GUI.
         super.render(guiGraphics, mouseX, mouseY, partialTicks);
         this.renderTooltip(guiGraphics, mouseX, mouseY);
         renderControlTooltips(guiGraphics, mouseX, mouseY);

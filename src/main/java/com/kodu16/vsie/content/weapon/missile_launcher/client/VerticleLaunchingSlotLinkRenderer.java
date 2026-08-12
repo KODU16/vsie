@@ -2,6 +2,9 @@ package com.kodu16.vsie.content.weapon.missile_launcher.client;
 
 import com.kodu16.vsie.content.item.linker.linker;
 import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
+import com.kodu16.vsie.content.misc.electromagnet_rail.RailCoreRegistry;
+import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreBlockEntity;
+import com.kodu16.vsie.content.weapon.electro_magnet_rail_accelerator.ElectromagnetRailAcceleratorBlockEntity;
 import com.kodu16.vsie.content.weapon.missile_launcher.block.VerticleLaunchingSlotBlockEntity;
 import com.kodu16.vsie.content.weapon.missile_launcher.block.VerticleLaunchingSlotCoreBlockEntity;
 import com.kodu16.vsie.registries.vsieItems;
@@ -48,6 +51,7 @@ public class VerticleLaunchingSlotLinkRenderer {
     private static final MarkerStyle STORAGE_STYLE = new MarkerStyle(1.0F, 0.82F, 0.18F, 0xFFFFD24A);
     private static final MarkerStyle TURRET_STYLE = new MarkerStyle(0.2F, 1.0F, 0.32F, 0xFF33FF55);
     private static final MarkerStyle PERIPHERAL_STYLE = new MarkerStyle(0.2F, 0.55F, 1.0F, 0xFF3399FF);
+    private static final MarkerStyle RAIL_LINK_STYLE = new MarkerStyle(0.0F, 1.0F, 1.0F, 0xFF00FFFF);
 
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent event) {
@@ -76,6 +80,15 @@ public class VerticleLaunchingSlotLinkRenderer {
                 return;
             }
             renderLinkedSlots(event.getPoseStack(), core.getLinkedSlots());
+            return;
+        }
+
+        if (tag.contains(linker.ELECTRO_MAGNET_RAIL_CORE_POS_TAG)) {
+            if (!(level.getBlockEntity(linker.getBlockPos(tag, linker.ELECTRO_MAGNET_RAIL_CORE_POS_TAG))
+                    instanceof ElectroMagnetRailCoreBlockEntity core)) {
+                return;
+            }
+            renderRailCoreLinks(event.getPoseStack(), core);
             return;
         }
 
@@ -120,6 +133,12 @@ public class VerticleLaunchingSlotLinkRenderer {
     private static void renderControlSeatLinks(PoseStack pose, AbstractControlSeatBlockEntity controlSeat) {
         List<LinkMarker> markers = new ArrayList<>();
         appendControlSeatMarkers(controlSeat, markers, 1, WEAPON_STYLE);
+        appendControlSeatMarkers(
+                controlSeat,
+                markers,
+                AbstractControlSeatBlockEntity.ENEMY_CANNON_PERIPHERAL_TYPE,
+                WEAPON_STYLE
+        );
         appendControlSeatMarkers(controlSeat, markers, STORAGE_STYLE, 4, 5, 6);
         appendControlSeatMarkers(controlSeat, markers, 3, TURRET_STYLE);
         appendControlSeatMarkers(controlSeat, markers, PERIPHERAL_STYLE, 0, 2, 7);
@@ -148,6 +167,39 @@ public class VerticleLaunchingSlotLinkRenderer {
         }
     }
 
+    private static void renderRailCoreLinks(PoseStack pose, ElectroMagnetRailCoreBlockEntity core) {
+        if (MC.level == null || core.getRailBindingId() == null) {
+            return;
+        }
+        List<ElectromagnetRailAcceleratorBlockEntity> accelerators =
+                RailCoreRegistry.getClientAccelerators(core.getRailBindingId(), MC.level);
+        if (accelerators.isEmpty()) {
+            return;
+        }
+        accelerators.sort(java.util.Comparator.comparingLong(accelerator -> accelerator.getBlockPos().asLong()));
+
+        Vec3 cameraPos = MC.gameRenderer.getMainCamera().getPosition();
+        Vec3 coreWorldPos = getSlotWorldPosition(core.getBlockPos(), 0.5D);
+        MultiBufferSource.BufferSource buffers = MC.renderBuffers().bufferSource();
+        RenderSystem.disableDepthTest();
+        RenderSystem.depthMask(false);
+        try {
+            for (int i = 0; i < accelerators.size(); i++) {
+                BlockPos acceleratorPos = accelerators.get(i).getBlockPos();
+                Vec3 acceleratorWorldPos = getSlotWorldPosition(acceleratorPos, 0.5D);
+                renderOutline(pose, acceleratorPos, cameraPos,
+                        RAIL_LINK_STYLE.red(), RAIL_LINK_STYLE.green(), RAIL_LINK_STYLE.blue());
+                renderWorldLine(pose, coreWorldPos, acceleratorWorldPos, cameraPos,
+                        RAIL_LINK_STYLE.red(), RAIL_LINK_STYLE.green(), RAIL_LINK_STYLE.blue());
+                renderText(pose, buffers, acceleratorPos, cameraPos, i + 1, RAIL_LINK_STYLE.textColor());
+            }
+            buffers.endBatch();
+        } finally {
+            RenderSystem.depthMask(true);
+            RenderSystem.enableDepthTest();
+        }
+    }
+
     private static void appendControlSeatMarkers(AbstractControlSeatBlockEntity controlSeat, List<LinkMarker> markers, int type, MarkerStyle style) {
         appendControlSeatMarkers(controlSeat, markers, style, type);
     }
@@ -162,17 +214,28 @@ public class VerticleLaunchingSlotLinkRenderer {
     private static void renderOutline(PoseStack pose, BlockPos slotPos, Vec3 cameraPos, float red, float green, float blue) {
         pose.pushPose();
         try {
-            Vec3 worldCenter = getSlotWorldPosition(slotPos, 0.5D);
-            pose.translate(-cameraPos.x, -cameraPos.y, -cameraPos.z);
+            Vec3 relativeCenter = getSlotWorldPosition(slotPos, 0.5D).subtract(cameraPos);
             // Function: use a small world-space marker because tilted sublevels cannot be outlined with an axis-aligned box.
             AABB box = new AABB(
-                    worldCenter.subtract(SLOT_MARKER_HALF_SIZE, SLOT_MARKER_HALF_SIZE, SLOT_MARKER_HALF_SIZE),
-                    worldCenter.add(SLOT_MARKER_HALF_SIZE, SLOT_MARKER_HALF_SIZE, SLOT_MARKER_HALF_SIZE)
+                    relativeCenter.subtract(SLOT_MARKER_HALF_SIZE, SLOT_MARKER_HALF_SIZE, SLOT_MARKER_HALF_SIZE),
+                    relativeCenter.add(SLOT_MARKER_HALF_SIZE, SLOT_MARKER_HALF_SIZE, SLOT_MARKER_HALF_SIZE)
             ).inflate(0.01D);
             renderLineBoxImmediate(pose.last().pose(), box, red, green, blue, 1.0F);
         } finally {
             pose.popPose();
         }
+    }
+
+    private static void renderWorldLine(PoseStack pose, Vec3 worldStart, Vec3 worldEnd, Vec3 cameraPos,
+                                        float red, float green, float blue) {
+        Vec3 start = worldStart.subtract(cameraPos);
+        Vec3 end = worldEnd.subtract(cameraPos);
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        // Function: use the same immediate debug-line path as the cyan accelerator outlines.
+        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+        addBoxLine(buffer, pose.last().pose(), start.x, start.y, start.z, end.x, end.y, end.z,
+                red, green, blue, 1.0F);
+        BufferUploader.drawWithShader(buffer.buildOrThrow());
     }
 
     private static void renderLineBoxImmediate(Matrix4f matrix, AABB box, float red, float green, float blue, float alpha) {

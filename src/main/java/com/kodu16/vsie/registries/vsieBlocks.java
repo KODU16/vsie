@@ -3,6 +3,10 @@ package com.kodu16.vsie.registries;
 import com.kodu16.vsie.content.misc.electromagnet_rail.ElectroMagnetRailBlock;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreBlock;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.top.ElectroMagnetRailTopBlock;
+import com.kodu16.vsie.content.misc.enemy_cannon.EnemyCannonBlock;
+import com.kodu16.vsie.content.misc.enemy_autocannon.EnemyAutocannonBlock;
+import com.kodu16.vsie.content.misc.enemy_core.EnemyCoreBlock;
+import com.kodu16.vsie.content.custom_turret.CustomTurretBlock;
 import com.kodu16.vsie.content.turret.ciws.basicciws.BasicCIWSBlock;
 import com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret.HeavyElectroMagnetTurretBlock;
 import com.kodu16.vsie.content.turret.heavyturret.heavylaserturret.HeavyLaserTurretBlock;
@@ -34,16 +38,28 @@ import com.kodu16.vsie.vsie;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlock;
 import com.kodu16.vsie.content.thruster.block.BasicThrusterBlock;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.material.MapColor;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.tterrag.registrate.util.entry.BlockEntry;
+import net.neoforged.fml.ModList;
+import org.jetbrains.annotations.Nullable;
 
 
 public class vsieBlocks {
     public static final CreateRegistrate REGISTRATE = vsie.registrate();
     public static void register() {} //Loads this class
     private static final int SMALL_AMMOBOX_DURABILITY = 1000;
+
+    // Function: the custom turret's single anchor block is rendered entirely by its Gecko block entity.
+    public static final BlockEntry<CustomTurretBlock> CUSTOM_TURRET_BLOCK =
+            REGISTRATE.block("custom_turret", CustomTurretBlock::new)
+                    .properties(p -> p.mapColor(MapColor.METAL))
+                    .properties(p -> p.sound(SoundType.METAL))
+                    .properties(p -> p.strength(5.5F, 4.0F))
+                    .properties(BlockBehaviour.Properties::noOcclusion)
+                    .register();
 
     public static final BlockEntry<BasicThrusterBlock> BASIC_THRUSTER_BLOCK = REGISTRATE.block("basic_thruster", BasicThrusterBlock::new)
             .properties(p -> p.mapColor(MapColor.METAL))
@@ -62,6 +78,49 @@ public class vsieBlocks {
             .properties(p -> p.noOcclusion())
             .simpleItem()
             .register();
+
+    // Function: register the autonomous orbit controller in the misc content group.
+    public static final BlockEntry<EnemyCoreBlock> ENEMY_CORE_BLOCK = REGISTRATE.block("enemy_core", EnemyCoreBlock::new)
+            .properties(p -> p.mapColor(MapColor.METAL))
+            .properties(p -> p.requiresCorrectToolForDrops())
+            .properties(p -> p.sound(SoundType.METAL))
+            .properties(p -> p.strength(2.5F, 3.0F))
+            .properties(p -> p.noOcclusion())
+            .simpleItem()
+            .register();
+
+    // Function: omit enemy cannon registration entirely when its Create Big Cannons textures are unavailable.
+    public static final @Nullable BlockEntry<EnemyCannonBlock> ENEMY_CANNON_BLOCK = registerEnemyCannon();
+    public static final @Nullable BlockEntry<EnemyAutocannonBlock> ENEMY_AUTOCANNON_BLOCK = registerEnemyAutocannon();
+
+    private static @Nullable BlockEntry<EnemyCannonBlock> registerEnemyCannon() {
+        if (!ModList.get().isLoaded("createbigcannons")) {
+            return null;
+        }
+        return REGISTRATE.block("enemy_cannon", EnemyCannonBlock::new)
+                .properties(p -> p.mapColor(MapColor.METAL))
+                .properties(p -> p.requiresCorrectToolForDrops())
+                .properties(p -> p.sound(SoundType.METAL))
+                .properties(p -> p.strength(5.5F, 4.0F))
+                .properties(p -> p.noOcclusion())
+                .simpleItem()
+                .register();
+    }
+
+    private static @Nullable BlockEntry<EnemyAutocannonBlock> registerEnemyAutocannon() {
+        if (!ModList.get().isLoaded("createbigcannons")) {
+            return null;
+        }
+        // Function: the enemy autocannon is available only alongside its CBC projectile API and texture.
+        return REGISTRATE.block("enemy_autocannon", EnemyAutocannonBlock::new)
+                .properties(p -> p.mapColor(MapColor.METAL))
+                .properties(p -> p.requiresCorrectToolForDrops())
+                .properties(p -> p.sound(SoundType.METAL))
+                .properties(p -> p.strength(5.5F, 4.0F))
+                .properties(p -> p.noOcclusion())
+                .simpleItem()
+                .register();
+    }
 
     public static final BlockEntry<MediumLaserTurretBlock> MEDIUM_LASER_TURRET_BLOCK = REGISTRATE.block("medium_laser_turret", MediumLaserTurretBlock::new)
             .properties(p -> p.mapColor(MapColor.METAL))

@@ -57,7 +57,7 @@ public class WeaponScreen extends AbstractContainerScreen<WeaponContainerMenu> {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTicks);
+        // Function: keep one background pass so labels and slots remain crisp.
         super.render(guiGraphics, mouseX, mouseY, partialTicks);
         this.renderTooltip(guiGraphics, mouseX, mouseY);
         renderControlTooltips(guiGraphics, mouseX, mouseY);

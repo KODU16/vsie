@@ -1,10 +1,15 @@
 package com.kodu16.vsie.registries;
 
 import com.kodu16.vsie.content.controlseat.client.AbstractControlSeatGeoRenderer;
+import com.kodu16.vsie.content.custom_turret.CustomTurretBlockEntity;
+import com.kodu16.vsie.content.custom_turret.client.CustomTurretGeoRenderer;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreBlockEntity;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreGeoRenderer;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.top.ElectroMagnetRailTopBlockEntity;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.top.ElectroMagnetRailTopGeoRenderer;
+import com.kodu16.vsie.content.misc.enemy_cannon.EnemyCannonBlockEntity;
+import com.kodu16.vsie.content.misc.enemy_autocannon.EnemyAutocannonBlockEntity;
+import com.kodu16.vsie.content.misc.enemy_core.EnemyCoreBlockEntity;
 import com.kodu16.vsie.content.turret.ciws.basicciws.BasicCIWSBlockEntity;
 import com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret.HeavyElectroMagnetTurretBlockEntity;
 import com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret.HeavyElectroMagnetTurretGeoRenderer;
@@ -57,6 +62,7 @@ import net.neoforged.neoforge.capabilities.ICapabilityProvider;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,6 +72,15 @@ public class vsieBlockEntities {
     public static final CreateRegistrate REGISTRATE = vsie.registrate();
     public static void register() {} //Loads this class
     private static final List<Consumer<RegisterCapabilitiesEvent>> CAPABILITY_REGISTRATIONS = new ArrayList<>();
+
+    // Function: preserve common turret inventory/binding capabilities through definition-driven block reconstruction.
+    public static final BlockEntityEntry<CustomTurretBlockEntity> CUSTOM_TURRET_BLOCK_ENTITY =
+            withCapability(REGISTRATE.blockEntity("custom_turret_block_entity", CustomTurretBlockEntity::new)
+                    .validBlocks(vsieBlocks.CUSTOM_TURRET_BLOCK)
+                    .renderer(() -> CustomTurretGeoRenderer::new)
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
 
     public static void registerCapabilities(RegisterCapabilitiesEvent event) {
         CAPABILITY_REGISTRATIONS.forEach(registration -> registration.accept(event));
@@ -302,4 +317,33 @@ public class vsieBlockEntities {
                     .validBlocks(vsieBlocks.ELECTRO_MAGNET_RAIL_TOP_BLOCK)
                     .renderer(() -> ElectroMagnetRailTopGeoRenderer::new)
                     .register();
+    // Function: the orbit controller uses a vanilla JSON model and only needs a ticking server block entity.
+    public static final BlockEntityEntry<EnemyCoreBlockEntity> ENEMY_CORE_BLOCK_ENTITY =
+            REGISTRATE.blockEntity("enemy_core_block_entity", EnemyCoreBlockEntity::new)
+                    .validBlocks(vsieBlocks.ENEMY_CORE_BLOCK)
+                    .register();
+    public static final @Nullable BlockEntityEntry<EnemyCannonBlockEntity> ENEMY_CANNON_BLOCK_ENTITY =
+            registerEnemyCannonBlockEntity();
+    public static final @Nullable BlockEntityEntry<EnemyAutocannonBlockEntity> ENEMY_AUTOCANNON_BLOCK_ENTITY =
+            registerEnemyAutocannonBlockEntity();
+
+    private static @Nullable BlockEntityEntry<EnemyCannonBlockEntity> registerEnemyCannonBlockEntity() {
+        if (vsieBlocks.ENEMY_CANNON_BLOCK == null) {
+            return null;
+        }
+        // Function: mirror the optional block registration so no dangling block-entity type exists without CBC.
+        return REGISTRATE.blockEntity("enemy_cannon_block_entity", EnemyCannonBlockEntity::new)
+                .validBlocks(vsieBlocks.ENEMY_CANNON_BLOCK)
+                .register();
+    }
+
+    private static @Nullable BlockEntityEntry<EnemyAutocannonBlockEntity> registerEnemyAutocannonBlockEntity() {
+        if (vsieBlocks.ENEMY_AUTOCANNON_BLOCK == null) {
+            return null;
+        }
+        // Function: mirror optional block registration and provide the server burst ticker's block entity.
+        return REGISTRATE.blockEntity("enemy_autocannon_block_entity", EnemyAutocannonBlockEntity::new)
+                .validBlocks(vsieBlocks.ENEMY_AUTOCANNON_BLOCK)
+                .register();
+    }
 }

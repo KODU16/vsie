@@ -1,10 +1,17 @@
 package com.kodu16.vsie.content.misc.electromagnet_rail.structure.core;
 
+import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
+import com.kodu16.vsie.content.controlseat.server.SeatRegistry;
+import com.kodu16.vsie.content.misc.electromagnet_rail.RailCoreRegistry;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.top.ElectroMagnetRailTopBlock;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.top.ElectroMagnetRailTopBlockEntity;
+import com.kodu16.vsie.foundation.RelativeBlockPosNbt;
+import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.registries.vsieBlocks;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import dev.ryanhcode.sable.sublevel.ServerSubLevel;
+import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Direction;
@@ -30,9 +37,11 @@ import software.bernie.geckolib.constant.dataticket.SerializableDataTicket;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.UUID;
 
 public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implements MenuProvider, IItemHandlerModifiable, GeoBlockEntity {
     private static final String LINKED_CONTROL_SEAT_POS_TAG = "LinkedControlSeatPos";
+    private static final String RAIL_BINDING_ID_TAG = "RailBindingId";
     private HolderLookup.Provider nbtRegistries;
 
     public static final int TERMINAL_STATUS_IDLE = 0;
@@ -61,6 +70,7 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
     // Function: synced model state for moving the core side rails after a valid terminal is found.
     private boolean workingTerminal = false;
     private BlockPos linkedControlSeatPos = BlockPos.ZERO;
+    private UUID railBindingId;
 
     public int getTerminalStatus() {
         return terminalStatus;
@@ -88,6 +98,46 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
         setChanged();
     }
 
+    public @Nullable UUID getRailBindingId() {
+        return railBindingId;
+    }
+
+    public UUID getOrCreateRailBindingId() {
+        if (railBindingId == null) {
+            railBindingId = UUID.randomUUID();
+            setChanged();
+            if (level != null && !level.isClientSide()) {
+                // Function: the linker overlay needs the new binding identity without waiting for a chunk reload.
+                sendData();
+            }
+        }
+        RailCoreRegistry.register(this);
+        return railBindingId;
+    }
+
+    public @Nullable ControlSeatBlockEntity resolveLinkedControlSeat() {
+        if (level == null || level.isClientSide()) {
+            return null;
+        }
+        SubLevel coreSubLevel = ServerShipUtils.getSubLevelAtBlockPos(level, getBlockPos());
+        if (!(coreSubLevel instanceof ServerSubLevel serverSubLevel)) {
+            return null;
+        }
+        if (!linkedControlSeatPos.equals(BlockPos.ZERO)
+                && level.getBlockEntity(linkedControlSeatPos) instanceof ControlSeatBlockEntity controlSeat) {
+            SubLevel seatSubLevel = ServerShipUtils.getSubLevelAtBlockPos(level, linkedControlSeatPos);
+            if (seatSubLevel != null && coreSubLevel.getUniqueId().equals(seatSubLevel.getUniqueId())) {
+                return controlSeat;
+            }
+        }
+        ControlSeatBlockEntity recovered = SeatRegistry.resolveControlSeat(serverSubLevel);
+        if (recovered != null) {
+            // Function: repair stale legacy coordinates from the seat registry after plot or dimension migration.
+            setLinkedControlSeatPos(recovered.getBlockPos());
+        }
+        return recovered;
+    }
+
     public ElectroMagnetRailCoreBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
     }
@@ -98,6 +148,9 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
     }
 
     public void tick(){
+        if (level != null && !level.isClientSide()) {
+            getOrCreateRailBindingId();
+        }
         if (this.level == null || this.terminalStatus != TERMINAL_STATUS_FOUND || this.terminalPos.equals(BlockPos.ZERO)) {
             return;
         }
@@ -318,11 +371,10 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
             this.workingTerminal = tag.getBoolean("WorkingTerminal");
             setAnimData(IS_WORKING, this.workingTerminal);
         }
-        if (tag.contains(LINKED_CONTROL_SEAT_POS_TAG)) {
-            this.linkedControlSeatPos = BlockPos.of(tag.getLong(LINKED_CONTROL_SEAT_POS_TAG));
-        } else {
-            this.linkedControlSeatPos = BlockPos.ZERO;
-        }
+        this.linkedControlSeatPos = RelativeBlockPosNbt.read(
+                tag, LINKED_CONTROL_SEAT_POS_TAG, getBlockPos(), false
+        );
+        this.railBindingId = tag.hasUUID(RAIL_BINDING_ID_TAG) ? tag.getUUID(RAIL_BINDING_ID_TAG) : null;
     }
 
     @Override
@@ -333,7 +385,18 @@ public class ElectroMagnetRailCoreBlockEntity extends SmartBlockEntity implement
         tag.putLong("TerminalPos", this.terminalPos.asLong());
         tag.putFloat("BeamRenderDistance", this.beamRenderDistance);
         tag.putBoolean("WorkingTerminal", this.workingTerminal);
-        tag.putLong(LINKED_CONTROL_SEAT_POS_TAG, this.linkedControlSeatPos.asLong());
+        RelativeBlockPosNbt.write(tag, LINKED_CONTROL_SEAT_POS_TAG, getBlockPos(), this.linkedControlSeatPos);
+        if (railBindingId != null) {
+            tag.putUUID(RAIL_BINDING_ID_TAG, railBindingId);
+        }
+    }
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        if (level != null && !level.isClientSide()) {
+            getOrCreateRailBindingId();
+        }
     }
 
     @Override

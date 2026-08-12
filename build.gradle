@@ -133,6 +133,13 @@ repositories {
         url = "https://maven.realrobotix.me/master/"
     }
     maven {
+        // Function: compile the optional enemy-cannon bridge against the matching CBC API.
+        url = "https://maven.realrobotix.me/createbigcannons"
+        content {
+            includeGroup("com.rbasamoyai")
+        }
+    }
+    maven {
         name = "firstdarkdev"
         url "https://maven.firstdark.dev/snapshots"
     }
@@ -168,6 +175,10 @@ repositories {
 dependencies {
     // Function: shared ship framework required by VSIE and Aeronautics.
     implementation("dev.ryanhcode.sable:sable-neoforge-${minecraft_version}:${sable_version}")
+    // Function: lightweight contract tests verify custom turret JSON survives NBT-style round trips.
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'com.google.code.gson:gson:2.11.0'
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
     implementation fileTree(dir: 'lib', includes: ['*.jar'], excludes: ['create-*.jar'])
@@ -186,6 +197,7 @@ dependencies {
     runtimeOnly("dev.engine-room.flywheel:flywheel-neoforge-${minecraft_version}:${flywheel_version}")
     implementation("com.tterrag.registrate:Registrate:${registrate_version}")
     implementation("com.rbasamoyai:ritchiesprojectilelib:2.1.0-dev+mc.1.21.1-neoforge-build.191") { transitive = false }
+    compileOnly("com.rbasamoyai:createbigcannons:5.11.6+mc.1.21.1") { transitive = false }
     //// RUNTIME ////
 
     // photon
@@ -211,6 +223,374 @@ tasks.named('processResources', ProcessResources).configure {
     }
 }
 
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+// Guards control-seat continuity while Sable recreates a ship across dimensions.
+var verifyControlSeatDimensionTransfer = tasks.register("verifyControlSeatDimensionTransfer") {
+    group = "verification"
+    description = "Checks persisted controls, transfer-aware seat rebinding, and locked-view recentering."
+
+    doLast {
+        var seat = file("src/main/java/com/kodu16/vsie/content/controlseat/block/ControlSeatBlockEntity.java").text
+        var seatBase = file("src/main/java/com/kodu16/vsie/content/controlseat/AbstractControlSeatBlockEntity.java").text
+        var seatRegistry = file("src/main/java/com/kodu16/vsie/content/controlseat/server/SeatRegistry.java").text
+        var serverData = file("src/main/java/com/kodu16/vsie/content/controlseat/server/ControlSeatServerData.java").text
+        var warpUtils = file("src/main/java/com/kodu16/vsie/content/controlseat/server/WarpUtils.java").text
+        var relativeLinkNbt = file("src/main/java/com/kodu16/vsie/foundation/RelativeBlockPosNbt.java").text
+        var clientData = file("src/main/java/com/kodu16/vsie/content/controlseat/client/ControlSeatClientData.java").text
+        var mouse = file("src/main/java/com/kodu16/vsie/content/controlseat/client/Input/ClientMouseHandler.java").text
+        var sableTickBody = seat.substring(
+                seat.indexOf('public void sable$tick(ServerSubLevel subLevel)'),
+                seat.indexOf('public void sable$physicsTick(ServerSubLevel subLevel'))
+        var linkedPeripheralSources = [
+                "content/thruster/AbstractThrusterBlockEntity.java",
+                "content/weapon/AbstractWeaponBlockEntity.java",
+                "content/turret/AbstractTurretBlockEntity.java",
+                "content/screen/AbstractScreenBlockEntity.java",
+                "content/storage/ammobox/AmmoBoxBlockEntity.java",
+                "content/storage/energybattery/AbstractEnergyBatteryBlockEntity.java",
+                "content/storage/fueltank/AbstractFuelTankBlockEntity.java",
+                "content/shield/ShieldGeneratorBlockEntity.java",
+                "content/misc/electromagnet_rail/structure/core/ElectroMagnetRailCoreBlockEntity.java"
+        ].collect { file("src/main/java/com/kodu16/vsie/${it}").text }
+        if (!seat.contains('tag.putInt("Throttle"')
+                || !seat.contains('tag.putBoolean("WasSeatOccupied"')
+                || !seat.contains('WARP_FRAME_DIMENSION_TAG')
+                || !seat.contains('reconcileWarpFrameAfterDimensionChange()')
+                || !seat.contains('phase=TRANSIENT_STATE_CANCELLED')
+                || !serverData.contains('cancelWarpExecutionForDimensionChange()')
+                || !warpUtils.contains('phase=TELEPORT_SCHEDULED')
+                || !warpUtils.contains('phase=TELEPORT_EXECUTED')
+                || !seat.contains("isAwaitingOccupantRestore()")
+                || !seatBase.contains('LINKED_PERIPHERAL_POSITION_FORMAT_TAG')
+                || !seatBase.contains('normalizeLoadedLinkedOffset(')
+                || !seatBase.contains('nbt.putBoolean(LINKED_PERIPHERAL_POSITION_FORMAT_TAG, true)')
+                || !seatBase.contains('shouldRemoveMissingLinkedPeripheral(')
+                || !seatBase.contains('LINK_TRACE_PREFIX')
+                || !seatBase.contains('READ_SKIPPED_PARTIAL')
+                || !seatBase.contains('MISSING_DELETE')
+                || !seatBase.contains('MISSING_RECOVERED')
+                || !seatBase.contains('phase=RESOLUTION_SNAPSHOT')
+                || seat.count('traceLinkedPeripheralResolutionIfChanged();') < 2
+                || sableTickBody.contains('tick();')
+                || seat.contains('lastServerControlGameTime')
+                || !seatRegistry.contains('REGISTRY_DIMENSION_HANDOFF')
+                || !seatRegistry.contains('SUBLEVEL_TO_CONTROL_SEAT.get(subLevelId)')
+                || !seatRegistry.contains('sameHostDimension && isControlSeatStillPresent')
+                || !seatRegistry.contains('unregisterControlSeat(owner)')
+                || seatRegistry.contains('unregisterControlSeat(level, owner.pos())')
+                || !relativeLinkNbt.contains('targetPos.subtract(ownerPos)')
+                || linkedPeripheralSources.any { !it.contains('RelativeBlockPosNbt.write(')
+                        || !it.contains('RelativeBlockPosNbt.read(') }
+                || !clientData.contains("observeDimension(")
+                || !clientData.contains("consumePendingViewRecentering()")
+                || !mouse.contains("centerLockedView(")) {
+            throw new GradleException("Control-seat state and locked view must survive a Sable dimension transfer")
+        }
+    }
+}
+
+// Guards both electromagnetic-rail links against plot relocation, dimension transfer, and NBT recreation.
+var verifyElectromagneticRailBindings = tasks.register("verifyElectromagneticRailBindings") {
+    group = "verification"
+    description = "Checks stable rail-core identity and same-sublevel control-seat recovery."
+
+    doLast {
+        var accelerator = file("src/main/java/com/kodu16/vsie/content/weapon/electro_magnet_rail_accelerator/ElectromagnetRailAcceleratorBlockEntity.java").text
+        var core = file("src/main/java/com/kodu16/vsie/content/misc/electromagnet_rail/structure/core/ElectroMagnetRailCoreBlockEntity.java").text
+        var linker = file("src/main/java/com/kodu16/vsie/content/item/linker/linker.java").text
+        var linkRenderer = file("src/main/java/com/kodu16/vsie/content/weapon/missile_launcher/client/VerticleLaunchingSlotLinkRenderer.java").text
+        var registryFile = file("src/main/java/com/kodu16/vsie/content/misc/electromagnet_rail/RailCoreRegistry.java")
+        var seatRegistry = file("src/main/java/com/kodu16/vsie/content/controlseat/server/SeatRegistry.java").text
+
+        if (!registryFile.exists()
+                || !accelerator.contains("LINKED_CORE_BINDING_ID_TAG")
+                || !accelerator.contains("RailCoreRegistry.resolve(")
+                || !accelerator.contains("RailCoreRegistry.resolveNearest(")
+                || !accelerator.contains("tag.putUUID(LINKED_CORE_BINDING_ID_TAG")
+                || !accelerator.contains("retain unresolved legacy data")
+                || !core.contains("getOrCreateRailBindingId(")
+                || !core.contains("the linker overlay needs the new binding identity")
+                || !core.contains("SeatRegistry.resolveControlSeat(")
+                || !linker.contains("accelerator.bindToCore(core)")
+                || !seatRegistry.contains("resolveControlSeat(ServerSubLevel")
+                || !seatRegistry.contains("ownerSubLevel == null")
+                || !registryFile.text.contains("CoreKey(ResourceKey<Level> dimension")
+                || !registryFile.text.contains("server.getLevel(key.dimension())")
+                || !accelerator.contains("registerClientAccelerator(this)")
+                || !registryFile.text.contains("getClientAccelerators(UUID bindingId, Level level)")
+                || !linkRenderer.contains("RAIL_LINK_STYLE")
+                || !linkRenderer.contains("renderRailCoreLinks(")
+                || !linkRenderer.contains("renderWorldLine(")) {
+            throw new GradleException("Electromagnetic rail bindings must survive independent sublevel migration")
+        }
+    }
+}
+
+// Ensures locked control-seat input never consumes mouse events intended for an open GUI.
+var verifyControlSeatScreenInput = tasks.register("verifyControlSeatScreenInput") {
+    group = "verification"
+    description = "Checks that control-seat mouse capture yields to every open screen."
+
+    doLast {
+        var mouseMixin = file("src/main/java/com/kodu16/vsie/mixin/MouseInputMixin.java").text
+        if (!mouseMixin.contains("shouldYieldToOpenScreen()")
+                || mouseMixin.count("if (shouldYieldToOpenScreen())") < 3
+                || !mouseMixin.contains("phase=YIELD_TO_SCREEN")
+                || !mouseMixin.contains("input=SCROLL")) {
+            throw new GradleException("VSIE control-seat mouse capture must yield movement, buttons, and scroll to open screens")
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn verifyControlSeatDimensionTransfer
+    dependsOn verifyElectromagneticRailBindings
+    dependsOn verifyControlSeatScreenInput
+}
+
+// Guards code-rendered screens against applying Minecraft's world blur to already drawn GUI pixels.
+var verifyCrispGuiRendering = tasks.register("verifyCrispGuiRendering") {
+    group = "verification"
+    description = "Checks crisp base screens and prevents duplicate container background passes."
+
+    doLast {
+        var crisp = file("src/main/java/com/kodu16/vsie/foundation/client/CrispScreen.java")
+        if (!crisp.exists()
+                || !crisp.text.contains("renderTransparentBackground(graphics)")
+                || crisp.text.contains(".processBlurEffect(")) {
+            throw new GradleException("Code-rendered AeroIE screens must bypass the world blur shader")
+        }
+
+        var independentScreens = [
+                "src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretEditorScreen.java",
+                "src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretAssetPackageScreen.java",
+                "src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretDefinitionSaveScreen.java",
+                "src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretSelectorScreen.java",
+                "src/main/java/com/kodu16/vsie/content/custom_turret/export/client/RegionObjExportScreen.java",
+                "src/main/java/com/kodu16/vsie/content/controlseat/client/ControlSeatWarpSelectionScreen.java"
+        ]
+        if (independentScreens.any { !file(it).text.contains("extends CrispScreen") }) {
+            throw new GradleException("Every independent AeroIE GUI must use CrispScreen")
+        }
+
+        var duplicateContainerBackground = fileTree("src/main/java") {
+            include "**/*Screen.java"
+        }.files.find { source ->
+            source.text.contains("extends AbstractContainerScreen")
+                    && source.text =~ /renderBackground\([^;]+;\s*super\.render\(/
+        }
+        if (duplicateContainerBackground != null) {
+            throw new GradleException("Container GUI renders its background twice: ${duplicateContainerBackground}")
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn verifyCrispGuiRendering
+}
+
+// Guards the folder-scoped custom-turret asset package, material resolution and localized editor layout.
+var verifyCustomTurretAssetPackages = tasks.register("verifyCustomTurretAssetPackages") {
+    group = "verification"
+    description = "Checks packaged OBJ assets, unique textures, responsive property rows, and translated labels."
+
+    doLast {
+        var exporter = file("src/main/java/com/kodu16/vsie/content/custom_turret/export/client/RegionObjExporter.java").text
+        var editor = file("src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretEditorScreen.java").text
+        var renderer = file("src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretMeshRenderer.java").text
+        var mesh = file("src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomObjMesh.java").text
+        var definition = file("src/main/java/com/kodu16/vsie/content/custom_turret/CustomTurretDefinition.java").text
+        var selector = file("src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretSelectorScreen.java").text
+        var placer = file("src/main/java/com/kodu16/vsie/content/custom_turret/CustomTurretPlacerItem.java").text
+        var clientCommands = file("src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretClientCommands.java").text
+        var items = file("src/main/java/com/kodu16/vsie/registries/vsieItems.java").text
+        var geo = file("src/main/resources/assets/vsie/geo/block/custom_turret.geo.json").text
+        var chinese = file("src/main/resources/assets/vsie/lang/zh_cn.json").text
+        var english = file("src/main/resources/assets/vsie/lang/en_us.json").text
+        if (!exporter.contains("CustomTurretAssetPackage.named(name)")
+                || !exporter.contains('Files.createDirectories(packageDirectory)')
+                || !exporter.contains('".png\\n"')
+                || editor.contains("next_obj")
+                || editor.contains("next_png")
+                || !editor.contains("CustomTurretAssetPackageScreen")
+                || !editor.contains("private static final int ROW_HEIGHT = 18")
+                || !editor.contains("labelFields[index].getY() + 4")
+                || !editor.contains("draggedPanel")
+                || !editor.contains("hierarchyCollapsed")
+                || !editor.contains("propertiesCollapsed")
+                || !editor.contains("centerPivotOnModel")
+                || !editor.contains("RenderSystem.disableDepthTest()")
+                || !editor.contains("RenderSystem.disableCull()")
+                || !editor.contains("RenderSystem.enableCull()")
+                || !editor.contains("clearDepthLayer()")
+                || !editor.contains("togglePropertiesPanel()")
+                || !editor.contains("positionPropertyFields();")
+                || !editor.contains("boolean turretPropertiesOpen")
+                || !editor.contains("drawTopToolIcons(graphics)")
+                || !editor.contains("closeTurretProperties()")
+                || !editor.contains("selectedBone().position[0] + selectedBone().pivot[0]")
+                || !editor.contains("TransformEditMode.PIVOT")
+                || !editor.contains("TransformEditMode.PIVOT ? 2.0F : 1.0F")
+                || !editor.contains("CustomTurretDefinitionSaveScreen")
+                || !clientCommands.contains('Commands.literal("aeroie")')
+                || !clientCommands.contains('Commands.literal("open_editor")')
+                || !selector.contains("loadDefinitionFiles")
+                || !selector.contains("selectedDirectory")
+                || !selector.contains("selectedFile")
+                || !placer.contains("player.isShiftKeyDown()")
+                || items.contains("CUSTOM_TURRET_EDITOR")
+                || file("src/main/java/com/kodu16/vsie/content/custom_turret/CustomTurretEditorItem.java").exists()
+                || !mesh.contains("quadCompatibleTriangleFan")
+                || !mesh.contains("calculateCenter")
+                || !definition.contains('List.of("root", "turret", "cannon", "long_cannon")')
+                || !definition.contains("public float[] pivot")
+                || !geo.contains('"name": "long_cannon"')
+                || renderer.contains("control_seat.png")
+                || !renderer.contains("textures/block/stone.png")
+                || !chinese.contains('"screen.vsie.custom_turret_editor.select_asset_package"')
+                || !english.contains('"screen.vsie.custom_turret_editor.select_asset_package"')) {
+            throw new GradleException("Custom turret package, texture, layout, or localization contract regressed")
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn verifyCustomTurretAssetPackages
+}
+
+// Guards definition-driven weapon fields, firepoint ownership and independent multi-beam hit paths.
+var verifyCustomTurretWeapons = tasks.register("verifyCustomTurretWeapons") {
+    group = "verification"
+    description = "Checks custom turret weapon definitions and runtime firepoint behavior."
+
+    doLast {
+        var definition = file("src/main/java/com/kodu16/vsie/content/custom_turret/CustomTurretDefinition.java").text
+        var editor = file("src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretEditorScreen.java").text
+        var runtime = file("src/main/java/com/kodu16/vsie/content/custom_turret/CustomTurretBlockEntity.java").text
+        var renderer = file("src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretMeshRenderer.java").text
+        var packet = file("src/main/java/com/kodu16/vsie/network/turret/TurretFirePointC2SPacket.java").text
+        if (!definition.contains('public int firepointCount = 1')
+                || !definition.contains('Bone.child("firepoint1", "long_cannon")')
+                || !definition.contains('public float rotationSpeedDegreesPerTick')
+                || !definition.contains('public String weaponType = "energy"')
+                || !definition.contains('validateFirepoints(byId)')
+                || !editor.contains('"long_cannon".equals(selectedBone().id)')
+                || !editor.contains('firepoint_prefix_reserved')
+                || !runtime.contains('for (int index = 1; index <= definition.firepointCount; index++)')
+                || !runtime.contains('BeamImpact impact = traceBeam')
+                || !runtime.contains('impact.entity.hurt')
+                || !runtime.contains('tickPendingProjectileVolley()')
+                || !renderer.contains('CustomTurretBeamRenderer.render')
+                || !packet.contains('firepointIndex')) {
+            throw new GradleException("Custom turret firepoint and weapon behavior contract regressed")
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn verifyCustomTurretWeapons
+}
+
+// Guards the active control-seat palette and keeps all alternatives in its dedicated folder.
+var verifyControlSeatTextures = tasks.register("verifyControlSeatTextures") {
+    group = "verification"
+    description = "Checks the control-seat model and its folder-scoped color variants."
+
+    doLast {
+        var modelSource = file("src/main/java/com/kodu16/vsie/content/controlseat/client/AbstractControlSeatModel.java").text
+        var fallbackSource = file("src/main/java/com/kodu16/vsie/content/custom_turret/CustomTurretGeoModel.java").text
+        var textureDirectory = file("src/main/resources/assets/vsie/textures/block/control_seat")
+        var expectedTextures = [
+                "gray_white_light_blue.png",
+                "blue_black_white.png",
+                "brown_orange_black.png",
+                "gray_black_white.png"
+        ]
+        if (!modelSource.contains("textures/block/control_seat/gray_white_light_blue.png")
+                || !fallbackSource.contains("textures/block/control_seat/gray_white_light_blue.png")
+                || expectedTextures.any { !new File(textureDirectory, it).isFile() }
+                || file("src/main/resources/assets/vsie/textures/block/control_seat.png").exists()) {
+            throw new GradleException("Control-seat texture folder or active palette contract regressed")
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn verifyControlSeatTextures
+}
+
+// Guards startup-critical classes against partially compiled release artifacts.
+var verifyRuntimeJarContents = tasks.register("verifyRuntimeJarContents") {
+    group = "verification"
+    description = "Checks that the release JAR contains classes referenced during early Mixin startup."
+    dependsOn tasks.named("jar")
+
+    doLast {
+        var artifact = tasks.named("jar", Jar).get().archiveFile.get().asFile
+        var javaRoot = file("src/main/java")
+        var requiredEntries = fileTree(javaRoot) {
+            include "**/*.java"
+            exclude "**/package-info.java", "**/module-info.java"
+        }.files.collect { source ->
+            javaRoot.toPath().relativize(source.toPath()).toString()
+                    .replace('\\', '/')
+                    .replaceFirst(/\.java$/, '.class')
+        }
+        var archive = new java.util.zip.ZipFile(artifact)
+        try {
+            var missingEntries = requiredEntries.findAll { archive.getEntry(it) == null }
+            if (!missingEntries.isEmpty()) {
+                throw new GradleException("Release JAR is missing startup-critical classes: ${missingEntries.join(', ')}")
+            }
+        } finally {
+            archive.close()
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn verifyRuntimeJarContents
+}
+
+// Restores the user-facing update log after Gradle clean removes the build directory.
+var syncUpdateLog = tasks.register("syncUpdateLog", Copy) {
+    from(layout.projectDirectory.file("update_log.txt"))
+    into(layout.buildDirectory.dir("libs"))
+}
+
+tasks.named("clean") {
+    finalizedBy syncUpdateLog
+}
+
+tasks.named("build") {
+    finalizedBy syncUpdateLog
+}
+
+// Compile only the dependency-free math seam, avoiding Minecraft startup and every jar task.
+tasks.register("verifyDeepSpaceHudMath") {
+    group = "verification"
+    description = "Checks planet model ray selection and surface-distance calculations."
+    doLast {
+        def outputDir = layout.buildDirectory.dir("deepspace-hud-contract").get().asFile
+        delete(outputDir)
+        outputDir.mkdirs()
+        exec {
+            commandLine "${System.getProperty('java.home')}/bin/javac",
+                    "-d", outputDir,
+                    file("src/main/java/com/kodu16/vsie/integration/deepspace/DeepSpaceHudMath.java"),
+                    file("src/contract/java/com/kodu16/vsie/integration/deepspace/DeepSpaceHudMathContract.java")
+        }
+        exec {
+            commandLine "${System.getProperty('java.home')}/bin/java",
+                    "-cp", outputDir,
+                    "com.kodu16.vsie.integration.deepspace.DeepSpaceHudMathContract"
+        }
+    }
 }

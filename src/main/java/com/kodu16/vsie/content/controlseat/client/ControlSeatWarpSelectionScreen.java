@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.controlseat.client;
 
+import com.kodu16.vsie.foundation.client.CrispScreen;
+
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
 import com.kodu16.vsie.foundation.client.GuiTooltipHelper;
@@ -9,7 +11,6 @@ import com.kodu16.vsie.registries.ModNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -21,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class ControlSeatWarpSelectionScreen extends Screen {
+public class ControlSeatWarpSelectionScreen extends CrispScreen {
     private static final int MAX_VISIBLE_BUTTONS = 7;
     private static final int BUTTON_WIDTH = 260;
     private static final int BUTTON_HEIGHT = 20;

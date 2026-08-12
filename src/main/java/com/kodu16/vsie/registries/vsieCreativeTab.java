@@ -52,11 +52,20 @@ public class vsieCreativeTab {
             output.accept(vsieBlocks.ELECTRO_MAGNET_SHELL_BLOCK);
 
             output.accept(vsieBlocks.CONTROL_SEAT_BLOCK);
+            output.accept(vsieBlocks.ENEMY_CORE_BLOCK);
+            if (vsieBlocks.ENEMY_CANNON_BLOCK != null) {
+                output.accept(vsieBlocks.ENEMY_CANNON_BLOCK);
+            }
+            if (vsieBlocks.ENEMY_AUTOCANNON_BLOCK != null) {
+                output.accept(vsieBlocks.ENEMY_AUTOCANNON_BLOCK);
+            }
 
             output.accept(vsieItems.LINKER);
             output.accept(vsieItems.IFF);
             output.accept(vsieItems.SHIELD_TOOL);
             output.accept(vsieItems.WARP_DATA_CHIP);
+            output.accept(vsieItems.CUSTOM_TURRET_PLACER);
+            output.accept(vsieItems.REGION_OBJ_EXPORT_TOOL);
             //output.accept(vsieBlocks.BASIC_SCREEN_BLOCK);
             output.accept(vsieBlocks.REDSTONE_RELAY_BLOCK);
             output.accept(vsieBlocks.SHIELD_GENERATOR_BLOCK);

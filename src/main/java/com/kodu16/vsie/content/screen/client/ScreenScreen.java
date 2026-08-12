@@ -148,7 +148,7 @@ public class ScreenScreen extends AbstractContainerScreen<ScreenContainerMenu> {
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         // Function: keep the mode button text aligned with the current synced display mode while this GUI stays open.
         this.modeButton.setMessage(getModeLabel(this.menu.getBlockEntity().displaytype));
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        // Function: the container parent owns the single background render pass.
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         this.renderTooltip(guiGraphics, mouseX, mouseY);
         renderControlTooltips(guiGraphics, mouseX, mouseY);

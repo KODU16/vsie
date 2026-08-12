@@ -6,6 +6,7 @@ import com.kodu16.vsie.content.warpprojectile.WarpProjecTileEntity;
 import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.foundation.Vec;
 import com.kodu16.vsie.registries.vsieEntities;
+import com.mojang.logging.LogUtils;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -15,6 +16,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
+import org.slf4j.Logger;
 import rbasamoyai.ritchiesprojectilelib.effects.screen_shake.ScreenShakeEffect;
 import rbasamoyai.ritchiesprojectilelib.network.ClientboundShakeScreenPacket;
 import rbasamoyai.ritchiesprojectilelib.network.RPLNetwork;
@@ -22,6 +24,7 @@ import rbasamoyai.ritchiesprojectilelib.network.RPLNetwork;
 import javax.annotation.Nullable;
 
 public final class WarpUtils {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static final double AXIS_EPSILON = 1.0E-8D;
     // Function: keep warp launch tolerances authored in degrees; vector acos still compares in radians.
     private static final double WARP_LAUNCH_ALIGNMENT_ANGLE_DEGREES = 0.35D;
@@ -155,6 +158,11 @@ public final class WarpUtils {
                 + WarpProjecTileEntity.lifeTicksForDistance(projectileTravelDistance)
                 + WARP_TELEPORT_EXTRA_DELAY_TICKS;
         data.schedulePendingWarpTeleport(new Vector3d(targetWorldPos.x, targetWorldPos.y, targetWorldPos.z), executeGameTime);
+        LOGGER.info(
+                "[VSIE-WARP] phase=TELEPORT_SCHEDULED dimension={} subLevel={} currentPose={} target={} executeGameTime={} currentGameTime={}",
+                level.dimension().location(), subLevel.getUniqueId(), subLevel.logicalPose().position(),
+                targetWorldPos, executeGameTime, level.getGameTime()
+        );
         data.transitionWarpPreparationToPendingTeleport();
         syncWarpPreparationState(data);
     }
@@ -171,7 +179,14 @@ public final class WarpUtils {
         Vector3d pendingTeleportPos = new Vector3d(data.pendingWarpTeleportPos);
         Vec3 completionCenter = calculateWarpCompletionCenter(subLevel, pendingTeleportPos);
         Player seatedPlayer = data.getPlayer();
-        if (ServerShipUtils.teleportKeepOrientation(subLevel, pendingTeleportPos)) {
+        Vector3d currentPose = new Vector3d(subLevel.logicalPose().position());
+        boolean teleported = ServerShipUtils.teleportKeepOrientation(subLevel, pendingTeleportPos);
+        LOGGER.info(
+                "[VSIE-WARP] phase=TELEPORT_EXECUTED dimension={} subLevel={} oldPose={} target={} success={} gameTime={}",
+                level.dimension().location(), subLevel.getUniqueId(), currentPose, pendingTeleportPos,
+                teleported, level.getGameTime()
+        );
+        if (teleported) {
             restoreSeatPassengerAfterWarp(data, seatedPlayer);
             shakeScreenAtWarpCompletion(data, completionCenter);
             data.clearPendingWarpTeleport();

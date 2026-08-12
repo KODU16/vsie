@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.screen;
 
 import com.kodu16.vsie.content.screen.server.ServerInfoGetter;
+import com.kodu16.vsie.foundation.RelativeBlockPosNbt;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -317,7 +318,7 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
         tag.putString("RadarAlly", radarAlly);
         tag.putString("RadarLockedEnemySlug", radarLockedEnemySlug);
         tag.put("RadarShipsData", writeRadarShipsData(radarShipsData));
-        tag.putLong(LINKED_CONTROL_SEAT_POS_TAG, this.linkedControlSeatPos.asLong());
+        RelativeBlockPosNbt.write(tag, LINKED_CONTROL_SEAT_POS_TAG, getBlockPos(), this.linkedControlSeatPos);
     }
 
     @Override
@@ -363,11 +364,7 @@ public abstract class AbstractScreenBlockEntity extends SmartBlockEntity impleme
         radarAlly = tag.getString("RadarAlly");
         radarLockedEnemySlug = tag.getString("RadarLockedEnemySlug");
         radarShipsData = readRadarShipsData(tag);
-        if (tag.contains(LINKED_CONTROL_SEAT_POS_TAG, Tag.TAG_LONG)) {
-            this.linkedControlSeatPos = BlockPos.of(tag.getLong(LINKED_CONTROL_SEAT_POS_TAG));
-        } else {
-            this.linkedControlSeatPos = BlockPos.ZERO;
-        }
+        this.linkedControlSeatPos = RelativeBlockPosNbt.read(tag, LINKED_CONTROL_SEAT_POS_TAG, getBlockPos(), false);
     }
 
     // Function: keep only the radar fields that the screen renderer needs and preserve scan ordering.

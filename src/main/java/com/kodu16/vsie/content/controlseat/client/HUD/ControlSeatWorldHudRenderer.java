@@ -7,6 +7,8 @@ import com.kodu16.vsie.content.controlseat.client.Input.ClientDataManager;
 import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
 import com.kodu16.vsie.content.controlseat.functions.ShipAnglePainter;
 import com.kodu16.vsie.foundation.ServerShipUtils;
+import com.kodu16.vsie.integration.deepspace.DeepSpaceHudBridge;
+import com.kodu16.vsie.integration.deepspace.DeepSpaceHudRenderer;
 import com.kodu16.vsie.registries.vsieKeyMappings;
 import com.kodu16.vsie.vsie;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -134,17 +136,26 @@ public class ControlSeatWorldHudRenderer {
         data.smoothThrottle = smoothExp(data.smoothThrottle, data.throttleTargetRatio, hudAlpha);
         int visualThrottle = computeVisualThrottle(data);
 
-        Vec3 cameraPos = event.getCamera().getPosition();
-        Vec3 hudAnchor = resolveHudAnchor(mc.level, controlSeatPos);
         Vec3 hudForward = resolveRenderedSeatForward(mc.level, controlSeatPos, mc.level.getBlockState(controlSeatPos));
         Vec3 hudUp = resolveRenderedSeatUp(mc.level, controlSeatPos);
         Vec3 hudRight = resolveRenderedSeatRight(hudForward, hudUp);
-        if (hudAnchor == null) {
-            data.clearLastHudSeat();
-            return;
-        }
         if (hudForward == null || hudUp == null || hudRight == null) {
             return;
+        }
+
+        Vec3 hudTranslation;
+        if (usesStableFirstPersonTranslation(player, controlSeatPos)) {
+            // Function: the seated eye and HUD share one local frame, so avoid subtracting independently interpolated world positions.
+            hudTranslation = hudForward.scale(HUD_VIEW_DISTANCE);
+        } else {
+            Vec3 cameraPos = event.getCamera().getPosition();
+            Vec3 hudAnchor = resolveHudAnchor(mc.level, controlSeatPos);
+            if (hudAnchor == null) {
+                data.clearLastHudSeat();
+                return;
+            }
+            // Function: third-person and remembered-seat HUDs retain their original world-space anchoring.
+            hudTranslation = hudAnchor.subtract(cameraPos);
         }
         MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
         PoseStack poseStack = event.getPoseStack();
@@ -153,7 +164,7 @@ public class ControlSeatWorldHudRenderer {
         beginHudRender();
         poseStack.pushPose();
         try {
-            poseStack.translate(hudAnchor.x - cameraPos.x, hudAnchor.y - cameraPos.y, hudAnchor.z - cameraPos.z);
+            poseStack.translate(hudTranslation.x, hudTranslation.y, hudTranslation.z);
             alignHudToSeatPlane(poseStack, hudRight, hudUp, hudForward);
             poseStack.scale(hudWorldScale, -hudWorldScale, hudWorldScale);
             renderHudPanel(poseStack, buffers, data, screenCenterX, screenCenterY, sw, sh, partialTick, visualThrottle, showWarpE710Bar, hudAlpha);
@@ -162,6 +173,12 @@ public class ControlSeatWorldHudRenderer {
             poseStack.popPose();
             endHudRender();
         }
+    }
+
+    private static boolean usesStableFirstPersonTranslation(Player player, BlockPos controlSeatPos) {
+        return mc.options.getCameraType().isFirstPerson()
+                && player.getVehicle() instanceof ControlSeatMountEntity mountEntity
+                && controlSeatPos.equals(mountEntity.getBoundBlockPos());
     }
 
     private static HudSeatContext resolveHudSeatContext(Player player, ControlSeatClientData data) {
@@ -308,6 +325,11 @@ public class ControlSeatWorldHudRenderer {
         drawKeyedSwitch(poseStack, buffers, "AntiG", vsieKeyMappings.KEY_TOGGLE_ANTI_GRAVITY, rightSwitchX, switchY + switchGapY, data.isantigravityon, false, MODE_BUTTON_WIDTH, MODE_BUTTON_HEIGHT, screenCenterX, screenCenterY);
         drawWarpSwitch(poseStack, buffers, data, leftSwitchX, switchY + switchGapY * 2, screenCenterX, screenCenterY);
         drawKeyedSwitch(poseStack, buffers, "Level", vsieKeyMappings.KEY_TOGGLE_AUTO_LEVEL, rightSwitchX, switchY + switchGapY * 2, data.isAutoLevelOn, data.isWarpPreparing || data.hasPendingWarpTeleport, MODE_BUTTON_WIDTH, MODE_BUTTON_HEIGHT, screenCenterX, screenCenterY);
+        if (DeepSpaceHudBridge.available()) {
+            drawKeyedSwitch(poseStack, buffers, "DeepSpace", vsieKeyMappings.KEY_TOGGLE_DEEPSPACE_HUD,
+                    leftSwitchX, switchY + switchGapY * 3, DeepSpaceHudRenderer.isEnabled(), false,
+                    MODE_BUTTON_WIDTH, MODE_BUTTON_HEIGHT, screenCenterX, screenCenterY);
+        }
 
         int rightArcCenterX = centerX + (3 * centerX / 10);
         int rightInfoY = throttleY - 16;

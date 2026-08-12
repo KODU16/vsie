@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "vsie:block/gecko_block"
+    }
+  }
+}

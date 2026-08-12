@@ -24,6 +24,11 @@ public class vsieKeyMappings {
     );
     public static final KeyMapping KEY_TOGGLE_TORQUE_ASSIST = new KeyMapping(
             "key.vsie.toggle_torque_assist",
+            GLFW.GLFW_KEY_J,
+            "category.vsie"
+    );
+    public static final KeyMapping KEY_TOGGLE_DEEPSPACE_HUD = new KeyMapping(
+            "key.vsie.toggle_deepspace_hud",
             GLFW.GLFW_KEY_H,
             "category.vsie"
     );
@@ -104,5 +109,6 @@ public class vsieKeyMappings {
         event.register(KEY_TOGGLE_TORQUE_ASSIST);
         event.register(KEY_TOGGLE_ANTI_GRAVITY);
         event.register(KEY_TOGGLE_AUTO_LEVEL);
+        event.register(KEY_TOGGLE_DEEPSPACE_HUD);
     }
 }

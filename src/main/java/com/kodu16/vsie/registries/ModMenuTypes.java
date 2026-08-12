@@ -9,6 +9,12 @@ import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.content.controlseat.gui.ControlSeatWarpContainerMenu;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreBlockEntity;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreContainerMenu;
+import com.kodu16.vsie.content.misc.enemy_core.EnemyCoreBlockEntity;
+import com.kodu16.vsie.content.misc.enemy_core.EnemyCoreContainerMenu;
+import com.kodu16.vsie.content.misc.enemy_cannon.EnemyCannonBlockEntity;
+import com.kodu16.vsie.content.misc.enemy_cannon.EnemyCannonContainerMenu;
+import com.kodu16.vsie.content.misc.enemy_autocannon.EnemyAutocannonBlockEntity;
+import com.kodu16.vsie.content.misc.enemy_autocannon.EnemyAutocannonContainerMenu;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.content.screen.server.ScreenContainerMenu;
 import com.kodu16.vsie.content.storage.ammobox.AmmoBoxBlockEntity;
@@ -95,5 +101,39 @@ public class ModMenuTypes {
                 BlockPos pos = data.readBlockPos();
                 ElectroMagnetRailCoreBlockEntity core = (ElectroMagnetRailCoreBlockEntity) inv.player.level().getBlockEntity(pos);
                 return new ElectroMagnetRailCoreContainerMenu(windowId, inv, core);
+            }));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<EnemyCoreContainerMenu>> ENEMY_CORE_MENU = MENUS.register("enemy_core_menu",
+            () -> IMenuTypeExtension.create((windowId, inventory, data) -> {
+                BlockPos pos = data.readBlockPos();
+                String enemy = data.readUtf(EnemyCoreBlockEntity.MAX_PATTERN_LENGTH);
+                String ally = data.readUtf(EnemyCoreBlockEntity.MAX_PATTERN_LENGTH);
+                double radius = data.readDouble();
+                double speed = data.readDouble();
+                // Function: carry all editable settings in the opening payload for an exact client snapshot.
+                return new EnemyCoreContainerMenu(windowId, inventory, pos, enemy, ally, radius, speed);
+            }));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<EnemyCannonContainerMenu>> ENEMY_CANNON_MENU = MENUS.register("enemy_cannon_menu",
+            () -> IMenuTypeExtension.create((windowId, inventory, data) -> {
+                BlockPos pos = data.readBlockPos();
+                int chargeCount = data.readVarInt();
+                int cooldownTicks = data.readVarInt();
+                EnemyCannonBlockEntity cannon = (EnemyCannonBlockEntity) inventory.player.level().getBlockEntity(pos);
+                // Function: slot contents use menu synchronization; only numeric fields need the opening payload.
+                return new EnemyCannonContainerMenu(windowId, inventory, cannon, chargeCount, cooldownTicks);
+            }));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<EnemyAutocannonContainerMenu>> ENEMY_AUTOCANNON_MENU = MENUS.register("enemy_autocannon_menu",
+            () -> IMenuTypeExtension.create((windowId, inventory, data) -> {
+                BlockPos pos = data.readBlockPos();
+                double spreadAngle = data.readDouble();
+                int shotInterval = data.readVarInt();
+                int burstShots = data.readVarInt();
+                EnemyAutocannonBlockEntity autocannon =
+                        (EnemyAutocannonBlockEntity) inventory.player.level().getBlockEntity(pos);
+                return new EnemyAutocannonContainerMenu(
+                        windowId, inventory, autocannon, spreadAngle, shotInterval, burstShots
+                );
             }));
 }

@@ -32,7 +32,7 @@ public class AmmoBoxScreen extends AbstractContainerScreen<AmmoBoxContainerMenu>
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTicks);
+        // Function: the container parent already draws the complete background.
         super.render(guiGraphics, mouseX, mouseY, partialTicks);
         // Function: the ammo box does not add extra slot-region tooltips because they overlap dense storage slots.
         this.renderTooltip(guiGraphics, mouseX, mouseY);

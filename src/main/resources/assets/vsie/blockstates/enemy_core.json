@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "vsie:block/enemy_core"
+    },
+    "facing=east": {
+      "model": "vsie:block/enemy_core",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "vsie:block/enemy_core",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "vsie:block/enemy_core",
+      "y": 270
+    }
+  }
+}

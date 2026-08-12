@@ -36,6 +36,9 @@ public class ClientMouseHandler {
         if (data == null || player.getVehicle() instanceof ControlSeatMountEntity) {
             return;
         }
+        if (data.isDimensionTransferPending()) {
+            return;
+        }
         Minecraft minecraft = Minecraft.getInstance();
         ClientDataManager.clearSeatBinding(player);
         if (minecraft.screen instanceof ControlSeatWarpSelectionScreen) {
@@ -63,6 +66,9 @@ public class ClientMouseHandler {
         }
 
         data.setUserUUID(player.getUUID());
+        if (data.consumePendingViewRecentering() && data.isViewLocked()) {
+            centerLockedView(player, minecraft, pos);
+        }
         handleMouseLock(player, data, minecraft, pos);
         handleWarpSelection(data, minecraft, pos);
 
@@ -141,23 +147,7 @@ public class ClientMouseHandler {
             data.reset();
             if (data.isViewLocked()) {
                 player.displayClientMessage(Component.translatable("message.vsie.control_seat.view_lock.enabled"), true);
-                Level level = minecraft.level;
-                BlockState state = level.getBlockState(pos);
-                Direction facing = state.getValue(BlockStateProperties.FACING);
-                int yRot;
-                if (facing == Direction.NORTH) {
-                    yRot = 0;
-                } else if (facing == Direction.SOUTH) {
-                    yRot = 180;
-                } else if (facing == Direction.EAST) {
-                    yRot = 90;
-                } else {
-                    yRot = 270;
-                }
-                player.setYRot(yRot);
-                player.setXRot(0);
-                player.setYHeadRot(yRot);
-                player.setYBodyRot(0);
+                centerLockedView(player, minecraft, pos);
             } else {
                 player.displayClientMessage(Component.translatable("message.vsie.control_seat.view_lock.disabled"), true);
             }
@@ -173,6 +163,35 @@ public class ClientMouseHandler {
             ));
             data.updatelastKeyPressTime();
         }
+    }
+
+    /**
+     * Reuses the seat-facing center used by manual view locking after a dimension remount.
+     */
+    private static void centerLockedView(LocalPlayer player, Minecraft minecraft, BlockPos pos) {
+        Level level = minecraft.level;
+        if (level == null) {
+            return;
+        }
+        BlockState state = level.getBlockState(pos);
+        if (!state.hasProperty(BlockStateProperties.FACING)) {
+            return;
+        }
+        Direction facing = state.getValue(BlockStateProperties.FACING);
+        int yRot;
+        if (facing == Direction.NORTH) {
+            yRot = 0;
+        } else if (facing == Direction.SOUTH) {
+            yRot = 180;
+        } else if (facing == Direction.EAST) {
+            yRot = 90;
+        } else {
+            yRot = 270;
+        }
+        player.setYRot(yRot);
+        player.setXRot(0);
+        player.setYHeadRot(yRot);
+        player.setYBodyRot(0);
     }
 
     private static LocalPlayer playerFromMinecraft(Minecraft minecraft) {

@@ -142,8 +142,8 @@ public class ControlSeatC2SPacket implements CustomPacketPayload {
                 // Function: unlocked view maps W/S to pitch, A/D to roll, and Z/C to yaw.
                 float pitchKeyInput = serverData.isAutoLevelOn
                         ? 0.0F
-                        // Function: match W/S pitch authority to the same scaled keyboard torque formula used by A/D roll.
-                        : clampControlAxis(((isWPressed ? 1.0F : 0.0F) - (isSPressed ? 1.0F : 0.0F)) * keyboardTorqueAxisScale);
+                        // Function: unlocked W pitches up and S pitches down in the seat-local torque coordinates.
+                        : clampControlAxis(((isSPressed ? 1.0F : 0.0F) - (isWPressed ? 1.0F : 0.0F)) * keyboardTorqueAxisScale);
                 float yawKeyInput = clampControlAxis((isControlRightPressed ? 1.0F : 0.0F) - (isControlLeftPressed ? 1.0F : 0.0F));
                 int finalthrottle = Math.max(-100, Math.min(serverData.getThrottle() + finalthrottledelta, 100));
                 serverData.setForce(new Vector3d(0, 0, 0));

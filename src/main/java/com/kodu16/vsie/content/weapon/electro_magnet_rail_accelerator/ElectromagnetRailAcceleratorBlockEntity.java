@@ -2,6 +2,7 @@ package com.kodu16.vsie.content.weapon.electro_magnet_rail_accelerator;
 
 import com.kodu16.vsie.content.cooldown.FireCooldown;
 import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
+import com.kodu16.vsie.content.misc.electromagnet_rail.RailCoreRegistry;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreBlock;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreBlockEntity;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
@@ -21,6 +22,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 
+import java.util.UUID;
+
 public class ElectromagnetRailAcceleratorBlockEntity extends AbstractWeaponBlockEntity {
     private static final int FIRE_INTERVAL_TICKS = 1;
     private static final int MAX_COOLDOWN_VALUE = 50;
@@ -28,7 +31,9 @@ public class ElectromagnetRailAcceleratorBlockEntity extends AbstractWeaponBlock
     private static final double MAX_CORE_DISTANCE = 128.0D;
     private static final double FORCE_PER_MASS = 50.0D;
     private static final String LINKED_CORE_POS_TAG = "LinkedElectroMagnetRailCorePos";
-    private BlockPos linkedCorePos = BlockPos.ZERO;
+    private static final String LINKED_CORE_BINDING_ID_TAG = "LinkedElectroMagnetRailCoreBindingId";
+    private UUID linkedCoreBindingId;
+    private BlockPos legacyLinkedCorePos = BlockPos.ZERO;
     private long lastAccelerationGameTime = Long.MIN_VALUE;
 
     public ElectromagnetRailAcceleratorBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
@@ -62,13 +67,37 @@ public class ElectromagnetRailAcceleratorBlockEntity extends AbstractWeaponBlock
         return FireCooldown.cool2(FIRE_INTERVAL_TICKS, MAX_COOLDOWN_VALUE, IDLE_RECOVERY_PER_TICK);
     }
 
-    public BlockPos getLinkedCorePos() {
-        return linkedCorePos;
+    public boolean hasLinkedCoreBinding() {
+        return linkedCoreBindingId != null;
     }
 
-    public void setLinkedCorePos(BlockPos linkedCorePos) {
-        this.linkedCorePos = linkedCorePos == null ? BlockPos.ZERO : linkedCorePos.immutable();
+    public UUID getLinkedCoreBindingId() {
+        return linkedCoreBindingId;
+    }
+
+    public void bindToCore(ElectroMagnetRailCoreBlockEntity core) {
+        linkedCoreBindingId = core.getOrCreateRailBindingId();
+        legacyLinkedCorePos = BlockPos.ZERO;
         markBindingDirty();
+    }
+
+    public boolean isBoundToCore(ElectroMagnetRailCoreBlockEntity core) {
+        return linkedCoreBindingId != null && linkedCoreBindingId.equals(core.getRailBindingId());
+    }
+
+    public void clearLinkedCoreBinding() {
+        linkedCoreBindingId = null;
+        legacyLinkedCorePos = BlockPos.ZERO;
+        markBindingDirty();
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (level != null && level.isClientSide() && linkedCoreBindingId != null) {
+            // Function: keep every loaded linked accelerator discoverable by the linker world overlay.
+            RailCoreRegistry.registerClientAccelerator(this);
+        }
     }
 
     // Function: expose whether this accelerator should hard-disable force assist for the current firing state.
@@ -115,12 +144,16 @@ public class ElectromagnetRailAcceleratorBlockEntity extends AbstractWeaponBlock
             return null;
         }
 
-        ElectroMagnetRailCoreBlockEntity core = resolveLinkedCore(level);
+        ElectroMagnetRailCoreBlockEntity core = resolveLinkedCore(serverSubLevel);
         if (core == null || !core.hasValidTerminalBinding()) {
             return null;
         }
 
-        SubLevel coreSubLevel = ServerShipUtils.getSubLevelAtBlockPos(level, core.getBlockPos());
+        Level coreLevel = core.getLevel();
+        if (coreLevel == null || !level.dimension().equals(coreLevel.dimension())) {
+            return null;
+        }
+        SubLevel coreSubLevel = ServerShipUtils.getSubLevelAtBlockPos(coreLevel, core.getBlockPos());
         if (!(coreSubLevel instanceof ServerSubLevel coreServerSubLevel)) {
             return null;
         }
@@ -142,7 +175,7 @@ public class ElectromagnetRailAcceleratorBlockEntity extends AbstractWeaponBlock
             return null;
         }
 
-        ControlSeatBlockEntity coreControlSeat = resolveCoreControlSeat(level, core);
+        ControlSeatBlockEntity coreControlSeat = resolveCoreControlSeat(core);
         if (coreControlSeat == null) {
             return null;
         }
@@ -167,16 +200,29 @@ public class ElectromagnetRailAcceleratorBlockEntity extends AbstractWeaponBlock
         return new AccelerationContext(serverSubLevel, coreServerSubLevel, coreControlSeat, massData, worldForceDirection, energyCostFe);
     }
 
-    private ElectroMagnetRailCoreBlockEntity resolveLinkedCore(Level level) {
-        if (linkedCorePos == null || linkedCorePos.equals(BlockPos.ZERO)) {
+    private ElectroMagnetRailCoreBlockEntity resolveLinkedCore(ServerSubLevel sourceSubLevel) {
+        net.minecraft.server.MinecraftServer server = sourceSubLevel.getLevel().getServer();
+        if (server == null) {
             return null;
         }
-        BlockEntity blockEntity = level.getBlockEntity(linkedCorePos);
-        if (!(blockEntity instanceof ElectroMagnetRailCoreBlockEntity core)) {
+        ElectroMagnetRailCoreBlockEntity core = linkedCoreBindingId == null
+                ? null
+                : RailCoreRegistry.resolve(server, linkedCoreBindingId, sourceSubLevel, getBlockPos());
+        if (core == null && !legacyLinkedCorePos.equals(BlockPos.ZERO)) {
+            BlockEntity legacy = sourceSubLevel.getLevel().getBlockEntity(legacyLinkedCorePos);
+            if (legacy instanceof ElectroMagnetRailCoreBlockEntity legacyCore) {
+                core = legacyCore;
+            }
+        }
+        if (core == null && linkedCoreBindingId == null && !legacyLinkedCorePos.equals(BlockPos.ZERO)) {
+            core = RailCoreRegistry.resolveNearest(server, sourceSubLevel, getBlockPos(), MAX_CORE_DISTANCE);
+        }
+        if (core == null || !core.getBlockState().hasProperty(ElectroMagnetRailCoreBlock.FACING)) {
             return null;
         }
-        if (!core.getBlockState().hasProperty(ElectroMagnetRailCoreBlock.FACING)) {
-            return null;
+        if (linkedCoreBindingId == null || !linkedCoreBindingId.equals(core.getRailBindingId())) {
+            // Function: upgrade legacy absolute coordinates once the unique nearby core is rediscovered.
+            bindToCore(core);
         }
         return core;
     }
@@ -188,16 +234,8 @@ public class ElectromagnetRailAcceleratorBlockEntity extends AbstractWeaponBlock
         return selfSubLevel == otherSubLevel || selfSubLevel.hashCode() == otherSubLevel.hashCode();
     }
 
-    private ControlSeatBlockEntity resolveCoreControlSeat(Level level, ElectroMagnetRailCoreBlockEntity core) {
-        BlockPos controlSeatPos = core.getLinkedControlSeatPos();
-        if (controlSeatPos == null || controlSeatPos.equals(BlockPos.ZERO)) {
-            return null;
-        }
-        BlockEntity blockEntity = level.getBlockEntity(controlSeatPos);
-        if (!(blockEntity instanceof ControlSeatBlockEntity controlSeat)) {
-            return null;
-        }
-        return controlSeat;
+    private ControlSeatBlockEntity resolveCoreControlSeat(ElectroMagnetRailCoreBlockEntity core) {
+        return core.resolveLinkedControlSeat();
     }
 
     private int getEnergyCostFe(MassData massData) {
@@ -219,17 +257,23 @@ public class ElectromagnetRailAcceleratorBlockEntity extends AbstractWeaponBlock
     @Override
     protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.write(tag, registries, clientPacket);
-        tag.putLong(LINKED_CORE_POS_TAG, linkedCorePos.asLong());
+        if (linkedCoreBindingId != null) {
+            tag.putUUID(LINKED_CORE_BINDING_ID_TAG, linkedCoreBindingId);
+        } else if (!legacyLinkedCorePos.equals(BlockPos.ZERO)) {
+            // Function: retain unresolved legacy data until a loaded nearby core can upgrade it to a binding UUID.
+            tag.putLong(LINKED_CORE_POS_TAG, legacyLinkedCorePos.asLong());
+        }
     }
 
     @Override
     protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
         super.read(tag, registries, clientPacket);
-        if (tag.contains(LINKED_CORE_POS_TAG)) {
-            linkedCorePos = BlockPos.of(tag.getLong(LINKED_CORE_POS_TAG));
-        } else {
-            linkedCorePos = BlockPos.ZERO;
-        }
+        linkedCoreBindingId = tag.hasUUID(LINKED_CORE_BINDING_ID_TAG)
+                ? tag.getUUID(LINKED_CORE_BINDING_ID_TAG)
+                : null;
+        legacyLinkedCorePos = linkedCoreBindingId == null && tag.contains(LINKED_CORE_POS_TAG)
+                ? BlockPos.of(tag.getLong(LINKED_CORE_POS_TAG))
+                : BlockPos.ZERO;
     }
 
     @Override

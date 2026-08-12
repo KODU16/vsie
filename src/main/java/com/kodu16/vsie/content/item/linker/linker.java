@@ -1,7 +1,10 @@
 package com.kodu16.vsie.content.item.linker;
 
 import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
+import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreBlockEntity;
+import com.kodu16.vsie.content.misc.enemy_cannon.EnemyCannonBlockEntity;
+import com.kodu16.vsie.content.misc.enemy_autocannon.EnemyAutocannonBlockEntity;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
 import com.kodu16.vsie.content.storage.ammobox.AmmoBoxBlockEntity;
@@ -193,6 +196,10 @@ public class linker extends Item {
         }
 
         if (clickedBlockEntity instanceof ElectroMagnetRailCoreBlockEntity core) {
+            if (!(controlSeat instanceof ControlSeatBlockEntity)) {
+                showLinkerMessage(player, "cannot_link_to_control_seat");
+                return InteractionResult.CONSUME;
+            }
             if (!ensureSameSubLevel(level, controllerPos, clickedPos, player,
                     "control_seat_rail_core_same_sublevel")) {
                 return InteractionResult.CONSUME;
@@ -212,6 +219,30 @@ public class linker extends Item {
         if (clickedBlockEntity instanceof VerticleLaunchingSlotBlockEntity) {
             showLinkerMessage(player, "vertical_slots_core_only");
             return InteractionResult.CONSUME;
+        }
+        if (clickedBlockEntity instanceof EnemyCannonBlockEntity) {
+            return linkControlSeatPeripheral(
+                    player,
+                    controlSeat,
+                    controllerPos,
+                    peripheralPos,
+                    clickedPos,
+                    clickedBlockEntity,
+                    AbstractControlSeatBlockEntity.ENEMY_CANNON_PERIPHERAL_TYPE,
+                    "enemy_cannon"
+            );
+        }
+        if (clickedBlockEntity instanceof EnemyAutocannonBlockEntity) {
+            return linkControlSeatPeripheral(
+                    player,
+                    controlSeat,
+                    controllerPos,
+                    peripheralPos,
+                    clickedPos,
+                    clickedBlockEntity,
+                    AbstractControlSeatBlockEntity.ENEMY_CANNON_PERIPHERAL_TYPE,
+                    "enemy_autocannon"
+            );
         }
         if (clickedBlockEntity instanceof AbstractThrusterBlockEntity) {
             return linkControlSeatPeripheral(player, controlSeat, controllerPos, peripheralPos, clickedPos, clickedBlockEntity, 0, "thruster");
@@ -246,7 +277,7 @@ public class linker extends Item {
                                                                      BlockPos clickedPos, BlockEntity clickedBlockEntity) {
         BlockPos corePos = getBlockPos(nbt, ELECTRO_MAGNET_RAIL_CORE_POS_TAG);
         BlockEntity coreBlockEntity = level.getBlockEntity(corePos);
-        if (!(coreBlockEntity instanceof ElectroMagnetRailCoreBlockEntity)) {
+        if (!(coreBlockEntity instanceof ElectroMagnetRailCoreBlockEntity core)) {
             nbt.remove(ELECTRO_MAGNET_RAIL_CORE_POS_TAG);
             nbt.remove(STORED_TYPE_TAG);
             ItemStackNbt.set(stack, nbt);
@@ -259,7 +290,7 @@ public class linker extends Item {
                 return InteractionResult.CONSUME;
             }
             // Function: the accelerator stores one explicit rail-core binding that its fire logic resolves later.
-            accelerator.setLinkedCorePos(corePos);
+            accelerator.bindToCore(core);
             showLinkerMessage(player, "bound_accelerator_to_core", clickedPos.toShortString(), corePos.toShortString());
             return InteractionResult.CONSUME;
         }
@@ -271,6 +302,10 @@ public class linker extends Item {
     private InteractionResult linkControlSeatPeripheral(ServerPlayer player, AbstractControlSeatBlockEntity controlSeat,
                                                         BlockPos controllerPos, Vec3 peripheralPos, BlockPos clickedPos, BlockEntity clickedBlockEntity,
                                                         int type, String displayName) {
+        if (!controlSeat.supportsLinkedPeripheralType(type)) {
+            showLinkerMessage(player, "cannot_link_to_control_seat");
+            return InteractionResult.CONSUME;
+        }
         setStoredPeripheralControlSeat(clickedBlockEntity, controllerPos);
         // Function: keep the original control-seat linker peripheral type ids for existing control logic.
         controlSeat.addLinkedPeripheral(peripheralPos, type);
@@ -348,15 +383,18 @@ public class linker extends Item {
             return InteractionResult.PASS;
         }
 
-        BlockPos linkedCorePos = accelerator.getLinkedCorePos();
-        if (linkedCorePos != null && !linkedCorePos.equals(BlockPos.ZERO)) {
-            if (isStoredRailCoreAcceleratorLinkValid(level, linkedCorePos, accelerator)) {
-                accelerator.setLinkedCorePos(BlockPos.ZERO);
+        BlockPos selectedCorePos = getBlockPos(nbt, ELECTRO_MAGNET_RAIL_CORE_POS_TAG);
+        BlockEntity selectedBlockEntity = level.getBlockEntity(selectedCorePos);
+        if (selectedBlockEntity instanceof ElectroMagnetRailCoreBlockEntity selectedCore) {
+            if (isStoredRailCoreAcceleratorLinkValid(selectedCore, accelerator)) {
+                accelerator.clearLinkedCoreBinding();
                 showLinkerMessage(player, "removed_accelerator_from_rail_core", clickedPos.toShortString());
                 return InteractionResult.CONSUME;
             }
-            // Function: stale accelerator-side rail-core coordinates should not block shift-right-click from creating a fresh link.
-            accelerator.setLinkedCorePos(BlockPos.ZERO);
+            if (accelerator.hasLinkedCoreBinding()) {
+                // Function: replacing a different or stale core binding is an explicit linker action.
+                accelerator.clearLinkedCoreBinding();
+            }
         }
 
         return handleElectroMagnetRailAcceleratorLink(level, player, stack, nbt, clickedPos, clickedBlockEntity);
@@ -381,6 +419,12 @@ public class linker extends Item {
     private int getControlSeatPeripheralType(BlockEntity blockEntity) {
         if (blockEntity instanceof VerticleLaunchingSlotBlockEntity) {
             return -1;
+        }
+        if (blockEntity instanceof EnemyCannonBlockEntity) {
+            return AbstractControlSeatBlockEntity.ENEMY_CANNON_PERIPHERAL_TYPE;
+        }
+        if (blockEntity instanceof EnemyAutocannonBlockEntity) {
+            return AbstractControlSeatBlockEntity.ENEMY_CANNON_PERIPHERAL_TYPE;
         }
         if (blockEntity instanceof AbstractThrusterBlockEntity) {
             return 0;
@@ -410,6 +454,12 @@ public class linker extends Item {
     }
 
     private BlockPos getStoredLinkedControlSeatPos(BlockEntity blockEntity) {
+        if (blockEntity instanceof EnemyCannonBlockEntity cannon) {
+            return cannon.getLinkedEnemyCorePos();
+        }
+        if (blockEntity instanceof EnemyAutocannonBlockEntity autocannon) {
+            return autocannon.getLinkedEnemyCorePos();
+        }
         if (blockEntity instanceof ShieldGeneratorBlockEntity shield) {
             return shield.linkedcontrolseatpos;
         }
@@ -446,13 +496,10 @@ public class linker extends Item {
         return controlSeat.hasLinkedPeripheral(Vec3.atLowerCornerOf(peripheralPos), peripheralType);
     }
 
-    private boolean isStoredRailCoreAcceleratorLinkValid(Level level, BlockPos corePos, ElectromagnetRailAcceleratorBlockEntity accelerator) {
-        BlockEntity blockEntity = level.getBlockEntity(corePos);
-        if (!(blockEntity instanceof ElectroMagnetRailCoreBlockEntity)) {
-            return false;
-        }
-        // Function: only a still-loaded rail core at the stored position counts as an active accelerator core link.
-        return corePos.equals(accelerator.getLinkedCorePos());
+    private boolean isStoredRailCoreAcceleratorLinkValid(ElectroMagnetRailCoreBlockEntity core,
+                                                         ElectromagnetRailAcceleratorBlockEntity accelerator) {
+        // Function: stable binding identity remains valid when either sublevel changes plot or host dimension.
+        return accelerator.isBoundToCore(core);
     }
 
     private boolean ensureSameSubLevel(Level level, BlockPos sourcePos, BlockPos targetPos, ServerPlayer player, String failureMessageKey) {
@@ -488,6 +535,14 @@ public class linker extends Item {
     }
 
     private void setStoredPeripheralControlSeat(BlockEntity blockEntity, BlockPos controlSeatPos) {
+        if (blockEntity instanceof EnemyCannonBlockEntity cannon) {
+            cannon.setLinkedEnemyCorePos(controlSeatPos);
+            return;
+        }
+        if (blockEntity instanceof EnemyAutocannonBlockEntity autocannon) {
+            autocannon.setLinkedEnemyCorePos(controlSeatPos);
+            return;
+        }
         if (blockEntity instanceof ShieldGeneratorBlockEntity shield) {
             shield.linkedcontrolseatpos = controlSeatPos.immutable();
             shield.setChanged();
@@ -530,6 +585,14 @@ public class linker extends Item {
     }
 
     private void clearStoredPeripheralControlSeat(BlockEntity blockEntity) {
+        if (blockEntity instanceof EnemyCannonBlockEntity cannon) {
+            cannon.setLinkedEnemyCorePos(BlockPos.ZERO);
+            return;
+        }
+        if (blockEntity instanceof EnemyAutocannonBlockEntity autocannon) {
+            autocannon.setLinkedEnemyCorePos(BlockPos.ZERO);
+            return;
+        }
         if (blockEntity instanceof ShieldGeneratorBlockEntity shield) {
             shield.linkedcontrolseatpos = BlockPos.ZERO;
             shield.setChanged();

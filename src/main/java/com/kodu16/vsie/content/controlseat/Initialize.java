@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.controlseat;
 
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
+import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.foundation.ServerShipUtils;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
@@ -21,7 +22,7 @@ public class Initialize {
         }
 
         BlockEntity blockEntity = level.getBlockEntity(pos);
-        if (!(blockEntity instanceof AbstractControlSeatBlockEntity controlseatBlockEntity)) {
+        if (!(blockEntity instanceof ControlSeatBlockEntity controlseatBlockEntity)) {
             return;
         }
 

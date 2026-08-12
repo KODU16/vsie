@@ -5,6 +5,9 @@ import com.kodu16.vsie.content.controlseat.gui.ControlSeatWarpScreen;
 import com.kodu16.vsie.content.item.IFF.IFFScreen;
 import com.kodu16.vsie.content.item.shieldtool.shieldtoolScreen;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreScreen;
+import com.kodu16.vsie.content.misc.enemy_core.EnemyCoreScreen;
+import com.kodu16.vsie.content.misc.enemy_cannon.EnemyCannonScreen;
+import com.kodu16.vsie.content.misc.enemy_autocannon.EnemyAutocannonScreen;
 import com.kodu16.vsie.content.missile.AbstractMissileGeoRenderer;
 import com.kodu16.vsie.content.particle.CannonMuzzleSmokeParticle;
 import com.kodu16.vsie.content.particle.ShieldParticle;
@@ -75,6 +78,9 @@ public class vsieClientModRegistryEvents {
         event.register(ModMenuTypes.CONTROL_SEAT_WARP_MENU.get(), ControlSeatWarpScreen::new);
         event.register(ModMenuTypes.ELECTRO_MAGNET_RAIL_CORE_MENU.get(), ElectroMagnetRailCoreScreen::new);
         event.register(ModMenuTypes.THRUSTER_MENU.get(), ThrusterScreen::new);
+        event.register(ModMenuTypes.ENEMY_CORE_MENU.get(), EnemyCoreScreen::new);
+        event.register(ModMenuTypes.ENEMY_CANNON_MENU.get(), EnemyCannonScreen::new);
+        event.register(ModMenuTypes.ENEMY_AUTOCANNON_MENU.get(), EnemyAutocannonScreen::new);
     }
 
     @SubscribeEvent

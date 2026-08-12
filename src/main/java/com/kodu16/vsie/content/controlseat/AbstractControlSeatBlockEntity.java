@@ -1,10 +1,9 @@
 package com.kodu16.vsie.content.controlseat;
 
+import com.mojang.logging.LogUtils;
 import com.kodu16.vsie.content.controlseat.server.ControlSeatServerData;
 import com.kodu16.vsie.foundation.ServerShipUtils;
-import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
-import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -13,13 +12,11 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import software.bernie.geckolib.animatable.GeoBlockEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,31 +25,18 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 @SuppressWarnings({"deprecation", "unchecked"})
-public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity implements IHaveGoggleInformation, GeoBlockEntity {
+public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity {
+    public static final int ENEMY_CANNON_PERIPHERAL_TYPE = 8;
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final String LINK_TRACE_PREFIX = "[VSIE-LINK-TRACE]";
 
     // Common State
     protected ControlSeatServerData controlseatData;
-    private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
-    public float calculatedstrength = 0;
-
-    //energy
-    public int energyspendpertick = 10;
-    public int capacitorenergy = 0;
-    public int totalenergy = 100;
-    public int totalenergyavalible = 0;
-    public boolean linkedBatteryPowerAvailableThisTick = false;
-
-    //fuel
-    public int fuelspendcurrenttick = 0;
-    public int capacitorfuel = 0;
-    public int totalfuel = 100;
-    public int totalfuelavalible = 0;
-
-    //shield
-    public double avalibleshield = 0;
 
     //Links(nbt:true)
     private static final int LINKED_PERIPHERAL_MISSING_TICKS_BEFORE_REMOVAL = 5;
+    private static final String LINKED_PERIPHERAL_POSITION_FORMAT_TAG = "LinkedPeripheralPositionsRelative";
+    private static final int SABLE_PLOT_COORDINATE_THRESHOLD = 1_000_000;
     private final List<Vec3> linkedThrusters = new ArrayList<>();
     public final List<Vec3> linkedWeapons = new ArrayList<>();
     public final List<Vec3> linkedShields = new ArrayList<>();
@@ -61,22 +45,21 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
     public final List<Vec3> linkedFuelTanks = new ArrayList<>();
     public final List<Vec3> linkedAmmoboxes = new ArrayList<>();
     public final List<Vec3> linkedScreens = new ArrayList<>();
+    private final List<Vec3> linkedEnemyCannons = new ArrayList<>();
     private final Map<String, MissingLinkedPeripheralState> missingLinkedPeripheralStates = new HashMap<>();
+    private String lastLinkedPeripheralResolutionSignature = "";
 
     public AbstractControlSeatBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
         controlseatData = new ControlSeatServerData();
     }
 
-    protected abstract boolean isWorking();
-
     public ControlSeatServerData getControlSeatData() {
         return controlseatData;
     }
 
-    public abstract void onRemove();
-
-    public abstract String getcontrolseattype();
+    // Function: concrete controllers explicitly whitelist their compatible peripheral families.
+    public abstract boolean supportsLinkedPeripheralType(int type);
 
     @Override
     public void write(CompoundTag nbt, HolderLookup.Provider registries, boolean clientPacket) {
@@ -84,14 +67,20 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         nbt.putString("enemy", controlseatData.enemy);
         nbt.putString("ally", controlseatData.ally);
 
-        writeVec3List(nbt, "Thrusters", linkedThrusters);
-        writeVec3List(nbt, "Weapons", linkedWeapons);
-        writeVec3List(nbt, "Shields", linkedShields);
-        writeVec3List(nbt, "Turrets", linkedTurrets);
-        writeVec3List(nbt, "Batteries", linkedBatteries);
-        writeVec3List(nbt, "Fueltanks", linkedFuelTanks);
-        writeVec3List(nbt, "Ammoboxes", linkedAmmoboxes);
-        writeVec3List(nbt, "Screens", linkedScreens);
+        writeSupportedVec3List(nbt, "Thrusters", linkedThrusters, 0);
+        writeSupportedVec3List(nbt, "Weapons", linkedWeapons, 1);
+        writeSupportedVec3List(nbt, "Shields", linkedShields, 2);
+        writeSupportedVec3List(nbt, "Turrets", linkedTurrets, 3);
+        writeSupportedVec3List(nbt, "Batteries", linkedBatteries, 4);
+        writeSupportedVec3List(nbt, "Fueltanks", linkedFuelTanks, 5);
+        writeSupportedVec3List(nbt, "Ammoboxes", linkedAmmoboxes, 6);
+        writeSupportedVec3List(nbt, "Screens", linkedScreens, 7);
+        writeSupportedVec3List(nbt, "EnemyCannons", linkedEnemyCannons, ENEMY_CANNON_PERIPHERAL_TYPE);
+        // Function: distinguish portable seat-relative offsets from legacy absolute Sable plot coordinates.
+        nbt.putBoolean(LINKED_PERIPHERAL_POSITION_FORMAT_TAG, true);
+        if (!clientPacket || getLinkedPeripheralCount() > 0) {
+            traceLinkState("WRITE", clientPacket, getLinkedPeripheralCount(), nbt);
+        }
     }
 
     @Override
@@ -107,6 +96,14 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
             this.controlseatData.ally = nbt.getString("ally");
         }
 
+        int previousCount = getLinkedPeripheralCount();
+        if (!containsLinkedPeripheralPayload(nbt)) {
+            // Function: partial update tags must not erase persistent links they do not carry.
+            LOGGER.warn("{} phase=READ_SKIPPED_PARTIAL context={} clientPacket={} previous={} keys={}",
+                    LINK_TRACE_PREFIX, linkTraceContext(), clientPacket, linkedPeripheralSummary(), nbt.getAllKeys());
+            return;
+        }
+
         linkedThrusters.clear();
         linkedWeapons.clear();
         linkedShields.clear();
@@ -115,16 +112,19 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         linkedFuelTanks.clear();
         linkedAmmoboxes.clear();
         linkedScreens.clear();
+        linkedEnemyCannons.clear();
         missingLinkedPeripheralStates.clear();
-
-        readVec3List(nbt, "Thrusters", linkedThrusters);
-        readVec3List(nbt, "Weapons", linkedWeapons);
-        readVec3List(nbt, "Shields", linkedShields);
-        readVec3List(nbt, "Turrets", linkedTurrets);
-        readVec3List(nbt, "Batteries", linkedBatteries);
-        readVec3List(nbt, "Fueltanks", linkedFuelTanks);
-        readVec3List(nbt, "Ammoboxes", linkedAmmoboxes);
-        readVec3List(nbt, "Screens", linkedScreens);
+        boolean relativeFormat = nbt.getBoolean(LINKED_PERIPHERAL_POSITION_FORMAT_TAG);
+        readSupportedVec3List(nbt, "Thrusters", linkedThrusters, 0, relativeFormat);
+        readSupportedVec3List(nbt, "Weapons", linkedWeapons, 1, relativeFormat);
+        readSupportedVec3List(nbt, "Shields", linkedShields, 2, relativeFormat);
+        readSupportedVec3List(nbt, "Turrets", linkedTurrets, 3, relativeFormat);
+        readSupportedVec3List(nbt, "Batteries", linkedBatteries, 4, relativeFormat);
+        readSupportedVec3List(nbt, "Fueltanks", linkedFuelTanks, 5, relativeFormat);
+        readSupportedVec3List(nbt, "Ammoboxes", linkedAmmoboxes, 6, relativeFormat);
+        readSupportedVec3List(nbt, "Screens", linkedScreens, 7, relativeFormat);
+        readSupportedVec3List(nbt, "EnemyCannons", linkedEnemyCannons, ENEMY_CANNON_PERIPHERAL_TYPE, relativeFormat);
+        traceLinkState("READ_APPLY", clientPacket, previousCount, nbt);
     }
 
     @Override
@@ -153,10 +153,6 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
     }
 
     public void setAlly(String str) {
-        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, getBlockPos());
-        if (subLevel instanceof ServerSubLevel serverSubLevel) {
-            serverSubLevel.setName(processSlug(serverSubLevel.getName(), str));
-        }
         controlseatData.ally = str;
     }
 
@@ -171,8 +167,11 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         if (storedOffset == null) {
             linkedPeripherals.add(relativeOffset);
             setChanged();
+            LOGGER.info("{} phase=LINK_ADD context={} type={} target={} offset={} totals={}",
+                    LINK_TRACE_PREFIX, linkTraceContext(), type, BlockPos.containing(pos),
+                    BlockPos.containing(relativeOffset), linkedPeripheralSummary());
         } else {
-            clearMissingLinkedPeripheralState(storedOffset, type);
+            traceMissingRecovery(storedOffset, type, clearMissingLinkedPeripheralState(storedOffset, type));
         }
         // Function: push updated relative linker data to clients after peripheral link changes.
         sendData();
@@ -189,7 +188,12 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
             return;
         }
 
-        clearMissingLinkedPeripheralState(storedOffset, type);
+        MissingLinkedPeripheralState removedState = clearMissingLinkedPeripheralState(storedOffset, type);
+        LOGGER.warn("{} phase=MISSING_DELETE context={} type={} target={} offset={} missingTicks={} totals={}",
+                LINK_TRACE_PREFIX, linkTraceContext(), type,
+                BlockPos.containing(toAbsoluteLinkedPeripheralPos(storedOffset)), BlockPos.containing(storedOffset),
+                removedState == null ? LINKED_PERIPHERAL_MISSING_TICKS_BEFORE_REMOVAL : removedState.missingTicks,
+                linkedPeripheralSummary());
         setChanged();
         // Function: keep client-side linker overlays consistent after a missing peripheral expires.
         sendData();
@@ -207,6 +211,10 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         }
 
         clearMissingLinkedPeripheralState(storedOffset, type);
+        LOGGER.info("{} phase=LINK_REMOVE_EXPLICIT context={} type={} target={} offset={} totals={}",
+                LINK_TRACE_PREFIX, linkTraceContext(), type,
+                BlockPos.containing(toAbsoluteLinkedPeripheralPos(storedOffset)), BlockPos.containing(storedOffset),
+                linkedPeripheralSummary());
         setChanged();
         // Function: explicit linker unlink should propagate to client-side overlays immediately instead of waiting for missing-tick cleanup.
         sendData();
@@ -221,7 +229,7 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
     public void confirmLinkedPeripheralPresent(Vec3 pos, int type) {
         Vec3 storedOffset = findStoredLinkedOffset(pos, type);
         if (storedOffset != null) {
-            clearMissingLinkedPeripheralState(storedOffset, type);
+            traceMissingRecovery(storedOffset, type, clearMissingLinkedPeripheralState(storedOffset, type));
         }
     }
 
@@ -234,6 +242,71 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         for (Vec3 relativeOffset : new ArrayList<>(linkedPeripherals)) {
             action.accept(toAbsoluteLinkedPeripheralPos(relativeOffset));
         }
+    }
+
+    protected void traceLinkedPeripheralResolutionIfChanged() {
+        if (level == null) {
+            return;
+        }
+
+        int saved = getLinkedPeripheralCount();
+        int loaded = 0;
+        int sameSubLevel = 0;
+        SubLevel seatSubLevel = ServerShipUtils.getSubLevelAtBlockPos(level, getBlockPos());
+        StringBuilder failures = new StringBuilder();
+        for (int type = 0; type <= ENEMY_CANNON_PERIPHERAL_TYPE; type++) {
+            List<Vec3> offsets = getLinkedPeripheralOffsets(type);
+            if (offsets == null) {
+                continue;
+            }
+            for (Vec3 offset : offsets) {
+                BlockPos targetPos = BlockPos.containing(toAbsoluteLinkedPeripheralPos(offset));
+                BlockEntity target = level.getBlockEntity(targetPos);
+                boolean isLoaded = target != null;
+                boolean sharesSubLevel = isLoaded && areSameSubLevel(
+                        seatSubLevel, ServerShipUtils.getSubLevelAtBlockPos(level, targetPos)
+                );
+                if (isLoaded) {
+                    loaded++;
+                }
+                if (sharesSubLevel) {
+                    sameSubLevel++;
+                }
+                if (!isLoaded || !sharesSubLevel) {
+                    if (!failures.isEmpty()) {
+                        failures.append(';');
+                    }
+                    failures.append(type).append('@').append(BlockPos.containing(offset))
+                            .append("->").append(targetPos)
+                            .append(isLoaded ? ":wrong_sublevel" : ":missing");
+                }
+            }
+        }
+
+        String signature = level.dimension().location() + "|" + getBlockPos() + "|" + saved + "|" + loaded
+                + "|" + sameSubLevel + "|" + failures;
+        if (signature.equals(lastLinkedPeripheralResolutionSignature)) {
+            return;
+        }
+        lastLinkedPeripheralResolutionSignature = signature;
+        // Function: distinguish persisted link counts from links that can actually resolve after a dimension handoff.
+        if (saved > 0 && (loaded != saved || sameSubLevel != saved)) {
+            LOGGER.warn("{} phase=RESOLUTION_SNAPSHOT context={} saved={} loaded={} sameSubLevel={} failures={}",
+                    LINK_TRACE_PREFIX, linkTraceContext(), saved, loaded, sameSubLevel, failures);
+        } else {
+            LOGGER.info("{} phase=RESOLUTION_SNAPSHOT context={} saved={} loaded={} sameSubLevel={} failures={}",
+                    LINK_TRACE_PREFIX, linkTraceContext(), saved, loaded, sameSubLevel, failures);
+        }
+    }
+
+    private static boolean areSameSubLevel(SubLevel first, SubLevel second) {
+        if (first == null || second == null) {
+            return false;
+        }
+        if (first == second) {
+            return true;
+        }
+        return first.getUniqueId() != null && first.getUniqueId().equals(second.getUniqueId());
     }
 
     public List<BlockPos> getLinkedTurretPositionsInOrder() {
@@ -254,7 +327,18 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         return weaponPositions;
     }
 
+    public List<BlockPos> getLinkedEnemyCannonPositionsInOrder() {
+        List<BlockPos> cannonPositions = new ArrayList<>(linkedEnemyCannons.size());
+        for (Vec3 relativeOffset : linkedEnemyCannons) {
+            cannonPositions.add(BlockPos.containing(toAbsoluteLinkedPeripheralPos(relativeOffset)));
+        }
+        return cannonPositions;
+    }
+
     private List<Vec3> getLinkedPeripheralOffsets(int type) {
+        if (!supportsLinkedPeripheralType(type)) {
+            return null;
+        }
         return switch (type) {
             case 0 -> linkedThrusters;
             case 1 -> linkedWeapons;
@@ -264,6 +348,7 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
             case 5 -> linkedFuelTanks;
             case 6 -> linkedAmmoboxes;
             case 7 -> linkedScreens;
+            case ENEMY_CANNON_PERIPHERAL_TYPE -> linkedEnemyCannons;
             default -> null;
         };
     }
@@ -320,37 +405,32 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
 
         state.missingTicks = state.lastMissingTick == currentTick - 1 ? state.missingTicks + 1 : 1;
         state.lastMissingTick = currentTick;
+        if (state.missingTicks == 1) {
+            LOGGER.warn("{} phase=MISSING_BEGIN context={} type={} target={} offset={} gameTick={}",
+                    LINK_TRACE_PREFIX, linkTraceContext(), type,
+                    BlockPos.containing(toAbsoluteLinkedPeripheralPos(relativeOffset)),
+                    BlockPos.containing(relativeOffset), currentTick);
+        }
         return state.missingTicks >= LINKED_PERIPHERAL_MISSING_TICKS_BEFORE_REMOVAL;
     }
 
-    private void clearMissingLinkedPeripheralState(Vec3 relativeOffset, int type) {
-        missingLinkedPeripheralStates.remove(getMissingLinkedPeripheralKey(relativeOffset, type));
+    private MissingLinkedPeripheralState clearMissingLinkedPeripheralState(Vec3 relativeOffset, int type) {
+        return missingLinkedPeripheralStates.remove(getMissingLinkedPeripheralKey(relativeOffset, type));
+    }
+
+    private void traceMissingRecovery(Vec3 relativeOffset, int type, MissingLinkedPeripheralState state) {
+        if (state == null || state.missingTicks <= 0) {
+            return;
+        }
+        LOGGER.info("{} phase=MISSING_RECOVERED context={} type={} target={} offset={} missingTicks={}",
+                LINK_TRACE_PREFIX, linkTraceContext(), type,
+                BlockPos.containing(toAbsoluteLinkedPeripheralPos(relativeOffset)), BlockPos.containing(relativeOffset),
+                state.missingTicks);
     }
 
     private String getMissingLinkedPeripheralKey(Vec3 relativeOffset, int type) {
         BlockPos offset = BlockPos.containing(relativeOffset);
         return type + ":" + offset.getX() + "," + offset.getY() + "," + offset.getZ();
-    }
-
-    @Override
-    public void registerControllers(AnimatableManager.ControllerRegistrar controllerRegistrar) {
-
-    }
-
-    @Override
-    public AnimatableInstanceCache getAnimatableInstanceCache() {
-        return cache;
-    }
-
-    public static String processSlug(String a, String b) {
-        if (a != null && a.matches("^\\[.*?\\].*")) {
-            int endIndex = a.indexOf(']');
-            if (endIndex != -1) {
-                String suffix = a.substring(endIndex + 1);
-                return "[" + b + "]" + suffix;
-            }
-        }
-        return "[" + b + "]" + a;
     }
 
     private void writeVec3List(CompoundTag nbt, String key, List<Vec3> positions) {
@@ -365,7 +445,25 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
         nbt.put(key, list);
     }
 
-    private void readVec3List(CompoundTag nbt, String key, List<Vec3> targetList) {
+    private void writeSupportedVec3List(CompoundTag nbt, String key, List<Vec3> positions, int type) {
+        if (supportsLinkedPeripheralType(type)) {
+            writeVec3List(nbt, key, positions);
+        }
+    }
+
+    private void readSupportedVec3List(
+            CompoundTag nbt,
+            String key,
+            List<Vec3> targetList,
+            int type,
+            boolean relativeFormat
+    ) {
+        if (supportsLinkedPeripheralType(type)) {
+            readVec3List(nbt, key, targetList, relativeFormat);
+        }
+    }
+
+    private void readVec3List(CompoundTag nbt, String key, List<Vec3> targetList, boolean relativeFormat) {
         if (!nbt.contains(key, Tag.TAG_LIST)) return;
 
         ListTag list = nbt.getList(key, Tag.TAG_COMPOUND);
@@ -374,8 +472,75 @@ public abstract class AbstractControlSeatBlockEntity extends SmartBlockEntity im
             double x = vecTag.getDouble("x");
             double y = vecTag.getDouble("y");
             double z = vecTag.getDouble("z");
-            targetList.add(new Vec3(x, y, z));
+            targetList.add(normalizeLoadedLinkedOffset(new Vec3(x, y, z), relativeFormat));
         }
+    }
+
+    private Vec3 normalizeLoadedLinkedOffset(Vec3 storedPosition, boolean relativeFormat) {
+        if (relativeFormat || !looksLikeLegacySablePlotPosition(storedPosition)) {
+            return storedPosition;
+        }
+
+        BlockPos absolute = BlockPos.containing(storedPosition);
+        BlockPos seat = getBlockPos();
+        // Function: migrate legacy absolute plot positions once, then persist them with the format marker.
+        Vec3 migratedOffset = new Vec3(
+                absolute.getX() - seat.getX(),
+                absolute.getY() - seat.getY(),
+                absolute.getZ() - seat.getZ()
+        );
+        LOGGER.info("{} phase=LEGACY_POSITION_MIGRATED context={} absolute={} offset={}",
+                LINK_TRACE_PREFIX, linkTraceContext(), absolute, BlockPos.containing(migratedOffset));
+        return migratedOffset;
+    }
+
+    private static boolean looksLikeLegacySablePlotPosition(Vec3 storedPosition) {
+        return Math.abs(storedPosition.x) >= SABLE_PLOT_COORDINATE_THRESHOLD
+                || Math.abs(storedPosition.z) >= SABLE_PLOT_COORDINATE_THRESHOLD;
+    }
+
+    private boolean containsLinkedPeripheralPayload(CompoundTag nbt) {
+        return nbt.contains(LINKED_PERIPHERAL_POSITION_FORMAT_TAG)
+                || nbt.contains("Thrusters", Tag.TAG_LIST)
+                || nbt.contains("Weapons", Tag.TAG_LIST)
+                || nbt.contains("Shields", Tag.TAG_LIST)
+                || nbt.contains("Turrets", Tag.TAG_LIST)
+                || nbt.contains("Batteries", Tag.TAG_LIST)
+                || nbt.contains("Fueltanks", Tag.TAG_LIST)
+                || nbt.contains("Ammoboxes", Tag.TAG_LIST)
+                || nbt.contains("Screens", Tag.TAG_LIST)
+                || nbt.contains("EnemyCannons", Tag.TAG_LIST);
+    }
+
+    private int getLinkedPeripheralCount() {
+        return linkedThrusters.size() + linkedWeapons.size() + linkedShields.size() + linkedTurrets.size()
+                + linkedBatteries.size() + linkedFuelTanks.size() + linkedAmmoboxes.size()
+                + linkedScreens.size() + linkedEnemyCannons.size();
+    }
+
+    private String linkedPeripheralSummary() {
+        return "thrusters=" + linkedThrusters.size()
+                + ",weapons=" + linkedWeapons.size()
+                + ",shields=" + linkedShields.size()
+                + ",turrets=" + linkedTurrets.size()
+                + ",batteries=" + linkedBatteries.size()
+                + ",fuelTanks=" + linkedFuelTanks.size()
+                + ",ammoBoxes=" + linkedAmmoboxes.size()
+                + ",screens=" + linkedScreens.size()
+                + ",enemyCannons=" + linkedEnemyCannons.size();
+    }
+
+    private String linkTraceContext() {
+        String levelName = level == null
+                ? "unbound"
+                : level.dimension().location() + "/" + level.getClass().getSimpleName();
+        return levelName + "@" + getBlockPos();
+    }
+
+    private void traceLinkState(String phase, boolean clientPacket, int previousCount, CompoundTag nbt) {
+        LOGGER.info("{} phase={} context={} clientPacket={} previousCount={} formatRelative={} totals={} keys={}",
+                LINK_TRACE_PREFIX, phase, linkTraceContext(), clientPacket, previousCount,
+                nbt.getBoolean(LINKED_PERIPHERAL_POSITION_FORMAT_TAG), linkedPeripheralSummary(), nbt.getAllKeys());
     }
 
     private static class MissingLinkedPeripheralState {

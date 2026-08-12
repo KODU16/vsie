@@ -9,10 +9,14 @@ import com.kodu16.vsie.network.controlseat.S2C.ControlSeatInputS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatStatusS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.NearbyShipsS2CPacket;
+import com.kodu16.vsie.network.custom_turret.SelectCustomTurretC2SPacket;
 import com.kodu16.vsie.network.fuel.SyncThrusterFuelsPacket;
 import com.kodu16.vsie.network.fx.FxBlockS2CPacket;
 import com.kodu16.vsie.network.fx.FxEntityS2CPacket;
 import com.kodu16.vsie.network.fx.FxPositionS2CPacket;
+import com.kodu16.vsie.network.misc.EnemyCoreSettingsC2SPacket;
+import com.kodu16.vsie.network.misc.EnemyCannonSettingsC2SPacket;
+import com.kodu16.vsie.network.misc.EnemyAutocannonSettingsC2SPacket;
 import com.kodu16.vsie.network.rail.ElectroMagnetRailCoreDetectC2SPacket;
 import com.kodu16.vsie.network.screen.ScreenC2SPacket;
 import com.kodu16.vsie.network.screen.ScreentypeC2SPacket;
@@ -64,6 +68,10 @@ public final class ModNetworking {
         registrar.playToServer(ScreentypeC2SPacket.TYPE, ScreentypeC2SPacket.STREAM_CODEC, ScreentypeC2SPacket::handle);
         registrar.playToServer(ElectroMagnetRailCoreDetectC2SPacket.TYPE, ElectroMagnetRailCoreDetectC2SPacket.STREAM_CODEC, ElectroMagnetRailCoreDetectC2SPacket::handle);
         registrar.playToServer(ThrusterLimitC2SPacket.TYPE, ThrusterLimitC2SPacket.STREAM_CODEC, ThrusterLimitC2SPacket::handle);
+        registrar.playToServer(EnemyCoreSettingsC2SPacket.TYPE, EnemyCoreSettingsC2SPacket.STREAM_CODEC, EnemyCoreSettingsC2SPacket::handle);
+        registrar.playToServer(EnemyCannonSettingsC2SPacket.TYPE, EnemyCannonSettingsC2SPacket.STREAM_CODEC, EnemyCannonSettingsC2SPacket::handle);
+        registrar.playToServer(EnemyAutocannonSettingsC2SPacket.TYPE, EnemyAutocannonSettingsC2SPacket.STREAM_CODEC, EnemyAutocannonSettingsC2SPacket::handle);
+        registrar.playToServer(SelectCustomTurretC2SPacket.TYPE, SelectCustomTurretC2SPacket.STREAM_CODEC, SelectCustomTurretC2SPacket::handle);
 
         registrar.playToClient(ControlSeatS2CPacket.TYPE, ControlSeatS2CPacket.STREAM_CODEC, ControlSeatS2CPacket::handle);
         registrar.playToClient(ControlSeatInputS2CPacket.TYPE, ControlSeatInputS2CPacket.STREAM_CODEC, ControlSeatInputS2CPacket::handle);

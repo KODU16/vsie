@@ -2,6 +2,7 @@ package com.kodu16.vsie.content.turret;
 
 import com.kodu16.vsie.content.cooldown.FireCooldown;
 import com.kodu16.vsie.foundation.LoadedChunkRaycast;
+import com.kodu16.vsie.foundation.RelativeBlockPosNbt;
 import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.foundation.Vec;
 import com.mojang.logging.LogUtils;
@@ -1224,7 +1225,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         tag.putBoolean("breaksBlocks", getData().isBreaksBlocks());
         tag.putInt("muzzleFlashTicks", this.muzzleFlashTicks);
         tag.putDouble("fireCooldownValue", this.fireCooldownValue);
-        tag.putLong(LINKED_CONTROL_SEAT_POS_TAG, this.linkedControlSeatPos.asLong());
+        RelativeBlockPosNbt.write(tag, LINKED_CONTROL_SEAT_POS_TAG, getBlockPos(), this.linkedControlSeatPos);
     }
 
     @Override
@@ -1250,11 +1251,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         if (tag.contains("breaksBlocks")) {getData().setBreaksBlocks(tag.getBoolean("breaksBlocks"));}
         if (tag.contains("muzzleFlashTicks")) {this.muzzleFlashTicks = tag.getInt("muzzleFlashTicks");}
         if (tag.contains("fireCooldownValue")) {this.fireCooldownValue = tag.getDouble("fireCooldownValue");}
-        if (tag.contains(LINKED_CONTROL_SEAT_POS_TAG, Tag.TAG_LONG)) {
-            this.linkedControlSeatPos = BlockPos.of(tag.getLong(LINKED_CONTROL_SEAT_POS_TAG));
-        } else {
-            this.linkedControlSeatPos = BlockPos.ZERO;
-        }
+        this.linkedControlSeatPos = RelativeBlockPosNbt.read(tag, LINKED_CONTROL_SEAT_POS_TAG, getBlockPos(), false);
     }
 
     @Override

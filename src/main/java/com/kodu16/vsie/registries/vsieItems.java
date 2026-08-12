@@ -6,6 +6,8 @@ import com.kodu16.vsie.content.item.HUD.targetframe;
 import com.kodu16.vsie.content.item.HUD.targetframe_ally;
 import com.kodu16.vsie.content.item.HUD.targetframe_enemy;
 import com.kodu16.vsie.content.item.HUD.targetframe_enemy_locked;
+import com.kodu16.vsie.content.custom_turret.CustomTurretPlacerItem;
+import com.kodu16.vsie.content.custom_turret.export.RegionObjExportToolItem;
 import com.kodu16.vsie.content.item.IFF.iff;
 import com.kodu16.vsie.content.item.linker.linker;
 import com.kodu16.vsie.content.item.particlecontainer.ParticleContainerItem;
@@ -44,4 +46,10 @@ public class vsieItems {
     public static final ItemEntry<Item> COMPUTRONIC_SUBSTRATE = REGISTRATE.item("computronic_substrate", Item::new).register();
     public static final ItemEntry<Item> METALIC_MICROLATTICE = REGISTRATE.item("metalic_microlattice", Item::new).register();
     public static final ItemEntry<Item> SILICON_CARBIDE = REGISTRATE.item("silicon_carbide", Item::new).register();
+    // Function: authoring is command-only; this item only selects definitions and places passive turrets.
+    public static final ItemEntry<CustomTurretPlacerItem> CUSTOM_TURRET_PLACER =
+            REGISTRATE.item("custom_turret_placer", CustomTurretPlacerItem::new).register();
+    // Function: the stick-styled region tool persists both selected corners on its own item NBT.
+    public static final ItemEntry<RegionObjExportToolItem> REGION_OBJ_EXPORT_TOOL =
+            REGISTRATE.item("region_obj_export_tool", RegionObjExportToolItem::new).register();
 }

@@ -7,6 +7,7 @@ import com.kodu16.vsie.content.bullet.entity.HeavyElectroMagnetBulletEntity;
 import com.kodu16.vsie.content.bullet.entity.InfraKnifeBulletEntity;
 import com.kodu16.vsie.content.bullet.entity.ParticleBulletEntity;
 import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
+import com.kodu16.vsie.content.custom_turret.CustomTurretProjectileEntity;
 import com.kodu16.vsie.content.missile.entity.BasicMissileEntity;
 import com.kodu16.vsie.content.warpprojectile.WarpProjecTileEntity;
 import com.kodu16.vsie.vsie;
@@ -30,6 +31,13 @@ public class vsieEntities {
     public static final EntityEntry<ParticleBulletEntity> PARTICLE_BULLET =
             REGISTRATE.entity("particle_bullet", ParticleBulletEntity::new, MobCategory.MISC)
                     // Function: bullets need long client tracking so they remain renderable in distant loaded chunks.
+                    .properties(builder -> builder.sized(0.35F, 0.35F).clientTrackingRange(256).updateInterval(1))
+                    .renderer(() -> BulletRenderer::new)
+                    .tag(RPLTags.PRECISE_MOTION)
+                    .register();
+    public static final EntityEntry<CustomTurretProjectileEntity> CUSTOM_TURRET_PROJECTILE =
+            REGISTRATE.entity("custom_turret_projectile", CustomTurretProjectileEntity::new, MobCategory.MISC)
+                    // Function: configurable custom shots reuse the precise-motion bullet transport and renderer.
                     .properties(builder -> builder.sized(0.35F, 0.35F).clientTrackingRange(256).updateInterval(1))
                     .renderer(() -> BulletRenderer::new)
                     .tag(RPLTags.PRECISE_MOTION)

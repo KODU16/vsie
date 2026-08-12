@@ -1,0 +1,48 @@
+{
+  "replace": false,
+  "values": [
+    "vsie:ammo_box",
+    "vsie:arc_emitter",
+    "vsie:basic_ciws",
+    "vsie:basic_missile_launcher",
+    "vsie:basic_screen",
+    "vsie:basic_thruster",
+    "vsie:basic_vector_thruster",
+    "vsie:cenix_plasma_cannon",
+    "vsie:control_seat",
+    "vsie:electro_magnet_rail",
+    "vsie:electro_magnet_rail_accelerator",
+    "vsie:electro_magnet_rail_cannon",
+    "vsie:electro_magnet_rail_core",
+    "vsie:electro_magnet_rail_top",
+    "vsie:electro_magnet_shell",
+    "vsie:heavy_electromagnet_turret",
+    "vsie:heavy_laser_turret",
+    "vsie:infra_knife_accelerator",
+    "vsie:large_energy_battery",
+    "vsie:large_fueltank",
+    "vsie:large_thruster",
+    "vsie:medium_energy_battery",
+    "vsie:medium_fueltank",
+    "vsie:medium_laser_turret",
+    "vsie:medium_thruster",
+    "vsie:enemy_core",
+    {
+      "id": "vsie:enemy_cannon",
+      "required": false
+    },
+    {
+      "id": "vsie:enemy_autocannon",
+      "required": false
+    },
+    "vsie:particle_turret",
+    "vsie:redstone_relay",
+    "vsie:shield_generator",
+    "vsie:small_ammobox",
+    "vsie:small_energy_battery",
+    "vsie:small_fueltank",
+    "vsie:small_laser_turret",
+    "vsie:verticle_launching_slot",
+    "vsie:verticle_launching_slot_core"
+  ]
+}

@@ -1,6 +1,7 @@
 package com.kodu16.vsie.content.storage.ammobox;
 
 import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
+import com.kodu16.vsie.foundation.RelativeBlockPosNbt;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.weapon.AbstractWeaponBlockEntity;
 import com.kodu16.vsie.network.storage.AmmoBoxRefillMarkerS2CPacket;
@@ -193,7 +194,7 @@ public class AmmoBoxBlockEntity extends BlockEntity implements MenuProvider, IIt
         if (tag.contains("Inventory")) {
             inventory.deserializeNBT(registries, tag.getCompound("Inventory"));
         }
-        linkedControlSeatPos = readBlockPos(tag, LINKED_CONTROL_SEAT_POS_TAG);
+        linkedControlSeatPos = RelativeBlockPosNbt.read(tag, LINKED_CONTROL_SEAT_POS_TAG, getBlockPos(), true);
         refillCursor = tag.getInt("RefillCursor");
         refillIntervalTicks = Math.max(REFILL_RETRY_INTERVAL_TICKS, tag.getInt("RefillIntervalTicks"));
     }
@@ -202,13 +203,7 @@ public class AmmoBoxBlockEntity extends BlockEntity implements MenuProvider, IIt
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         tag.put("Inventory", inventory.serializeNBT(registries));
-        if (linkedControlSeatPos != null) {
-            tag.putIntArray(LINKED_CONTROL_SEAT_POS_TAG, new int[]{
-                    linkedControlSeatPos.getX(),
-                    linkedControlSeatPos.getY(),
-                    linkedControlSeatPos.getZ()
-            });
-        }
+        RelativeBlockPosNbt.write(tag, LINKED_CONTROL_SEAT_POS_TAG, getBlockPos(), linkedControlSeatPos);
         tag.putInt("RefillCursor", refillCursor);
         tag.putInt("RefillIntervalTicks", refillIntervalTicks);
     }

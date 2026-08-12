@@ -3,6 +3,8 @@ package com.kodu16.vsie.content.controlseat.client;
 import com.kodu16.vsie.content.controlseat.ActiveWeaponHudInfo;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.Level;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 
@@ -13,6 +15,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public class ControlSeatClientData {
+    private static final long DIMENSION_TRANSFER_GRACE_MILLIS = 3000L;
     public volatile long lastKeyPressTime = 0;
     public volatile boolean viewLock = false;
     public volatile boolean hasPendingViewLockSync = false;
@@ -81,6 +84,9 @@ public class ControlSeatClientData {
     public volatile double warpAlignmentControlY = 0.0D;
     public volatile BlockPos activeSeatPos = null;
     public volatile UUID activeSeatEntityId = null;
+    private volatile ResourceKey<Level> observedDimension = null;
+    private volatile long dimensionTransferDeadlineMillis = 0L;
+    private volatile boolean pendingViewRecentering = false;
     // Function: remember the last control seat that published HUD telemetry so the world HUD can stay attached after dismount.
     public volatile BlockPos lastHudSeatPos = null;
 
@@ -154,6 +160,16 @@ public class ControlSeatClientData {
             clearSeatBinding();
             return;
         }
+        boolean sameMountEntity = seatEntityId != null && seatEntityId.equals(activeSeatEntityId);
+        boolean transferRebind = isDimensionTransferPending();
+        if ((sameMountEntity || transferRebind) && activeSeatPos != null) {
+            // Sable remaps the block position while retaining the logical seat mount.
+            pendingViewRecentering |= viewLock && !nextSeatPos.equals(activeSeatPos);
+            activeSeatPos = nextSeatPos;
+            activeSeatEntityId = seatEntityId;
+            dimensionTransferDeadlineMillis = 0L;
+            return;
+        }
         if (!nextSeatPos.equals(activeSeatPos) || (seatEntityId != null && !seatEntityId.equals(activeSeatEntityId))) {
             // Function: switching chairs must drop the old chair's HUD and warp preparation state.
             resetSeatScopedState();
@@ -171,7 +187,32 @@ public class ControlSeatClientData {
     public void clearSeatBinding() {
         activeSeatPos = null;
         activeSeatEntityId = null;
+        dimensionTransferDeadlineMillis = 0L;
+        pendingViewRecentering = false;
         resetSeatScopedState();
+    }
+
+    public void observeDimension(ResourceKey<Level> dimension) {
+        if (dimension == null) {
+            return;
+        }
+        if (observedDimension != null && !observedDimension.equals(dimension) && activeSeatPos != null) {
+            // Keep operator settings during the short client remount gap after a respawn packet.
+            dimensionTransferDeadlineMillis = System.currentTimeMillis() + DIMENSION_TRANSFER_GRACE_MILLIS;
+            pendingViewRecentering = viewLock;
+            reset();
+        }
+        observedDimension = dimension;
+    }
+
+    public boolean isDimensionTransferPending() {
+        return activeSeatPos != null && System.currentTimeMillis() <= dimensionTransferDeadlineMillis;
+    }
+
+    public boolean consumePendingViewRecentering() {
+        boolean pending = pendingViewRecentering;
+        pendingViewRecentering = false;
+        return pending;
     }
 
     public void rememberHudSeat(BlockPos pos) {

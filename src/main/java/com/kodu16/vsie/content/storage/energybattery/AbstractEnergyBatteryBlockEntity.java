@@ -1,5 +1,7 @@
 package com.kodu16.vsie.content.storage.energybattery;
 
+import com.kodu16.vsie.foundation.RelativeBlockPosNbt;
+
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.minecraft.core.BlockPos;
@@ -56,7 +58,6 @@ public abstract class AbstractEnergyBatteryBlockEntity extends SmartBlockEntity 
         this.linkedcontrolseatpos = pos;
     }
 
-    // 鍔熻兘锛氭彁渚涚粰 NeoForge 1.21.1 capability 娉ㄥ唽鍣ㄧ殑 FE 鍌ㄨ兘鎺ュ彛瀹炰緥銆?
     public IEnergyStorage getEnergyCapability() {
         return energyStorage;
     }
@@ -65,7 +66,7 @@ public abstract class AbstractEnergyBatteryBlockEntity extends SmartBlockEntity 
     protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientpacket) {
         super.write(tag, registries, clientpacket);
         tag.putInt("Energy", getEnergy().getEnergyStored());
-        writeVec3(tag, "controlpos", linkedcontrolseatpos);
+        RelativeBlockPosNbt.write(tag, "controlpos", getBlockPos(), linkedcontrolseatpos);
     }
 
     @Override
@@ -74,7 +75,7 @@ public abstract class AbstractEnergyBatteryBlockEntity extends SmartBlockEntity 
         if (tag.contains("Energy")) {
             energyStorage.receiveEnergy(tag.getInt("Energy"), false);
         }
-        readVec3(tag, "controlpos");
+        linkedcontrolseatpos = RelativeBlockPosNbt.read(tag, "controlpos", getBlockPos(), false);
     }
 
     @Override
@@ -95,32 +96,12 @@ public abstract class AbstractEnergyBatteryBlockEntity extends SmartBlockEntity 
         read(tag, registries, true);
     }
 
-    // 鏂逛究澶栭儴鐩存帴璋冪敤锛堜緥濡?tick銆丟UI銆乄aila 绛夛級
     public EnergyStorage getEnergyStorage() {
         return energyStorage;
     }
 
-    // 鎴栫洿鎺ヨ繑鍥?IEnergyStorage 鎺ュ彛
     public IEnergyStorage getEnergy() {
         return energyStorage;
-    }
-
-    private void writeVec3(CompoundTag nbt, String key, BlockPos position) {
-        CompoundTag vecTag = new CompoundTag();
-        vecTag.putInt("x", position.getX());
-        vecTag.putInt("y", position.getY());
-        vecTag.putInt("z", position.getZ());
-        nbt.put(key, vecTag);
-    }
-
-    private void readVec3(CompoundTag nbt, String key) {
-        if (nbt.contains(key, Tag.TAG_COMPOUND)) {   // 鏀规垚 TAG_COMPOUND 鏇村噯纭?
-            CompoundTag vecTag = nbt.getCompound(key);
-            int x = vecTag.getInt("x");
-            int y = vecTag.getInt("y");
-            int z = vecTag.getInt("z");
-            this.linkedcontrolseatpos = new BlockPos(x, y, z);
-        }
     }
 
     @Override

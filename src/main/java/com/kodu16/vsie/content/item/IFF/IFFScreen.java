@@ -82,7 +82,7 @@ public class IFFScreen extends AbstractContainerScreen<IFFContainerMenu> {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        // Function: the container parent draws background, widgets and slots in the correct order.
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         this.renderTooltip(guiGraphics, mouseX, mouseY);
         renderControlTooltips(guiGraphics, mouseX, mouseY);

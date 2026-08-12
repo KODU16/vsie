@@ -19,6 +19,7 @@ import com.kodu16.vsie.registries.vsieEntities;
 import com.kodu16.vsie.registries.vsieItems;
 import com.kodu16.vsie.registries.vsieSounds;
 import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity;
+import com.kodu16.vsie.content.custom_turret.CustomTurretBlockEntity;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
 import com.kodu16.vsie.content.shield.ShieldInterception;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
@@ -33,6 +34,7 @@ import com.kodu16.vsie.network.fuel.FluidThrusterProperties;
 import com.kodu16.vsie.registries.fuel.ThrusterFuelManager;
 import com.kodu16.vsie.registries.vsieFluids;
 import com.mojang.logging.LogUtils;
+import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
 import dev.ryanhcode.sable.api.block.BlockEntitySubLevelActor;
@@ -71,18 +73,25 @@ import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 import net.neoforged.neoforge.items.ItemStackHandler;
+import software.bernie.geckolib.animatable.GeoBlockEntity;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
 import software.bernie.geckolib.animation.AnimatableManager;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity implements BlockEntitySubLevelActor {
+public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity
+        implements BlockEntitySubLevelActor, IHaveGoggleInformation, GeoBlockEntity {
     private static final ResourceLocation SHIELD_OPEN_FX = ResourceLocation.fromNamespaceAndPath("vsie", "shield_open");
     private static final ResourceLocation SHIELD_HIT_FX = ResourceLocation.fromNamespaceAndPath("vsie", "shield_hit");
     private static final ResourceLocation RAIL_ACCELERATION_FX = ResourceLocation.fromNamespaceAndPath("vsie", "cenix_plasma_bullet");
     private static final int RAIL_ACCELERATION_FX_REFRESH_TICKS = 20;
+    // Cross-dimension Sable reconstruction can outlive the client-ready barrier; retain the mount for that window.
+    private static final int OCCUPANT_RESTORE_GRACE_TICKS = 440;
     private static final float SHIELD_OPEN_DEFAULT_RADIUS = 8.0F;
     private static final String ANTI_GRAVITY_IDLE_THROTTLE_TAG = "AntiGravityIdleThrottle";
+    private static final String WARP_FRAME_DIMENSION_TAG = "WarpFrameDimension";
     // Function: preserve the softer one-shot boost transient while moving its trigger to the control seat.
     private static final float THRUSTER_BOOST_VOLUME_SCALE = 0.6F;
     //private final ControlSeatServerData serverData = new ControlSeatServerData();
@@ -93,11 +102,27 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
     private int railAccelerationFxRefreshTicks = 0;
     private boolean railAccelerationTrailOverrideActive = false;
     private boolean hasThrusterFuelThisTick = false;
+    private int occupantRestoreGraceTicks = 0;
+    private String restoredWarpFrameDimension = "";
+    private boolean warpFrameValidationPending = false;
     public boolean previousfirestatus = false;
     private HolderLookup.Provider nbtRegistries;
     private Vector3d currentworldpos = new Vector3d();
     private List<ControlSeatMountEntity> seats = new ArrayList<>();
     private final ServerShipHandler serverShipHandler;
+    private final AnimatableInstanceCache animationCache = new SingletonAnimatableInstanceCache(this);
+
+    public float calculatedstrength = 0;
+    public int energyspendpertick = 10;
+    public int capacitorenergy = 0;
+    public int totalenergy = 100;
+    public int totalenergyavalible = 0;
+    public boolean linkedBatteryPowerAvailableThisTick = false;
+    public int fuelspendcurrenttick = 0;
+    public int capacitorfuel = 0;
+    public int totalfuel = 100;
+    public int totalfuelavalible = 0;
+    public double avalibleshield = 0;
 
     public SmartFluidTankBehaviour tank;
 
@@ -129,6 +154,7 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         if (!validateSingleControlSeatForSubLevel(subLevel)) {
             return;
         }
+        reconcileWarpFrameAfterDimensionChange();
         controlseatData.serverShip = subLevel;
         controlseatData.level = level;
         serverShipHandler.getandsendshipdata(subLevel, getBlockPos());
@@ -144,8 +170,28 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         serverShipHandler.applyForceAndTorque(subLevel, getBlockPos(), timeStep);
     }
 
-    public String getcontrolseattype() {
-        return "control_seat";
+    @Override
+    public boolean supportsLinkedPeripheralType(int type) {
+        return type >= 0 && type <= 7;
+    }
+
+    @Override
+    public void setAlly(String str) {
+        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, getBlockPos());
+        if (subLevel instanceof ServerSubLevel serverSubLevel) {
+            serverSubLevel.setName(processSlug(serverSubLevel.getName(), str));
+        }
+        super.setAlly(str);
+    }
+
+    private static String processSlug(String currentName, String ally) {
+        if (currentName != null && currentName.matches("^\\[.*?\\].*")) {
+            int endIndex = currentName.indexOf(']');
+            if (endIndex != -1) {
+                return "[" + ally + "]" + currentName.substring(endIndex + 1);
+            }
+        }
+        return "[" + ally + "]" + currentName;
     }
 
     @Override
@@ -154,9 +200,15 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         behaviours.add(tank);
     }
 
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return animationCache;
+    }
+
 
 
     public void clientTick() {
+        traceLinkedPeripheralResolutionIfChanged();
         ClientTicker.tick(this);
     }
 
@@ -203,6 +255,10 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         tag.putString("WarpTargetName", controlseatData.warpTargetName);
 
         tag.putBoolean("IsWarpPreparing", controlseatData.isWarpPreparing);
+        if (!clientPacket && level != null) {
+            // Persist the coordinate frame so reconstructed seats cannot resume old-world warp work.
+            tag.putString(WARP_FRAME_DIMENSION_TAG, level.dimension().location().toString());
+        }
         // Function: persisted warp preparation must keep the original start-to-target aim vector after a world reload.
         tag.putBoolean("HasWarpStartSnapshot", controlseatData.hasWarpStartSnapshot);
         tag.putDouble("WarpStartWorldX", controlseatData.warpStartSubLevelWorldPos.x);
@@ -213,6 +269,15 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         tag.putDouble("WarpLaunchDirectionZ", controlseatData.warpLaunchDirection.z);
 
         tag.putBoolean("IsViewLocked", controlseatData.isviewlocked);
+        // Operator-selected flight state must survive Sable's block-entity recreation.
+        tag.putInt("Throttle", controlseatData.getThrottle());
+        tag.putBoolean("IsFlightAssistOn", controlseatData.isflightassiston);
+        tag.putBoolean("IsForceAssistOn", controlseatData.isforceassiston);
+        tag.putBoolean("IsTorqueAssistOn", controlseatData.istorqueassiston);
+        tag.putBoolean("IsAntiGravityOn", controlseatData.isantigravityon);
+        tag.putBoolean("IsShieldOn", controlseatData.isshieldon);
+        tag.putInt("LockedEnemyIndex", controlseatData.lockedenemyindex);
+        tag.putBoolean("WasSeatOccupied", ride || controlseatData.getPlayer() != null);
         // Function: auto-level is a ship mode like anti-gravity and should survive block reloads.
         tag.putBoolean("IsAutoLevelOn", controlseatData.isAutoLevelOn);
         // Function: idle anti-gravity learns a trim value and should resume from the last stable world load.
@@ -234,6 +299,10 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         controlseatData.warpTargetDimension = tag.getString("WarpTargetDimension");
         controlseatData.warpTargetName = tag.getString("WarpTargetName");
         controlseatData.isWarpPreparing = tag.getBoolean("IsWarpPreparing");
+        if (!clientPacket) {
+            restoredWarpFrameDimension = tag.getString(WARP_FRAME_DIMENSION_TAG);
+            warpFrameValidationPending = !restoredWarpFrameDimension.isEmpty();
+        }
         if (tag.contains("HasWarpStartSnapshot")) {
             controlseatData.hasWarpStartSnapshot = tag.getBoolean("HasWarpStartSnapshot");
             controlseatData.warpStartSubLevelWorldPos.set(
@@ -250,6 +319,30 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             controlseatData.clearWarpAlignmentSnapshot();
         }
         controlseatData.isviewlocked = tag.getBoolean("IsViewLocked");
+        if (tag.contains("Throttle")) {
+            controlseatData.setThrottle(tag.getInt("Throttle"));
+        }
+        if (tag.contains("IsFlightAssistOn")) {
+            controlseatData.isflightassiston = tag.getBoolean("IsFlightAssistOn");
+        }
+        if (tag.contains("IsForceAssistOn")) {
+            controlseatData.isforceassiston = tag.getBoolean("IsForceAssistOn");
+        }
+        if (tag.contains("IsTorqueAssistOn")) {
+            controlseatData.istorqueassiston = tag.getBoolean("IsTorqueAssistOn");
+        }
+        if (tag.contains("IsAntiGravityOn")) {
+            controlseatData.isantigravityon = tag.getBoolean("IsAntiGravityOn");
+        }
+        if (tag.contains("IsShieldOn")) {
+            controlseatData.isshieldon = tag.getBoolean("IsShieldOn");
+        }
+        if (tag.contains("LockedEnemyIndex")) {
+            controlseatData.lockedenemyindex = Math.max(0, tag.getInt("LockedEnemyIndex"));
+        }
+        if (!clientPacket) {
+            occupantRestoreGraceTicks = tag.getBoolean("WasSeatOccupied") ? OCCUPANT_RESTORE_GRACE_TICKS : 0;
+        }
         controlseatData.isAutoLevelOn = tag.getBoolean("IsAutoLevelOn");
         if (tag.contains(ANTI_GRAVITY_IDLE_THROTTLE_TAG)) {
             controlseatData.antiGravityIdleThrottle = Mth.clamp(tag.getDouble(ANTI_GRAVITY_IDLE_THROTTLE_TAG), 0.0D, 2.0D);
@@ -270,11 +363,15 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
     public void tick() {
         Logger LOGGER = LogUtils.getLogger();
+        traceLinkedPeripheralResolutionIfChanged();
         if (level.isClientSide)
             return;
+        reconcileWarpFrameAfterDimensionChange();
         if (!validateSingleControlSeatForSubLevel()) {
             return;
         }
+        // Function: expose a destination mount immediately so a dimension-transfer handler can reattach the pilot.
+        ensureOccupantRestoreMount();
         if (hasInitialized) {
             refreshSeatOccupancyFromWorld();
 
@@ -282,10 +379,15 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
             //update
             if (!ride) {
-                controlseatData.clearSeatOccupantState();
-                // Function: empty seat clears player input but leaves assist damping available for drift suppression.
-                serverShipHandler.clearManualControlInput();
-                controlseatData.setPlayer(null);
+                if (isAwaitingOccupantRestore()) {
+                    occupantRestoreGraceTicks--;
+                } else {
+                    removeUnoccupiedSeatMounts();
+                    controlseatData.clearSeatOccupantState();
+                    // Function: empty seat clears player input but leaves assist damping available for drift suppression.
+                    serverShipHandler.clearManualControlInput();
+                    controlseatData.setPlayer(null);
+                }
             }
             this.calculatedstrength = 0;
             this.energyspendpertick = 0;
@@ -594,6 +696,31 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         for (Vec3 pos : toRemove) {
             removeLinkedPeripheral(pos, 1);
         }
+    }
+
+    private void reconcileWarpFrameAfterDimensionChange() {
+        if (!warpFrameValidationPending || level == null || level.isClientSide) {
+            return;
+        }
+        String currentDimension = level.dimension().location().toString();
+        warpFrameValidationPending = false;
+        if (restoredWarpFrameDimension.equals(currentDimension)) {
+            return;
+        }
+
+        boolean wasPreparing = controlseatData.isWarpPreparing;
+        boolean hadPendingTeleport = controlseatData.hasPendingWarpTeleport;
+        boolean hadStartSnapshot = controlseatData.hasWarpStartSnapshot;
+        controlseatData.cancelWarpExecutionForDimensionChange();
+        setChanged();
+        LogUtils.getLogger().info(
+                "[VSIE-WARP-TRANSFER] phase=TRANSIENT_STATE_CANCELLED seat={} sourceDimension={} destinationDimension={} "
+                        + "wasPreparing={} hadPendingTeleport={} hadStartSnapshot={} persistentTargetPreserved={}",
+                getBlockPos(), restoredWarpFrameDimension, currentDimension,
+                wasPreparing, hadPendingTeleport, hadStartSnapshot,
+                controlseatData.warpTargetPos != null && !controlseatData.warpTargetPos.equals(BlockPos.ZERO)
+        );
+        restoredWarpFrameDimension = currentDimension;
     }
 
     // Function: attach the rail glow to the accelerated ship's occupied control-seat entity for exactly the active interval.
@@ -1123,7 +1250,38 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
             BlockEntity be = level.getBlockEntity(blockPos);
             if (be instanceof AbstractTurretBlockEntity turret) {
                 confirmLinkedPeripheralPresent(pos, 3);
-                if (be instanceof AbstractHeavyTurretBlockEntity heavyturret) {
+                if (be instanceof CustomTurretBlockEntity customTurret && customTurret.usesHeavyControlSemantics()) {
+                    this.energyspendpertick += customTurret.getControlSeatEnergyCostPerTick();
+                    boolean hasSeatedPlayer = controlseatData.getPlayer() != null;
+                    SubLevel automaticTarget = controlseatData.lockedEnemySubLevel;
+                    if (automaticTarget == null && !enemySubLevels.isEmpty()) {
+                        int targetIndex = Math.floorMod(controlseatData.lockedenemyindex, enemySubLevels.size());
+                        automaticTarget = enemySubLevels.get(targetIndex);
+                    }
+                    boolean automaticMode = customTurret.usesAutomaticHeavyTarget(
+                            hasSeatedPlayer, controlseatData.isviewlocked);
+                    Vec3 manualTarget = customTurret.usesManualHeavyTarget(
+                            hasSeatedPlayer, controlseatData.isviewlocked)
+                            ? new Vec3(controlseatData.manualAimTargetX, controlseatData.manualAimTargetY,
+                            controlseatData.manualAimTargetZ)
+                            : null;
+                    // Function: energy-heavy custom turrets never receive a manual target; projectile-heavy turrets may.
+                    customTurret.updateHeavyControl(
+                            automaticMode ? automaticTarget : null,
+                            manualTarget,
+                            finalActiveSeatChannelEncode,
+                            controlseatData.isfiring
+                    );
+                    if (customTurret.isHeavyChannelArmed()) {
+                        controlseatData.activeWeaponHudInfos.add(new ActiveWeaponHudInfo(
+                                customTurret.getDisplayName().getString(),
+                                customTurret.getCooldownHudValue(),
+                                customTurret.getCooldownHudMax(),
+                                customTurret.isCooldownHudRemaining(),
+                                customTurret.isHudFireReady()
+                        ));
+                    }
+                } else if (be instanceof AbstractHeavyTurretBlockEntity heavyturret) {
                     this.energyspendpertick += heavyturret.getControlSeatEnergyCostPerTick();
 
 
@@ -1342,11 +1500,6 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
         currentworldpos = new Vector3d(worldPos.x, worldPos.y, worldPos.z);
     }
 
-    protected boolean isWorking() {
-        return true;
-    }
-
-
     public static void lookAtEntityPos(Entity entity, Vec3 target) {
         Vec3 entityPos = entity.getEyePosition();
         double dx = target.x - entityPos.x;
@@ -1445,7 +1598,6 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
 
 
-    @Override
     public void onRemove() {
         // Function: block removal must detach any player-bound ship trail before seat runtime state is cleared.
         setRailAccelerationTrailOverrideActive(false);
@@ -1582,13 +1734,54 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity imple
 
         if (seatedPlayer != null) {
             ride = true;
+            occupantRestoreGraceTicks = 0;
             controlseatData.setPlayer(seatedPlayer);
         } else {
             ride = false;
             controlseatData.setPlayer(null);
-            // Function: seat exit should stop stale manual thrust immediately.
-            serverShipHandler.clearManualControlInput();
-            controlseatData.isviewlocked = false;
+            if (!isAwaitingOccupantRestore()) {
+                // Function: a genuine seat exit still stops stale manual thrust immediately.
+                serverShipHandler.clearManualControlInput();
+                controlseatData.isviewlocked = false;
+            }
+        }
+    }
+
+    private boolean isAwaitingOccupantRestore() {
+        return occupantRestoreGraceTicks > 0;
+    }
+
+    private void ensureOccupantRestoreMount() {
+        if (!isAwaitingOccupantRestore() || !(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        for (ControlSeatMountEntity seat : seats) {
+            if (seat != null && seat.isAlive() && seat.getBoundBlockPos().equals(getBlockPos())) {
+                return;
+            }
+        }
+        ControlSeatMountEntity seat = spawnSeat(getBlockPos(), getBlockState(), serverLevel);
+        seats.add(seat);
+        LogUtils.getLogger().info(
+                "[VSIE-SEAT-TRANSFER] phase=RESTORE_MOUNT_SPAWNED dimension={} seatPos={} mount={} graceTicks={}",
+                serverLevel.dimension().location(),
+                getBlockPos(),
+                seat.getUUID(),
+                occupantRestoreGraceTicks
+        );
+    }
+
+    private void removeUnoccupiedSeatMounts() {
+        for (int index = seats.size() - 1; index >= 0; index--) {
+            ControlSeatMountEntity seat = seats.get(index);
+            if (seat != null && seat.isAlive() && seat.isVehicle()) {
+                continue;
+            }
+            if (seat != null) {
+                SeatRegistry.SEAT_TO_CONTROLSEAT.remove(seat.getUUID());
+                seat.discard();
+            }
+            seats.remove(index);
         }
     }
 

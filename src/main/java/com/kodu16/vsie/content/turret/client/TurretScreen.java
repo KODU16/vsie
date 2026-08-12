@@ -3,6 +3,7 @@ package com.kodu16.vsie.content.turret.client;
 import com.kodu16.vsie.content.turret.AbstractTurretBlockEntity;
 import com.kodu16.vsie.content.turret.TurretContainerMenu;
 import com.kodu16.vsie.content.turret.ciws.AbstractCIWSBlockEntity;
+import com.kodu16.vsie.content.custom_turret.CustomTurretBlockEntity;
 import com.kodu16.vsie.foundation.client.GuiTooltipHelper;
 import com.kodu16.vsie.network.turret.TurretC2SPacket;
 import com.kodu16.vsie.network.turret.TurretDefaultSpinC2SPacket;
@@ -87,7 +88,7 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTicks);
+        // Function: the parent container already renders the background once.
         super.render(guiGraphics, mouseX, mouseY, partialTicks);
         this.renderTooltip(guiGraphics, mouseX, mouseY);
         renderControlTooltips(guiGraphics, mouseX, mouseY);
@@ -125,11 +126,15 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
                 ? ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_ciws_on.png")
                 : ResourceLocation.fromNamespaceAndPath(vsie.ID, "textures/gui/turret/target_ciws_off.png");
 
-        guiGraphics.blit(iconHostile, this.leftPos + controlOffsetX() + TARGET_ICON_HOSTILE_X, this.topPos + TARGET_ICON_Y, 0, 0, 19, 19, 19, 19);
-        guiGraphics.blit(iconPassive, this.leftPos + controlOffsetX() + TARGET_ICON_PASSIVE_X, this.topPos + TARGET_ICON_Y, 0, 0, 19, 19, 19, 19);
-        guiGraphics.blit(iconPlayer, this.leftPos + controlOffsetX() + TARGET_ICON_PLAYER_X, this.topPos + TARGET_ICON_Y, 0, 0, 19, 19, 19, 19);
-        guiGraphics.blit(menu.getBlockEntity() instanceof AbstractCIWSBlockEntity ? iconCiws : iconShip,
-                this.leftPos + controlOffsetX() + TARGET_ICON_SHIP_X, this.topPos + TARGET_ICON_Y, 0, 0, 19, 19, 19, 19);
+        boolean customHeavy = turret instanceof CustomTurretBlockEntity customTurret
+                && customTurret.usesHeavyControlSemantics();
+        if (!customHeavy) {
+            guiGraphics.blit(iconHostile, this.leftPos + controlOffsetX() + TARGET_ICON_HOSTILE_X, this.topPos + TARGET_ICON_Y, 0, 0, 19, 19, 19, 19);
+            guiGraphics.blit(iconPassive, this.leftPos + controlOffsetX() + TARGET_ICON_PASSIVE_X, this.topPos + TARGET_ICON_Y, 0, 0, 19, 19, 19, 19);
+            guiGraphics.blit(iconPlayer, this.leftPos + controlOffsetX() + TARGET_ICON_PLAYER_X, this.topPos + TARGET_ICON_Y, 0, 0, 19, 19, 19, 19);
+            guiGraphics.blit(menu.getBlockEntity() instanceof AbstractCIWSBlockEntity ? iconCiws : iconShip,
+                    this.leftPos + controlOffsetX() + TARGET_ICON_SHIP_X, this.topPos + TARGET_ICON_Y, 0, 0, 19, 19, 19, 19);
+        }
     }
 
     private void drawAmmoSlots(GuiGraphics guiGraphics) {
@@ -189,7 +194,10 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
         this.editBoxSpinY = createIntEditBox("SpinY", this.leftPos + controlOffsetX() + SPIN_Y_BOX_X, this.topPos + SPIN_INPUT_Y, SPIN_INPUT_WIDTH, String.valueOf(be.defaultspiny));
         this.editBoxSpinX = createIntEditBox("SpinX", this.leftPos + controlOffsetX() + SPIN_X_BOX_X, this.topPos + SPIN_INPUT_Y, SPIN_INPUT_WIDTH, String.valueOf(be.defaultspinx));
 
-        this.addRenderableWidget(Button.builder(Component.translatable("gui.vsie.turret.hostile.label"),
+        boolean customHeavy = be instanceof CustomTurretBlockEntity customTurret
+                && customTurret.usesHeavyControlSemantics();
+        if (!customHeavy) {
+            this.addRenderableWidget(Button.builder(Component.translatable("gui.vsie.turret.hostile.label"),
                         button -> ModNetworking.sendToServer(new TurretC2SPacket(pos, 1)))
                 .pos(this.leftPos + controlOffsetX() + TARGET_BUTTON_HOSTILE_X, this.topPos + TARGET_BUTTON_Y)
                 .size(TARGET_BUTTON_HOSTILE_WIDTH, TARGET_BUTTON_HEIGHT)
@@ -209,6 +217,30 @@ public class TurretScreen extends AbstractContainerScreen<TurretContainerMenu> {
                 .pos(this.leftPos + controlOffsetX() + TARGET_BUTTON_SHIP_X, this.topPos + TARGET_BUTTON_Y)
                 .size(TARGET_BUTTON_SHIP_WIDTH, TARGET_BUTTON_HEIGHT)
                 .build());
+        }
+        if (customHeavy && be instanceof CustomTurretBlockEntity customTurret) {
+            // Function: the shared custom menu exposes heavy channels without requiring a different Java BE parent.
+            for (int channel = 1; channel <= 4; channel++) {
+                int selectedChannel = channel;
+                this.addRenderableWidget(Button.builder(Component.literal("C" + channel),
+                                button -> ModNetworking.sendToServer(new TurretC2SPacket(pos, selectedChannel + 5)))
+                        .bounds(this.leftPos + controlOffsetX() + 18 + (channel - 1) * 35,
+                                this.topPos + TARGET_BUTTON_Y, 30, 14)
+                        .build());
+            }
+            this.addRenderableWidget(Button.builder(
+                            Component.translatable(customTurret.isEnergyTurret()
+                                    ? "gui.vsie.custom_turret.auto_only"
+                                    : "gui.vsie.custom_turret.cycle_mode"),
+                            button -> {
+                                int next = customTurret.isEnergyTurret()
+                                        ? 1 : Math.floorMod(customTurret.getData().fireType + 1, 3);
+                                ModNetworking.sendToServer(new TurretC2SPacket(pos, 100 + next));
+                                customTurret.getData().fireType = next;
+                            })
+                    .bounds(this.leftPos + controlOffsetX() + 18, this.topPos + 84, 122, 16)
+                    .build());
+        }
         if (be.supportsBlockDestructionToggle()) {
             this.breakBlocksButton = this.addRenderableWidget(Button.builder(breakBlocksButtonLabel(),
                             button -> {

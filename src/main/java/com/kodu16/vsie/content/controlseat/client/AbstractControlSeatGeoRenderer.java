@@ -1,7 +1,7 @@
 package com.kodu16.vsie.content.controlseat.client;
 
 import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlock;
-import com.kodu16.vsie.content.controlseat.AbstractControlSeatBlockEntity;
+import com.kodu16.vsie.content.controlseat.block.ControlSeatBlockEntity;
 import com.kodu16.vsie.foundation.AlwaysRenderGeoBlockRenderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
@@ -10,7 +10,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
-public class AbstractControlSeatGeoRenderer extends AlwaysRenderGeoBlockRenderer<AbstractControlSeatBlockEntity> {
+public class AbstractControlSeatGeoRenderer extends AlwaysRenderGeoBlockRenderer<ControlSeatBlockEntity> {
     public AbstractControlSeatGeoRenderer(BlockEntityRendererProvider.Context context) {
         super(new AbstractControlSeatModel());
     }
@@ -34,16 +34,16 @@ public class AbstractControlSeatGeoRenderer extends AlwaysRenderGeoBlockRenderer
     }
 
     @Override
-    public boolean shouldRenderOffScreen(AbstractControlSeatBlockEntity be) {
+    public boolean shouldRenderOffScreen(ControlSeatBlockEntity be) {
         return isRenderableControlSeat(be);
     }
 
     @Override
-    public boolean shouldRender(AbstractControlSeatBlockEntity be, Vec3 cameraPos) {
+    public boolean shouldRender(ControlSeatBlockEntity be, Vec3 cameraPos) {
         return isRenderableControlSeat(be);
     }
 
-    private boolean isRenderableControlSeat(AbstractControlSeatBlockEntity be) {
+    private boolean isRenderableControlSeat(ControlSeatBlockEntity be) {
         if (be == null || be.isRemoved()) {
             return false;
         }

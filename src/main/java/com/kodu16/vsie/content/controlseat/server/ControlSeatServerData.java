@@ -315,6 +315,17 @@ public class ControlSeatServerData {
         this.warpE710Insufficient = false;
     }
 
+    /** Cancels only warp work tied to the previous world's coordinates after an external dimension transfer. */
+    public void cancelWarpExecutionForDimensionChange() {
+        this.isWarpPreparing = false;
+        clearWarpAlignmentControl();
+        clearWarpAlignmentSnapshot();
+        clearPendingWarpTeleport();
+        this.force = Vec3.ZERO;
+        this.torque = Vec3.ZERO;
+        this.throttle = 0;
+    }
+
     public void clearWarpAlignmentSnapshot() {
         // Function: warp aim direction must be captured once at preparation start, not recomputed while the ship rotates.
         this.hasWarpStartSnapshot = false;
