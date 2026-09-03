@@ -1,12 +1,13 @@
 package com.kodu16.vsie.content.bullet;
 
 import com.kodu16.vsie.foundation.ServerShipUtils;
+import com.kodu16.vsie.foundation.projectile.ProjectileCorridorManager;
+import com.kodu16.vsie.foundation.projectile.ProjectileMotionPath;
 import com.kodu16.vsie.registries.vsieSounds;
 import com.kodu16.vsie.utility.FxData;
 import com.kodu16.vsie.utility.vsieFxHelper;
 import com.lowdragmc.photon.client.fx.EntityEffectExecutor;
 import com.lowdragmc.photon.client.fx.FX;
-import com.lowdragmc.photon.client.fx.FXHelper;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -37,7 +38,6 @@ import rbasamoyai.ritchiesprojectilelib.RPLTags;
 import rbasamoyai.ritchiesprojectilelib.RitchiesProjectileLib;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 public abstract class AbstractBulletEntity extends Projectile {
@@ -51,7 +51,7 @@ public abstract class AbstractBulletEntity extends Projectile {
     private static final EntityDataAccessor<Float> DATA_LAUNCH_DIR_Z =
             SynchedEntityData.defineId(AbstractBulletEntity.class, EntityDataSerializers.FLOAT);
 
-    private static final int DEFAULT_MAX_LIFETIME_TICKS = 80;
+    private static final int DEFAULT_MAX_LIFETIME_TICKS = 20 * 15;
     private static final int MAX_UNLOADED_CHUNK_WAIT_TICKS = 20;
     private static final double CHUNK_EDGE_EPSILON = 1.0E-6D;
     private static final double CLIENT_HARD_SNAP_DISTANCE_SQR = 48.0D * 48.0D;
@@ -115,7 +115,7 @@ public abstract class AbstractBulletEntity extends Projectile {
         if (!lifecycleFxStarted && this.tickCount >= startemitticks() && this.tickCount <= stopemitticks()) {
             if (this.level().isClientSide()) {
                 vsieFxHelper.extractFxUnit(getDataBase().getFxData(), FxData::getAwakeFx)
-                        .map(FxData.FxUnit::getId).map(FXHelper::getFX)
+                        .map(FxData.FxUnit::getId).map(vsieFxHelper::resolveFx)
                         .ifPresent(this::startLifecycleFx);
                 lifecycleFxStarted = true;
             }
@@ -131,66 +131,27 @@ public abstract class AbstractBulletEntity extends Projectile {
             return;
         }
 
-        double loadedEndT = findFirstUnloadedChunkT(this.level(), start, end);
+        ServerLevel serverLevel = (ServerLevel) this.level();
+        ProjectileCorridorManager.update(this, start, movement);
+        List<ProjectileMotionPath.ChunkStep> motionPath = ProjectileMotionPath.trace(start.x, start.z, end.x, end.z);
+        requestPreciseMotionChunkLoading(serverLevel, motionPath);
+        double loadedEndT = findFirstUnloadedChunkT(serverLevel, motionPath);
         boolean enteredUnloadedChunk = loadedEndT < 1.0D;
-        Vec3 collisionEnd = start.lerp(end, enteredUnloadedChunk ? Math.max(0.0D, loadedEndT - CHUNK_EDGE_EPSILON) : 1.0D);
-        Vec3 collisionMovement = collisionEnd.subtract(start);
+        double movementEndT = enteredUnloadedChunk ? Math.max(0.0D, loadedEndT - CHUNK_EDGE_EPSILON) : 1.0D;
+        Vec3 collisionEnd = start.lerp(end, movementEndT);
         Vec3 serverMoveEnd = enteredUnloadedChunk ? collisionEnd : end;
-
-
-        Vec3 originalMovement = this.getDeltaMovement();
-        this.setDeltaMovement(collisionMovement);
-        HitResult hitResult = collisionMovement.lengthSqr() > 1.0E-10D
-                ? ProjectileUtil.getHitResultOnMoveVector(
-                        this,
-                        this::canHitEntity
-                )
-                : missAt(start, start.subtract(movement));
-        this.setDeltaMovement(originalMovement);
-
-        if (hitResult.getType() == HitResult.Type.BLOCK && isLaunchSubLevelBlock(((BlockHitResult) hitResult).getBlockPos())) {
-            hitResult = BlockHitResult.miss(collisionEnd, Direction.getNearest(movement.x, movement.y, movement.z), BlockPos.containing(collisionEnd));
-        }
-
-        if (hitResult.getType() == HitResult.Type.MISS) {
-
-            List<Entity> entities = this.level().getEntities(
-                    this,
-                    // Function: match TACZ's swept lookup margin so high-speed bullets still find entities near the path edge.
-                    this.getBoundingBox().expandTowards(collisionMovement).inflate(1.0D)
-            );
-
-            Entity closest = null;
-            Vec3 closestIntercept = null;
-            double closestDistSq = Double.MAX_VALUE;
-
-            for (Entity entity : entities) {
-
-                if (!this.canHitEntity(entity)) continue;
-
-                Optional<Vec3> intercept = entity.getBoundingBox().clip(start, collisionEnd);
-
-                if (intercept.isPresent()) {
-
-                    double distSq = intercept.get().distanceToSqr(start);
-
-                    if (distSq < closestDistSq) {
-                        closestDistSq = distSq;
-                        closest = entity;
-                        closestIntercept = intercept.get();
-                    }
-                }
+        if (movementEndT <= CHUNK_EDGE_EPSILON) {
+            // Keep loading and lifetime state alive, but never touch collision indexes in an unavailable chunk.
+            unloadedChunkWaitTicks++;
+            if (unloadedChunkWaitTicks >= MAX_UNLOADED_CHUNK_WAIT_TICKS) {
+                this.discard();
+                return;
             }
-
-            if (closest != null) {
-                hitResult = new EntityHitResult(closest, closestIntercept);
-            }
+            this.setPos(serverMoveEnd);
+            finishServerBulletMove(missAt(start, start.subtract(movement)), true);
+            return;
         }
-
-        BlockHitResult portalHit = findFirstNetherPortalHit(start, collisionEnd);
-        if (portalHit != null && !isLaunchSubLevelBlock(portalHit.getBlockPos()) && isCloserHit(start, portalHit, hitResult)) {
-            hitResult = portalHit;
-        }
+        HitResult hitResult = findCollisionInEligibleChunks(serverLevel, start, end, motionPath, movementEndT);
 
 
         if (hitResult.getType() == HitResult.Type.ENTITY) {
@@ -225,7 +186,6 @@ public abstract class AbstractBulletEntity extends Projectile {
             }
         }
 
-        requestPreciseMotionChunkLoading(start, end);
         if (enteredUnloadedChunk) {
             // Function: keep bullets in entity-ticking chunks until RPL's batched force loader catches up.
             unloadedChunkWaitTicks++;
@@ -250,6 +210,15 @@ public abstract class AbstractBulletEntity extends Projectile {
 
     protected void afterServerBulletMove(HitResult hitResult) {
         // Function: piercing bullets can keep moving after a collision while normal bullets keep the default discard path.
+    }
+
+    protected boolean isCurrentChunkCollisionEligible() {
+        if (!(this.level() instanceof ServerLevel serverLevel)) {
+            return false;
+        }
+        int chunkX = SectionPos.blockToSectionCoord(Mth.floor(this.getX()));
+        int chunkZ = SectionPos.blockToSectionCoord(Mth.floor(this.getZ()));
+        return ProjectileCorridorManager.isCollisionEligible(serverLevel, chunkX, chunkZ);
     }
 
     protected boolean canBulletBreakBlock(Level level, BlockPos pos, BlockState state) {
@@ -533,6 +502,14 @@ public abstract class AbstractBulletEntity extends Projectile {
         setPreciseLaunchDirection(direction);
         Vec3 normalized = direction.lengthSqr() < 1.0E-10D ? Vec3.ZERO : direction.normalize();
         this.setDeltaMovement(normalized.scale(getSpeed()));
+        if (this.level() instanceof ServerLevel serverLevel) {
+            ProjectileCorridorManager.update(this, this.position(), this.getDeltaMovement());
+            Vec3 end = this.position().add(this.getDeltaMovement());
+            requestPreciseMotionChunkLoading(
+                    serverLevel,
+                    ProjectileMotionPath.trace(this.getX(), this.getZ(), end.x, end.z)
+            );
+        }
     }
 
     public static Vec3 spawnBehindMuzzle(Vec3 muzzle, Vec3 direction) {
@@ -563,108 +540,123 @@ public abstract class AbstractBulletEntity extends Projectile {
         }
     }
 
-    private void requestPreciseMotionChunkLoading(Vec3 from, Vec3 to) {
-        if (!(this.level() instanceof ServerLevel serverLevel)) {
-            return;
-        }
+    private void requestPreciseMotionChunkLoading(
+            ServerLevel serverLevel, List<ProjectileMotionPath.ChunkStep> motionPath
+    ) {
         if (!this.getType().is(RPLTags.PRECISE_MOTION)) {
             return;
         }
-        if (from.distanceToSqr(to) < 1.0E-10D) {
-            return;
-        }
-
-        // Function: precise-motion bullets must queue every crossed chunk before the next server tick so long shots keep aging and colliding.
-        queueChunksAlongPath(serverLevel, from, to);
-    }
-
-    private void queueChunksAlongPath(ServerLevel level, Vec3 from, Vec3 to) {
-        double dx = to.x - from.x;
-        double dz = to.z - from.z;
-        int chunkX = SectionPos.blockToSectionCoord(Mth.floor(from.x));
-        int chunkZ = SectionPos.blockToSectionCoord(Mth.floor(from.z));
-        int endChunkX = SectionPos.blockToSectionCoord(Mth.floor(to.x));
-        int endChunkZ = SectionPos.blockToSectionCoord(Mth.floor(to.z));
-
-        queueChunk(level, chunkX, chunkZ);
-        if (chunkX == endChunkX && chunkZ == endChunkZ) {
-            return;
-        }
-        if (Math.abs(dx) < 1.0E-10D && Math.abs(dz) < 1.0E-10D) {
-            queueChunk(level, endChunkX, endChunkZ);
-            return;
-        }
-
-        int stepX = Integer.compare(endChunkX, chunkX);
-        int stepZ = Integer.compare(endChunkZ, chunkZ);
-        double nextX = stepX == 0 ? Double.POSITIVE_INFINITY : firstChunkBoundaryT(from.x, dx, chunkX, stepX);
-        double nextZ = stepZ == 0 ? Double.POSITIVE_INFINITY : firstChunkBoundaryT(from.z, dz, chunkZ, stepZ);
-        double deltaX = stepX == 0 ? Double.POSITIVE_INFINITY : 16.0D / Math.abs(dx);
-        double deltaZ = stepZ == 0 ? Double.POSITIVE_INFINITY : 16.0D / Math.abs(dz);
-
-        while (chunkX != endChunkX || chunkZ != endChunkZ) {
-            boolean advanceX = nextX <= nextZ;
-            boolean advanceZ = nextZ <= nextX;
-            if (advanceX) {
-                chunkX += stepX;
-                nextX += deltaX;
-            }
-            if (advanceZ) {
-                chunkZ += stepZ;
-                nextZ += deltaZ;
-            }
-            queueChunk(level, chunkX, chunkZ);
+        // Reuse the movement trace so RPL and readiness checks never traverse the same path twice.
+        for (ProjectileMotionPath.ChunkStep step : motionPath) {
+            RitchiesProjectileLib.queueForceLoad(serverLevel, step.x(), step.z());
         }
     }
 
-    private void queueChunk(ServerLevel level, int chunkX, int chunkZ) {
-        RitchiesProjectileLib.queueForceLoad(level, chunkX, chunkZ);
+    private HitResult findCollisionInEligibleChunks(
+            ServerLevel level,
+            Vec3 start,
+            Vec3 end,
+            List<ProjectileMotionPath.ChunkStep> motionPath,
+            double movementEndT
+    ) {
+        if (movementEndT <= CHUNK_EDGE_EPSILON) {
+            return missAt(start, start.subtract(end.subtract(start)));
+        }
+
+        int index = 0;
+        while (index < motionPath.size()) {
+            ProjectileMotionPath.ChunkStep step = motionPath.get(index);
+            if (step.entryT() >= movementEndT) {
+                break;
+            }
+            if (ProjectileCorridorManager.isCollisionEligible(level, step.x(), step.z())) {
+                double segmentStartT = step.entryT() + (index == 0 ? 0.0D : CHUNK_EDGE_EPSILON);
+                double segmentEndT = index + 1 < motionPath.size()
+                        ? motionPath.get(index + 1).entryT() - CHUNK_EDGE_EPSILON
+                        : movementEndT;
+                segmentEndT = Math.min(segmentEndT, movementEndT);
+                if (segmentEndT > segmentStartT) {
+                    Vec3 segmentStart = start.lerp(end, segmentStartT);
+                    Vec3 segmentEnd = start.lerp(end, segmentEndT);
+                    HitResult result = scanCollisionSegment(
+                            level, start, segmentStart, segmentEnd, step.x(), step.z()
+                    );
+                    if (result.getType() != HitResult.Type.MISS) {
+                        return result;
+                    }
+                }
+            }
+            index++;
+        }
+        Vec3 movementEnd = start.lerp(end, movementEndT);
+        return missAt(movementEnd, start);
     }
 
-    private double findFirstUnloadedChunkT(Level level, Vec3 from, Vec3 to) {
-        double dx = to.x - from.x;
-        double dz = to.z - from.z;
-        int chunkX = SectionPos.blockToSectionCoord(Mth.floor(from.x));
-        int chunkZ = SectionPos.blockToSectionCoord(Mth.floor(from.z));
-
-        if (!isChunkEntityTicking(level, chunkX, chunkZ)) {
-            return 0.0D;
+    private HitResult scanCollisionSegment(
+            ServerLevel level,
+            Vec3 movementStart,
+            Vec3 segmentStart,
+            Vec3 segmentEnd,
+            int chunkX,
+            int chunkZ
+    ) {
+        BlockHitResult blockHit = level.clip(new ClipContext(
+                segmentStart,
+                segmentEnd,
+                ClipContext.Block.COLLIDER,
+                ClipContext.Fluid.NONE,
+                this
+        ));
+        Vec3 entityEnd = blockHit.getType() == HitResult.Type.MISS ? segmentEnd : blockHit.getLocation();
+        AABB rawSweptBounds = this.getBoundingBox()
+                .move(segmentStart.subtract(movementStart))
+                .expandTowards(entityEnd.subtract(segmentStart))
+                .inflate(1.0D);
+        double chunkMinX = chunkX * 16.0D;
+        double chunkMinZ = chunkZ * 16.0D;
+        double chunkMaxX = chunkMinX + 16.0D - CHUNK_EDGE_EPSILON;
+        double chunkMaxZ = chunkMinZ + 16.0D - CHUNK_EDGE_EPSILON;
+        AABB sweptBounds = new AABB(
+                Math.max(rawSweptBounds.minX, chunkMinX),
+                rawSweptBounds.minY,
+                Math.max(rawSweptBounds.minZ, chunkMinZ),
+                Math.min(rawSweptBounds.maxX, chunkMaxX),
+                rawSweptBounds.maxY,
+                Math.min(rawSweptBounds.maxZ, chunkMaxZ)
+        );
+        EntityHitResult entityHit = sweptBounds.getXsize() <= 0.0D || sweptBounds.getZsize() <= 0.0D
+                ? null
+                : ProjectileUtil.getEntityHitResult(
+                        this,
+                        segmentStart,
+                        entityEnd,
+                        sweptBounds,
+                        this::canHitEntity,
+                        Double.MAX_VALUE
+                );
+        HitResult result = entityHit == null ? blockHit : entityHit;
+        if (result.getType() == HitResult.Type.BLOCK
+                && isLaunchSubLevelBlock(((BlockHitResult) result).getBlockPos())) {
+            result = missAt(segmentEnd, segmentStart);
         }
-        if (Math.abs(dx) < 1.0E-10D && Math.abs(dz) < 1.0E-10D) {
-            return 1.0D;
+
+        BlockHitResult portalHit = findFirstNetherPortalHit(segmentStart, segmentEnd);
+        if (portalHit != null
+                && !isLaunchSubLevelBlock(portalHit.getBlockPos())
+                && isCloserHit(segmentStart, portalHit, result)) {
+            result = portalHit;
         }
+        return result;
+    }
 
-        int stepX = dx > 0.0D ? 1 : dx < 0.0D ? -1 : 0;
-        int stepZ = dz > 0.0D ? 1 : dz < 0.0D ? -1 : 0;
-        double nextX = stepX == 0 ? Double.POSITIVE_INFINITY : firstChunkBoundaryT(from.x, dx, chunkX, stepX);
-        double nextZ = stepZ == 0 ? Double.POSITIVE_INFINITY : firstChunkBoundaryT(from.z, dz, chunkZ, stepZ);
-        double deltaX = stepX == 0 ? Double.POSITIVE_INFINITY : 16.0D / Math.abs(dx);
-        double deltaZ = stepZ == 0 ? Double.POSITIVE_INFINITY : 16.0D / Math.abs(dz);
-        double segmentStart = 0.0D;
-
-        while (segmentStart < 1.0D) {
-            double segmentEnd = Math.min(1.0D, Math.min(nextX, nextZ));
-            if (segmentEnd >= 1.0D) {
-                return 1.0D;
-            }
-
-            boolean advanceX = nextX <= nextZ;
-            boolean advanceZ = nextZ <= nextX;
-            if (advanceX) {
-                chunkX += stepX;
-                nextX += deltaX;
-            }
-            if (advanceZ) {
-                chunkZ += stepZ;
-                nextZ += deltaZ;
-            }
-
-            segmentStart = segmentEnd;
-            if (!isChunkEntityTicking(level, chunkX, chunkZ)) {
-                return segmentStart;
+    private double findFirstUnloadedChunkT(
+            ServerLevel level, List<ProjectileMotionPath.ChunkStep> motionPath
+    ) {
+        for (ProjectileMotionPath.ChunkStep step : motionPath) {
+            if (!isChunkEntityTicking(level, step.x(), step.z())) {
+                return step.entryT();
             }
         }
-
         return 1.0D;
     }
 
@@ -680,11 +672,6 @@ public abstract class AbstractBulletEntity extends Projectile {
         return serverLevel.isPositionEntityTicking(chunkOrigin);
     }
 
-    private double firstChunkBoundaryT(double start, double delta, int chunk, int step) {
-        double boundary = step > 0 ? (chunk + 1) * 16.0D : chunk * 16.0D;
-        return (boundary - start) / delta;
-    }
-
     private BlockHitResult missAt(Vec3 location, Vec3 previous) {
         Vec3 direction = previous.subtract(location);
         return BlockHitResult.miss(location, Direction.getNearest(direction.x, direction.y, direction.z), BlockPos.containing(location));
@@ -697,8 +684,15 @@ public abstract class AbstractBulletEntity extends Projectile {
 
     @Override
     public void remove(Entity.RemovalReason removalReason) {
+        ProjectileCorridorManager.untrack(this);
         playDestroySoundOnce();
         super.remove(removalReason);
+    }
+
+    @Override
+    public boolean shouldRenderAtSqrDistance(double distance) {
+        // Function: every bullet subclass bypasses vanilla distance culling while the server tracks it.
+        return true;
     }
 
     private void playDestroySoundOnce() {

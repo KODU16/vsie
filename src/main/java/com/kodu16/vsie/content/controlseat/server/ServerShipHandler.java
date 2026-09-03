@@ -5,6 +5,7 @@ import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
 import com.kodu16.vsie.content.controlseat.functions.ScanNearByShips;
 import com.kodu16.vsie.foundation.ServerShipUtils;
 import com.kodu16.vsie.foundation.Vec;
+import com.mojang.logging.LogUtils;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatInputS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatS2CPacket;
 import com.kodu16.vsie.network.controlseat.S2C.ControlSeatStatusS2CPacket;
@@ -37,15 +38,10 @@ public class ServerShipHandler {
     private static final double FLIGHT_ASSIST_LINEAR_RESPONSE = 0.60D;
     private static final double FLIGHT_ASSIST_ANGULAR_RESPONSE = 0.45D;
     private static final double IDLE_ANGULAR_HOLD_RESPONSE = 1.20D;
-    private static final double ANTI_GRAVITY_VERTICAL_RESPONSE = 0.80D;
     private static final double FLIGHT_ASSIST_LINEAR_THRUST_FRACTION = 0.25D;
     private static final double FLIGHT_ASSIST_ANGULAR_THRUST_FRACTION = 0.18D;
     private static final double IDLE_ANGULAR_HOLD_FULL_AUTHORITY_THRUST_PER_MASS = 0.35D;
     private static final double IDLE_ANGULAR_HOLD_MIN_AUTHORITY_BLEND = 0.20D;
-    private static final double ANTI_GRAVITY_DAMPING_THRUST_FRACTION = 0.25D;
-    private static final double ANTI_GRAVITY_IDLE_FEEDBACK_GAIN = 0.35D;
-    private static final double ANTI_GRAVITY_IDLE_MIN_THROTTLE = 0.0D;
-    private static final double ANTI_GRAVITY_IDLE_MAX_THROTTLE = 2.0D;
     private static final double CONTROL_FORCE_SCALE = 0.25D;
     private static final double CONTROL_TORQUE_SCALE = 0.12D;
     private static final double LINEAR_REFERENCE_SPEED = 10.0D;
@@ -55,7 +51,6 @@ public class ServerShipHandler {
     private static final double MIN_VALID_INERTIA = 1.0D;
     private static final double CONTROL_INPUT_RESPONSE = 14.0D;
     private static final double THROTTLE_INPUT_RESPONSE = 8.0D;
-    private static final double FREE_FALL_GRAVITY_IMPULSE_SCALE = 1.0D;
     private static final double STANDARD_GRAVITY = 9.0D;
     private static final double AXIS_EPSILON = 1.0E-8D;
     private ControlSeatServerData data;
@@ -91,6 +86,8 @@ public class ServerShipHandler {
     private long lastSendStatusMs = 0;
     private long lastSendInputMs = 0;
     private long lastScanShipsMs = 0;
+    private long lastForceDiagMs = 0;
+    private String lastForceDiag = "";
     private volatile Vec3 worldXDirection;
     private volatile Vec3 worldYDirection;
     private volatile Vec3 worldZDirection;
@@ -224,6 +221,7 @@ public class ServerShipHandler {
             data.clearSeatOccupantState();
             clearManualControlInput();
             controlling = false;
+            logForceDiagnostic("no_player", subLevel, null, hasControlAxes);
         }
         Entity vehicle = null;
         if (player != null) {
@@ -233,15 +231,18 @@ public class ServerShipHandler {
             data.clearSeatOccupantState();
             clearManualControlInput();
             controlling = false;
+            logForceDiagnostic("not_riding_mount", subLevel, null, hasControlAxes);
         }
         if (controlling && !hasControlAxes) {
             resetControlInput();
+            logForceDiagnostic("no_control_axes", subLevel, null, true);
             return;
         }
 
         MassData massData = subLevel.getMassTracker();
         if (massData == null || massData.isInvalid()) {
             resetControlInput();
+            logForceDiagnostic("invalid_mass", subLevel, massData, hasControlAxes);
             return;
         }
         double rawMass = massData.getMass();
@@ -249,6 +250,7 @@ public class ServerShipHandler {
         double rawAverageInertia = averageInertia(momentOfInertia);
         if (!isUsableMassProperties(rawMass, momentOfInertia, rawAverageInertia)) {
             resetControlInput();
+            logForceDiagnostic("unusable_mass_properties", subLevel, massData, hasControlAxes);
             return;
         }
         updateSmoothedMassProperties(rawMass, rawAverageInertia, timeStep);
@@ -258,12 +260,14 @@ public class ServerShipHandler {
         RigidBodyHandle handle = RigidBodyHandle.of(subLevel);
         if (handle == null || !handle.isValid()) {
             resetControlInput();
+            logForceDiagnostic("invalid_rigid_body", subLevel, massData, hasControlAxes);
             return;
         }
         Vector3d omega = handle.getAngularVelocity(new Vector3d());
         Vector3d velocity = handle.getLinearVelocity(new Vector3d());
         if (!isFiniteVector(omega) || !isFiniteVector(velocity)) {
             resetControlInput();
+            logForceDiagnostic("non_finite_velocity", subLevel, massData, hasControlAxes);
             return;
         }
         double totalForceThrust = Math.max(0.0D, data.thruster_force_strength);
@@ -271,6 +275,7 @@ public class ServerShipHandler {
         if (totalForceThrust <= AXIS_EPSILON && totalTorqueThrust <= AXIS_EPSILON) {
             // Function: no available fueled thruster authority means no ship force or torque, including assists.
             resetControlInput();
+            logForceDiagnostic("no_thruster_authority", subLevel, massData, hasControlAxes);
             return;
         }
         double linearDampingAlpha = authorityDampingAlpha(
@@ -325,33 +330,19 @@ public class ServerShipHandler {
             nonAntiGravityLinearImpulse.add(invforce);
         }
         if (data.isantigravityon) {
-            double gravityLength = DimensionPhysicsData.getGravity(
+            Vector3d gravity = DimensionPhysicsData.getGravity(
                     subLevel.getLevel(),
                     subLevel.logicalPose().position(),
                     new Vector3d()
-            ).length();
-            if (gravityLength > 1.0E-6D) {
-                // Function: gravity/up direction is fixed to world Y so nonstandard dimensions cannot tilt seat assists.
-                Vector3d gravityDirection = new Vector3d(0.0D, -1.0D, 0.0D);
-                Vector3d gravity = new Vector3d(0.0D, -gravityLength, 0.0D);
-                double antiGravityThrottle = updateAntiGravityIdleThrottle(velocity, hasManualLinearInput, timeStep);
-                // Function: idle anti-gravity trims the gravity-cancel impulse from world-Y velocity instead of staying fixed.
-                finalforce.fma(-mass * timeStep * FREE_FALL_GRAVITY_IMPULSE_SCALE * antiGravityThrottle, gravity);
-
-                double verticalVelocity = velocity.dot(gravityDirection);
-                if (verticalVelocity > 0.0D) {
-                    double verticalDampingAlpha = authorityDampingAlpha(
-                            totalForceThrust * ANTI_GRAVITY_DAMPING_THRUST_FRACTION,
-                            mass,
-                            verticalVelocity,
-                            LINEAR_REFERENCE_SPEED,
-                            ANTI_GRAVITY_VERTICAL_RESPONSE,
-                            timeStep
-                    );
-                    // Function: anti-gravity damps falling drift only, leaving active thrust against gravity unchanged.
-                    finalforce.fma(-mass * verticalVelocity * verticalDampingAlpha, gravityDirection);
-                }
-            }
+            );
+            AntiGravityController.Impulse antiGravityImpulse = AntiGravityController.calculateImpulse(
+                    gravity.x, gravity.y, gravity.z,
+                    velocity.x, velocity.y, velocity.z,
+                    finalforce.x, finalforce.y, finalforce.z,
+                    rawMass, timeStep, !hasManualLinearInput
+            );
+            // Function: match Sable's exact gravity impulse and hold its axis only while the pilot is not translating.
+            finalforce.add(antiGravityImpulse.x(), antiGravityImpulse.y(), antiGravityImpulse.z());
         }
         if (hasWorldControlAxes) {
             Vec3 autoLevelImpulse = AutoLevelUtils.calculateWorldAngularImpulse(
@@ -460,6 +451,20 @@ public class ServerShipHandler {
         ServerShipUtils.applyWorldForceAndTorqueAtCenterOfMass(subLevel,finalforce,finaltorque);
     }
 
+    private void logForceDiagnostic(String reason, ServerSubLevel subLevel, MassData massData, boolean hasControlAxes) {
+        String message = "reason=" + reason
+                + " dim=" + (subLevel == null || subLevel.getLevel() == null
+                        ? "unknown" : subLevel.getLevel().dimension().location())
+                + " subLevel=" + (subLevel == null ? "null" : subLevel.getUniqueId())
+                + " mass=" + (massData == null ? "null" : (massData.isInvalid() ? "invalid" : "valid"))
+                + " axes=" + hasControlAxes;
+        if (!message.equals(lastForceDiag) || System.currentTimeMillis() - lastForceDiagMs > 2000L) {
+            lastForceDiag = message;
+            lastForceDiagMs = System.currentTimeMillis();
+            LogUtils.getLogger().info("[VSIE-SEAT-DIAG] phase=FORCE_EARLY_RETURN {}", message);
+        }
+    }
+
 
     private static double smoothingAlpha(double response, double timeStep) {
         return Mth.clamp(1.0D - Math.exp(-response * timeStep), 0.0D, 1.0D);
@@ -489,18 +494,6 @@ public class ServerShipHandler {
     private boolean hasManualLinearInput(Vec3 translationInput, int throttleInput) {
         return Math.abs(throttleInput) > 0
                 || (translationInput != null && translationInput.lengthSqr() > AXIS_EPSILON);
-    }
-
-    private double updateAntiGravityIdleThrottle(Vector3d worldVelocity, boolean hasManualLinearInput, double timeStep) {
-        if (!hasManualLinearInput && worldVelocity != null && Double.isFinite(worldVelocity.y) && timeStep > 0.0D) {
-            double worldYVelocity = Math.abs(worldVelocity.y) <= 0.01 ? 0.0D : worldVelocity.y;
-            data.antiGravityIdleThrottle = Mth.clamp(
-                    data.antiGravityIdleThrottle - worldYVelocity * ANTI_GRAVITY_IDLE_FEEDBACK_GAIN * timeStep,
-                    ANTI_GRAVITY_IDLE_MIN_THROTTLE,
-                    ANTI_GRAVITY_IDLE_MAX_THROTTLE
-            );
-        }
-        return data.antiGravityIdleThrottle;
     }
 
     private static double idleAngularHoldDampingAlpha(double totalTorqueThrust, double mass, double angularSpeed, double timeStep) {

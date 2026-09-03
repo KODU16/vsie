@@ -50,7 +50,10 @@ public class ElectroMagnetRailCannonBulletEntity extends HeavyElectroMagnetBulle
 
     @Override
     protected void afterServerBulletMove(HitResult hitResult) {
-        if (hitResult.getType() != HitResult.Type.BLOCK && this.level() instanceof ServerLevel serverLevel && isPiercingStarted()) {
+        if (isCurrentChunkCollisionEligible()
+                && hitResult.getType() != HitResult.Type.BLOCK
+                && this.level() instanceof ServerLevel serverLevel
+                && isPiercingStarted()) {
             destroyBlocksInSphere(serverLevel, this.position(), getBlockBreakRadius());
         }
         super.afterServerBulletMove(hitResult);

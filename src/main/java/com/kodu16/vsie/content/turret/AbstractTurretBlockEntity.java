@@ -59,6 +59,8 @@ import java.util.List;
 import java.util.Random;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemStackHandler;
+import net.neoforged.neoforge.energy.EnergyStorage;
+import net.neoforged.neoforge.energy.IEnergyStorage;
 
 import org.slf4j.Logger;
 
@@ -66,7 +68,9 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     Logger LOGGER = LogUtils.getLogger();
     private static final String AMMO_INVENTORY_TAG = "AmmoInventory";
     private static final String LINKED_CONTROL_SEAT_POS_TAG = "LinkedControlSeatPos";
+    private static final String ENERGY_TAG = "Energy";
     protected static final int DEFAULT_CONTROL_SEAT_ENERGY_COST_PER_TICK = 5;
+    protected static final int DEFAULT_STANDALONE_ENERGY_CAPACITY = 100000;
 
     public static SerializableDataTicket<Boolean> TURRET_HAS_TARGET;
 
@@ -156,6 +160,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
             return acceptsAmmoStack(stack);
         }
     };
+    private final EnergyStorage energyStorage = new TurretEnergyStorage();
     public int muzzleFlashTicks = 0;
 
     private Vector3d FirePoint = null;
@@ -397,6 +402,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         if (aimtype == 1) {
             targetDistance = Vec.Distance(currentworldpos, targetPos);
             shootentity();
+            consumeStandaloneEnergyForShot();
             consumeFireCooldown();
             muzzleFlashTicks = 10;
         } else if (aimtype == 2) {
@@ -406,6 +412,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
                 return;
             }
             shootship();
+            consumeStandaloneEnergyForShot();
             consumeFireCooldown();
             muzzleFlashTicks = 10;
         }
@@ -521,7 +528,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     public abstract void shootship();
 
     protected boolean canShootCurrentTarget() {
-        return hasAmmoReady();
+        return hasAmmoReady() && hasStandaloneEnergyForShot();
     }
 
     public boolean hasAmmoInventorySlots() {
@@ -603,6 +610,35 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         return this;
     }
 
+    public IEnergyStorage getEnergyCapability() {
+        return energyStorage;
+    }
+
+    public EnergyStorage getEnergyStorage() {
+        return energyStorage;
+    }
+
+    public int getStandaloneEnergyCostPerShot() {
+        // Function: off-ship turrets pay the FE per shot they would draw through a control seat; zero upkeep fires for free.
+        return getenergypertick() * Math.max(1, getCoolDown());
+    }
+
+    public boolean hasStandaloneEnergyForShot() {
+        // Function: ship-mounted turrets are fed by the control seat, while ammo-only turrets do not need internal FE.
+        if (onShip || !isEnergyTurret()) {
+            return true;
+        }
+        return energyStorage.getEnergyStored() >= getStandaloneEnergyCostPerShot();
+    }
+
+    protected void consumeStandaloneEnergyForShot() {
+        if (onShip || !isEnergyTurret()) {
+            return;
+        }
+        energyStorage.extractEnergy(getStandaloneEnergyCostPerShot(), false);
+        setChanged();
+    }
+
     protected void tickFireCooldown(boolean fireRequested) {
         FireCooldown cooldown = getFireCooldown();
         if (idleTicks > 0) {
@@ -622,7 +658,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
 
     public boolean isHudFireReady() {
         // Function: HUD warning state only covers heat/cooldown and ammo availability, not target or trigger state.
-        return isFireCooldownReady() && hasAmmoReady();
+        return isFireCooldownReady() && hasAmmoReady() && hasStandaloneEnergyForShot();
     }
 
     protected void consumeFireCooldown() {
@@ -1225,6 +1261,7 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         tag.putBoolean("breaksBlocks", getData().isBreaksBlocks());
         tag.putInt("muzzleFlashTicks", this.muzzleFlashTicks);
         tag.putDouble("fireCooldownValue", this.fireCooldownValue);
+        tag.putInt(ENERGY_TAG, energyStorage.getEnergyStored());
         RelativeBlockPosNbt.write(tag, LINKED_CONTROL_SEAT_POS_TAG, getBlockPos(), this.linkedControlSeatPos);
     }
 
@@ -1251,6 +1288,9 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
         if (tag.contains("breaksBlocks")) {getData().setBreaksBlocks(tag.getBoolean("breaksBlocks"));}
         if (tag.contains("muzzleFlashTicks")) {this.muzzleFlashTicks = tag.getInt("muzzleFlashTicks");}
         if (tag.contains("fireCooldownValue")) {this.fireCooldownValue = tag.getDouble("fireCooldownValue");}
+        if (tag.contains(ENERGY_TAG)) {
+            ((TurretEnergyStorage) energyStorage).setEnergyStored(tag.getInt(ENERGY_TAG));
+        }
         this.linkedControlSeatPos = RelativeBlockPosNbt.read(tag, LINKED_CONTROL_SEAT_POS_TAG, getBlockPos(), false);
     }
 
@@ -1481,6 +1521,17 @@ public abstract class AbstractTurretBlockEntity extends SmartBlockEntity impleme
     public void setStackInSlot(int slot, @NotNull ItemStack stack) {
         ammoInventory.setStackInSlot(slot, stack);
         setChanged();
+    }
+
+    private class TurretEnergyStorage extends EnergyStorage {
+        private TurretEnergyStorage() {
+            super(DEFAULT_STANDALONE_ENERGY_CAPACITY, Integer.MAX_VALUE, Integer.MAX_VALUE, 0);
+        }
+
+        public void setEnergyStored(int energy) {
+            // Function: NBT restores exact stored FE and must not be capped by the current receive/extract rate.
+            this.energy = Mth.clamp(energy, 0, this.capacity);
+        }
     }
 }
 

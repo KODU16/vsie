@@ -40,6 +40,11 @@ public class BulletData {
         return new BulletData(FxData.createWithAwake(HEAVY_ELECTROMAGNETIC_BULLET_FX));
     }
 
+    // Function: custom projectiles can bind a definition-authored Photon FX without adding a new bullet data JSON.
+    public static BulletData createWithAwake(ResourceLocation awakeFx) {
+        return new BulletData(FxData.createWithAwake(awakeFx));
+    }
+
     public FxData getFxData() {
         return fxData;
     }

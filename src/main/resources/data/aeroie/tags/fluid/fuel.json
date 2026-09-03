@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "vsie:dtfuel",
+    "vsie:charged_particles_fuel"
+  ]
+}

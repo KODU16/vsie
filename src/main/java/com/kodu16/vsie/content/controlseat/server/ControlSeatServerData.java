@@ -77,7 +77,6 @@ public class ControlSeatServerData {
     public volatile boolean istorqueassiston = true;// Function: toggles automatic counter-torque damping.
     public volatile boolean isForceAssistSuppressedByAccelerator = false;// Function: rail acceleration hard-disables force assist while active.
     public volatile boolean isAutoLevelOn = false;
-    public volatile double antiGravityIdleThrottle = 1.0D;
     public volatile double shieldmin = 0;
     public volatile double shieldmax = 0;
 

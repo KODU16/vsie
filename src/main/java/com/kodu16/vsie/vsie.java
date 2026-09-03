@@ -2,6 +2,7 @@ package com.kodu16.vsie;
 
 import com.kodu16.vsie.content.screen.server.ServerInfoGetter;
 import com.kodu16.vsie.foundation.VsieModelBakeryLogFilter;
+import com.kodu16.vsie.foundation.projectile.ProjectileCorridorManager;
 import com.kodu16.vsie.registries.ModMenuTypes;
 import com.kodu16.vsie.registries.ModNetworking;
 import com.kodu16.vsie.registries.ModParticleTypes;
@@ -50,5 +51,7 @@ public class vsie {
         ModNetworking.register(modBus);
 
         NeoForge.EVENT_BUS.addListener(ServerInfoGetter::onSablePostPhysicsTick);
+        NeoForge.EVENT_BUS.addListener(ProjectileCorridorManager::onServerTick);
+        NeoForge.EVENT_BUS.addListener(ProjectileCorridorManager::onServerStopped);
     }
 }

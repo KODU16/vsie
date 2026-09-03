@@ -36,19 +36,31 @@ public class ClientDataManager {
         if (player == null || seatPos == null) {
             return null;
         }
-        if (!(player.getVehicle() instanceof ControlSeatMountEntity mount) || !seatPos.equals(mount.getBoundBlockPos())) {
-            return null;
-        }
-        if (seatEntityId != null && !seatEntityId.equals(mount.getUUID())) {
+        ControlSeatClientData clientData = getClientData(player);
+        if (clientData == null) {
             return null;
         }
 
-        ControlSeatClientData clientData = getClientData(player);
-        if (clientData != null) {
-            // Function: stale packets from a previous chair must not overwrite the currently ridden chair state.
-            clientData.bindSeat(seatPos, mount.getUUID());
+        boolean ridingSeat = player.getVehicle() instanceof ControlSeatMountEntity mount
+                && seatPos.equals(mount.getBoundBlockPos());
+        boolean sameMount = ridingSeat
+                && (seatEntityId == null || seatEntityId.equals(((ControlSeatMountEntity) player.getVehicle()).getUUID()));
+        // 跨维度后 Sable 会重建 seat mount，服务器发来的 entity id 可能和客户端当前挂载短暂不一致；
+        // 只要玩家还骑着该座位，就按座位坐标重新绑定，避免控制输入被直接丢弃导致飞船冻结。
+        if (ridingSeat && (sameMount || clientData.isDimensionTransferPending())) {
+            clientData.bindSeat(seatPos, ((ControlSeatMountEntity) player.getVehicle()).getUUID());
+            return clientData;
         }
-        return clientData;
+        if (clientData.isDimensionTransferPending() && clientData.isBoundToSeat(seatPos)) {
+            // 客户端尚未收到新的骑乘关系时，继续沿用上一次绑定的座位数据完成过渡。
+            return clientData;
+        }
+        if (clientData.isBoundToSeat(seatPos)) {
+            // 跨维度重建期间服务端可能先于客户端更新 mount UUID，此时仍按座位坐标接受输入同步。
+            clientData.bindSeat(seatPos, ridingSeat ? ((ControlSeatMountEntity) player.getVehicle()).getUUID() : seatEntityId);
+            return clientData;
+        }
+        return null;
     }
 
     public static void clearSeatBinding(Player player) {

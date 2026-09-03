@@ -7,7 +7,7 @@ import com.kodu16.vsie.content.bullet.entity.HeavyElectroMagnetBulletEntity;
 import com.kodu16.vsie.content.bullet.entity.InfraKnifeBulletEntity;
 import com.kodu16.vsie.content.bullet.entity.ParticleBulletEntity;
 import com.kodu16.vsie.content.controlseat.entity.ControlSeatMountEntity;
-import com.kodu16.vsie.content.custom_turret.CustomTurretProjectileEntity;
+import com.kodu16.vsie.content.aeroie_custom.CustomTurretProjectileEntity;
 import com.kodu16.vsie.content.missile.entity.BasicMissileEntity;
 import com.kodu16.vsie.content.warpprojectile.WarpProjecTileEntity;
 import com.kodu16.vsie.vsie;
@@ -24,8 +24,8 @@ public class vsieEntities {
 
     public static final EntityEntry<BasicMissileEntity> BASIC_MISSILE =
             REGISTRATE.entity("basic_missile", BasicMissileEntity::new, MobCategory.MISC)
-                    // Function: missiles need a real hitbox and frequent sync for guided movement and impact.
-                    .properties(builder -> builder.sized(0.6F, 0.6F).clientTrackingRange(16).updateInterval(1))
+                    // Function: missiles need long client tracking plus per-tick precise-motion synchronization.
+                    .properties(builder -> builder.sized(0.6F, 0.6F).clientTrackingRange(256).updateInterval(1))
                     .tag(RPLTags.PRECISE_MOTION)
                     .register();
     public static final EntityEntry<ParticleBulletEntity> PARTICLE_BULLET =

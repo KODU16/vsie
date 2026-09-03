@@ -54,3 +54,121 @@ AeroIE 1.0.1 更新日志
 - 新增 verifyRuntimeJarContents 构建期契约：逐一核对 src/main/java 中每个顶层源码的 class 都存在于发布 JAR，阻止不完整增量产物再次通过 check 或被误部署。
 - 完整 clean build/check、运行时 JAR 类完整性检查及控制椅纹理资源检查通过；未启动 Minecraft。
 - 已部署修复后的 AeroIE-1.0.1.jar，包含 471 个 class；SHA-256：95CC900ACE81399B245F0AC50AE49F43BE9E09941B327C1818F44B21C375D2B7；目标实例不存在旧 AeroIE-1.0.0.jar。
+
+2026-08-13 自定义炮塔枢轴拖动带动骨骼位移修复
+- 根因不是枢轴/位置命中分支重叠：一次拖动只锁定单个 activeAxis；实际问题是原实现只修改 pivot，而渲染矩阵使用 position -> pivot -> rotation/scale -> -pivot，已有旋转或非 1 缩放时改变枢轴必然带动网格斜移。
+- 枢轴拖动现在按 position += rotation*scale*deltaPivot - deltaPivot 执行精确位置反补偿，使枢轴标识沿选定轴移动时，当前 OBJ 网格及其子级保持原世界位置；位置模式仍仅修改 position。
+- 枢轴三轴改为按当前骨骼旋转与缩放后的真实局部轴投影，屏幕上的拖动方向、数值增量和补偿方向保持一致。
+- 新增纯 Java 回归测试，覆盖带三轴旋转、非均匀缩放的蓝色 Z 枢轴拖动；修复前稳定复现网格斜移，修复后同一 OBJ 顶点变换前后坐标不变。
+- 完整 clean build/check 通过，未启动 Minecraft；已部署 AeroIE-1.0.1.jar，SHA-256：BCFF88636A68EC706D3B00547D254ABEAEFC1F64DCAEFB76DB80216B9CF1E52E；目标实例不存在旧 AeroIE-1.0.0.jar。
+
+2026-08-13 固定骨骼组枢轴输入与浮窗层级修复
+- 修正 root、turret、cannon、long_cannon 和 firepoint 等固定骨骼组的枢轴数字框无法编辑：可见文本框现在优先于浮窗行、按钮和视口操作接收左键，并显式取得 Screen 焦点。
+- 浮窗绘制与输入统一采用明确层级：炮塔属性窗口最高，右侧属性窗口其次，左侧骨骼窗口最后；重叠区域内只有最上层窗口接收点击、拖动和控件输入。
+- 炮塔属性窗口的面板、标签、按钮和文本框统一最后绘制，确保所有内容完整覆盖左右两个底层浮窗，不再只覆盖背景而让底层输入框浮到上方。
+- 手动输入枢轴数值与三轴拖动共用几何稳定补偿，改变 pivot 时当前 OBJ 和子级保持原位；未发生枢轴变化时不会刷新 position 文本，避免干扰正在进行的位置输入。
+- 完整 clean build/check 通过，未启动 Minecraft；已部署 AeroIE-1.0.1.jar，SHA-256：E9A9B67609FD49DAE5E5AC5EDDA4B01F3D86197B606591A1D3C9E7B0F4B3E9B0；目标实例不存在旧 AeroIE-1.0.0.jar。
+2026-08-13 炮塔瞄准坐标修复
+- 根因是自定义 OBJ 骨骼在 GeckoLib 空模型完成安装面旋转后才单独绘制，因而遗漏了炮塔 FACING 的六向安装变换；同时编辑器约定的炮管 +Z 正向没有转换到 AeroIE 炮塔的 -Z 中性朝向，导致水平瞄准反向，并在墙面安装时产生约 90 度的竖直偏差。
+- 抽取原生与自定义炮塔共用的六向安装变换，自定义网格、firepoint 采样和激光渲染现在处于同一 PoseStack 坐标系；保留编辑器 +Z 创作约定，仅在运行时加入 180 度中性朝向适配，不修改现有 JSON/OBJ。
+- 编辑器预览继续显示作者定义的原始朝向，不应用运行时中性角适配；炮塔目标角、可见骨骼、开火点采样及命中检测共用相同的偏航/俯仰映射。
+- 新增纯数学回归测试，覆盖复合偏航/俯仰和 DOWN、UP、NORTH、SOUTH、WEST、EAST 六种安装方向。
+- 完整 clean build/check 与运行时 JAR 类完整性检查通过，未启动 Minecraft；已部署 AeroIE-1.0.1.jar，包含 474 个 class，SHA-256：F68511371226C64BED2D7A7FF48956E9A88C75FE411049817AAA94F86822C074；目标实例不存在旧 AeroIE-1.0.0.jar。
+2026-08-13 自定义炮塔放置朝向修复
+- 根因是自定义炮塔放置器直接写入 CUSTOM_TURRET_BLOCK 的默认 BlockState，导致每次放置都固定为 FACING=NORTH；渲染器虽支持六向安装变换，但始终只能读到同一个方向。
+- 放置器现在调用公共炮塔方块的 getStateForPlacement，沿用其它炮塔的六向观察/放置方向规则，再写入自定义炮塔定义 NBT；不同放置方向会保存为实际 BlockState 并驱动 OBJ 模型朝向。
+- 新增调用点回归测试，禁止放置器退回固定默认状态，要求其始终委托公共方向放置逻辑。
+- 完整 clean build/check 与运行时 JAR 类完整性检查通过，未启动 Minecraft；已部署 AeroIE-1.0.1.jar，包含 474 个 class，SHA-256：65634CC176B9CC325ABF2A30E4CA059D93CD5091684179BAB172A65C836DEF8B；目标实例不存在旧 AeroIE-1.0.0.jar。
+2026-08-13 自定义推进器/武器初步接入
+- /aeroie open_editor 现在默认进入空白编辑器；点击新建后需选择推进器、武器或炮塔，定义内记录 deviceType，并按类别保存/加载。
+- 自定义定义格式扩展为三类设备：炮塔保持 root/turret/cannon/long_cannon 与 firepoint 规则；武器允许自由骨骼但至少需要 firepoint；推进器允许自由骨骼并记录 flamepoint/trailpoint、推力、燃料、火焰和尾迹参数。
+- 放置器按定义类别放置 custom_turret/custom_weapon/custom_thruster，并分别接入公共炮塔、武器、推进器基类，确保控制椅绑定和 GUI 识别走 AeroIE 现有规则。
+- 放置器选择窗口加入推进器/武器/炮塔筛选，改为右下角加载/取消按钮，不再按 Enter 加载。
+- 加入 data/aeroie/tags/fluid/fuel.json，将 vsie:dtfuel 与 vsie:charged_particles_fuel 统一到 #aeroie:fuel。
+- 完整 clean build/check 通过，未启动 Minecraft；AeroIE-1.0.1.jar SHA-256：1D2E81FDC300EF9096A6C1003DE2A42FD603C64B3CD05C7DEE2855C1661E4BD1。
+
+2026-08-13 自定义推进器/武器补充与 HUD 简写
+- 自定义重型炮塔和自定义武器定义新增 hudShortName；武器默认 WPN，炮塔切换为重型时若为空则默认 TURRET，控制椅 HUD 优先显示该简写。
+- 自定义武器接入 GeckoLib firepoint 采样；服务端按采样 firepoint 执行射线检测，能量武器按每个 firepoint 渲染独立 beam。
+- 自定义推进器渲染接入 flamepoint/trailpoint 骨骼组；每个 flamepoint 按定义的火焰半径、颜色和多边形数渲染 beam 尾焰，每个 trailpoint 按采样世界轨迹渲染独立尾迹。
+- 中文与英文资源补充 HUD 简写名；炮塔方块实体拒收非炮塔定义时不再先污染内部定义状态。
+- 完整 clean build/check 通过，未启动 Minecraft；AeroIE-1.0.1.jar SHA-256：81DC396A55E2BFA9CB2589DEA361403AF3C93FA55C018424286B70948E31575D。
+
+2026-08-13 自定义非能量武器 firepoint 弹体发射修正
+- 自定义非能量武器不再把 firepoint 当作多束射线起点；改为从 firepoint1 生成定义配置的弹体，并在存在多个 firepoint 时按 firepoint2、firepoint3... 顺序续射。
+- 续射使用定义中的 firepointIntervalTicks；pending volley 期间禁止公共武器冷却再次启动首发，避免多扣弹药或重入。
+- 多 firepoint 续射沿用公共武器弹药消耗逻辑，后续 firepoint 每发继续消耗一份弹药；缺少采样 firepoint 时回退到方块/武器中心。
+- 新增构建期契约检查，防止自定义非能量武器退回仅射线实现。
+- 完整 clean build/check 通过，未启动 Minecraft；AeroIE-1.0.1.jar SHA-256：90046CBF456D994E47DD4F08099E8961CB8F51737B8A63BAE598BD7C57224683。
+
+2026-08-13 自定义设备 Photon FX 绑定
+- 自定义炮塔/武器的 firepoint 骨骼组、推进器的 flamepoint 骨骼组新增可选 Photon FX 绑定；FX 文件从游戏目录 AeroIE/fx 读取，定义中保存相对路径，默认留空时不播放。
+- firepoint/flamepoint 采样现在同时上传点位世界坐标和骨骼局部 +Z 转换后的世界方向；播放时先让 FX 局部 +Z 对齐该世界方向，再叠加定义中的三轴旋转和缩放。
+- 点位 FX 通过位置 FX 包播放并启用 allowMulti，支持多个 firepoint/flamepoint 同时播放，不被 Photon 同位置缓存去重。
+- 非能量自定义炮塔/武器新增 projectileFx，可为发射的自定义弹体绑定 Photon FX；弹体在客户端收到同步数据后自行启动实体绑定 FX，避免实体生成包与 FX 包竞态。
+- 编辑器新增 AeroIE/fx 选择界面、点位 FX 路径/缩放/旋转字段、弹体 FX 路径/缩放/旋转字段，并补齐中英文翻译。
+- 完整 clean build/check 通过，未启动 Minecraft；AeroIE-1.0.1.jar SHA-256：91BE8C64D18F595A499D2875CD57F7ED42E0AC0E1E2C8F1A937860212B72BBA8。
+
+2026-08-17 自定义炮塔 GeckoLib 动画与目录拆分
+- 自定义炮塔使用 AeroIE/Custom_turret，武器使用 AeroIE/Custom_weapon，推进器使用 AeroIE/Custom_thruster，保存时默认按定义单独目录落盘。
+- 保存自定义炮塔/武器/推进器定义时自动生成同名 GeckoLib .geo.json 骨骼文件，并在定义中记录 geckoModel 供游戏内 GeckoLib 模型加载。
+- 炮塔定义新增 fireAnimation/fireAnimationName；编辑器炮塔属性面板可选择 AeroIE/Custom_turret 下的 .animation.json，开火时客户端按同步序号播放该动画。
+- 已通过 compileJava、自定义炮塔相关 JUnit 契约测试与完整 check，未启动 Minecraft。
+
+2026-08-17 区域 OBJ 发光材质保留
+- 区域 OBJ 导出会识别原方块亮度，发光方块的面切换到 atlas_emissive 材质，并在 MTL 中写入 Ke 与 # aeroie_emissive true 兼容标记。
+- 自定义 OBJ 加载器读取 mtllib/usemtl 和发光材质标记，仅对这些面使用 fullbright 渲染，普通材质继续使用场景光照。
+- 已通过 compileJava 与完整 check，未启动 Minecraft。
+
+2026-08-17 自定义编辑器文字重叠与属性窗口滚动
+- 新建设备弹窗改为更宽的三列按钮布局，按钮文字按可用宽度截断，提示文本下移以避免中文重叠。
+- 骨骼属性面板和设备属性面板的标签/按钮文字按列宽裁剪，避免长翻译覆盖输入框或相邻控件。
+- 右侧设备属性面板支持鼠标左键拖拽边缘调整大小，内容区域支持滚轮滚动并显示滚动条，长表单不再强行挤入固定高度。
+
+2026-08-17 自定义编辑器窗口层级与通用裁剪
+- 浮动窗口背景改为不透明绘制，新建设备弹窗打开时先绘制遮罩，避免底层状态文字透到上层窗口。
+- 骨骼属性窗口改为可拖拽边缘调整宽高，并支持滚轮滚动和滚动条显示，输入框与按钮统一限制在窗口内容裁剪区内。
+- 骨骼属性和设备属性的输入框随窗口宽度重新布局，窗口内长标签、长按钮文本统一按可用宽度截断。
+
+2026-08-17 自定义编辑器骨骼属性错位修正
+- 修正非 firepoint/flamepoint 骨骼也显示 FX 输入框的问题，避免空输入框把选择模型包、切换父级和枢轴按钮挤到一起。
+- 骨骼属性输入框右侧预留滚动条和边框间距，降低窄窗口下字段贴边或重叠的概率。
+- 新建自定义设备弹窗移除说明文字，仅保留标题和三个设备类型按钮。
+
+2026-08-17 自定义定义加载与 OBJ 四边形修正
+- 编辑器空白状态不再显示“当前没有活动定义”说明文字，也移除了对应未使用翻译。
+- 点击加载会打开根目录内文件夹选择窗口，玩家选择某个自定义设备文件夹后加载其中的有效定义文件。
+- OBJ 加载器不再把四顶点面拆成两块退化四边形，四边形保持原始四点输出，减少预览模型异常对角线和缺面表现。
+
+2026-08-18 自定义设备资源缺失处理与面剔除修正
+- 编辑器加载自定义设备文件夹时会先检查定义引用的 OBJ，若 OBJ 不存在则停留在加载窗口并在窗口中心显示缺失模型。
+- 已放置的自定义炮塔、武器和推进器只在方块实体加载时检查一次外部 OBJ；若缺失则移除该部件，并向附近玩家发送红字聊天提示。
+- 新增 /aeroie refresh_custom_devices [radius] 手动刷新指令，用于主动扫描命令源附近已加载区域并移除缺失 OBJ 的自定义部件。
+- OBJ 客户端网格跳过零面积退化面片，避免用任意默认法线继续绘制异常面。
+
+2026-08-18 自定义 OBJ 诊断反馈循环
+- 区域 OBJ 导出新增 [AEROIE-OBJ-DIAG] 日志，记录选区体积、非空气方块、动态/未加载跳过、方向面剔除统计、烘焙面统计、通用面和退化面数量。
+- 编辑器 OBJ 缓存重载新增 [AEROIE-OBJ-DIAG] 日志，记录设备类型、相对路径、实际路径和加载失败原因。
+- OBJ 解析新增 [AEROIE-OBJ-DIAG] 汇总日志，记录顶点、UV、法线、三角面、四边形、n-gon、输出四边形、跳过退化面和发光材质数量。
+
+2026-08-18 区域 OBJ 保守面剔除
+- 区域 OBJ 导出不再直接使用 Minecraft 的 Block.shouldRenderFace 作为剔面依据，避免复杂模型、非完整方块和透明/特殊方块被邻接规则误删。
+- 新剔面规则仅移除选区内部两个完整实心渲染方块之间的贴合面；其它邻接关系会保留并导出烘焙面。
+- [AEROIE-OBJ-DIAG] 的 faceCull 字段现在表示保守规则下的完整实心方块内部贴合面剔除数量。
+
+2026-08-18 区域 OBJ 贴图 UV 诊断与裁剪
+- 区域 OBJ 导出会把烘焙四边形的局部 UV 限制在当前 sprite 的 0..1 范围内，避免 UV 越过纹理图集槽位后采样到相邻方块贴图。
+- [AEROIE-OBJ-DIAG] 新增 uvClamped 与 spriteByDirection 字段，用于判断错误贴图来自 UV 穿槽还是模型烘焙阶段的方向贴图选择。
+- 已通过 compileJava 与完整 check，未启动 Minecraft。
+
+2026-08-18 区域 OBJ 贴图对应修正
+- 区域 OBJ 导出不再完全信任 BakedQuad 携带的 sprite；若四个顶点的 atlas UV 中心不在该 sprite 范围内，会从方块 atlas 中反查实际 sprite 再写入导出纹理。
+- 导出时会反向展开 Minecraft FaceBakery 的 UV shrink，避免独立 OBJ atlas 中继续使用原版防出血收缩后的贴图边界。
+- [AEROIE-OBJ-DIAG] 新增 uvExpanded 与 spriteRemapped 字段，用于确认是否触发了 UV 展开或 sprite 重绑定。
+- 已通过 compileJava 与完整 check，未启动 Minecraft。
+2026-08-26 AeroIE_custom 骨骼变换与装饰分类
+- 通用自定义代码包由 content.custom_turret 重命名为 content.aeroie_custom，通用定义、存储、编辑器、放置器和网络选择类同步改用 CustomDevice 命名。
+- 自定义资产新根目录统一为 AeroIE_custom/turret、weapon、thruster、decoration；首次访问时仅复制旧 AeroIE/Custom_* 中缺失的文件，不删除或覆盖旧资产。
+- 所有骨骼（包括炮塔、开火点和推进器固定骨骼组）均可编辑三轴旋转与缩放，并支持 X/Y/Z 轴正负 90 度快捷旋转；层级渲染继续保存并应用枢轴、旋转和缩放。
+- 新增 decoration 定义、筛选、资源目录、被动方块与方块实体。装饰只有普通自由骨骼，不创建或识别任何语义骨骼组，放置后无菜单、tick、能力或控制椅交互。
+- 已通过 JSON 资源解析、JUnit 测试和完整 Gradle check；未启动 Minecraft。

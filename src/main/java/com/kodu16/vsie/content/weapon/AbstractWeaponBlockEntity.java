@@ -463,6 +463,16 @@ public abstract class AbstractWeaponBlockEntity extends SmartBlockEntity impleme
         Pair<Vec3, Vec3> raycastPositions = calculateRaycastPositions(currentBlockPos, localDirectionVector, effectiveMaxDistance);
         Vec3 worldFrom = raycastPositions.getFirst();
         Vec3 worldTo = raycastPositions.getSecond();
+        performRaycastFrom(level, worldFrom, worldTo.subtract(worldFrom), effectiveMaxDistance);
+    }
+
+    protected void performRaycastFrom(@Nonnull Level level, @Nonnull Vec3 worldFrom,
+                                      @Nonnull Vec3 worldDirection, float effectiveMaxDistance) {
+        if (!getData().isfiring || worldDirection.lengthSqr() <= 1.0E-8D) {
+            return;
+        }
+        BlockState state = this.getBlockState();
+        Vec3 worldTo = worldFrom.add(worldDirection.normalize().scale(effectiveMaxDistance));
         this.raycastStart = worldFrom;
         this.raycastEnd = worldTo;
         this.raycastDistance = effectiveMaxDistance;

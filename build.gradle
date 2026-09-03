@@ -369,11 +369,11 @@ var verifyCrispGuiRendering = tasks.register("verifyCrispGuiRendering") {
         }
 
         var independentScreens = [
-                "src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretEditorScreen.java",
-                "src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretAssetPackageScreen.java",
-                "src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretDefinitionSaveScreen.java",
-                "src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretSelectorScreen.java",
-                "src/main/java/com/kodu16/vsie/content/custom_turret/export/client/RegionObjExportScreen.java",
+                "src/main/java/com/kodu16/vsie/content/aeroie_custom/client/CustomDeviceEditorScreen.java",
+                "src/main/java/com/kodu16/vsie/content/aeroie_custom/client/CustomDeviceAssetPackageScreen.java",
+                "src/main/java/com/kodu16/vsie/content/aeroie_custom/client/CustomDeviceDefinitionSaveScreen.java",
+                "src/main/java/com/kodu16/vsie/content/aeroie_custom/client/CustomDeviceSelectorScreen.java",
+                "src/main/java/com/kodu16/vsie/content/aeroie_custom/export/client/RegionObjExportScreen.java",
                 "src/main/java/com/kodu16/vsie/content/controlseat/client/ControlSeatWarpSelectionScreen.java"
         ]
         if (independentScreens.any { !file(it).text.contains("extends CrispScreen") }) {
@@ -397,29 +397,32 @@ tasks.named("check") {
 }
 
 // Guards the folder-scoped custom-turret asset package, material resolution and localized editor layout.
-var verifyCustomTurretAssetPackages = tasks.register("verifyCustomTurretAssetPackages") {
+var verifyCustomDeviceAssetPackages = tasks.register("verifyCustomDeviceAssetPackages") {
     group = "verification"
     description = "Checks packaged OBJ assets, unique textures, responsive property rows, and translated labels."
 
     doLast {
-        var exporter = file("src/main/java/com/kodu16/vsie/content/custom_turret/export/client/RegionObjExporter.java").text
-        var editor = file("src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretEditorScreen.java").text
-        var renderer = file("src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretMeshRenderer.java").text
-        var mesh = file("src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomObjMesh.java").text
-        var definition = file("src/main/java/com/kodu16/vsie/content/custom_turret/CustomTurretDefinition.java").text
-        var selector = file("src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretSelectorScreen.java").text
-        var placer = file("src/main/java/com/kodu16/vsie/content/custom_turret/CustomTurretPlacerItem.java").text
-        var clientCommands = file("src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretClientCommands.java").text
+        var exporter = file("src/main/java/com/kodu16/vsie/content/aeroie_custom/export/client/RegionObjExporter.java").text
+        var editor = file("src/main/java/com/kodu16/vsie/content/aeroie_custom/client/CustomDeviceEditorScreen.java").text
+        var renderer = file("src/main/java/com/kodu16/vsie/content/aeroie_custom/client/CustomDeviceMeshRenderer.java").text
+        var mesh = file("src/main/java/com/kodu16/vsie/content/aeroie_custom/client/CustomObjMesh.java").text
+        var definition = file("src/main/java/com/kodu16/vsie/content/aeroie_custom/CustomDeviceDefinition.java").text
+        var selector = file("src/main/java/com/kodu16/vsie/content/aeroie_custom/client/CustomDeviceSelectorScreen.java").text
+        var placer = file("src/main/java/com/kodu16/vsie/content/aeroie_custom/CustomDevicePlacerItem.java").text
+        var storage = file("src/main/java/com/kodu16/vsie/content/aeroie_custom/CustomDeviceStorage.java").text
+        var blocks = file("src/main/java/com/kodu16/vsie/registries/vsieBlocks.java").text
+        var blockEntities = file("src/main/java/com/kodu16/vsie/registries/vsieBlockEntities.java").text
+        var clientCommands = file("src/main/java/com/kodu16/vsie/content/aeroie_custom/client/CustomDeviceClientCommands.java").text
         var items = file("src/main/java/com/kodu16/vsie/registries/vsieItems.java").text
         var geo = file("src/main/resources/assets/vsie/geo/block/custom_turret.geo.json").text
         var chinese = file("src/main/resources/assets/vsie/lang/zh_cn.json").text
         var english = file("src/main/resources/assets/vsie/lang/en_us.json").text
-        if (!exporter.contains("CustomTurretAssetPackage.named(name)")
+        if (!exporter.contains("CustomDeviceAssetPackage.named(name)")
                 || !exporter.contains('Files.createDirectories(packageDirectory)')
                 || !exporter.contains('".png\\n"')
                 || editor.contains("next_obj")
                 || editor.contains("next_png")
-                || !editor.contains("CustomTurretAssetPackageScreen")
+                || !editor.contains("CustomDeviceAssetPackageScreen")
                 || !editor.contains("private static final int ROW_HEIGHT = 18")
                 || !editor.contains("labelFields[index].getY() + 4")
                 || !editor.contains("draggedPanel")
@@ -435,10 +438,14 @@ var verifyCustomTurretAssetPackages = tasks.register("verifyCustomTurretAssetPac
                 || !editor.contains("boolean turretPropertiesOpen")
                 || !editor.contains("drawTopToolIcons(graphics)")
                 || !editor.contains("closeTurretProperties()")
+                || !editor.contains("focusVisibleField(mouseX, mouseY, button, false)")
+                || !editor.contains("private boolean focusVisibleField")
+                || !editor.contains("handleTopmostFloatingPanelClick")
+                || !editor.contains("drawFieldLayer(graphics, mouseX, mouseY, partialTick, true)")
                 || !editor.contains("selectedBone().position[0] + selectedBone().pivot[0]")
                 || !editor.contains("TransformEditMode.PIVOT")
                 || !editor.contains("TransformEditMode.PIVOT ? 2.0F : 1.0F")
-                || !editor.contains("CustomTurretDefinitionSaveScreen")
+                || !editor.contains("CustomDeviceDefinitionSaveScreen")
                 || !clientCommands.contains('Commands.literal("aeroie")')
                 || !clientCommands.contains('Commands.literal("open_editor")')
                 || !selector.contains("loadDefinitionFiles")
@@ -446,23 +453,33 @@ var verifyCustomTurretAssetPackages = tasks.register("verifyCustomTurretAssetPac
                 || !selector.contains("selectedFile")
                 || !placer.contains("player.isShiftKeyDown()")
                 || items.contains("CUSTOM_TURRET_EDITOR")
-                || file("src/main/java/com/kodu16/vsie/content/custom_turret/CustomTurretEditorItem.java").exists()
+                || file("src/main/java/com/kodu16/vsie/content/aeroie_custom/CustomTurretEditorItem.java").exists()
                 || !mesh.contains("quadCompatibleTriangleFan")
                 || !mesh.contains("calculateCenter")
                 || !definition.contains('List.of("root", "turret", "cannon", "long_cannon")')
                 || !definition.contains("public float[] pivot")
+                || !definition.contains('"decoration"')
+                || !editor.contains("isGroupTransformField")
+                || !editor.contains("rotation[axis].setEditable(true)")
+                || !editor.contains('createNewDefinition("decoration")')
+                || !selector.contains("showDecorations")
+                || !placer.contains("CUSTOM_DECORATION_BLOCK")
+                || !blocks.contains("CUSTOM_DECORATION_BLOCK")
+                || !blockEntities.contains("CUSTOM_DECORATION_BLOCK_ENTITY")
+                || !storage.contains('resolve("AeroIE_custom")')
+                || !storage.contains("copyLegacyFilesIfMissing")
                 || !geo.contains('"name": "long_cannon"')
                 || renderer.contains("control_seat.png")
                 || !renderer.contains("textures/block/stone.png")
                 || !chinese.contains('"screen.vsie.custom_turret_editor.select_asset_package"')
                 || !english.contains('"screen.vsie.custom_turret_editor.select_asset_package"')) {
-            throw new GradleException("Custom turret package, texture, layout, or localization contract regressed")
+            throw new GradleException("AeroIE custom package, transform, decoration, or localization contract regressed")
         }
     }
 }
 
 tasks.named("check") {
-    dependsOn verifyCustomTurretAssetPackages
+    dependsOn verifyCustomDeviceAssetPackages
 }
 
 // Guards definition-driven weapon fields, firepoint ownership and independent multi-beam hit paths.
@@ -471,10 +488,10 @@ var verifyCustomTurretWeapons = tasks.register("verifyCustomTurretWeapons") {
     description = "Checks custom turret weapon definitions and runtime firepoint behavior."
 
     doLast {
-        var definition = file("src/main/java/com/kodu16/vsie/content/custom_turret/CustomTurretDefinition.java").text
-        var editor = file("src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretEditorScreen.java").text
-        var runtime = file("src/main/java/com/kodu16/vsie/content/custom_turret/CustomTurretBlockEntity.java").text
-        var renderer = file("src/main/java/com/kodu16/vsie/content/custom_turret/client/CustomTurretMeshRenderer.java").text
+        var definition = file("src/main/java/com/kodu16/vsie/content/aeroie_custom/CustomDeviceDefinition.java").text
+        var editor = file("src/main/java/com/kodu16/vsie/content/aeroie_custom/client/CustomDeviceEditorScreen.java").text
+        var runtime = file("src/main/java/com/kodu16/vsie/content/aeroie_custom/CustomTurretBlockEntity.java").text
+        var renderer = file("src/main/java/com/kodu16/vsie/content/aeroie_custom/client/CustomDeviceMeshRenderer.java").text
         var packet = file("src/main/java/com/kodu16/vsie/network/turret/TurretFirePointC2SPacket.java").text
         if (!definition.contains('public int firepointCount = 1')
                 || !definition.contains('Bone.child("firepoint1", "long_cannon")')
@@ -505,7 +522,7 @@ var verifyControlSeatTextures = tasks.register("verifyControlSeatTextures") {
 
     doLast {
         var modelSource = file("src/main/java/com/kodu16/vsie/content/controlseat/client/AbstractControlSeatModel.java").text
-        var fallbackSource = file("src/main/java/com/kodu16/vsie/content/custom_turret/CustomTurretGeoModel.java").text
+        var fallbackSource = file("src/main/java/com/kodu16/vsie/content/aeroie_custom/CustomDeviceGeoModel.java").text
         var textureDirectory = file("src/main/resources/assets/vsie/textures/block/control_seat")
         var expectedTextures = [
                 "gray_white_light_blue.png",

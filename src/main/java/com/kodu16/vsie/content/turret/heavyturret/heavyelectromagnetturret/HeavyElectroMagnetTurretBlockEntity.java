@@ -41,7 +41,7 @@ import java.util.List;
 public class HeavyElectroMagnetTurretBlockEntity extends AbstractHeavyTurretBlockEntity {
     private static final double SIDE_FIREPOINT_OFFSET = 2.2D;
     private static final double PROJECTILE_MUZZLE_FORWARD_OFFSET = 0.35D;
-    private static final int TURRET_BULLET_MAX_LIFETIME_TICKS = 80;
+    private static final int TURRET_BULLET_MAX_LIFETIME_TICKS = 20 * 15;
     private static final int MUZZLE_SMOKE_PARTICLE_COUNT = 24;
     private static final double MUZZLE_SMOKE_VISIBLE_DISTANCE = 220.0D;
     private static final double MUZZLE_SMOKE_BASE_SPEED = 0.55D;
@@ -287,7 +287,7 @@ public class HeavyElectroMagnetTurretBlockEntity extends AbstractHeavyTurretBloc
         HeavyElectroMagnetBulletEntity bullet = new HeavyElectroMagnetBulletEntity(vsieEntities.HEAVY_ELECTROMAGNETIC_BULLET.get(), level);
         // Function: spawn just in front of the muzzle so unaligned manual fire cannot immediately collide with the turret body.
         bullet.setPos(firepoint.add(normalizedDirection.scale(PROJECTILE_MUZZLE_FORWARD_OFFSET)));
-        // Function: heavy-turret misses should disappear quickly instead of leaving dozens of long-lived projectile FX in the world.
+        // Function: heavy-turret misses use the shared fifteen-second projectile lifetime.
         bullet.configureMaxLifeTimeTicks(TURRET_BULLET_MAX_LIFETIME_TICKS);
         bullet.configureLifetimeExpireExplosion(false);
         bullet.setLaunchSubLevel(ServerShipUtils.getSubLevelAtBlockPos(level, getBlockPos()));

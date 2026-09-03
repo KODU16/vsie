@@ -2,6 +2,7 @@ package com.kodu16.vsie.content.missile;
 
 import com.kodu16.vsie.content.missile.client.MissileSoundManager;
 import com.kodu16.vsie.foundation.ServerShipUtils;
+import com.kodu16.vsie.foundation.projectile.ForwardChunkLoadController;
 import com.kodu16.vsie.registries.vsieSounds;
 import com.lowdragmc.photon.client.fx.EntityEffectExecutor;
 import com.lowdragmc.photon.client.fx.FXHelper;
@@ -41,7 +42,7 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
     private static final float DEFAULT_SPEED_ONSTART = 3.0F;
     private static final float DEFAULT_MAX_TURN_RATE_PER_TICK = 0.15F;
     private static final int GUIDANCE_DELAY_TICKS = 20;
-    private static final int MAX_LIFETIME_TICKS = 20 * 10;
+    private static final int MAX_LIFETIME_TICKS = 20 * 15;
     private static final float MISSILE_EXPLOSION_POWER = 16.0F;
     private static final double IMPACT_BLOCK_BREAK_RADIUS = 5.0D;
     private static final double TARGET_PROXIMITY_FUSE_RADIUS = 1.5D;
@@ -57,6 +58,7 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
     private boolean switchTrackFxStarted = false;
     private boolean trailFxStarted = false;
     private boolean launchSoundPlayed = false;
+    private final ForwardChunkLoadController forwardChunkLoader = new ForwardChunkLoadController();
 
     public float xRot0 = 0f;
     public float yRot0 = 0f;
@@ -93,6 +95,7 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
         this.currentDirection = direction.normalize();
         this.setSpeed(DEFAULT_SPEED_ONSTART);
         this.setDeltaMovement(this.currentDirection.scale(getSpeed()));
+        updateForwardChunkLoading();
         updateRotationFromMovement(this.getDeltaMovement());
     }
 
@@ -134,8 +137,17 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
             handleClientGuidanceFx();
             handleClientLoopSound();
         }
+        updateForwardChunkLoading();
         updateRotationFromMovement(this.getDeltaMovement());
+        // AbstractHurtingProjectile performs a swept hit test across the complete movement vector.
         super.tick();
+    }
+
+    private void updateForwardChunkLoading() {
+        if (this.level() instanceof ServerLevel serverLevel) {
+            // Function: guided turns rebuild the diagonal-safe force-loaded corridor every tick.
+            forwardChunkLoader.update(serverLevel, this.position(), this.getDeltaMovement());
+        }
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -390,10 +402,17 @@ public abstract class AbstractMissileEntity extends AbstractHurtingProjectile im
 
     @Override
     public void remove(Entity.RemovalReason removalReason) {
+        forwardChunkLoader.release();
         if (this.level() != null && this.level().isClientSide) {
             stopClientLoopSound();
         }
         super.remove(removalReason);
+    }
+
+    @Override
+    public boolean shouldRenderAtSqrDistance(double distance) {
+        // Function: every missile subclass bypasses vanilla distance culling while the server tracks it.
+        return true;
     }
 
     @OnlyIn(Dist.CLIENT)

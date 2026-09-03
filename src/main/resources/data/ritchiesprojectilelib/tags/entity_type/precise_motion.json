@@ -3,9 +3,11 @@
   "values": [
     "vsie:basic_missile",
     "vsie:particle_bullet",
+    "vsie:custom_turret_projectile",
     "vsie:cenix_plasma_bullet",
     "vsie:heavy_electromagnetic_bullet",
     "vsie:electro_magnet_rail_cannon_bullet",
+    "vsie:infra_knife_bullet",
     "vsie:warp_projectile"
   ]
 }

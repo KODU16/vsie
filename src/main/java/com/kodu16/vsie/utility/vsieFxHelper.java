@@ -3,6 +3,7 @@ package com.kodu16.vsie.utility;
 import com.kodu16.vsie.network.fx.FxBlockS2CPacket;
 import com.kodu16.vsie.network.fx.FxEntityS2CPacket;
 import com.kodu16.vsie.network.fx.FxPositionS2CPacket;
+import com.kodu16.vsie.content.aeroie_custom.CustomFxResources;
 import com.lowdragmc.photon.client.fx.BlockEffectExecutor;
 import com.lowdragmc.photon.client.fx.EntityEffectExecutor;
 import com.lowdragmc.photon.client.fx.FX;
@@ -10,6 +11,9 @@ import com.lowdragmc.photon.client.fx.FXHelper;
 import com.lowdragmc.photon.client.gameobject.IFXObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
@@ -29,6 +33,23 @@ public final class vsieFxHelper {
     }
 
     @OnlyIn(Dist.CLIENT)
+    public static @Nullable FX resolveFx(ResourceLocation location) {
+        FX fx = FXHelper.getFX(location);
+        if (fx != null || !CustomFxResources.NAMESPACE.equals(location.getNamespace())) {
+            return fx;
+        }
+        try (var stream = CustomFxResources.open(location)) {
+            FX customFx = new FX();
+            customFx.setFxLocation(location);
+            customFx.deserializeNBT(com.lowdragmc.lowdraglib2.Platform.getFrozenRegistry(),
+                    NbtIo.readCompressed(stream, NbtAccounter.unlimitedHeap()));
+            return customFx;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    @OnlyIn(Dist.CLIENT)
     public static void clientTriggerEntityFx(FxEntityS2CPacket triggerPacket) {
         ClientLevel level = Minecraft.getInstance().level;
         if (level != null) {
@@ -38,7 +59,7 @@ public final class vsieFxHelper {
                     stopEntityFx(entity, triggerPacket.getFx());
                     return;
                 }
-                FX fx = FXHelper.getFX(triggerPacket.getFx());
+                FX fx = resolveFx(triggerPacket.getFx());
                 if (fx != null) {
                     var effect = new EntityEffectExecutor(fx, level, entity, EntityEffectExecutor.AutoRotate.NONE);
                     // Function: entity FX can be attached away from the entity origin for large ship-scale effects.
@@ -76,7 +97,7 @@ public final class vsieFxHelper {
         ClientLevel level = Minecraft.getInstance().level;
         if (level != null) {
             BlockPos pos = triggerPacket.getBlockPos();
-            FX fx = FXHelper.getFX(triggerPacket.getFx());
+            FX fx = resolveFx(triggerPacket.getFx());
             if (fx != null) {
                 var effect = new BlockEffectExecutor(fx, level, pos);
                 effect.setForcedDeath(triggerPacket.isForceDead());
@@ -89,7 +110,7 @@ public final class vsieFxHelper {
     public static void clientTriggerPositionEffectFx(FxPositionS2CPacket triggerPacket) {
         ClientLevel level = Minecraft.getInstance().level;
         if (level != null) {
-            FX fx = FXHelper.getFX(triggerPacket.getFx());
+            FX fx = resolveFx(triggerPacket.getFx());
             if (fx != null) {
                 BlockPos blockPos = BlockPos.containing(triggerPacket.getX(), triggerPacket.getY(), triggerPacket.getZ());
                 Vector3f velocity = new Vector3f(

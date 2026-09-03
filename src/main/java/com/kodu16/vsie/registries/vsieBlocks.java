@@ -6,7 +6,10 @@ import com.kodu16.vsie.content.misc.electromagnet_rail.structure.top.ElectroMagn
 import com.kodu16.vsie.content.misc.enemy_cannon.EnemyCannonBlock;
 import com.kodu16.vsie.content.misc.enemy_autocannon.EnemyAutocannonBlock;
 import com.kodu16.vsie.content.misc.enemy_core.EnemyCoreBlock;
-import com.kodu16.vsie.content.custom_turret.CustomTurretBlock;
+import com.kodu16.vsie.content.aeroie_custom.CustomThrusterBlock;
+import com.kodu16.vsie.content.aeroie_custom.CustomTurretBlock;
+import com.kodu16.vsie.content.aeroie_custom.CustomWeaponBlock;
+import com.kodu16.vsie.content.aeroie_custom.CustomDecorationBlock;
 import com.kodu16.vsie.content.turret.ciws.basicciws.BasicCIWSBlock;
 import com.kodu16.vsie.content.turret.heavyturret.heavyelectromagnetturret.HeavyElectroMagnetTurretBlock;
 import com.kodu16.vsie.content.turret.heavyturret.heavylaserturret.HeavyLaserTurretBlock;
@@ -55,6 +58,33 @@ public class vsieBlocks {
     // Function: the custom turret's single anchor block is rendered entirely by its Gecko block entity.
     public static final BlockEntry<CustomTurretBlock> CUSTOM_TURRET_BLOCK =
             REGISTRATE.block("custom_turret", CustomTurretBlock::new)
+                    .properties(p -> p.mapColor(MapColor.METAL))
+                    .properties(p -> p.sound(SoundType.METAL))
+                    .properties(p -> p.strength(5.5F, 4.0F))
+                    .properties(BlockBehaviour.Properties::noOcclusion)
+                    .register();
+
+    // Function: custom weapons use AeroIE's common weapon block state and control-seat binding surface.
+    public static final BlockEntry<CustomWeaponBlock> CUSTOM_WEAPON_BLOCK =
+            REGISTRATE.block("custom_weapon", CustomWeaponBlock::new)
+                    .properties(p -> p.mapColor(MapColor.METAL))
+                    .properties(p -> p.sound(SoundType.METAL))
+                    .properties(p -> p.strength(5.5F, 4.0F))
+                    .properties(BlockBehaviour.Properties::noOcclusion)
+                    .register();
+
+    // Function: custom thrusters use AeroIE's common directional thruster physics surface.
+    public static final BlockEntry<CustomThrusterBlock> CUSTOM_THRUSTER_BLOCK =
+            REGISTRATE.block("custom_thruster", CustomThrusterBlock::new)
+                    .properties(p -> p.mapColor(MapColor.METAL))
+                    .properties(p -> p.sound(SoundType.METAL))
+                    .properties(p -> p.strength(5.5F, 4.0F))
+                    .properties(BlockBehaviour.Properties::noOcclusion)
+                    .register();
+
+    // Function: decorations are passive entity-rendered blocks and intentionally expose no simple block item.
+    public static final BlockEntry<CustomDecorationBlock> CUSTOM_DECORATION_BLOCK =
+            REGISTRATE.block("custom_decoration", CustomDecorationBlock::new)
                     .properties(p -> p.mapColor(MapColor.METAL))
                     .properties(p -> p.sound(SoundType.METAL))
                     .properties(p -> p.strength(5.5F, 4.0F))

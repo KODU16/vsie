@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public class ControlSeatClientData {
-    private static final long DIMENSION_TRANSFER_GRACE_MILLIS = 3000L;
+    private static final long DIMENSION_TRANSFER_GRACE_MILLIS = 30000L;
     public volatile long lastKeyPressTime = 0;
     public volatile boolean viewLock = false;
     public volatile boolean hasPendingViewLockSync = false;

@@ -35,6 +35,11 @@ public class FxPositionS2CPacket implements CustomPacketPayload {
     }
 
     public FxPositionS2CPacket(ResourceLocation fx, double x, double y, double z,
+                               Quaternionf rotation, Vector3f scale, boolean forceDead, boolean allowMulti) {
+        this(fx, x, y, z, 0.0D, 0.0D, 0.0D, rotation, scale, forceDead, allowMulti);
+    }
+
+    public FxPositionS2CPacket(ResourceLocation fx, double x, double y, double z,
                                double velocityX, double velocityY, double velocityZ,
                                Quaternionf rotation, Vector3f scale, boolean forceDead) {
         this(fx, x, y, z, velocityX, velocityY, velocityZ, rotation, scale, forceDead, false);

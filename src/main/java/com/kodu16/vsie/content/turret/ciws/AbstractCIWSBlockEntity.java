@@ -205,13 +205,7 @@ public abstract class AbstractCIWSBlockEntity extends AbstractTurretBlockEntity 
     }
 
     private Vec3 getCiwsProtectedCenter() {
-        SubLevel subLevel = ServerShipUtils.getSubLevelAtBlockPos(level, this.getBlockPos());
-        if (subLevel != null) {
-            Vec3 structureCenter = ServerShipUtils.getStructureCenterWorld(subLevel);
-            if (structureCenter != null) {
-                return structureCenter;
-            }
-        }
+        // Function: CIWS interception is judged from the turret's own world position, so ground-mounted and ship-mounted units protect the same local sphere.
         return new Vec3(this.currentworldpos.x, this.currentworldpos.y, this.currentworldpos.z);
     }
 

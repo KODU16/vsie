@@ -19,7 +19,7 @@ import com.kodu16.vsie.registries.vsieEntities;
 import com.kodu16.vsie.registries.vsieItems;
 import com.kodu16.vsie.registries.vsieSounds;
 import com.kodu16.vsie.content.turret.heavyturret.AbstractHeavyTurretBlockEntity;
-import com.kodu16.vsie.content.custom_turret.CustomTurretBlockEntity;
+import com.kodu16.vsie.content.aeroie_custom.CustomTurretBlockEntity;
 import com.kodu16.vsie.content.shield.ShieldGeneratorBlockEntity;
 import com.kodu16.vsie.content.shield.ShieldInterception;
 import com.kodu16.vsie.content.screen.AbstractScreenBlockEntity;
@@ -90,7 +90,6 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity
     // Cross-dimension Sable reconstruction can outlive the client-ready barrier; retain the mount for that window.
     private static final int OCCUPANT_RESTORE_GRACE_TICKS = 440;
     private static final float SHIELD_OPEN_DEFAULT_RADIUS = 8.0F;
-    private static final String ANTI_GRAVITY_IDLE_THROTTLE_TAG = "AntiGravityIdleThrottle";
     private static final String WARP_FRAME_DIMENSION_TAG = "WarpFrameDimension";
     // Function: preserve the softer one-shot boost transient while moving its trigger to the control seat.
     private static final float THRUSTER_BOOST_VOLUME_SCALE = 0.6F;
@@ -157,6 +156,12 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity
         reconcileWarpFrameAfterDimensionChange();
         controlseatData.serverShip = subLevel;
         controlseatData.level = level;
+        // 跨维度重建后，restorePassengerVehicles 可能已在服务端重新骑乘，但 controlseatData.player 尚未刷新。
+        // 主动从世界重新识别乘客，避免因为 player 为 null 而停止下发控制数据。
+        if (controlseatData.getPlayer() == null && level instanceof ServerLevel) {
+            refreshSeatOccupancyFromWorld();
+        }
+        logSeatTickDiagnostic(subLevel);
         serverShipHandler.getandsendshipdata(subLevel, getBlockPos());
     }
 
@@ -167,7 +172,54 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity
         }
         controlseatData.serverShip = subLevel;
         controlseatData.level = level;
+        logSeatPhysicsDiagnostic(subLevel, handle, timeStep);
         serverShipHandler.applyForceAndTorque(subLevel, getBlockPos(), timeStep);
+    }
+
+    private long lastSeatTickDiagMs;
+    private String lastSeatTickDiag = "";
+    private long lastSeatPhysicsDiagMs;
+    private String lastSeatPhysicsDiag = "";
+
+    private void logSeatTickDiagnostic(ServerSubLevel subLevel) {
+        if (level == null) {
+            return;
+        }
+        Player player = controlseatData.getPlayer();
+        Entity vehicle = player == null ? null : player.getVehicle();
+        String message = "dim=" + level.dimension().location()
+                + " subLevel=" + (subLevel == null ? "null" : subLevel.getUniqueId())
+                + " player=" + (player == null ? "null" : player.getUUID())
+                + " riding=" + (vehicle instanceof ControlSeatMountEntity)
+                + " awaitingRestore=" + isAwaitingOccupantRestore();
+        if (message.equals(lastSeatTickDiag) && System.currentTimeMillis() - lastSeatTickDiagMs < 2000L) {
+            return;
+        }
+        lastSeatTickDiag = message;
+        lastSeatTickDiagMs = System.currentTimeMillis();
+        LogUtils.getLogger().info("[VSIE-SEAT-DIAG] phase=SABLE_TICK {}", message);
+    }
+
+    private void logSeatPhysicsDiagnostic(ServerSubLevel subLevel, RigidBodyHandle handle, double timeStep) {
+        if (level == null) {
+            return;
+        }
+        MassData massData = subLevel == null ? null : subLevel.getMassTracker();
+        String mass = massData == null ? "null" : (massData.isInvalid() ? "invalid" : "valid");
+        String message = "dim=" + level.dimension().location()
+                + " subLevel=" + (subLevel == null ? "null" : subLevel.getUniqueId())
+                + " mass=" + mass
+                + " handle=" + (handle == null ? "null" : (handle.isValid() ? "valid" : "invalid"))
+                + " axes=" + (controlseatData.getDirectionForward() != null
+                        && controlseatData.getDirectionUp() != null
+                        && controlseatData.getDirectionRight() != null)
+                + " player=" + (controlseatData.getPlayer() == null ? "null" : controlseatData.getPlayer().getUUID());
+        if (message.equals(lastSeatPhysicsDiag) && System.currentTimeMillis() - lastSeatPhysicsDiagMs < 2000L) {
+            return;
+        }
+        lastSeatPhysicsDiag = message;
+        lastSeatPhysicsDiagMs = System.currentTimeMillis();
+        LogUtils.getLogger().info("[VSIE-SEAT-DIAG] phase=SABLE_PHYSICS {}", message);
     }
 
     @Override
@@ -280,8 +332,6 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity
         tag.putBoolean("WasSeatOccupied", ride || controlseatData.getPlayer() != null);
         // Function: auto-level is a ship mode like anti-gravity and should survive block reloads.
         tag.putBoolean("IsAutoLevelOn", controlseatData.isAutoLevelOn);
-        // Function: idle anti-gravity learns a trim value and should resume from the last stable world load.
-        tag.putDouble(ANTI_GRAVITY_IDLE_THROTTLE_TAG, controlseatData.antiGravityIdleThrottle);
         controlseatData.refreshWeaponChannelEncode();
         // Function: weapon channel toggles must survive world reloads, not just the live S2C HUD sync.
         tag.putInt("WeaponChannelEncode", controlseatData.channelencode);
@@ -344,11 +394,6 @@ public class ControlSeatBlockEntity extends AbstractControlSeatBlockEntity
             occupantRestoreGraceTicks = tag.getBoolean("WasSeatOccupied") ? OCCUPANT_RESTORE_GRACE_TICKS : 0;
         }
         controlseatData.isAutoLevelOn = tag.getBoolean("IsAutoLevelOn");
-        if (tag.contains(ANTI_GRAVITY_IDLE_THROTTLE_TAG)) {
-            controlseatData.antiGravityIdleThrottle = Mth.clamp(tag.getDouble(ANTI_GRAVITY_IDLE_THROTTLE_TAG), 0.0D, 2.0D);
-        } else {
-            controlseatData.antiGravityIdleThrottle = 1.0D;
-        }
         if (tag.contains("WeaponChannelEncode")) {
             controlseatData.setWeaponChannelEncode(tag.getInt("WeaponChannelEncode"));
         } else {

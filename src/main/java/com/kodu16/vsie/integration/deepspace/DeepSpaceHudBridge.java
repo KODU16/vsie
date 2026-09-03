@@ -14,13 +14,62 @@ import java.util.List;
 /** Reads the optional DeepSpace client registry without making VSIE depend on its classes. */
 public final class DeepSpaceHudBridge {
     private static final String REGISTRY_CLASS = "world.landfall.deepspace.planet.PlanetRegistry";
+    private static final String HYPER_RELAY_CLIENT_STATE_CLASS = "world.landfall.deepspace.client.HyperRelayJumpClientState";
     private static volatile Reflection reflection;
+    private static volatile HyperRelayReflection hyperRelayReflection;
 
     private DeepSpaceHudBridge() {
     }
 
     public static boolean available() {
         return ModList.get().isLoaded("deepspace") && reflection() != null;
+    }
+
+    public static HyperRelayStatus hyperRelayStatus() {
+        HyperRelayReflection api = hyperRelayReflection();
+        if (api == null) {
+            return HyperRelayStatus.EMPTY;
+        }
+        try {
+            boolean inRange = (boolean) api.isInRange.invoke(null);
+            double distance = (double) api.getDistance.invoke(null);
+            int countdown = (int) api.getCountdownTicks.invoke(null);
+            return new HyperRelayStatus(inRange, distance, countdown);
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            return HyperRelayStatus.EMPTY;
+        }
+    }
+
+    public static void requestHyperRelayJump() {
+        HyperRelayReflection api = hyperRelayReflection();
+        if (api == null) {
+            return;
+        }
+        try {
+            api.requestJump.invoke(null);
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+        }
+    }
+
+    private static HyperRelayReflection hyperRelayReflection() {
+        if (hyperRelayReflection != null) {
+            return hyperRelayReflection;
+        }
+        if (!ModList.get().isLoaded("deepspace")) {
+            return null;
+        }
+        try {
+            Class<?> cls = Class.forName(HYPER_RELAY_CLIENT_STATE_CLASS);
+            hyperRelayReflection = new HyperRelayReflection(
+                    cls.getMethod("isInRange"),
+                    cls.getMethod("getDistance"),
+                    cls.getMethod("getCountdownTicks"),
+                    cls.getMethod("requestJump")
+            );
+            return hyperRelayReflection;
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            return null;
+        }
     }
 
     public static List<Body> bodies(ResourceKey<Level> galaxy) {
@@ -111,6 +160,18 @@ public final class DeepSpaceHudBridge {
             List<String> biomes,
             List<String> fluids,
             List<String> blocks
+    ) {
+    }
+
+    public record HyperRelayStatus(boolean inRange, double distance, int countdownTicks) {
+        private static final HyperRelayStatus EMPTY = new HyperRelayStatus(false, Double.POSITIVE_INFINITY, 0);
+    }
+
+    private record HyperRelayReflection(
+            Method isInRange,
+            Method getDistance,
+            Method getCountdownTicks,
+            Method requestJump
     ) {
     }
 

@@ -87,6 +87,11 @@ public class vsieKeyMappings {
             GLFW.GLFW_KEY_P,
             "category.vsie"
     );
+    public static final KeyMapping KEY_ACTIVATE_HYPER_RELAY = new KeyMapping(
+            "key.vsie.activate_hyper_relay",
+            GLFW.GLFW_KEY_K,
+            "category.vsie"
+    );
 
     public static void register(IEventBus modBus) {
         // Function: register all client key mappings on the mod event bus.
@@ -110,5 +115,6 @@ public class vsieKeyMappings {
         event.register(KEY_TOGGLE_ANTI_GRAVITY);
         event.register(KEY_TOGGLE_AUTO_LEVEL);
         event.register(KEY_TOGGLE_DEEPSPACE_HUD);
+        event.register(KEY_ACTIVATE_HYPER_RELAY);
     }
 }

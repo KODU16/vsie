@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "facing=down": { "model": "vsie:block/gecko_block" },
+    "facing=up": { "model": "vsie:block/gecko_block" },
+    "facing=north": { "model": "vsie:block/gecko_block" },
+    "facing=south": { "model": "vsie:block/gecko_block" },
+    "facing=west": { "model": "vsie:block/gecko_block" },
+    "facing=east": { "model": "vsie:block/gecko_block" }
+  }
+}

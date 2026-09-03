@@ -111,7 +111,10 @@ public class HeavyElectroMagnetBulletEntity extends AbstractBulletEntity {
             return;
         }
 
-        if (breaksBlocksEnabled() && hitResult.getType() != HitResult.Type.BLOCK && this.level() instanceof ServerLevel serverLevel) {
+        if (isCurrentChunkCollisionEligible()
+                && breaksBlocksEnabled()
+                && hitResult.getType() != HitResult.Type.BLOCK
+                && this.level() instanceof ServerLevel serverLevel) {
             BlockState state = serverLevel.getBlockState(this.blockPosition());
             if (!state.isAir() && state.isCollisionShapeFullBlock(serverLevel, this.blockPosition())) {
                 destroyBlocksInSphere(serverLevel, this.position(), getBlockBreakRadius());

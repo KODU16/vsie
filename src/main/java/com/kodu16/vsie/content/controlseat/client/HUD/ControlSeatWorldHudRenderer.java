@@ -39,6 +39,7 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import org.joml.Vector3dc;
 import org.joml.Matrix4f;
@@ -88,6 +89,18 @@ public class ControlSeatWorldHudRenderer {
     private static long lastHudRenderTimeNanos = -1L;
 
     private record HudSeatContext(ControlSeatBlockEntity controlSeat, BlockPos seatPos) {
+    }
+
+    @SubscribeEvent
+    public static void onClientTick(ClientTickEvent.Post event) {
+        Player player = mc.player;
+        if (player == null || mc.level == null) {
+            return;
+        }
+        if (player.getVehicle() instanceof ControlSeatMountEntity
+                && vsieKeyMappings.KEY_ACTIVATE_HYPER_RELAY.consumeClick()) {
+            DeepSpaceHudBridge.requestHyperRelayJump();
+        }
     }
 
     @SubscribeEvent
@@ -329,6 +342,7 @@ public class ControlSeatWorldHudRenderer {
             drawKeyedSwitch(poseStack, buffers, "DeepSpace", vsieKeyMappings.KEY_TOGGLE_DEEPSPACE_HUD,
                     leftSwitchX, switchY + switchGapY * 3, DeepSpaceHudRenderer.isEnabled(), false,
                     MODE_BUTTON_WIDTH, MODE_BUTTON_HEIGHT, screenCenterX, screenCenterY);
+            drawHyperRelaySwitch(poseStack, buffers, rightSwitchX, switchY + switchGapY * 3, screenCenterX, screenCenterY);
         }
 
         int rightArcCenterX = centerX + (3 * centerX / 10);
@@ -578,6 +592,19 @@ public class ControlSeatWorldHudRenderer {
         String label = data.hasPendingWarpTeleport ? "JUMP" : "ALIGN";
         drawCenteredText(poseStack, buffers, label, x, y, WARP_COLOR, HUD_TEXT_SCALE, screenCenterX, screenCenterY);
         drawHollowRectangle(poseStack, x, y + 2, MODE_BUTTON_WIDTH, MODE_BUTTON_HEIGHT, 1, WARP_COLOR, screenCenterX, screenCenterY);
+    }
+
+    private static void drawHyperRelaySwitch(PoseStack poseStack, MultiBufferSource.BufferSource buffers, int x, int y, int screenCenterX, int screenCenterY) {
+        DeepSpaceHudBridge.HyperRelayStatus status = DeepSpaceHudBridge.hyperRelayStatus();
+        int countdown = status.countdownTicks();
+        if (countdown > 0) {
+            int seconds = (countdown + 19) / 20;
+            drawCenteredText(poseStack, buffers, "JUMP " + seconds, x, y, WARP_COLOR, HUD_TEXT_SCALE, screenCenterX, screenCenterY);
+            drawHollowRectangle(poseStack, x, y + 2, MODE_BUTTON_WIDTH, MODE_BUTTON_HEIGHT, 1, WARP_COLOR, screenCenterX, screenCenterY);
+        } else {
+            drawKeyedSwitch(poseStack, buffers, "Hyper", vsieKeyMappings.KEY_ACTIVATE_HYPER_RELAY, x, y,
+                    status.inRange(), false, MODE_BUTTON_WIDTH, MODE_BUTTON_HEIGHT, screenCenterX, screenCenterY);
+        }
     }
 
     private static void drawSwitch(PoseStack poseStack, MultiBufferSource.BufferSource buffers, String label, int x, int y, boolean active, int width, int height, int screenCenterX, int screenCenterY) {

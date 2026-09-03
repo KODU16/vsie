@@ -64,7 +64,7 @@ public class vsieCreativeTab {
             output.accept(vsieItems.IFF);
             output.accept(vsieItems.SHIELD_TOOL);
             output.accept(vsieItems.WARP_DATA_CHIP);
-            output.accept(vsieItems.CUSTOM_TURRET_PLACER);
+            output.accept(vsieItems.CUSTOM_DEVICE_PLACER);
             output.accept(vsieItems.REGION_OBJ_EXPORT_TOOL);
             //output.accept(vsieBlocks.BASIC_SCREEN_BLOCK);
             output.accept(vsieBlocks.REDSTONE_RELAY_BLOCK);

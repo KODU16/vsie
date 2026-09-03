@@ -1,8 +1,12 @@
 package com.kodu16.vsie.registries;
 
 import com.kodu16.vsie.content.controlseat.client.AbstractControlSeatGeoRenderer;
-import com.kodu16.vsie.content.custom_turret.CustomTurretBlockEntity;
-import com.kodu16.vsie.content.custom_turret.client.CustomTurretGeoRenderer;
+import com.kodu16.vsie.content.aeroie_custom.CustomThrusterBlockEntity;
+import com.kodu16.vsie.content.aeroie_custom.CustomTurretBlockEntity;
+import com.kodu16.vsie.content.aeroie_custom.CustomWeaponBlockEntity;
+import com.kodu16.vsie.content.aeroie_custom.CustomDecorationBlockEntity;
+import com.kodu16.vsie.content.aeroie_custom.client.CustomDeviceGeoRenderer;
+import com.kodu16.vsie.content.aeroie_custom.client.CustomTurretGeoRenderer;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreBlockEntity;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.core.ElectroMagnetRailCoreGeoRenderer;
 import com.kodu16.vsie.content.misc.electromagnet_rail.structure.top.ElectroMagnetRailTopBlockEntity;
@@ -81,6 +85,26 @@ public class vsieBlockEntities {
                     .register(),
                     Capabilities.ItemHandler.BLOCK,
                     (blockEntity, side) -> blockEntity.getItemHandler());
+
+    public static final BlockEntityEntry<CustomWeaponBlockEntity> CUSTOM_WEAPON_BLOCK_ENTITY =
+            withCapability(REGISTRATE.blockEntity("custom_weapon_block_entity", CustomWeaponBlockEntity::new)
+                    .validBlocks(vsieBlocks.CUSTOM_WEAPON_BLOCK)
+                    .renderer(() -> CustomDeviceGeoRenderer::new)
+                    .register(),
+                    Capabilities.ItemHandler.BLOCK,
+                    (blockEntity, side) -> blockEntity.getItemHandler());
+
+    public static final BlockEntityEntry<CustomThrusterBlockEntity> CUSTOM_THRUSTER_BLOCK_ENTITY =
+            REGISTRATE.blockEntity("custom_thruster_block_entity", CustomThrusterBlockEntity::new)
+                    .validBlocks(vsieBlocks.CUSTOM_THRUSTER_BLOCK)
+                    .renderer(() -> CustomDeviceGeoRenderer::new)
+                    .register();
+
+    public static final BlockEntityEntry<CustomDecorationBlockEntity> CUSTOM_DECORATION_BLOCK_ENTITY =
+            REGISTRATE.blockEntity("custom_decoration_block_entity", CustomDecorationBlockEntity::new)
+                    .validBlocks(vsieBlocks.CUSTOM_DECORATION_BLOCK)
+                    .renderer(() -> CustomDeviceGeoRenderer::new)
+                    .register();
 
     public static void registerCapabilities(RegisterCapabilitiesEvent event) {
         CAPABILITY_REGISTRATIONS.forEach(registration -> registration.accept(event));
@@ -326,6 +350,16 @@ public class vsieBlockEntities {
             registerEnemyCannonBlockEntity();
     public static final @Nullable BlockEntityEntry<EnemyAutocannonBlockEntity> ENEMY_AUTOCANNON_BLOCK_ENTITY =
             registerEnemyAutocannonBlockEntity();
+
+    static {
+        // Function: energy laser turrets accept external FE when mounted off-ship and powered independently of a control seat.
+        withCapability(MEDIUM_LASER_TURRET_BLOCK_ENTITY,
+                Capabilities.EnergyStorage.BLOCK,
+                (blockEntity, side) -> blockEntity.getEnergyCapability());
+        withCapability(SMALL_LASER_TURRET_BLOCK_ENTITY,
+                Capabilities.EnergyStorage.BLOCK,
+                (blockEntity, side) -> blockEntity.getEnergyCapability());
+    }
 
     private static @Nullable BlockEntityEntry<EnemyCannonBlockEntity> registerEnemyCannonBlockEntity() {
         if (vsieBlocks.ENEMY_CANNON_BLOCK == null) {
